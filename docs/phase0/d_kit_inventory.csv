@@ -1,0 +1,88 @@
+Part,Kits,Main IC,Interface,Emulation class,In EM-03?,Lifecycle flag,Notes
+ELEGOO UNO R3 board,"E3, E1",Microchip ATmega328P (+ USB bridge UNVERIFIED),Board,Full model (board),n/a (board),Not checked,"Target board; covered by board model scope, not EM-03"
+ELEGOO MEGA2560 R3 board,E8,Microchip ATmega2560,Board,Full model (board),n/a (board),Not checked,Target board
+Arduino UNO R4 WiFi,SE,Renesas RA4M1 + Espressif ESP32-S3,Board,Full model (board),n/a (board),Not checked,Wi-Fi/BLE side not emulated; LED matrix on board
+Arduino UNO R4 Minima,"S3, SU",Renesas RA4M1,Board,Full model (board),n/a (board),Not checked,Target board
+Raspberry Pi Pico,SEU,Raspberry Pi RP2040,Board,Full model (board),n/a (board),Not checked,Pre-soldered per product page
+Raspberry Pi Pico W,SK,RP2040 + Infineon CYW43439,Board,Full model (board),n/a (board),Not checked,Wi-Fi not emulated; product page: 'Board Included: Pico W'
+GPIO extension board (T-type),SR,None (passive),Wiring,Full model,n/a (accessory),—,Raspberry Pi board itself not included in kit
+ELEGOO expansion board,"E1, E8",UNVERIFIED,UNVERIFIED,Behavioural stub,No,—,Named on product page only; type UNVERIFIED
+Breadboard power supply module,"E3, SE, SEU, SR, UM",Regulator IC UNVERIFIED,Power,Full model,Yes (voltage regulator),UNVERIFIED,Regulator IC to be identified from sample
+Li-po charger module,SK,Charger IC UNVERIFIED,Power,Behavioural stub,No,UNVERIFIED,Charge state as user-set value
+9 V battery with DC plug,E3,—,Power,Behavioural stub,No,—,Ideal source with user-set voltage
+Resistors (assorted),"E1, E8, SE, S3, SR, SEU, SK, SU",—,Passive,Full model,Yes,—,Values per kit UNVERIFIED
+Capacitors (assorted),"SE, S3, SR, SEU, SK, SU",—,Passive,Full model,Yes,—,Values UNVERIFIED
+Diodes (rectifier),"E1, E8, SE, SR, SEU, SK",Type UNVERIFIED,Passive,Full model,Yes,—,
+Transistors (BJT),"SE, SR, SEU, SK",Type UNVERIFIED,Analogue/switch,Full model,Yes (BJT),—,NPN/PNP types UNVERIFIED
+LED (single colour),"E3, E1, E8, SE, S3, SR, SEU, SK",—,Digital/PWM,Full model,Yes,—,
+RGB LED (discrete),"SE, S3, SR, SEU, SK",—,PWM,Full model,Yes,—,Common anode/cathode UNVERIFIED
+RGB LED module,"SU, UM",—,PWM,Full model,Yes (RGB LED),—,
+Traffic light module,"SU, UM",3 LEDs,Digital,Full model,Yes (LEDs),—,
+LED bar graph (10-segment),"SR, SEU, SK",—,Digital,Full model,Yes (LEDs),—,Package of LEDs
+Potentiometer,"E1, E8, SE, S3, SR, SEU, SK",—,Analogue,Full model,Yes,—,
+Potentiometer module,"SU, UM",—,Analogue,Full model,Yes,—,
+Push-button,"E1, E8, SE, S3, SR, SEU, SK",—,Digital,Full model,Yes,—,
+Button module,"SU, UM",—,Digital,Full model,Yes,—,
+Micro switch,"SR, SEU, SK",—,Digital,Full model,Yes (switch),—,
+Slide switch,"SR, SEU, SK",—,Digital,Full model,Yes (switch),—,
+Tilt switch (ball),"SE, SR, SEU, SK",—,Digital,Full model,Yes (switch),—,Contact state driven by virtual tilt
+Reed switch / module,"S3, SR, SEU, SK",—,Digital,Full model,Yes (switch),—,Raphael supplies module form
+Photoresistor (LDR),"SE, S3, SR, SEU, SK",CdS cell,Analogue,Full model,Yes (LDR),—,CdS content: RoHS status to check
+Photoresistor module,"SU, UM",CdS cell,Analogue,Full model,Yes (LDR),—,
+Thermistor (NTC),"SE, S3, SR, SEU, SK",—,Analogue,Full model,No,—,Beta model
+Buzzer (active/passive),"SE, S3, SR, SEU, SK",—,Digital/PWM,Full model,Yes,—,Active vs passive per kit UNVERIFIED
+Passive buzzer module,"SU, UM",—,PWM,Full model,Yes,—,
+74HC595 shift register,"E3, E1, E8, SE, S3, SR, SEU, SK",74HC595 (maker UNVERIFIED),Serial (SPI-like),Full model,No,Not checked (multi-source),
+L293D motor driver IC,"E1, E8, SR, SEU",L293D,Digital/PWM,Full model,Yes,"Active (TI, ST per item n)",
+ULN2003 stepper driver board,E3,ULN2003A,Digital,Full model,Yes,"Active (TI, ST per item n)",Paired with stepper motor
+TA6586 motor driver IC,"SE, SK",Fuman TA6586,Digital/PWM,Full model,No,UNVERIFIED,H-bridge truth table
+L9110 motor driver module,"S3, SU, UM",L9110 (maker UNVERIFIED),Digital/PWM,Full model,No,UNVERIFIED,Could be substituted by TB6612FNG (EM-03)
+ADC0834 ADC IC,SR,TI ADC0834,Serial (3-wire),Full model,No,Active (TI ADC0834-N; newer ADS7958 offered),
+MCP3008 ADC IC,SR,Microchip MCP3008,SPI,Full model,No,UNVERIFIED,
+PCF8591 ADC/DAC module,UM,NXP PCF8591,I²C,Full model,No,EOL (NXP) → EM-02A substitute needed,Candidate substitute: ADS1115 + MCP4725 (both EM-03)
+MPR121 capacitive touch module,"SE, SEU, SK",NXP MPR121,I²C,Full model,No,Discontinued (NXP) → EM-02A substitute needed,Electrode touches user-driven
+7-segment display (1 digit),"SE, S3, SR, SEU, SK",—,Digital,Full model,Yes,—,
+4-digit 7-segment display,"E3, SR, SEU, SK",—,Digital (multiplexed),Full model,Yes,—,
+8×8 LED matrix (bare),"SEU, SK",788BS (Euler); Kepler type UNVERIFIED,Digital (multiplexed),Full model,No,—,
+MAX7219 8×8 LED matrix module,SR,ADI MAX7219,SPI-like,Full model,No,Active (ADI 'PRODUCTION'),
+LCD1602 (parallel),"E3, E1, E8",HD44780-compatible (controller UNVERIFIED),Parallel 4/8-bit,Full model,Partly (EM-03 has I²C form),HD44780 original discontinued → treat as generic module,I²C backpack not stated on ELEGOO pages
+I²C LCD1602,"SE, S3, SU, UM, SR, SEU, SK",HD44780-compatible + PCF8574-type backpack,I²C,Full model,Yes,"PCF8574: NXP EOL, TI active; backpack maker UNVERIFIED",
+OLED display module,"SE, SU, UM",SSD1306 (UM); SE/SU controller UNVERIFIED,I²C,Full model,Yes,UNVERIFIED,
+WS2812 RGB 8-LED strip,"SE, SEU, SK",Worldsemi WS2812,Single-wire 800 kHz,Full model,No,UNVERIFIED,
+Audio module and speaker,"SE, SR",HXJ8002 amplifier,Analogue audio,Not emulated,No,UNVERIFIED,Audio playback out of emulation scope
+DC motor (small),"E1, E8, SE, SR, SEU, SK",—,Power,Full model,Yes,—,
+TT gear motor,"S3, SU, UM",—,Power,Full model,Yes (DC motor),—,
+Servo (SG90-class),"SE, S3, SU, UM, SR, SEU, SK",SG90 named in SU/UM; others UNVERIFIED,PWM,Full model,Yes,—,
+Stepper motor (28BYJ-48-class),"E3, SE",Model UNVERIFIED,Coils (4-phase),Full model,Yes (with ULN2003),—,SE driver UNVERIFIED
+DC water pump (centrifugal),"SE, S3, SU, UM, SEU, SK",—,Power,Behavioural stub,Yes (DC motor),—,Electrical side as DC motor; flow not modelled
+Relay / 5 V relay module,"SE, SR, SEU, SK, SU, UM",Relay part UNVERIFIED,Digital,Full model,Yes,—,SU/UM: module form
+Joystick module,"SE, S3, SU, UM, SR, SEU, SK",2 pots + switch,Analogue + digital,Full model,Yes,—,
+4×4 membrane keypad,"SE, SR, SEU, SK",—,Matrix scan,Full model,Yes,—,Size stated only for Kepler; others UNVERIFIED
+IR receiver,"SE, S3, SEU, SK",Part UNVERIFIED,IR NEC (demodulated),Full model,Yes,UNVERIFIED,Remote control not listed on pages
+Rotary encoder module,"SR, UM",—,Quadrature digital,Full model,Yes,—,
+Touch sensor module,"SR, SU, UM",IC UNVERIFIED,Digital,Behavioural stub,No,UNVERIFIED,Raphael: 'Touch Switch Module'
+HC-SR04 ultrasonic module,"SE, S3, SU, UM, SR, SEU, SK",Unmarked / varies,Trigger/echo pulse,Full model,Yes,—,Distance user-driven
+HC-SR501 PIR module,"SE, SU, UM, SR, SEU, SK",BISS0001-type (UNVERIFIED),Digital,Full model,Yes,UNVERIFIED,
+DHT11 humidity/temperature,"SE, S3, SU, UM, SEU, SK, SR",Aosong DHT11,Proprietary single-wire,Full model,Yes,UNVERIFIED,Raphael sensor chip UNVERIFIED (page not fetched)
+MPU-6050 module (GY-521),"E8, SU, UM, SR, SEU, SK",TDK MPU-6050,I²C,Full model,No (replaced by ICM-42688-P),Obsolete (TDK) → EM-02A substitute ICM-42688-P,ELEGOO E8 names GY-521
+GY-87 10-DOF IMU,SE,MPU-6050 + QST QMC5883L + Bosch BMP180,I²C,Full model,No,MPU-6050 obsolete; BMP180 not on Bosch site → EM-02A substitute needed,Listed alongside 10-axis IMU; kit revision UNVERIFIED
+10-axis IMU module,SE,SH3001 + QST QMC6310 + Goertek SPL06-001,I²C,Full model,No,UNVERIFIED,Possibly newer kit revision
+MFRC522 RFID module,"SE, SR, SEU, SK, E1, E8",NXP MFRC522 (ELEGOO chip UNVERIFIED),SPI + RF 13.56 MHz,Behavioural stub,No,EOL (NXP; successor CLRC663 plus) → EM-02A substitute needed,SPI register model with virtual cards; RF not emulated
+Water level sensor module,"SEU, SK, UM",—,Analogue,Behavioural stub,No,—,
+Soil moisture module,"SE, S3, SU, UM","Capacitive (SU, UM); SE/S3 type UNVERIFIED",Analogue,Behavioural stub,No,—,
+IR obstacle avoidance module,"S3, SU, UM, SR",IR pair + comparator (UNVERIFIED),Digital,Behavioural stub,No,—,
+Line tracking module,S3,IR reflective sensor (UNVERIFIED),Digital,Behavioural stub,No,—,
+IR speed sensor module (slotted),"SU, UM, SR",Photo-interrupter (UNVERIFIED),Digital pulses,Behavioural stub,No,—,Raphael: 'Speed Sensor Module'
+MQ-2 gas/smoke module,"SU, UM",Winsen/Hanwei MQ-2 (UNVERIFIED),Analogue + digital,Behavioural stub,No,UNVERIFIED,Heater current relevant to power budget
+Flame sensor module,"SU, UM",IR photodiode + comparator,Analogue + digital,Behavioural stub,No,—,
+SW-420 vibration module,"SU, UM",SW-420 switch + comparator,Digital,Behavioural stub,No,—,
+Raindrop detection module,"SU, UM",Resistive pad + comparator,Analogue + digital,Behavioural stub,No,—,
+Hall sensor module,UM,IC UNVERIFIED,Digital/analogue,Behavioural stub,No,UNVERIFIED,
+DS18B20 temperature module,UM,ADI DS18B20,1-Wire,Full model,Yes,"Active (ADI, per item n)",
+BMP280 module,"SU, UM",Bosch BMP280,I²C,Full model,Yes,UNVERIFIED (see item n),
+MAX30102 pulse oximeter module,"SU, UM",ADI MAX30102,I²C,Behavioural stub,No,Active (ADI 'PRODUCTION'),Synthetic PPG waveform
+DS1302 RTC module,"SU, UM",ADI DS1302,3-wire serial,Full model,No,Active (ADI 'PRODUCTION'),
+VL53L0X ToF module,"SU, UM",ST VL53L0X,I²C,Behavioural stub,No,Active (ST; longevity to Dec 2029),Register model coarse; distance user-driven
+ESP8266 Wi-Fi module,"S3, SU, UM, SEU",Espressif ESP8266EX (module type UNVERIFIED),UART (AT),Not emulated,No,UNVERIFIED,Radio
+JDY-31 Bluetooth module,"SU, UM",IC UNVERIFIED,UART,Not emulated,No,UNVERIFIED,Radio
+Camera module (5 MP),SR,Sensor UNVERIFIED,CSI,Not emulated,No,UNVERIFIED,Camera

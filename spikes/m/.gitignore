@@ -1,0 +1,18 @@
+# Phase 0 spike: keep only our own spike code; third-party clones and build outputs are re-fetchable.
+simavr/
+rp2040js/
+pico-sdk/
+micropython/
+rp2350_eval/c1570_rp2350js/
+rp2350_eval/0x4D44_picoem/
+rp2350_eval/GhostRoboticsLab_GhLabs_RP2350_emulator/
+rp2350_eval/thanh20VN_rp2350js/
+rp2350_eval/picoem_spike/target/
+avr_bench/ArduinoCore-avr/
+avr_bench/ard/*.o
+avr_bench/harness
+avr_bench/*.vcd
+pico_fw/build*/
+node_modules/
+.venv/
+__pycache__/

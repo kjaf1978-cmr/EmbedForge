@@ -18,3 +18,15 @@
 - Risk register v0.2.0: R-06 and R-12 re-scored; R-34 to R-36 added.
 - 11 findings (F0-01..F0-11) for D11.
 - Next: (d) kit inventory, (m) emulators.
+
+## 2026-09-26 — session 1 (continued, 2)
+- D11 accepted → v3.3 via tools/apply_d11.py (16 replacements, section 28).
+- You stated the app is for non-commercial use; recorded as open question Q-01 (licence).
+- Phase 0 (d) kit inventory draft: 10 kits; 81 kit parts (59 full model, 18 stub, 4 not
+  emulated); 36 outside EM-03. ELEGOO contents UNVERIFIED.
+- Phase 0 (m) draft, measured in this 2-vCPU container:
+  - simavr runs at 4–5.7× real time.
+  - rp2040js runs at about 0.4×; the C build of c1570/rp2350js in RP2040 mode at about 1.0×.
+  - No RP2350 emulator passes (GPIO does not work), so Pico 2 stays HIL-pending.
+  - The Pi virtual clock works: 60 s emulated in ≤ 0.03 s, deterministic.
+- Spike code in spikes/m/ (third-party clones git-ignored).

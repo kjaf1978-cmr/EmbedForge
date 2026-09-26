@@ -1,6 +1,6 @@
 # Phase 0 status
 
-Baseline: docs/requirements/EmbedForge_prompt_v3.2.md · Phase 0 is read-only (no application
+Baseline: docs/requirements/EmbedForge_prompt_v3.3.md · Phase 0 is read-only (no application
 code).
 
 | Item | Deliverable | Status | Evidence / file |
@@ -8,7 +8,7 @@ code).
 | (a) | Licence analysis (linked / aggregated) | **Draft delivered**; UNVERIFIED items listed | phase0/a_licence_analysis.md |
 | (b) | x86-64 and arm64 build confirmation | Partial: official-binary availability in (a); builds need CI | phase0/a_licence_analysis.md |
 | (c) | LLM model profiles + benchmark | Not started (needs (j); host runs by you) | — |
-| (d) | Kit inventory + initial catalogue | Not started | — |
+| (d) | Kit inventory + initial catalogue | **Draft inventory delivered** (10 kits, 81 kit parts + 6 boards). ELEGOO contents UNVERIFIED (packing lists are images). Catalogue follows | phase0/d_kit_inventory.md, .csv |
 | (e) | Code, symbol, footprint, datasheet sets | Not started | — |
 | (f) | Default fabrication profile | Not started | — |
 | (g) | Installer and installed size per OS | Not started | — |
@@ -17,13 +17,18 @@ code).
 | (j) | Draft VAPP-06 corpus | Not started | — |
 | (k) | Risk register | **v0.2.0 delivered** (36 risks, 10 high) | phase0/k_risk_register.md |
 | (l) | Block-template library plan | Not started | — |
-| (m) | RP2040/RP2350 emulator evaluation (+ Pi time-virtualisation spike, if D10) | Not started | — |
-| (n) | Active equivalents | Partial: EM-03 and ACC parts; kit parts follow (d) | phase0/n_active_equivalents.md |
+| (m) | RP2040/RP2350 emulator evaluation + Pi virtual-clock spike | **Draft delivered**; measured in the container, not Profile A | phase0/m_emulator_evaluation.md, spikes/m/ |
+| (n) | Active equivalents | Partial: EM-03 and ACC parts done; kit parts MFRC522, MPR121, PCF8591, BMP180 (GY-87) still need substitutes | phase0/n_active_equivalents.md |
 | (o) | Catalogue data sources and terms | **Draft delivered** | phase0/o_catalogue_sources.md |
 
-Next: (d) kit inventory and initial catalogue → (m) emulator evaluation + Pi time spike → (l), (j) → (c), (e), (f), (g), (h) → (i).
+Next: (n) kit-part substitutes → (l) template plan → (j) corpus → (c) models → (e), (f), (g), (h) → (i).
 
-Actions for you: request CH341SER redistribution permission from WCH (F0-02); ask Raspberry Pi Ltd about Pi OS image redistribution (F0-03).
+Actions for you:
+- Request CH341SER redistribution permission from WCH (F0-02).
+- Ask Raspberry Pi Ltd about Pi OS image redistribution (F0-03).
+- Answer Q-01.
+- Confirm or correct the frozen kit list in d_kit_inventory.md section 1.
+- If you own any of the three ELEGOO kits, send photos of their packing lists so the unverified contents can be confirmed.
 
 ## Decisions
 | ID | Date | Decision |
@@ -31,4 +36,9 @@ Actions for you: request CH341SER redistribution permission from WCH (F0-02); as
 | D1–D8 | before v3 | Applied in v3 (section 25). |
 | D9 | 2026-09-26 | Accept all v3 review resolutions → v3.1 (section 26). |
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
-| D11 | pending | F0-01..F0-11 (phase0/findings_for_D11.md). |
+| D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
+
+## Open questions
+| ID | Raised | Question |
+|---|---|---|
+| Q-01 | 2026-09-26 | You stated the app is for non-commercial use. GPL-3.0-or-later cannot carry a non-commercial restriction: §10 forbids imposing further restrictions, and §7 lets recipients remove them. Is this (1) your intended use only, keeping GPL-3.0-or-later (D5), or (2) a request to change the licence to a non-commercial one? A non-commercial licence would no longer be open source. It would reverse D5 and replace the §7 WebView2 permission (F0-01). It would not change the aggregated GPL tools, the datasheet and distributor-data restrictions, or the excluded research-only models. |

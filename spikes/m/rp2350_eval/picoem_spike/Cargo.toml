@@ -1,0 +1,7 @@
+[package]
+name = "picoem_spike"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rp2350-emu = { path = "../0x4D44_picoem/crates/rp2350-emu" }
