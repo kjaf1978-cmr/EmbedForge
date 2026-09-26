@@ -1,7 +1,8 @@
 # Phase 0 (k) — Risk Register and Open Requirement Issues
 
-- Baseline: EmbedForge_prompt_v3.1 (D9 applied)
-- Version: 0.1.0 (26 September 2026)
+- Baseline: EmbedForge_prompt_v3.2 (D10 applied)
+- Version: 0.2.0 (26 September 2026). Changes since 0.1.0: D10 accepted; R-06 and R-12
+  re-scored after (a)/(o); R-34 to R-36 added.
 - Prepared by: builder (Claude)
 - Status: draft for your review. Human review record (DOC-12): pending.
 
@@ -19,6 +20,8 @@
 
 These came up while preparing the register. I checked both facts against GitHub's current
 documentation today.
+
+*Decision D10 (26 September 2026): both accepted.*
 
 **C3-11 — GitHub Releases cannot host the 3.9 GB pack files** · SS-01 vs CM-10
 GitHub caps each release asset at 2 GiB (1000 assets per release, with no limit on the total).
@@ -51,13 +54,13 @@ the runners are also below Profile A's minimum RAM.
 | R-03 | Hosted CI too small (F3-06) → release pipeline and VAPP-06 can't run in CI | TEST-01, CM-05 | 5 | 4 | **20 H** | F3-06 proposal (self-hosted runners on Profile A PC and Pi 5) | D10 | J |
 | R-04 | GitHub 2 GiB asset limit (C3-11) → online update distribution fails | CM-10, SS-01 | 5 | 4 | **20 H** | Packs ≤ 1.9 GiB | D10 | B |
 | R-05 | Small LLM profile on Pi 5 misses NL-02 questions → VAPP-06 recall < 95 % on Profile B | LLM-05, VAPP-06, HOST-03 | 4 | 4 | **16 H** | Deterministic NL-02 detectors for (c) type conflicts, (g) unused signals and (h) capability gaps, so the LLM covers only the semantic types; per-profile thresholds; grammar-constrained output | (c), (j) | B |
-| R-06 | Catalogue data sources (distributor/aggregator APIs) forbid redistribution → no offline catalogue with 2 sources and lifecycle status (PC-01) | PC-01, INV-11 | 4 | 5 | **20 H** | Build the catalogue from redistributable sources plus manual curation limited to EM-03, kit and ACC parts; record the source and date per field | (o) | B |
+| R-06 | Distributor APIs forbid redistribution (confirmed in (o) for DigiKey, Mouser, Farnell, TME, Arrow, TI, LCSC) → catalogue must be curated by hand (F0-05) | PC-01, INV-11 | 3 | 5 | **15 H** | Build the catalogue from redistributable sources plus manual curation limited to EM-03, kit and ACC parts; record the source and date per field | (o) | B |
 | R-07 | Every catalogue part needs a human-reviewed datasheet or parameter sheet (SS-07) → review workload on you gates the catalogue | SS-07, INV-11 | 4 | 4 | **16 H** | Keep the first-release catalogue small (≈ 150–250 parts); in-app review queue showing the source next to each field; batch reviews per increment | (d), (e) | J |
 | R-08 | Most manufacturer datasheets are not redistributable → parameter sheets become the norm, which adds to R-07 | SS-07 | 4 | 3 | 12 M | Parameter-sheet generator with field-level source references | (e) | B |
 | R-09 | No qualified RP2350 emulator → Pico 2 / Pico 2 W projects "Verified" with no dynamic verification | TB-02, EM-05 | 4 | 3 | 12 M | Accepted in TB-02 note (HIL-pending); report it clearly in UI-13 | (m) | B |
 | R-10 | rp2040js fidelity (PIO, timers, ADC, USB) or time accuracy (EM-06) insufficient for ACC-02 on Pico | EM-05, EM-06, ACC-02 | 3 | 4 | 12 M | Qualification suite per peripheral used by templates; restrict templates to qualified peripherals | (m) | B |
 | R-11 | Time-accurate emulation of CPython on Pi targets (virtual time for sleep, GPIO callbacks, IIO) is novel → EM-06 unmet for Pi | EM-05, EM-06, ACC-01 | 3 | 4 | 12 M | Spike in Phase 0: patch time and GPIO backends (gpiozero mock pin factory) under a virtual clock | Add to (m) | B |
-| R-12 | Private arm64 KiCad 9+ build and headless kicad-cli on Pi OS are heavy (build time, Qt/wx deps, size) | SS-02, INV-07 | 3 | 4 | 12 M | Evaluate distribution arm64 builds repackaged privately vs. source build; use kicad-cli only (no GUI) for the core path | (b) | B |
+| R-12 | No official stable arm64 KiCad (confirmed in (a)): a private arm64 KiCad 10 build and headless kicad-cli on Pi OS are heavy (build time, wx deps, size) | SS-02, INV-07 | 4 | 4 | **16 H** | Evaluate distribution arm64 builds repackaged privately vs. source build; use kicad-cli only (no GUI) for the core path | (b) | B |
 | R-13 | Native in-app schematic, breadboard and PCB editors (placement, routing, DRC markers, 3D) take a very large effort | UI-08..10, INV-08 | 5 | 4 | **20 H** | Limit to DATA-04 size, 1–2 layers, THT-first; reuse kicad-cli for DRC and output; Freerouting for autoroute; editors handle geometry only | (i), Inc 4/6 | B |
 | R-14 | WebKitGTK WebGL performance on Pi 5 too low for PCB/3D views | UI-10, PERF-10 | 3 | 3 | 9 M | Canvas 2D fallback (section 21); spike during wireframes | (i), (h) | B |
 | R-15 | Installed size and offline install time (models, toolchains, KiCad 3D libraries, Pi OS images, GPL source offer) exceed HOST-02(c) 60 GB or PERF-09 | SS-01, PERF-09 | 3 | 3 | 9 M | Measure per component; 3D models only for catalogue parts; optional packs | (g), (h) | B |
@@ -79,10 +82,14 @@ the runners are also below Profile A's minimum RAM.
 | R-31 | Offline signing with a hardware token → every release waits for your manual step | SEC-02, TEST-04 | 5 | 2 | 10 M | One signing script run on the self-hosted Profile A runner with the token attached | Inc 1 | J |
 | R-32 | About 300 normative requirement items → traceability overhead at every gate | section 0, TEST-03 | 4 | 2 | 8 M | Machine-readable requirement index generated from the prompt; test reports generated from it | Inc 1 | B |
 | R-33 | HAT+ specification details (EEPROM content, stacking rules) incomplete in the local library | PCB-01, BRD-04 | 2 | 3 | 6 L | Collect the current specification and tools in (e) | (e) | B |
+| R-34 | Arduino's arm64 avr-gcc may be 32-bit ARM (toolchain-avr#73) → Profile B cannot compile AVR, or compiles with a different compiler | SS-02, INV-07 | 3 | 4 | 12 M | Test on Pi 5; native aarch64 build of the identical version (F0-08) | (b) | B |
+| R-35 | Freerouting 2.4.1 needs Java 25; Temurin 25 arm64 unconfirmed | SS-02 | 2 | 3 | 6 L | Bundle Temurin 25 (F0-07); native autorouter as fallback | (b) | B |
+| R-36 | Raspberry Pi OS image redistribution terms unpublished; GPL source duty for the images | TB-02, SS-01 | 3 | 3 | 9 M | Lite images only, source pack, user-imported image with hash check until Raspberry Pi Ltd confirms (F0-03) | (a), your enquiry | J |
 
 ## 4. Summary
 
-- High (≥ 15): R-01, R-02, R-03, R-04, R-05, R-06, R-07, R-13, R-22.
+- High (≥ 15): R-01, R-02, R-03, R-04, R-05, R-06, R-07, R-12, R-13, R-22.
+- R-03 and R-04 are decided (D10) and close when Increment 1 implements them.
 - R-02 to R-04 are infrastructure risks you can retire quickly (D10 + repository connection).
 - R-06 and R-07 are the largest content risks. They decide whether INV-11 (standard parts
   only) is practical, so (o) and (d) come next.
