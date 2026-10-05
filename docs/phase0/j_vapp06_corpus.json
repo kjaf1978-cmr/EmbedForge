@@ -1,0 +1,4257 @@
+{
+ "title": "EmbedForge VAPP-06 LLM regression corpus (draft)",
+ "baseline": "prompt v3.3",
+ "version": "0.1.0",
+ "date": "2026-10-05",
+ "status": "draft",
+ "review_record": "pending",
+ "matching_rule": "a raised question matches an expected one when both NL-02 type and signal tags match",
+ "thresholds_note": "pass criteria per VAPP-06, confirmed in Phase 0 (h)",
+ "entries": [
+  {
+   "id": "V06-001",
+   "board": "uno",
+   "source": "ACC-01 (Uno shield)",
+   "difficulty": "hard",
+   "prompt": "Temperature-controlled fan: DHT22 sensor, PWM fan via MOSFET, 16×2 I²C LCD, alarm LED above 35 °C",
+   "parts": [
+    "dht22",
+    "mosfet",
+    "diode",
+    "resistor",
+    "capacitor",
+    "lcd1602_i2c",
+    "led",
+    "x_pwm_fan"
+   ],
+   "nl02_note": "ACC-01(a) items 1-7: fan, PWM, control law, hysteresis, LCD, read interval and fault behaviour are unspecified; the 5 V LCD matches the 5 V Uno, so item 8 does not arise.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "fan",
+     "text": "Fan type (2-, 3- or 4-wire), voltage and current?",
+     "default": "4-wire 12 V DC fan, 0.25 A, separate 12 V supply"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "fan_pwm",
+     "text": "PWM frequency?",
+     "default": "25 kHz (Timer1)"
+    },
+    {
+     "id": "q3",
+     "type": "a",
+     "signal": "fan",
+     "text": "Control law temperature → fan speed and its range?",
+     "default": "proportional, 0 % at 25 °C to 100 % at 35 °C"
+    },
+    {
+     "id": "q4",
+     "type": "d",
+     "signal": "temperature",
+     "text": "Hysteresis for the 35 °C alarm and for fan switching?",
+     "default": "1 °C for both"
+    },
+    {
+     "id": "q5",
+     "type": "a",
+     "signal": "lcd",
+     "text": "LCD content, layout and refresh rate?",
+     "default": "line 1 T and RH, line 2 fan % and ALARM flag, refresh 1 s"
+    },
+    {
+     "id": "q6",
+     "type": "f",
+     "signal": "dht22",
+     "text": "DHT22 read interval?",
+     "default": "2 s"
+    },
+    {
+     "id": "q7",
+     "type": "e",
+     "signal": "dht22",
+     "text": "Behaviour on sensor failure or out-of-range reading?",
+     "default": "after 3 failed reads: fan 100 %, alarm LED blinks 1 Hz, LCD shows SENSOR ERR"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    },
+    {
+     "q": "q5",
+     "answer": "accept default"
+    },
+    {
+     "q": "q6",
+     "answer": "accept default"
+    },
+    {
+     "q": "q7",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 22.0,
+      "humidity": 50
+     },
+     "expect": {
+      "fan_duty_pct": 0,
+      "alarm_led": 0
+     }
+    },
+    {
+     "at_ms": 5000,
+     "stimulus": {
+      "temperature": 30.0
+     },
+     "expect": {
+      "fan_duty_pct": "between 45 55",
+      "alarm_led": 0,
+      "fan_pwm_hz": "between 24000 26000"
+     }
+    },
+    {
+     "at_ms": 10000,
+     "stimulus": {
+      "temperature": 36.0
+     },
+     "expect": {
+      "fan_duty_pct": 100,
+      "alarm_led": 1
+     }
+    },
+    {
+     "at_ms": 15000,
+     "stimulus": {
+      "temperature": 34.5
+     },
+     "expect": {
+      "alarm_led": 1
+     }
+    },
+    {
+     "at_ms": 20000,
+     "stimulus": {
+      "temperature": 33.8
+     },
+     "expect": {
+      "alarm_led": 0,
+      "lcd_temp_shown": "between 33.7 33.9"
+     }
+    },
+    {
+     "at_ms": 25000,
+     "stimulus": {
+      "dht22_fail": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 33000,
+     "expect": {
+      "fan_duty_pct": 100,
+      "lcd_error_shown": 1,
+      "alarm_led_blink_hz": "between 0.9 1.1"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-002",
+   "board": "pi5",
+   "source": "ACC-01 (HAT+ variant)",
+   "difficulty": "hard",
+   "prompt": "Temperature-controlled fan: DHT22 sensor, PWM fan via MOSFET, 16×2 I²C LCD, alarm LED above 35 °C",
+   "parts": [
+    "dht22",
+    "mosfet",
+    "diode",
+    "resistor",
+    "capacitor",
+    "lcd1602_i2c",
+    "level_shifter",
+    "led",
+    "x_pwm_fan",
+    "x_hat_eeprom"
+   ],
+   "nl02_note": "ACC-01(a) items 1-8; on the 3.3 V Pi 5 the 5 V LCD backpack on the I²C bus adds item 8; DHT22 read through the kernel dht11 IIO overlay.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "fan",
+     "text": "Fan type (2-, 3- or 4-wire), voltage and current?",
+     "default": "4-wire 12 V DC fan, 0.25 A, separate 12 V supply"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "fan_pwm",
+     "text": "PWM frequency?",
+     "default": "25 kHz (hardware PWM, GPIO18)"
+    },
+    {
+     "id": "q3",
+     "type": "a",
+     "signal": "fan",
+     "text": "Control law temperature → fan speed and its range?",
+     "default": "proportional, 0 % at 25 °C to 100 % at 35 °C"
+    },
+    {
+     "id": "q4",
+     "type": "d",
+     "signal": "temperature",
+     "text": "Hysteresis for the 35 °C alarm and for fan switching?",
+     "default": "1 °C for both"
+    },
+    {
+     "id": "q5",
+     "type": "a",
+     "signal": "lcd",
+     "text": "LCD content, layout and refresh rate?",
+     "default": "line 1 T and RH, line 2 fan % and ALARM flag, refresh 1 s"
+    },
+    {
+     "id": "q6",
+     "type": "f",
+     "signal": "dht22",
+     "text": "DHT22 read interval?",
+     "default": "2 s"
+    },
+    {
+     "id": "q7",
+     "type": "e",
+     "signal": "dht22",
+     "text": "Behaviour on sensor failure or out-of-range reading?",
+     "default": "after 3 failed reads: fan 100 %, alarm LED blinks 1 Hz, LCD shows SENSOR ERR"
+    },
+    {
+     "id": "q8",
+     "type": "h",
+     "signal": "lcd",
+     "text": "5 V LCD backpack on the 3.3 V I²C bus: level shifting or 3.3 V operation?",
+     "default": "BSS138 level shifter, backpack at 5 V"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    },
+    {
+     "q": "q5",
+     "answer": "accept default"
+    },
+    {
+     "q": "q6",
+     "answer": "accept default"
+    },
+    {
+     "q": "q7",
+     "answer": "accept default"
+    },
+    {
+     "q": "q8",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 22.0,
+      "humidity": 50
+     },
+     "expect": {
+      "fan_duty_pct": 0,
+      "alarm_led": 0
+     }
+    },
+    {
+     "at_ms": 5000,
+     "stimulus": {
+      "temperature": 30.0
+     },
+     "expect": {
+      "fan_duty_pct": "between 45 55"
+     }
+    },
+    {
+     "at_ms": 10000,
+     "stimulus": {
+      "temperature": 36.0
+     },
+     "expect": {
+      "fan_duty_pct": 100,
+      "alarm_led": 1
+     }
+    },
+    {
+     "at_ms": 20000,
+     "stimulus": {
+      "temperature": 33.8
+     },
+     "expect": {
+      "alarm_led": 0
+     }
+    },
+    {
+     "at_ms": 25000,
+     "stimulus": {
+      "dht22_fail": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 33000,
+     "expect": {
+      "fan_duty_pct": 100,
+      "lcd_error_shown": 1
+     }
+    },
+    {
+     "at_ms": 33000,
+     "expect": {
+      "i2c_sda_high_v_at_mcu": "<= 3.4"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-003",
+   "board": "uno",
+   "source": "ACC-02 (Uno)",
+   "difficulty": "hard",
+   "prompt": "Create a module with 2 generic analog inputs (named A and B), 3 generic digital inputs (named C, D, E), 2 digital outputs (named U and V) and one analog output (named W). Whenever A is equal to B, switch U ON. Whenever C and D are ON but E is OFF, increment the value of U, output it on a PWM output of the board and set the speed of a controlled motor proportionally.",
+   "parts": [
+    "resistor",
+    "capacitor",
+    "diode",
+    "led",
+    "tb6612fng",
+    "dc_motor",
+    "x_terminal_block"
+   ],
+   "nl02_note": "ACC-02(a) items 1-10: analog equality without tolerance, U used as digital and counter, missing edge semantics, unused V/W, no DAC on Uno, missing ranges.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "d",
+     "signal": "A/B",
+     "text": "Tolerance and hysteresis for A = B?",
+     "default": "±0.05 V, hysteresis 0.02 V"
+    },
+    {
+     "id": "q2",
+     "type": "c",
+     "signal": "U",
+     "text": "U is digital but incremented and output as PWM: separate counter/PWM signal or redefine U?",
+     "default": "separate 8-bit counter N driving PWM output P; U stays digital"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "U",
+     "text": "Increment on rising edge or at a rate while held; counter range; wrap or saturate; reset?",
+     "default": "rising edge, 0..255, saturate, reset at power-up"
+    },
+    {
+     "id": "q4",
+     "type": "a",
+     "signal": "motor",
+     "text": "Motor speed proportional to which quantity, with which scaling?",
+     "default": "counter N, 0..255 → 0..100 % duty"
+    },
+    {
+     "id": "q5",
+     "type": "e",
+     "signal": "motor",
+     "text": "Motor type, voltage, current and driver?",
+     "default": "6 V brushed DC, 0.5 A, TB6612FNG, separate 6 V supply"
+    },
+    {
+     "id": "q6",
+     "type": "g",
+     "signal": "W",
+     "text": "Behaviour of W, or remove it?",
+     "default": "W = copy of A"
+    },
+    {
+     "id": "q7",
+     "type": "g",
+     "signal": "V",
+     "text": "Behaviour of V, or remove it?",
+     "default": "remove V"
+    },
+    {
+     "id": "q8",
+     "type": "h",
+     "signal": "W",
+     "text": "Uno has no DAC: PWM + RC filter or external DAC for W?",
+     "default": "PWM + RC filter (ED-04c)"
+    },
+    {
+     "id": "q9",
+     "type": "e",
+     "signal": "A/B",
+     "text": "Voltage ranges of A and B?",
+     "default": "0-5 V"
+    },
+    {
+     "id": "q10",
+     "type": "a",
+     "signal": "C/D/E",
+     "text": "Type of C, D, E inputs, pull-up/pull-down and debounce?",
+     "default": "active-high, external 10 kΩ pull-down, 20 ms debounce"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    },
+    {
+     "q": "q5",
+     "answer": "accept default"
+    },
+    {
+     "q": "q6",
+     "answer": "accept default"
+    },
+    {
+     "q": "q7",
+     "answer": "accept default"
+    },
+    {
+     "q": "q8",
+     "answer": "accept default"
+    },
+    {
+     "q": "q9",
+     "answer": "accept default"
+    },
+    {
+     "q": "q10",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "A": 2.5,
+      "B": 2.53,
+      "C": 0,
+      "D": 0,
+      "E": 0
+     },
+     "expect": {
+      "U": 1,
+      "N": 0
+     }
+    },
+    {
+     "at_ms": 100,
+     "stimulus": {
+      "B": 3.0
+     },
+     "expect": {
+      "U": 0
+     }
+    },
+    {
+     "at_ms": 200,
+     "stimulus": {
+      "C": 1,
+      "D": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 300,
+     "expect": {
+      "N": 1
+     }
+    },
+    {
+     "at_ms": 1300,
+     "expect": {
+      "N": 1
+     }
+    },
+    {
+     "at_ms": 1400,
+     "stimulus": {
+      "C": 0
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1500,
+     "stimulus": {
+      "C": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1600,
+     "expect": {
+      "N": 2,
+      "P_duty_pct": "between 0.5 1.1",
+      "motor_speed_pct": "between 0.5 1.1"
+     }
+    },
+    {
+     "at_ms": 1700,
+     "stimulus": {
+      "E": 1,
+      "C": 0
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1800,
+     "stimulus": {
+      "C": 1
+     },
+     "expect": {
+      "N": 2
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "A": 1.2
+     },
+     "expect": {
+      "W": "between 1.10 1.30"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-004",
+   "board": "mega2560",
+   "source": "ACC-02 (Mega)",
+   "difficulty": "hard",
+   "prompt": "Create a module with 2 generic analog inputs (named A and B), 3 generic digital inputs (named C, D, E), 2 digital outputs (named U and V) and one analog output (named W). Whenever A is equal to B, switch U ON. Whenever C and D are ON but E is OFF, increment the value of U, output it on a PWM output of the board and set the speed of a controlled motor proportionally.",
+   "parts": [
+    "resistor",
+    "capacitor",
+    "diode",
+    "led",
+    "l298n",
+    "dc_motor",
+    "x_terminal_block"
+   ],
+   "nl02_note": "ACC-02(a) items 1-10 as on Uno; the Mega 2560 also has no DAC (item 8).",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "d",
+     "signal": "A/B",
+     "text": "Tolerance and hysteresis for A = B?",
+     "default": "±0.05 V, hysteresis 0.02 V"
+    },
+    {
+     "id": "q2",
+     "type": "c",
+     "signal": "U",
+     "text": "U is digital but incremented and output as PWM: separate counter/PWM signal or redefine U?",
+     "default": "separate 8-bit counter N driving PWM output P; U stays digital"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "U",
+     "text": "Increment on rising edge or at a rate while held; counter range; wrap or saturate; reset?",
+     "default": "rising edge, 0..255, saturate, reset at power-up"
+    },
+    {
+     "id": "q4",
+     "type": "a",
+     "signal": "motor",
+     "text": "Motor speed proportional to which quantity, with which scaling?",
+     "default": "counter N, 0..255 → 0..100 % duty"
+    },
+    {
+     "id": "q5",
+     "type": "e",
+     "signal": "motor",
+     "text": "Motor type, voltage, current and driver?",
+     "default": "12 V brushed DC, 1 A, L298N, separate 12 V supply"
+    },
+    {
+     "id": "q6",
+     "type": "g",
+     "signal": "W",
+     "text": "Behaviour of W, or remove it?",
+     "default": "W = copy of A"
+    },
+    {
+     "id": "q7",
+     "type": "g",
+     "signal": "V",
+     "text": "Behaviour of V, or remove it?",
+     "default": "remove V"
+    },
+    {
+     "id": "q8",
+     "type": "h",
+     "signal": "W",
+     "text": "Mega 2560 has no DAC: PWM + RC filter or external DAC for W?",
+     "default": "PWM + RC filter (ED-04c)"
+    },
+    {
+     "id": "q9",
+     "type": "e",
+     "signal": "A/B",
+     "text": "Voltage ranges of A and B?",
+     "default": "0-5 V"
+    },
+    {
+     "id": "q10",
+     "type": "a",
+     "signal": "C/D/E",
+     "text": "Type of C, D, E inputs, pull-up/pull-down and debounce?",
+     "default": "active-high, external 10 kΩ pull-down, 20 ms debounce"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "wrap instead of saturate; otherwise default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    },
+    {
+     "q": "q5",
+     "answer": "accept default"
+    },
+    {
+     "q": "q6",
+     "answer": "accept default"
+    },
+    {
+     "q": "q7",
+     "answer": "V = ON while the motor runs"
+    },
+    {
+     "q": "q8",
+     "answer": "external DAC MCP4725"
+    },
+    {
+     "q": "q9",
+     "answer": "accept default"
+    },
+    {
+     "q": "q10",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "A": 4.0,
+      "B": 4.04,
+      "C": 0,
+      "D": 0,
+      "E": 0
+     },
+     "expect": {
+      "U": 1,
+      "V": 0
+     }
+    },
+    {
+     "at_ms": 100,
+     "stimulus": {
+      "B": 1.0
+     },
+     "expect": {
+      "U": 0
+     }
+    },
+    {
+     "at_ms": 200,
+     "stimulus": {
+      "C": 1,
+      "D": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 300,
+     "expect": {
+      "N": 1,
+      "V": 1,
+      "motor_speed_pct": "between 0.2 0.6"
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "A": 2.0
+     },
+     "expect": {
+      "W": "between 1.95 2.05"
+     }
+    },
+    {
+     "at_ms": 600,
+     "stimulus": {
+      "set_N": 255
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 700,
+     "stimulus": {
+      "C": 0
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 800,
+     "stimulus": {
+      "C": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 900,
+     "expect": {
+      "N": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-005",
+   "board": "pico",
+   "source": "ACC-02 (Pico, Arduino core C++)",
+   "difficulty": "hard",
+   "prompt": "Create a module with 2 generic analog inputs (named A and B), 3 generic digital inputs (named C, D, E), 2 digital outputs (named U and V) and one analog output (named W). Whenever A is equal to B, switch U ON. Whenever C and D are ON but E is OFF, increment the value of U, output it on a PWM output of the board and set the speed of a controlled motor proportionally.",
+   "parts": [
+    "resistor",
+    "capacitor",
+    "diode",
+    "led",
+    "tb6612fng",
+    "dc_motor",
+    "x_terminal_block"
+   ],
+   "nl02_note": "ACC-02(a) items 1-10; Pico specifics: no DAC (item 8), ADC and inputs limited to 0-3.3 V (item 9 default).",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "d",
+     "signal": "A/B",
+     "text": "Tolerance and hysteresis for A = B?",
+     "default": "±0.03 V, hysteresis 0.015 V"
+    },
+    {
+     "id": "q2",
+     "type": "c",
+     "signal": "U",
+     "text": "U is digital but incremented and output as PWM: separate counter/PWM signal or redefine U?",
+     "default": "separate 8-bit counter N driving PWM output P; U stays digital"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "U",
+     "text": "Increment on rising edge or at a rate while held; counter range; wrap or saturate; reset?",
+     "default": "rising edge, 0..255, saturate, reset at power-up"
+    },
+    {
+     "id": "q4",
+     "type": "a",
+     "signal": "motor",
+     "text": "Motor speed proportional to which quantity, with which scaling?",
+     "default": "counter N, 0..255 → 0..100 % duty"
+    },
+    {
+     "id": "q5",
+     "type": "e",
+     "signal": "motor",
+     "text": "Motor type, voltage, current and driver?",
+     "default": "6 V brushed DC, 0.5 A, TB6612FNG (3.3 V logic), separate 6 V supply"
+    },
+    {
+     "id": "q6",
+     "type": "g",
+     "signal": "W",
+     "text": "Behaviour of W, or remove it?",
+     "default": "W = copy of A"
+    },
+    {
+     "id": "q7",
+     "type": "g",
+     "signal": "V",
+     "text": "Behaviour of V, or remove it?",
+     "default": "remove V"
+    },
+    {
+     "id": "q8",
+     "type": "h",
+     "signal": "W",
+     "text": "Pico has no DAC: PWM + RC filter or external DAC for W?",
+     "default": "PWM + RC filter (ED-04c)"
+    },
+    {
+     "id": "q9",
+     "type": "e",
+     "signal": "A/B",
+     "text": "Voltage ranges of A and B?",
+     "default": "0-3.3 V (ADC limit); divider if higher"
+    },
+    {
+     "id": "q10",
+     "type": "a",
+     "signal": "C/D/E",
+     "text": "Type of C, D, E inputs, pull-up/pull-down and debounce?",
+     "default": "active-high 3.3 V, internal pull-down, 20 ms debounce"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    },
+    {
+     "q": "q5",
+     "answer": "accept default"
+    },
+    {
+     "q": "q6",
+     "answer": "accept default"
+    },
+    {
+     "q": "q7",
+     "answer": "accept default"
+    },
+    {
+     "q": "q8",
+     "answer": "accept default"
+    },
+    {
+     "q": "q9",
+     "answer": "0-10 V with input divider"
+    },
+    {
+     "q": "q10",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "A": 6.0,
+      "B": 6.05,
+      "C": 0,
+      "D": 0,
+      "E": 0
+     },
+     "expect": {
+      "U": 1,
+      "A_pin_v": "<= 3.3"
+     }
+    },
+    {
+     "at_ms": 100,
+     "stimulus": {
+      "B": 8.0
+     },
+     "expect": {
+      "U": 0
+     }
+    },
+    {
+     "at_ms": 200,
+     "stimulus": {
+      "C": 1,
+      "D": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 300,
+     "expect": {
+      "N": 1,
+      "P_duty_pct": "between 0.2 0.6"
+     }
+    },
+    {
+     "at_ms": 1300,
+     "expect": {
+      "N": 1
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "A": 3.0
+     },
+     "expect": {
+      "W": "between 0.90 1.10"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-006",
+   "board": "uno",
+   "difficulty": "simple",
+   "prompt": "Light a red LED when the push button is pressed. Use pin 2 for the button.",
+   "parts": [
+    "led",
+    "resistor",
+    "push_button"
+   ],
+   "nl02_note": "'when pressed' can mean while held or toggle on each press (event semantics).",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "f",
+     "signal": "button",
+     "text": "LED on while the button is held, or toggle on each press?",
+     "default": "on while held, 20 ms debounce, internal pull-up"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "toggle on each press"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "button": 0
+     },
+     "expect": {
+      "led": 0
+     }
+    },
+    {
+     "at_ms": 100,
+     "stimulus": {
+      "button": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 200,
+     "stimulus": {
+      "button": 0
+     },
+     "expect": {
+      "led": 1
+     }
+    },
+    {
+     "at_ms": 400,
+     "stimulus": {
+      "button": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "button": 0
+     },
+     "expect": {
+      "led": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-007",
+   "board": "uno",
+   "difficulty": "simple",
+   "prompt": "School bell timer: ring a 12 V electric bell through a relay at the lesson times of the day, using a DS1307 real-time clock.",
+   "parts": [
+    "ds1307",
+    "relay",
+    "diode",
+    "x_bell_12v"
+   ],
+   "nl02_note": "'lesson times' is not defined and the ring duration has no value.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "schedule",
+     "text": "List of lesson times (and days)?",
+     "default": "07:30, 08:25, 09:20, 10:15, 10:35, 11:30, 12:25, 13:20, Monday-Friday"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "bell",
+     "text": "Ring duration?",
+     "default": "5 s"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "3 s"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "rtc_time": "2026-10-05T07:29:58"
+     },
+     "expect": {
+      "bell_relay": 0
+     }
+    },
+    {
+     "at_ms": 2500,
+     "expect": {
+      "bell_relay": 1
+     }
+    },
+    {
+     "at_ms": 5500,
+     "expect": {
+      "bell_relay": 0
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "rtc_time": "2026-10-10T07:29:58"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 8500,
+     "expect": {
+      "bell_relay": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-008",
+   "board": "uno",
+   "difficulty": "hard",
+   "prompt": "Night light for a child's room: switch the LED on when it is dark and switch it off when the LDR reads less than 300. Use the potentiometer to set the darkness threshold.",
+   "parts": [
+    "ldr",
+    "potentiometer",
+    "led",
+    "resistor"
+   ],
+   "nl02_note": "Fixed threshold 300 contradicts the potentiometer threshold, and a low LDR reading means dark in the default divider, contradicting 'off'; no hysteresis or units.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "b",
+     "signal": "led",
+     "text": "Threshold is both fixed (300) and set by the potentiometer, and 'off below 300' contradicts 'on when dark': which applies?",
+     "default": "potentiometer sets the threshold; LED on when light level < threshold"
+    },
+    {
+     "id": "q2",
+     "type": "d",
+     "signal": "ldr",
+     "text": "Hysteresis for the dark/light comparison?",
+     "default": "5 % of full scale"
+    },
+    {
+     "id": "q3",
+     "type": "e",
+     "signal": "ldr",
+     "text": "Unit and direction of the light reading (raw ADC or %, LDR to GND or to 5 V)?",
+     "default": "light level 0-100 %, LDR to 5 V with 10 kΩ to GND (higher = brighter)"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "pot_pct": 30,
+      "light_pct": 80
+     },
+     "expect": {
+      "led": 0
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "light_pct": 20
+     },
+     "expect": {
+      "led": 1
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "light_pct": 33
+     },
+     "expect": {
+      "led": 1
+     }
+    },
+    {
+     "at_ms": 1500,
+     "stimulus": {
+      "light_pct": 40
+     },
+     "expect": {
+      "led": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-009",
+   "board": "uno",
+   "difficulty": "hard",
+   "prompt": "Workbench fan and lamp on a 24 V supply that also powers the Uno: a 24 V fan switched by a transistor and a 24 V LED lamp dimmed by a MOSFET. The fan runs at full speed when the lamp is on, and the fan is off whenever the lamp is above 50 % brightness.",
+   "parts": [
+    "voltage_regulator",
+    "bjt",
+    "mosfet",
+    "diode",
+    "resistor",
+    "capacitor",
+    "x_fan_24v",
+    "x_led_lamp_24v"
+   ],
+   "nl02_note": "24 V exceeds the Uno VIN rating; fan rules contradict above 50 %; lamp brightness input is undefined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "supply",
+     "text": "24 V exceeds the Uno VIN maximum (20 V): add a regulator?",
+     "default": "buck regulator 24 V → 9 V into VIN"
+    },
+    {
+     "id": "q2",
+     "type": "b",
+     "signal": "fan",
+     "text": "Fan 'full speed when lamp on' contradicts 'off above 50 %': which rule wins?",
+     "default": "fan on while lamp is on and ≤ 50 %, off above 50 %"
+    },
+    {
+     "id": "q3",
+     "type": "a",
+     "signal": "lamp",
+     "text": "How is lamp brightness set?",
+     "default": "potentiometer 0-100 %, 1 kHz PWM"
+    },
+    {
+     "id": "q4",
+     "type": "e",
+     "signal": "fan",
+     "text": "Fan current (transistor sizing)?",
+     "default": "0.15 A; BJT with 1 kΩ base resistor and flyback diode"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "two push buttons up/down, 10 % steps"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "expect": {
+      "lamp_duty_pct": 0,
+      "fan": 0,
+      "vin_v": "between 7 12"
+     }
+    },
+    {
+     "at_ms": 200,
+     "stimulus": {
+      "btn_up": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 300,
+     "stimulus": {
+      "btn_up": 0
+     },
+     "expect": {
+      "lamp_duty_pct": 10,
+      "fan": 1
+     }
+    },
+    {
+     "at_ms": 400,
+     "stimulus": {
+      "press_btn_up_times": 5
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1500,
+     "expect": {
+      "lamp_duty_pct": 60,
+      "fan": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-010",
+   "board": "nano",
+   "difficulty": "simple",
+   "prompt": "Garden irrigation: when the soil is dry, open the 12 V water valve with a relay for 10 seconds.",
+   "parts": [
+    "relay",
+    "diode",
+    "x_soil_moisture_capacitive",
+    "x_solenoid_valve_12v"
+   ],
+   "nl02_note": "'dry' has no threshold and the repetition after watering is not defined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "soil",
+     "text": "What reading counts as dry?",
+     "default": "soil moisture < 30 % (capacitive sensor, calibrated dry/wet)"
+    },
+    {
+     "id": "q2",
+     "type": "f",
+     "signal": "valve",
+     "text": "Repeat while still dry? Minimum interval between waterings?",
+     "default": "at most once every 30 min"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "soil_pct": 50
+     },
+     "expect": {
+      "valve": 0
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "soil_pct": 20
+     },
+     "expect": {
+      "valve": 1
+     }
+    },
+    {
+     "at_ms": 11500,
+     "expect": {
+      "valve": 0
+     }
+    },
+    {
+     "at_ms": 60000,
+     "expect": {
+      "valve": 0
+     }
+    },
+    {
+     "at_ms": 1802000,
+     "expect": {
+      "valve": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-011",
+   "board": "nano",
+   "difficulty": "simple",
+   "prompt": "Show the room temperature from a DS18B20 on a 4-digit 7-segment display.",
+   "parts": [
+    "ds18b20",
+    "resistor",
+    "seven_segment"
+   ],
+   "nl02_note": "Display unit and resolution are not stated.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "temperature",
+     "text": "Unit and resolution shown?",
+     "default": "°C with one decimal"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 24.3
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 2000,
+     "expect": {
+      "display_value": 24.3
+     }
+    },
+    {
+     "at_ms": 2500,
+     "stimulus": {
+      "temperature": -5.0
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 4500,
+     "expect": {
+      "display_value": -5.0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-012",
+   "board": "nano",
+   "difficulty": "medium",
+   "prompt": "Greenhouse controller: a DHT11 measures temperature and humidity; open the roof vent with a servo when it is too hot and switch on a 12 V misting pump through a relay when the humidity is low. Show the values on a 16x2 LCD.",
+   "parts": [
+    "dht11",
+    "servo",
+    "relay",
+    "diode",
+    "lcd1602_i2c",
+    "x_pump_12v"
+   ],
+   "nl02_note": "'too hot' and 'low' are undefined thresholds without hysteresis; misting run time is not defined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "vent",
+     "text": "Temperature that counts as too hot?",
+     "default": "30 °C"
+    },
+    {
+     "id": "q2",
+     "type": "d",
+     "signal": "vent",
+     "text": "Hysteresis for closing the vent?",
+     "default": "2 °C"
+    },
+    {
+     "id": "q3",
+     "type": "a",
+     "signal": "pump",
+     "text": "Humidity that counts as low?",
+     "default": "60 % RH"
+    },
+    {
+     "id": "q4",
+     "type": "f",
+     "signal": "pump",
+     "text": "Pump run time and pause while humidity stays low?",
+     "default": "30 s on, 5 min pause"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "32 °C"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 25,
+      "humidity": 70
+     },
+     "expect": {
+      "servo_deg": 0,
+      "pump": 0
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "temperature": 33
+     },
+     "expect": {
+      "servo_deg": 90
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "temperature": 31
+     },
+     "expect": {
+      "servo_deg": 90
+     }
+    },
+    {
+     "at_ms": 9000,
+     "stimulus": {
+      "temperature": 29.5
+     },
+     "expect": {
+      "servo_deg": 0
+     }
+    },
+    {
+     "at_ms": 12000,
+     "stimulus": {
+      "humidity": 50
+     },
+     "expect": {
+      "pump": 1
+     }
+    },
+    {
+     "at_ms": 45000,
+     "expect": {
+      "pump": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-013",
+   "board": "nano",
+   "difficulty": "medium",
+   "prompt": "Workbench LED dimmer: turning a rotary encoder changes the brightness of a 12 V LED strip, pressing the encoder toggles it on and off, and the brightness is remembered after a power cut.",
+   "parts": [
+    "rotary_encoder",
+    "mosfet",
+    "resistor",
+    "x_led_strip_12v"
+   ],
+   "nl02_note": "Step size, strip current and EEPROM save timing are unspecified.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "brightness",
+     "text": "Brightness steps per detent and range?",
+     "default": "5 % per detent, 0-100 %"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "led_strip",
+     "text": "LED strip current?",
+     "default": "2 A at 12 V; logic-level MOSFET low side"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "eeprom",
+     "text": "When to save brightness (EEPROM wear)?",
+     "default": "2 s after the last change"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "eeprom_brightness": 50
+     },
+     "expect": {
+      "strip_duty_pct": 50
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "encoder_steps": 2
+     },
+     "expect": {
+      "strip_duty_pct": 60
+     }
+    },
+    {
+     "at_ms": 3000,
+     "expect": {
+      "eeprom_brightness": 60
+     }
+    },
+    {
+     "at_ms": 3200,
+     "stimulus": {
+      "encoder_press": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 3400,
+     "stimulus": {
+      "encoder_press": 0
+     },
+     "expect": {
+      "strip_duty_pct": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-014",
+   "board": "nano",
+   "difficulty": "hard",
+   "prompt": "Fish-pond aerator: run the 12 V air pump (1.5 A) with an L293D continuously, but switch it off every night from 22:00 to 06:00, and always run it when the water temperature from the DS18B20 is above 28 °C.",
+   "parts": [
+    "l293d",
+    "dc_motor",
+    "ds18b20",
+    "resistor",
+    "x_air_pump_12v"
+   ],
+   "nl02_note": "Night-off and over-temperature rules conflict; Nano has no clock; the L293D is rated 0.6 A; no hysteresis.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "b",
+     "signal": "pump",
+     "text": "At night with water above 28 °C: does the night-off or the temperature rule win?",
+     "default": "temperature rule wins"
+    },
+    {
+     "id": "q2",
+     "type": "h",
+     "signal": "clock",
+     "text": "Nano has no real-time clock: add one?",
+     "default": "DS3231 module"
+    },
+    {
+     "id": "q3",
+     "type": "h",
+     "signal": "pump",
+     "text": "1.5 A exceeds the L293D 0.6 A per channel: change driver?",
+     "default": "TB6612FNG with both channels paralleled or low-side MOSFET"
+    },
+    {
+     "id": "q4",
+     "type": "d",
+     "signal": "temperature",
+     "text": "Hysteresis for the 28 °C rule?",
+     "default": "1 °C"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "low-side MOSFET with flyback diode"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "rtc_time": "2026-10-05T12:00:00",
+      "water_temp": 25
+     },
+     "expect": {
+      "pump": 1
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "rtc_time": "2026-10-05T23:00:00"
+     },
+     "expect": {
+      "pump": 0
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "water_temp": 29
+     },
+     "expect": {
+      "pump": 1
+     }
+    },
+    {
+     "at_ms": 5000,
+     "stimulus": {
+      "water_temp": 27.5
+     },
+     "expect": {
+      "pump": 1
+     }
+    },
+    {
+     "at_ms": 7000,
+     "stimulus": {
+      "water_temp": 26.8
+     },
+     "expect": {
+      "pump": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-015",
+   "board": "nano",
+   "difficulty": "simple",
+   "prompt": "Switch a 12 V desk lamp on and off with a TV remote control through a relay.",
+   "parts": [
+    "ir_receiver",
+    "relay",
+    "diode",
+    "x_lamp_12v"
+   ],
+   "nl02_note": "Which remote and which button is not defined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "ir",
+     "text": "Which remote protocol and button toggles the lamp?",
+     "default": "NEC protocol, learned button (learn mode on first power-up)"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "NEC, address 0x00, command 0x45 toggles"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "expect": {
+      "relay": 0
+     }
+    },
+    {
+     "at_ms": 100,
+     "stimulus": {
+      "ir_nec": "0x00:0x45"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 300,
+     "expect": {
+      "relay": 1
+     }
+    },
+    {
+     "at_ms": 400,
+     "stimulus": {
+      "ir_nec": "0x00:0x46"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 600,
+     "expect": {
+      "relay": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-016",
+   "board": "mega2560",
+   "difficulty": "simple",
+   "prompt": "Workshop door lock: entering the code 1234 on a 4x4 keypad opens a 12 V solenoid lock through a relay for 5 seconds; a wrong code beeps.",
+   "parts": [
+    "keypad4x4",
+    "relay",
+    "diode",
+    "buzzer",
+    "x_solenoid_lock_12v"
+   ],
+   "nl02_note": "Code entry end and beep characteristics are unspecified.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "f",
+     "signal": "keypad",
+     "text": "How is a code entry ended?",
+     "default": "automatically after 4 digits; * clears"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "buzzer",
+     "text": "Buzzer type and beep duration?",
+     "default": "active 5 V buzzer, 3 beeps of 200 ms"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "# confirms; * clears"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "keys": "1234#"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 500,
+     "expect": {
+      "lock_relay": 1
+     }
+    },
+    {
+     "at_ms": 5600,
+     "expect": {
+      "lock_relay": 0
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "keys": "1111#"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 6300,
+     "expect": {
+      "lock_relay": 0,
+      "buzzer": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-017",
+   "board": "mega2560",
+   "difficulty": "medium",
+   "prompt": "Pen plotter for the school club: two A4988 stepper drivers move the X and Y axes, a joystick jogs the axes, and two limit switches home the axes at power-up.",
+   "parts": [
+    "stepper_a4988",
+    "joystick",
+    "switch",
+    "capacitor",
+    "x_nema17"
+   ],
+   "nl02_note": "Mechanics (steps/mm, travel), joystick dead band and driver current are not given.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "X",
+     "text": "Steps per mm and travel of X and Y?",
+     "default": "80 steps/mm (1/16 microstep, GT2 belt), travel 200 mm each"
+    },
+    {
+     "id": "q2",
+     "type": "d",
+     "signal": "joystick",
+     "text": "Dead band around joystick centre?",
+     "default": "±8 % of full scale"
+    },
+    {
+     "id": "q3",
+     "type": "e",
+     "signal": "stepper",
+     "text": "Motor current limit (A4988 Vref)?",
+     "default": "1.0 A per phase"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "0.8 A"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "limit_x": 0,
+      "limit_y": 0
+     },
+     "expect": {
+      "x_dir": "homing"
+     }
+    },
+    {
+     "at_ms": 2000,
+     "stimulus": {
+      "limit_x": 1,
+      "limit_y": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 2500,
+     "expect": {
+      "x_pos_mm": 0,
+      "y_pos_mm": 0
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "joy_x_pct": 55
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 4000,
+     "expect": {
+      "x_pos_mm": 0
+     }
+    },
+    {
+     "at_ms": 4100,
+     "stimulus": {
+      "joy_x_pct": 100
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 5100,
+     "expect": {
+      "x_pos_mm": "> 5"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-018",
+   "board": "mega2560",
+   "difficulty": "medium",
+   "prompt": "Lab sample turntable: a DRV8825 stepper rotates a turntable to one of 8 positions chosen on a 4x4 keypad, and a limit switch homes it.",
+   "parts": [
+    "stepper_drv8825",
+    "keypad4x4",
+    "switch",
+    "capacitor",
+    "x_nema17"
+   ],
+   "nl02_note": "Position spacing, gear ratio and motion profile are not defined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "position",
+     "text": "Where are the 8 positions?",
+     "default": "equally spaced, 45° apart, position 1 at home"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "turntable",
+     "text": "Gear ratio and microstepping?",
+     "default": "direct drive, 1/8 microstep (1600 steps/rev)"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "stepper",
+     "text": "Speed and acceleration?",
+     "default": "90°/s, 180°/s²"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "limit": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 500,
+     "expect": {
+      "angle_deg": 0
+     }
+    },
+    {
+     "at_ms": 600,
+     "stimulus": {
+      "limit": 0,
+      "keys": "3"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 2500,
+     "expect": {
+      "angle_deg": "between 89.5 90.5"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-019",
+   "board": "mega2560",
+   "difficulty": "hard",
+   "prompt": "Obstacle-avoiding robot car for a school club: two DC motors on an L298N, an HC-SR04 on a servo, and an ICM-42688-P for heading. Drive straight, turn when an obstacle is closer than 20 cm. The speed S is set by the potentiometer, and S also enables or disables the motors.",
+   "parts": [
+    "l298n",
+    "dc_motor",
+    "hcsr04",
+    "servo",
+    "icm42688p",
+    "level_shifter",
+    "potentiometer",
+    "x_battery_7v4"
+   ],
+   "nl02_note": "S is used as both analog speed and boolean enable; the 3.3 V IMU on a 5 V board; turn and distance semantics missing.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "c",
+     "signal": "S",
+     "text": "S is an analog speed and a boolean enable: split into S (speed) and EN?",
+     "default": "S = speed 0-100 %; motors enabled when S > 5 %"
+    },
+    {
+     "id": "q2",
+     "type": "h",
+     "signal": "icm42688p",
+     "text": "ICM-42688-P is 3.3 V-only on a 5 V I²C bus: level shifting?",
+     "default": "BSS138 level shifter, 3.3 V regulator for the IMU"
+    },
+    {
+     "id": "q3",
+     "type": "d",
+     "signal": "distance",
+     "text": "Hysteresis for the 20 cm obstacle threshold?",
+     "default": "5 cm (resume above 25 cm)"
+    },
+    {
+     "id": "q4",
+     "type": "a",
+     "signal": "turn",
+     "text": "What does 'turn' mean (direction, angle)?",
+     "default": "scan with servo, turn toward the side with more space, 90° by IMU heading"
+    },
+    {
+     "id": "q5",
+     "type": "e",
+     "signal": "motor",
+     "text": "Motor voltage and current?",
+     "default": "6 V geared DC, 0.6 A each, 2S Li-ion 7.4 V supply"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    },
+    {
+     "q": "q5",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "pot_pct": 0,
+      "distance_cm": 100
+     },
+     "expect": {
+      "motor_l_pct": 0,
+      "motor_r_pct": 0
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "pot_pct": 60
+     },
+     "expect": {
+      "motor_l_pct": "between 55 65",
+      "motor_r_pct": "between 55 65"
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "distance_cm": 15,
+      "left_free_cm": 80,
+      "right_free_cm": 30
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 4000,
+     "expect": {
+      "heading_change_deg": "between -100 -80"
+     }
+    },
+    {
+     "at_ms": 4500,
+     "stimulus": {
+      "distance_cm": 22
+     },
+     "expect": {
+      "state": "turning"
+     }
+    },
+    {
+     "at_ms": 5000,
+     "stimulus": {
+      "distance_cm": 30
+     },
+     "expect": {
+      "state": "forward"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-020",
+   "board": "pi5",
+   "difficulty": "simple",
+   "prompt": "Plant watering reminder: when the soil is dry according to the capacitive soil sensor, flash an LED.",
+   "parts": [
+    "led",
+    "resistor",
+    "ads1115",
+    "x_soil_moisture_capacitive"
+   ],
+   "nl02_note": "Pi 5 has no ADC for the analog sensor; 'dry' is undefined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "soil",
+     "text": "Pi 5 has no analog input: add an ADC?",
+     "default": "ADS1115 on I²C"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "soil",
+     "text": "What reading counts as dry?",
+     "default": "< 30 % after dry/wet calibration"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "soil_pct": 60
+     },
+     "expect": {
+      "led_blink_hz": 0
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "soil_pct": 20
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 6000,
+     "expect": {
+      "led_blink_hz": "between 0.8 1.2"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-021",
+   "board": "pi5",
+   "difficulty": "medium",
+   "prompt": "Remote-controlled RGB lamp: buttons 1, 2 and 3 of an IR remote select red, green or blue, and the volume buttons change the brightness.",
+   "parts": [
+    "ir_receiver",
+    "rgb_led",
+    "resistor"
+   ],
+   "nl02_note": "Remote codes, brightness steps and hold-to-repeat behaviour are unspecified.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "ir",
+     "text": "Which remote and codes?",
+     "default": "NEC; learn codes at first start"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "brightness",
+     "text": "Brightness range and step?",
+     "default": "10-100 %, 10 % per press"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "ir",
+     "text": "Does holding a volume button repeat?",
+     "default": "repeat every 200 ms while held"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "NEC address 0x00; 1=0x0C, 2=0x18, 3=0x5E, VOL+=0x46, VOL-=0x15"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "ir_nec": "0x00:0x0C"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 300,
+     "expect": {
+      "red_pct": "> 0",
+      "green_pct": 0,
+      "blue_pct": 0
+     }
+    },
+    {
+     "at_ms": 400,
+     "stimulus": {
+      "ir_nec": "0x00:0x15"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 700,
+     "expect": {
+      "red_pct": 90
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-022",
+   "board": "pi5",
+   "difficulty": "hard",
+   "prompt": "Solar water heater controller: switch on the 12 V circulation pump through a relay when the collector is hotter than the tank, using two DS18B20 sensors. Also connect a flow sensor F.",
+   "parts": [
+    "ds18b20",
+    "relay",
+    "diode",
+    "resistor",
+    "x_pump_12v",
+    "x_flow_sensor"
+   ],
+   "nl02_note": "Differential comparison lacks tolerance/hysteresis; collector temperature range may exceed the sensor; F is declared but never used.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "d",
+     "signal": "collector",
+     "text": "Switch-on and switch-off temperature differences?",
+     "default": "on at +6 °C, off at +2 °C"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "collector",
+     "text": "Collector temperature range (DS18B20 max 125 °C)?",
+     "default": "0-120 °C, stagnation alarm above 110 °C"
+    },
+    {
+     "id": "q3",
+     "type": "g",
+     "signal": "F",
+     "text": "Flow sensor F is declared but unused: use or remove?",
+     "default": "use as pump-running check: alarm if no flow 30 s after pump on"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "remove F"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "t_collector": 40,
+      "t_tank": 38
+     },
+     "expect": {
+      "pump": 0
+     }
+    },
+    {
+     "at_ms": 2000,
+     "stimulus": {
+      "t_collector": 45
+     },
+     "expect": {
+      "pump": 1
+     }
+    },
+    {
+     "at_ms": 4000,
+     "stimulus": {
+      "t_collector": 41
+     },
+     "expect": {
+      "pump": 1
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "t_collector": 39.5
+     },
+     "expect": {
+      "pump": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-023",
+   "board": "pi5",
+   "difficulty": "medium",
+   "prompt": "Count the people entering the school library using the camera with face detection, and show the count on an SSD1306 OLED.",
+   "parts": [
+    "ssd1306",
+    "hcsr04",
+    "level_shifter",
+    "x_camera_module_3"
+   ],
+   "nl02_note": "Camera face detection has no qualified template (NL-02(i)); the scripted answer simplifies to a distance-sensor doorway counter.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "i",
+     "signal": "camera",
+     "text": "Face detection is not covered by a qualified template: nearest template, simplified requirement, or manual code block?",
+     "default": "simplified: count passages with an HC-SR04 across the doorway"
+    },
+    {
+     "id": "q2",
+     "type": "h",
+     "signal": "hcsr04",
+     "text": "HC-SR04 echo is 5 V on a 3.3 V GPIO?",
+     "default": "level shifter (or voltage divider) on ECHO"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "distance_cm": 150
+     },
+     "expect": {
+      "count": 0
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "distance_cm": 40
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "distance_cm": 150
+     },
+     "expect": {
+      "count": 1,
+      "oled_count_shown": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-024",
+   "board": "pi4b",
+   "difficulty": "simple",
+   "prompt": "Chicken coop door: a servo opens the door at 06:30 and closes it at 19:00, using a DS3231 clock.",
+   "parts": [
+    "servo",
+    "ds3231",
+    "capacitor"
+   ],
+   "nl02_note": "Servo positions for open and closed are not stated.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "servo",
+     "text": "Servo angles for open and closed?",
+     "default": "open 90°, closed 0°"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "open 180°, closed 10°"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "rtc_time": "2026-10-05T06:29:59"
+     },
+     "expect": {
+      "servo_deg": 10
+     }
+    },
+    {
+     "at_ms": 2000,
+     "expect": {
+      "servo_deg": 180
+     }
+    },
+    {
+     "at_ms": 2500,
+     "stimulus": {
+      "rtc_time": "2026-10-05T19:00:01"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 4500,
+     "expect": {
+      "servo_deg": 10
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-025",
+   "board": "pi4b",
+   "difficulty": "medium",
+   "prompt": "Workshop dust extractor: when any of the 4 machines is running (24 V machine-on signals), switch on the extractor relay and keep it on 10 seconds after the last machine stops. Show which machines run on 4 LEDs through an MCP23017.",
+   "parts": [
+    "optocoupler",
+    "mcp23017",
+    "relay",
+    "diode",
+    "led",
+    "resistor",
+    "x_extractor_contactor_24v"
+   ],
+   "nl02_note": "24 V inputs need isolation on 3.3 V GPIO; extractor load undefined; input debounce missing.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "machine_in",
+     "text": "24 V machine signals cannot go to 3.3 V GPIO: isolate?",
+     "default": "optocoupler per input with 2.2 kΩ series resistor"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "extractor",
+     "text": "What does the relay switch (coil voltage, contact rating)?",
+     "default": "24 V DC contactor coil, 0.2 A"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "machine_in",
+     "text": "Debounce / minimum on time for machine signals?",
+     "default": "100 ms"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "m1": 0,
+      "m2": 0,
+      "m3": 0,
+      "m4": 0
+     },
+     "expect": {
+      "extractor": 0
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "m3": 1
+     },
+     "expect": {
+      "extractor": 1,
+      "led3": 1,
+      "led1": 0
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "m3": 0
+     },
+     "expect": {
+      "extractor": 1
+     }
+    },
+    {
+     "at_ms": 11500,
+     "expect": {
+      "extractor": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-026",
+   "board": "pi4b",
+   "difficulty": "medium",
+   "prompt": "Voice-controlled classroom lights: recognise the spoken words 'lights on' and 'lights off' from a USB microphone and switch two relay channels.",
+   "parts": [
+    "relay",
+    "diode",
+    "x_usb_microphone",
+    "x_lamp_12v"
+   ],
+   "nl02_note": "Speech recognition has no qualified template (NL-02(i)); the user keeps the requirement, so the speech block remains a manual unverified code block.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "i",
+     "signal": "voice",
+     "text": "Speech recognition is not covered by a qualified template: nearest template, simplified requirement, or manual code block?",
+     "default": "simplified: two push buttons replace the spoken commands"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "relay",
+     "text": "Load per relay channel?",
+     "default": "12 V DC lamps, 2 A per channel"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "keep the requirement as a manual code block"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "voice_cmd": "lights on"
+     },
+     "expect": {
+      "relay1": 1,
+      "relay2": 1
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "voice_cmd": "lights off"
+     },
+     "expect": {
+      "relay1": 0,
+      "relay2": 0
+     }
+    }
+   ],
+   "outcome": "not_verified_auto"
+  },
+  {
+   "id": "V06-027",
+   "board": "pi4b",
+   "difficulty": "hard",
+   "prompt": "Greenhouse monitor with an ADS1115: read soil1, soil2, the light sensor L and the 12 V battery voltage; raise an alarm on the buzzer when the battery is low or when soil1 is drier than soil2.",
+   "parts": [
+    "ads1115",
+    "buzzer",
+    "bjt",
+    "resistor",
+    "x_soil_moisture_capacitive"
+   ],
+   "nl02_note": "12 V exceeds the ADS1115 input range; 'low' undefined; soil comparison without tolerance; L declared but unused.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "battery",
+     "text": "Battery input range (12 V exceeds ADS1115 input)?",
+     "default": "divider 100 kΩ/22 kΩ, 0-15 V"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "battery",
+     "text": "What battery voltage is low?",
+     "default": "11.8 V"
+    },
+    {
+     "id": "q3",
+     "type": "d",
+     "signal": "soil1",
+     "text": "Tolerance for 'soil1 drier than soil2'?",
+     "default": "difference > 10 %, hysteresis 3 %"
+    },
+    {
+     "id": "q4",
+     "type": "g",
+     "signal": "L",
+     "text": "Light sensor L is read but never used: use or remove?",
+     "default": "log only"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "remove L"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "battery_v": 12.6,
+      "soil1_pct": 50,
+      "soil2_pct": 52
+     },
+     "expect": {
+      "buzzer": 0,
+      "ads_ch3_v": "<= 2.5"
+     }
+    },
+    {
+     "at_ms": 2000,
+     "stimulus": {
+      "battery_v": 11.5
+     },
+     "expect": {
+      "buzzer": 1
+     }
+    },
+    {
+     "at_ms": 4000,
+     "stimulus": {
+      "battery_v": 12.4,
+      "soil1_pct": 35
+     },
+     "expect": {
+      "buzzer": 1
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "soil1_pct": 45
+     },
+     "expect": {
+      "buzzer": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-028",
+   "board": "pi3bplus",
+   "difficulty": "simple",
+   "prompt": "Motion-activated porch light: an HC-SR501 PIR sensor switches on a 12 V LED strip through a MOSFET for 60 seconds after the last motion.",
+   "parts": [
+    "hcsr501",
+    "mosfet",
+    "resistor",
+    "x_led_strip_12v"
+   ],
+   "nl02_note": "LED strip current is not given, so the MOSFET cannot be sized.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "led_strip",
+     "text": "LED strip current?",
+     "default": "1 A at 12 V, logic-level MOSFET"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "pir": 0
+     },
+     "expect": {
+      "strip": 0
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "pir": 1
+     },
+     "expect": {
+      "strip": 1
+     }
+    },
+    {
+     "at_ms": 4000,
+     "stimulus": {
+      "pir": 0
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 63000,
+     "expect": {
+      "strip": 1
+     }
+    },
+    {
+     "at_ms": 64500,
+     "expect": {
+      "strip": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-029",
+   "board": "pi3bplus",
+   "difficulty": "hard",
+   "prompt": "Car-park barrier model for a school fair: an HC-SR04 detects a car closer than 30 cm, a servo lifts the barrier, a buzzer beeps, and a 7-segment display counts the free places out of 20.",
+   "parts": [
+    "hcsr04",
+    "servo",
+    "buzzer",
+    "seven_segment",
+    "push_button",
+    "resistor",
+    "x_toy_cars"
+   ],
+   "nl02_note": "5 V echo on a 3.3 V GPIO; no hysteresis on 30 cm; how cars leave (and free places increase) is undefined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "hcsr04",
+     "text": "HC-SR04 echo is 5 V on a 3.3 V GPIO?",
+     "default": "voltage divider 1 kΩ/2 kΩ on ECHO"
+    },
+    {
+     "id": "q2",
+     "type": "d",
+     "signal": "distance",
+     "text": "Hysteresis for the 30 cm detection?",
+     "default": "5 cm"
+    },
+    {
+     "id": "q3",
+     "type": "a",
+     "signal": "free_places",
+     "text": "How is a car leaving detected?",
+     "default": "exit push button"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "distance_cm": 80
+     },
+     "expect": {
+      "free_places": 20,
+      "servo_deg": 0
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "distance_cm": 20
+     },
+     "expect": {
+      "servo_deg": 90,
+      "buzzer": 1
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "distance_cm": 80
+     },
+     "expect": {
+      "free_places": 19
+     }
+    },
+    {
+     "at_ms": 6000,
+     "expect": {
+      "servo_deg": 0
+     }
+    },
+    {
+     "at_ms": 6500,
+     "stimulus": {
+      "exit_button": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 6700,
+     "stimulus": {
+      "exit_button": 0
+     },
+     "expect": {
+      "free_places": 20
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-030",
+   "board": "pi3bplus",
+   "difficulty": "hard",
+   "prompt": "Seed dryer for a farmers' cooperative: a BME280 measures the air, a 24 V heater runs through a relay and a fan through a MOSFET; stop drying when the grain moisture reaches 12 %.",
+   "parts": [
+    "bme280",
+    "relay",
+    "mosfet",
+    "diode",
+    "x_heater_24v",
+    "x_fan_24v"
+   ],
+   "nl02_note": "Grain moisture is not measured by any part (undefined term); heater limit has no tolerance; heater power unknown.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "grain_moisture",
+     "text": "Grain moisture is not measured by the BME280: how is it determined?",
+     "default": "estimate from exhaust air RH: stop when RH < 40 % for 30 min"
+    },
+    {
+     "id": "q2",
+     "type": "d",
+     "signal": "temperature",
+     "text": "Air temperature setpoint and hysteresis?",
+     "default": "45 °C ± 2 °C"
+    },
+    {
+     "id": "q3",
+     "type": "e",
+     "signal": "heater",
+     "text": "Heater power at 24 V?",
+     "default": "200 W (8.3 A), relay contact ≥ 10 A DC"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 30,
+      "humidity": 70
+     },
+     "expect": {
+      "heater": 1,
+      "fan_duty_pct": 100
+     }
+    },
+    {
+     "at_ms": 5000,
+     "stimulus": {
+      "temperature": 47.5
+     },
+     "expect": {
+      "heater": 0
+     }
+    },
+    {
+     "at_ms": 10000,
+     "stimulus": {
+      "temperature": 42.5
+     },
+     "expect": {
+      "heater": 1
+     }
+    },
+    {
+     "at_ms": 15000,
+     "stimulus": {
+      "humidity": 35
+     },
+     "expect": {
+      "heater": 1
+     }
+    },
+    {
+     "at_ms": 1816000,
+     "expect": {
+      "heater": 0,
+      "drying_done": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-031",
+   "board": "pizero2w",
+   "difficulty": "simple",
+   "prompt": "Log the barometric pressure from a BMP280 every 10 minutes to a CSV file with a timestamp.",
+   "parts": [
+    "bmp280",
+    "ds3231"
+   ],
+   "nl02_note": "Pressure unit missing; offline Pi Zero 2 W has no battery-backed clock for timestamps.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "pressure",
+     "text": "Pressure unit and resolution?",
+     "default": "hPa, 0.1 hPa"
+    },
+    {
+     "id": "q2",
+     "type": "h",
+     "signal": "timestamp",
+     "text": "No RTC and no network time: add a clock?",
+     "default": "DS3231 module on I²C"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "pressure_pa": 101325
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 600500,
+     "expect": {
+      "csv_rows": 1,
+      "last_pressure_hpa": "between 1013.2 1013.4"
+     }
+    },
+    {
+     "at_ms": 1200500,
+     "expect": {
+      "csv_rows": 2
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-032",
+   "board": "pizero2w",
+   "difficulty": "medium",
+   "prompt": "Beehive scale: weigh the hive with a load cell and an HX711, measure the temperature inside with a DS18B20, and log both every hour.",
+   "parts": [
+    "ds18b20",
+    "resistor",
+    "ds3231",
+    "x_hx711",
+    "x_load_cell_100kg"
+   ],
+   "nl02_note": "Weight range and calibration missing; no clock offline.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "weight",
+     "text": "Weight range and unit?",
+     "default": "0-100 kg, 0.1 kg"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "weight",
+     "text": "Calibration procedure?",
+     "default": "tare at start, then known 10 kg mass"
+    },
+    {
+     "id": "q3",
+     "type": "h",
+     "signal": "timestamp",
+     "text": "No RTC and no network time: add a clock?",
+     "default": "DS3231 module on I²C"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "load_kg": 42.3,
+      "hive_temp": 34.5
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 3600500,
+     "expect": {
+      "log_rows": 1,
+      "last_weight_kg": "between 42.2 42.4",
+      "last_temp_c": "between 34.4 34.6"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-033",
+   "board": "pizero2w",
+   "difficulty": "medium",
+   "prompt": "Stream live video of the chicken coop from the camera module to a phone, and switch the coop light with a relay.",
+   "parts": [
+    "relay",
+    "diode",
+    "x_camera_module_3",
+    "x_lamp_12v"
+   ],
+   "nl02_note": "Video streaming has no qualified template (NL-02(i)); the user keeps it, so the project stays outside Verified-auto.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "i",
+     "signal": "camera",
+     "text": "Video streaming is not covered by a qualified template: nearest template, simplified requirement, or manual code block?",
+     "default": "simplified: still photo every 5 min saved to file"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "light",
+     "text": "How is the light switched (button, schedule)?",
+     "default": "push button toggle"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "keep the requirement as a manual code block"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "button": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 200,
+     "stimulus": {
+      "button": 0
+     },
+     "expect": {
+      "light": 1
+     }
+    }
+   ],
+   "outcome": "not_verified_auto"
+  },
+  {
+   "id": "V06-034",
+   "board": "pico",
+   "difficulty": "simple",
+   "prompt": "Show temperature, humidity and pressure from a BME280 on an SSD1306 OLED, updated every 2 seconds.",
+   "parts": [
+    "bme280",
+    "ssd1306"
+   ],
+   "nl02_note": "Display units are not stated.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "display",
+     "text": "Units shown?",
+     "default": "°C, % RH, hPa, one decimal"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 26.4,
+      "humidity": 61,
+      "pressure_pa": 100800
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 2500,
+     "expect": {
+      "oled_temp": 26.4,
+      "oled_hum": 61.0,
+      "oled_press": 1008.0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-035",
+   "board": "pico",
+   "difficulty": "medium",
+   "prompt": "Bench power monitor for the workshop: measure a 0-24 V supply and the current through a 0.1 ohm shunt with an ADS1115, and show volts, amps and watts on an SSD1306.",
+   "parts": [
+    "ads1115",
+    "ssd1306",
+    "resistor",
+    "capacitor",
+    "x_shunt_0r1"
+   ],
+   "nl02_note": "24 V exceeds the ADS1115 input; current range and gain unspecified; refresh rate missing.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "voltage",
+     "text": "Input divider for 0-24 V?",
+     "default": "100 kΩ/10 kΩ, max 2.2 V at ADC"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "current",
+     "text": "Maximum current and ADC gain?",
+     "default": "3 A, ±0.512 V range"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "display",
+     "text": "Display refresh rate?",
+     "default": "4 Hz"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "supply_v": 12.0,
+      "load_a": 1.5
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 500,
+     "expect": {
+      "oled_v": "between 11.9 12.1",
+      "oled_a": "between 1.47 1.53",
+      "oled_w": "between 17.6 18.4"
+     }
+    },
+    {
+     "at_ms": 600,
+     "stimulus": {
+      "supply_v": 24.0
+     },
+     "expect": {
+      "ads_ch0_v": "<= 3.3"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-036",
+   "board": "pico",
+   "difficulty": "hard",
+   "prompt": "Egg incubator for a school agriculture club: keep the temperature at 37.5 °C with a 12 V heater through a MOSFET, turn the eggs every 3 hours with a 28BYJ-48 stepper on a ULN2003, show temperature and humidity from a DHT22 on a 16x2 LCD, and sound the buzzer when the temperature is wrong.",
+   "parts": [
+    "mosfet",
+    "diode",
+    "stepper_uln2003",
+    "dht22",
+    "lcd1602_i2c",
+    "level_shifter",
+    "buzzer",
+    "x_heater_12v"
+   ],
+   "nl02_note": "5 V LCD backpack on 3.3 V Pico; alarm band undefined; heater control tolerance missing; turn angle missing.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "lcd",
+     "text": "5 V LCD backpack on the 3.3 V I²C bus?",
+     "default": "BSS138 level shifter"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "buzzer",
+     "text": "What counts as a wrong temperature?",
+     "default": "outside 36.5-38.5 °C for more than 2 min"
+    },
+    {
+     "id": "q3",
+     "type": "d",
+     "signal": "heater",
+     "text": "Heater control tolerance/hysteresis?",
+     "default": "on/off ±0.3 °C"
+    },
+    {
+     "id": "q4",
+     "type": "e",
+     "signal": "stepper",
+     "text": "Turning angle and direction per turn?",
+     "default": "90°, alternating direction"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    },
+    {
+     "q": "q4",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 37.0,
+      "humidity": 55
+     },
+     "expect": {
+      "heater": 1,
+      "buzzer": 0
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "temperature": 37.9
+     },
+     "expect": {
+      "heater": 0
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "temperature": 35.0
+     },
+     "expect": {
+      "buzzer": 0
+     }
+    },
+    {
+     "at_ms": 127000,
+     "expect": {
+      "buzzer": 1
+     }
+    },
+    {
+     "at_ms": 10800500,
+     "expect": {
+      "tray_angle_deg": "between 89 91"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-037",
+   "board": "pico",
+   "difficulty": "simple",
+   "prompt": "Joystick-controlled pan servo for a camera mount: moving the joystick left or right turns the servo.",
+   "parts": [
+    "joystick",
+    "servo",
+    "capacitor"
+   ],
+   "nl02_note": "Mapping (position vs rate) and centre dead band are not defined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "servo",
+     "text": "Joystick sets position directly or turning speed?",
+     "default": "position: joystick 0-100 % → 0-180°"
+    },
+    {
+     "id": "q2",
+     "type": "d",
+     "signal": "joystick",
+     "text": "Dead band around centre?",
+     "default": "±5 %"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "joy_x_pct": 52
+     },
+     "expect": {
+      "servo_deg": 90
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "joy_x_pct": 100
+     },
+     "expect": {
+      "servo_deg": "between 178 180"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-038",
+   "board": "picow",
+   "difficulty": "simple",
+   "prompt": "Water tank level: an HC-SR04 measures the water level in a 1 m high tank, print the level in percent on the serial monitor and light a red LED below 20 %.",
+   "parts": [
+    "hcsr04",
+    "led",
+    "resistor"
+   ],
+   "nl02_note": "5 V echo on 3.3 V GPIO; sensor mounting offset above the full level not given.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "hcsr04",
+     "text": "HC-SR04 echo is 5 V on a 3.3 V GPIO?",
+     "default": "voltage divider 1 kΩ/2 kΩ on ECHO"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "level",
+     "text": "Distance from sensor to full water level?",
+     "default": "10 cm (empty = 110 cm)"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "distance_cm": 60
+     },
+     "expect": {
+      "level_pct": "between 49 51",
+      "led": 0
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "distance_cm": 95
+     },
+     "expect": {
+      "level_pct": "between 14 16",
+      "led": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-039",
+   "board": "picow",
+   "difficulty": "medium",
+   "prompt": "Classroom air monitor: a BME280 measures temperature and humidity, an LDR measures light, and an RGB LED shows green, yellow or red for comfort.",
+   "parts": [
+    "bme280",
+    "ldr",
+    "resistor",
+    "rgb_led"
+   ],
+   "nl02_note": "'comfort' bands are undefined; light unit missing; update rate missing.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "comfort",
+     "text": "Comfort bands for green/yellow/red?",
+     "default": "green 20-26 °C and 40-60 % RH; yellow within ±3 °C/±10 %; red otherwise"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "ldr",
+     "text": "Light unit and range?",
+     "default": "percent 0-100 (uncalibrated)"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "rgb_led",
+     "text": "Update rate?",
+     "default": "every 5 s"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 23,
+      "humidity": 50
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 5500,
+     "expect": {
+      "rgb": "green"
+     }
+    },
+    {
+     "at_ms": 6000,
+     "stimulus": {
+      "temperature": 28
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 11500,
+     "expect": {
+      "rgb": "yellow"
+     }
+    },
+    {
+     "at_ms": 12000,
+     "stimulus": {
+      "temperature": 33
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 17500,
+     "expect": {
+      "rgb": "red"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-040",
+   "board": "picow",
+   "difficulty": "hard",
+   "prompt": "Small solar tracker: two LDRs compare east and west light and an A4988 stepper turns the panel toward the brighter side; the tracker also follows a fixed time schedule.",
+   "parts": [
+    "ldr",
+    "resistor",
+    "stepper_a4988",
+    "ds3231",
+    "x_nema17"
+   ],
+   "nl02_note": "LDR comparison without tolerance; LDR tracking and time schedule conflict; no RTC offline.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "d",
+     "signal": "ldr",
+     "text": "Tolerance for 'brighter' (dead band)?",
+     "default": "difference > 5 %"
+    },
+    {
+     "id": "q2",
+     "type": "b",
+     "signal": "panel",
+     "text": "LDR tracking or time schedule: which has priority?",
+     "default": "LDR tracking; schedule only when both readings < 10 % (cloudy)"
+    },
+    {
+     "id": "q3",
+     "type": "h",
+     "signal": "clock",
+     "text": "No RTC and no network time: add a clock?",
+     "default": "DS3231 module"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "ldr_east_pct": 60,
+      "ldr_west_pct": 62
+     },
+     "expect": {
+      "stepper_moving": 0
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "ldr_east_pct": 80,
+      "ldr_west_pct": 50
+     },
+     "expect": {
+      "stepper_dir": "east"
+     }
+    },
+    {
+     "at_ms": 3000,
+     "stimulus": {
+      "ldr_east_pct": 6,
+      "ldr_west_pct": 5,
+      "rtc_time": "2026-10-05T15:00:00"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 8000,
+     "expect": {
+      "panel_deg": "between 40 50"
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-041",
+   "board": "pico2",
+   "hil_pending": true,
+   "difficulty": "simple",
+   "prompt": "Pedestrian crossing model: red, amber and green LEDs for cars, red and green LEDs for pedestrians, and a push button to request crossing.",
+   "parts": [
+    "led",
+    "resistor",
+    "push_button"
+   ],
+   "nl02_note": "Phase durations and request behaviour are not stated.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "e",
+     "signal": "phases",
+     "text": "Durations of each phase?",
+     "default": "car green min 10 s, amber 3 s, pedestrian green 8 s"
+    },
+    {
+     "id": "q2",
+     "type": "f",
+     "signal": "button",
+     "text": "Is a request latched while cars have green?",
+     "default": "latched; served after minimum car green"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "expect": {
+      "car_green": 1,
+      "ped_red": 1
+     }
+    },
+    {
+     "at_ms": 2000,
+     "stimulus": {
+      "button": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 2200,
+     "stimulus": {
+      "button": 0
+     },
+     "expect": {
+      "car_green": 1
+     }
+    },
+    {
+     "at_ms": 10500,
+     "expect": {
+      "car_amber": 1
+     }
+    },
+    {
+     "at_ms": 13500,
+     "expect": {
+      "car_red": 1,
+      "ped_green": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-042",
+   "board": "pico2",
+   "hil_pending": true,
+   "difficulty": "hard",
+   "prompt": "Adjustable reference for the school lab: generate a 0-5 V output REF with an MCP4725, set by a rotary encoder, show the value on an SSD1306, and provide a second output AUX.",
+   "parts": [
+    "mcp4725",
+    "rotary_encoder",
+    "ssd1306",
+    "level_shifter",
+    "x_bench_psu_5v"
+   ],
+   "nl02_note": "MCP4725 powered from 3.3 V cannot reach 5 V; step size missing; AUX declared without behaviour.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "h",
+     "signal": "REF",
+     "text": "0-5 V not reachable with MCP4725 at 3.3 V supply?",
+     "default": "MCP4725 at 5 V, I²C through level shifter"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "REF",
+     "text": "Step per encoder detent?",
+     "default": "10 mV, 100 mV with button held"
+    },
+    {
+     "id": "q3",
+     "type": "g",
+     "signal": "AUX",
+     "text": "AUX is declared but has no behaviour: define or remove?",
+     "default": "remove AUX"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "expect": {
+      "REF": "between 0 0.01"
+     }
+    },
+    {
+     "at_ms": 500,
+     "stimulus": {
+      "encoder_steps": 100
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1500,
+     "expect": {
+      "REF": "between 0.98 1.02",
+      "oled_ref": 1.0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-043",
+   "board": "pico2",
+   "hil_pending": true,
+   "difficulty": "medium",
+   "prompt": "Exam-room countdown timer: set the minutes on a 4x4 keypad, show MM:SS on a 4-digit 7-segment display driven through an MCP23017, and sound the buzzer at zero.",
+   "parts": [
+    "keypad4x4",
+    "seven_segment",
+    "mcp23017",
+    "buzzer",
+    "resistor"
+   ],
+   "nl02_note": "Key functions, maximum time and buzzer pattern are undefined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "a",
+     "signal": "keypad",
+     "text": "Functions of *, #, A-D keys?",
+     "default": "# start, * clear, A pause"
+    },
+    {
+     "id": "q2",
+     "type": "e",
+     "signal": "timer",
+     "text": "Maximum time?",
+     "default": "99 min"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "buzzer",
+     "text": "Buzzer pattern at zero and how long?",
+     "default": "3 × 1 s beeps"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "keys": "1#"
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 1500,
+     "expect": {
+      "display": "00:59"
+     }
+    },
+    {
+     "at_ms": 60500,
+     "expect": {
+      "display": "00:00",
+      "buzzer": 1
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-044",
+   "board": "pico2w",
+   "hil_pending": true,
+   "difficulty": "medium",
+   "prompt": "Vaccine fridge alarm for a village health post: a DS18B20 in the fridge, sound a buzzer if the temperature is above 8 °C or below 2 °C for more than 5 minutes; a button silences it.",
+   "parts": [
+    "ds18b20",
+    "resistor",
+    "buzzer",
+    "push_button"
+   ],
+   "nl02_note": "No hysteresis on limits; silence duration/re-arm not defined.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "d",
+     "signal": "temperature",
+     "text": "Hysteresis on the 2 °C and 8 °C limits?",
+     "default": "0.5 °C"
+    },
+    {
+     "id": "q2",
+     "type": "f",
+     "signal": "buzzer",
+     "text": "How long does silencing last?",
+     "default": "30 min, then re-arms if still out of range"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "temperature": 5
+     },
+     "expect": {
+      "buzzer": 0
+     }
+    },
+    {
+     "at_ms": 1000,
+     "stimulus": {
+      "temperature": 9
+     },
+     "expect": {
+      "buzzer": 0
+     }
+    },
+    {
+     "at_ms": 302000,
+     "expect": {
+      "buzzer": 1
+     }
+    },
+    {
+     "at_ms": 303000,
+     "stimulus": {
+      "button": 1
+     },
+     "expect": {}
+    },
+    {
+     "at_ms": 303300,
+     "stimulus": {
+      "button": 0
+     },
+     "expect": {
+      "buzzer": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  },
+  {
+   "id": "V06-045",
+   "board": "pico2w",
+   "hil_pending": true,
+   "difficulty": "hard",
+   "prompt": "School garden irrigation for 4 beds: a PCF8574 drives 4 relays for 12 V valves, the DS3231 gives the time; water each bed for 10 minutes every morning but never when it rains. The rain sensor R is digital and also gives the rain intensity in mm.",
+   "parts": [
+    "pcf8574",
+    "relay",
+    "diode",
+    "ds3231",
+    "x_rain_sensor",
+    "x_solenoid_valve_12v"
+   ],
+   "nl02_note": "R declared digital but used as an analog quantity; 'morning' undefined; bed sequencing missing.",
+   "expected_questions": [
+    {
+     "id": "q1",
+     "type": "c",
+     "signal": "R",
+     "text": "R is digital but also gives intensity in mm: digital rain/no-rain or analog?",
+     "default": "digital rain/no-rain only"
+    },
+    {
+     "id": "q2",
+     "type": "a",
+     "signal": "schedule",
+     "text": "What time is 'morning'?",
+     "default": "06:00"
+    },
+    {
+     "id": "q3",
+     "type": "f",
+     "signal": "valves",
+     "text": "Beds watered one after another or together?",
+     "default": "one after another"
+    }
+   ],
+   "scripted_answers": [
+    {
+     "q": "q1",
+     "answer": "accept default"
+    },
+    {
+     "q": "q2",
+     "answer": "accept default"
+    },
+    {
+     "q": "q3",
+     "answer": "accept default"
+    }
+   ],
+   "assertions": [
+    {
+     "at_ms": 0,
+     "stimulus": {
+      "rtc_time": "2026-10-05T05:59:58",
+      "R": 0
+     },
+     "expect": {
+      "valve1": 0
+     }
+    },
+    {
+     "at_ms": 3000,
+     "expect": {
+      "valve1": 1,
+      "valve2": 0
+     }
+    },
+    {
+     "at_ms": 603500,
+     "expect": {
+      "valve1": 0,
+      "valve2": 1
+     }
+    },
+    {
+     "at_ms": 700000,
+     "stimulus": {
+      "R": 1
+     },
+     "expect": {
+      "valve2": 0,
+      "valve3": 0
+     }
+    }
+   ],
+   "outcome": "verified_auto"
+  }
+ ]
+}

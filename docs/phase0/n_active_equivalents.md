@@ -16,7 +16,7 @@ marked "(dist.)". UNVERIFIED means no status could be confirmed.
 | TDK ICM-20948 | **EOL** | invensense.tdk.com | Not to be used as a substitute | — |
 | NXP PCF8574 / PCF8574A (and PCA8574) | **End of Life / no longer manufactured** | nxp.com | **TI PCF8574 / PCF8574A** (Active; same pinout and addresses) | Catalogue names the TI MPNs; the I²C LCD backpack stays standard |
 | Hitachi HD44780 | No longer manufactured (secondary source) | crystalfontz.com | "HD44780-compatible 16×2 module" as a *generic module*. Its controller (ST7066U / SPLC780D / KS0066) is UNVERIFIED, so the unidentifiable-main-IC rule applies | ACC-01 LCD stays usable once its parameter sheet is reviewed |
-| Bosch BMP280 | **UNVERIFIED**; Bosch page gives no status; forum reports "not recommended for new designs" | bosch-sensortec.com; Bosch community forum | BMP390 (precautionary) | You or I confirm with Bosch; hold the decision |
+| Bosch BMP280 | **Active under the evidence rule.** The manufacturer page, rechecked 5 October 2026, carries no NRND, discontinuation or successor notice. The forum claim is not an official notice | bosch-sensortec.com (rechecked 2026-10-05) | None needed; BMP390 noted as a future alternative | Stays in EM-03 |
 | Nexperia BSS138P | "Not for design in" | nexperia.com | Nexperia BSS138BK (Production) or onsemi BSS138 (UNVERIFIED) | Level-shifter MPN choice |
 
 ## 2. Confirmed active
@@ -63,7 +63,7 @@ Where the main IC stays unidentifiable, the module is handled by the D9 rule (A3
 
 - Replace **MPU-6050 with ICM-42688-P** in EM-03, as the prompt text anticipates. MPU-6050
   remains a *kit part* under EM-02A.
-- Keep BMP280 pending a manufacturer confirmation.
+- BMP280: resolved on 5 October 2026 as active (no manufacturer notice); stays in EM-03.
 
 ## 5. Kit parts (from (d)), checked 5 October 2026
 

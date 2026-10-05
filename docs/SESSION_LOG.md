@@ -47,3 +47,9 @@
 - D12: exclude discontinued kit parts with no successor → v3.4 via tools/apply_d12.py. MPR121
   excluded; HD44780, PCF8591, MPU-6050, MFRC522 and BMP180 stay because active equivalents exist.
 - D12: you confirmed the reading (active equivalent counts as a successor) and declined the stricter rule.
+- (c) LLM benchmark harness in spikes/c: stdlib-only, Windows and Pi scripts, licence-gated model
+  fetcher. Self-tested against a mock server (7/7); two defects found and fixed. All 7 model
+  repositories confirmed through the Hugging Face API (WebFetch). Direct downloads from this
+  workspace are blocked by the egress proxy (huggingface.co, api.github.com).
+- (e), (f), (g) drafts delivered by research agents. BMP280 resolved as active.
+- D13 findings F0-12..F0-20 raised.

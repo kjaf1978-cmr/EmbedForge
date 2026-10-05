@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["signals", "requirements", "questions"],
+  "properties": {
+    "signals": {
+      "type": "array", "maxItems": 30,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "direction", "kind"],
+        "properties": {
+          "name": {"type": "string", "maxLength": 40},
+          "direction": {"type": "string", "enum": ["input", "output", "internal"]},
+          "kind": {"type": "string", "enum": ["analog", "digital", "pwm", "bus", "value", "unknown"]},
+          "unit": {"type": "string", "maxLength": 20},
+          "range": {"type": "string", "maxLength": 40}
+        }
+      }
+    },
+    "requirements": {
+      "type": "array", "maxItems": 30,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": {"type": "string", "maxLength": 8},
+          "text": {"type": "string", "maxLength": 300}
+        }
+      }
+    },
+    "questions": {
+      "type": "array", "maxItems": 20,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["type", "signal", "text", "default"],
+        "properties": {
+          "type": {"type": "string", "enum": ["a", "b", "c", "d", "e", "f", "g", "h", "i"]},
+          "signal": {"type": "string", "maxLength": 40},
+          "text": {"type": "string", "maxLength": 300},
+          "default": {"type": "string", "maxLength": 200}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+ "_note": "Phase 0 (c) candidates (D11 F0-04: Apache-2.0 or MIT weights only). Repositories are tried in order; fetch_models.py refuses a repository whose card licence is not apache-2.0 or mit. verified:true = repository, licence and a Q4 GGUF file confirmed on the Hugging Face API on 2026-10-05 (microsoft/phi-4-gguf has Q4_K rather than Q4_K_M; Phi-4-mini has no official Microsoft GGUF, so the MIT-licensed unsloth conversion is used). Qwen2.5-Coder is not benchmarked: under LLM-05 the model writes no code.",
+ "quant_preference": [
+  "Q4_K_M",
+  "-Q4_K.",
+  "Q4_0"
+ ],
+ "models": [
+  {
+   "id": "qwen3-4b",
+   "size": "small",
+   "licence": "apache-2.0",
+   "repos": [
+    {
+     "repo": "Qwen/Qwen3-4B-GGUF",
+     "verified": true
+    },
+    {
+     "repo": "unsloth/Qwen3-4B-GGUF",
+     "verified": false
+    }
+   ]
+  },
+  {
+   "id": "phi-4-mini",
+   "size": "small",
+   "licence": "mit",
+   "repos": [
+    {
+     "repo": "unsloth/Phi-4-mini-instruct-GGUF",
+     "verified": true
+    },
+    {
+     "repo": "bartowski/microsoft_Phi-4-mini-instruct-GGUF",
+     "verified": false
+    }
+   ]
+  },
+  {
+   "id": "granite-4.0-micro",
+   "size": "small",
+   "licence": "apache-2.0",
+   "repos": [
+    {
+     "repo": "ibm-granite/granite-4.0-micro-GGUF",
+     "verified": true
+    },
+    {
+     "repo": "unsloth/granite-4.0-micro-GGUF",
+     "verified": false
+    }
+   ]
+  },
+  {
+   "id": "qwen3-8b",
+   "size": "large",
+   "licence": "apache-2.0",
+   "repos": [
+    {
+     "repo": "Qwen/Qwen3-8B-GGUF",
+     "verified": true
+    },
+    {
+     "repo": "unsloth/Qwen3-8B-GGUF",
+     "verified": false
+    }
+   ]
+  },
+  {
+   "id": "ministral-3-8b",
+   "size": "large",
+   "licence": "apache-2.0",
+   "repos": [
+    {
+     "repo": "mistralai/Ministral-3-8B-Instruct-2512-GGUF",
+     "verified": true
+    },
+    {
+     "repo": "unsloth/Ministral-3-8B-Instruct-2512-GGUF",
+     "verified": false
+    }
+   ]
+  },
+  {
+   "id": "phi-4",
+   "size": "large",
+   "licence": "mit",
+   "repos": [
+    {
+     "repo": "microsoft/phi-4-gguf",
+     "verified": true
+    },
+    {
+     "repo": "unsloth/phi-4-GGUF",
+     "verified": false
+    }
+   ]
+  },
+  {
+   "id": "qwen3-14b",
+   "size": "large",
+   "licence": "apache-2.0",
+   "repos": [
+    {
+     "repo": "Qwen/Qwen3-14B-GGUF",
+     "verified": true
+    },
+    {
+     "repo": "unsloth/Qwen3-14B-GGUF",
+     "verified": false
+    }
+   ]
+  }
+ ],
+ "sets": {
+  "A": [
+   "qwen3-4b",
+   "phi-4-mini",
+   "granite-4.0-micro",
+   "qwen3-8b",
+   "ministral-3-8b",
+   "phi-4",
+   "qwen3-14b"
+  ],
+  "B": [
+   "qwen3-4b",
+   "phi-4-mini",
+   "granite-4.0-micro",
+   "qwen3-8b"
+  ]
+ }
+}

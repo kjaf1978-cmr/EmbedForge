@@ -1,0 +1,7 @@
+models/
+llama/
+llama.cpp/
+results/
+results-*.zip
+results-*.tgz
+__pycache__/
