@@ -1,0 +1,20 @@
+[package]
+name = "ef-cm"
+description = "EmbedForge configuration management: items, versions, baselines, recovery store, project repositories (CM-01..04, CM-09)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+hex.workspace = true
+semver.workspace = true
+git2.workspace = true
+ef-schema = { path = "../ef-schema" }
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "ef-diag"
+description = "EmbedForge self-diagnosis report (DIAG-01), Increment 1 skeleton"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ef-cm = { path = "../ef-cm" }
+ef-integrity = { path = "../ef-integrity" }
+ef-host = { path = "../ef-host" }
+
+[dev-dependencies]
+tempfile.workspace = true
+minisign.workspace = true

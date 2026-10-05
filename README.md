@@ -8,8 +8,8 @@ guide.
 Licence: GPL-3.0-or-later (LICENSE file added with the first code, Increment 1).
 
 ## Current state
-**Phase 0 — reconnaissance (read-only).** No application code is written until you approve
-Phase 0.
+**Increment 1 in progress.** Phase 0 is approved with conditions (docs/phase0/phase0_gate_report.md).
+WP 1.1 (Rust core) is done; its report is docs/inc1/WP1.1_report.md.
 
 - Requirements baseline: `docs/requirements/EmbedForge_prompt_v3.7.md`
 - v3 review findings (D9): `docs/requirements/v3_review_findings.md`
@@ -20,5 +20,9 @@ Phase 0.
 ```
 docs/requirements/   build prompt baselines, review findings, change logs
 docs/phase0/         Phase 0 deliverables (a)–(o)
+docs/inc1/           Increment 1 scope and reports
+core/                Rust workspace: ef-schema, ef-cm, ef-integrity, ef-host, ef-diag
+spikes/              Phase 0 evaluation code (not application code)
+.github/workflows/   CI
 tools/               scripts used to produce or check documents
 ```

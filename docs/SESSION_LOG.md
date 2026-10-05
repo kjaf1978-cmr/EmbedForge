@@ -58,3 +58,12 @@
 - D14 findings F0-21..F0-24 raised. Phase 0 gate report drafted.
 - D14 accepted with DATA-04 set by you to 100 parts → v3.6 via tools/apply_d14.py; R-37 added (PERF at 100 parts, SP-100 stress project).
 - D15 (Q-01): GPL-3.0-or-later kept for non-commercial use; any licence limit on the specification is reported at the next gate → v3.7.
+
+## 2026-10-05 — session 2 (continued): Increment 1 starts
+- Your reply "Please continue from here" was taken as Phase 0 approval with the gate-report
+  conditions; this is recorded in docs/inc1/SCOPE.md.
+- WP 1.1 Rust core: ef-schema, ef-cm, ef-integrity, ef-host, ef-diag.
+  - 31 tests pass and clippy reports 0 warnings.
+  - The licence gate passes for 67 linked crates.
+  - The CI workflow is written but not yet run.
+- LICENSE (GPL-3.0 text) added.

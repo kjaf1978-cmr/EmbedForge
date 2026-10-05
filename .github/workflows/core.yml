@@ -1,0 +1,40 @@
+# Increment 1 CI for the Rust core (TEST-01 (a)(b)). Hosted runners only; jobs that need the
+# self-hosted Profile A / Pi 5 runners are added when those runners are registered (F3-06).
+name: core
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-22.04, windows-2025, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal -c clippy,rustfmt && rustup default stable
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Tests
+        run: cargo test --locked
+      - name: Linked-crate licence gate
+        run: python3 ../tools/check_licences.py .
+        shell: bash
+  docs-and-spikes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml
+      - name: VAPP-06 corpus coverage
+        run: python3 tools/check_corpus.py
+      - name: LLM benchmark harness self-test
+        run: bash spikes/c/test_harness.sh

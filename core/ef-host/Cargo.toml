@@ -1,0 +1,12 @@
+[package]
+name = "ef-host"
+description = "EmbedForge host profile checks at installation and start-up (HOST-01..04)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sysinfo.workspace = true

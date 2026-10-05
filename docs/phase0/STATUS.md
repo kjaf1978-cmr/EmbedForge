@@ -21,7 +21,7 @@ code).
 | (n) | Active equivalents | Kit parts added: MFRC522 → PN5180, PCF8591 → ADS1115 + MCP4725, BMP180 → BME280. MPR121 excluded (D12). BMP280 active. Still open: GY-87 magnetometer | phase0/n_active_equivalents.md |
 | (o) | Catalogue data sources and terms | **Draft delivered** | phase0/o_catalogue_sources.md |
 
-Next: **Phase 0 gate** (phase0_gate_report.md); then Increment 1 after your approval.
+**Phase 0 approved on 2026-10-05, with the gate-report conditions.** You replied "Please continue from here" to the approval request. Increment 1 has started (docs/inc1/).
 
 Actions for you:
 - Request CH341SER redistribution permission from WCH (F0-02).
