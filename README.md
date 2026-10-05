@@ -11,7 +11,7 @@ Licence: GPL-3.0-or-later (LICENSE file added with the first code, Increment 1).
 **Phase 0 — reconnaissance (read-only).** No application code is written until you approve
 Phase 0.
 
-- Requirements baseline: `docs/requirements/EmbedForge_prompt_v3.4.md`
+- Requirements baseline: `docs/requirements/EmbedForge_prompt_v3.5.md`
 - v3 review findings (D9): `docs/requirements/v3_review_findings.md`
 - Phase 0 tracker and decisions: `docs/phase0/STATUS.md`
 - Session log: `docs/SESSION_LOG.md`

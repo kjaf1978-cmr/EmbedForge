@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EmbedForge UI Wireframes</title>
+<style>
+:root{
+  --ink:#1e1e1e; --mid:#5c5c5c; --soft:#8a8a8a; --line:#9a9a9a; --rule:#c8c8c8;
+  --fill:#ececec; --fill2:#f6f6f6; --paper:#ffffff; --page:#fbfbfb;
+  --acc:#0a66c2; --accbg:#d7e8f8;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;overflow-x:hidden}
+main{max-width:1560px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:8px 0 4px}
+h2{font-size:21px;margin:40px 0 6px;padding-top:10px;border-top:2px solid var(--ink)}
+h3{font-size:17px;margin:28px 0 6px}
+p,li{max-width:110ch}
+code,.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;font-size:.92em}
+a{color:var(--acc)}
+.meta{display:grid;grid-template-columns:max-content 1fr;gap:2px 14px;font-size:14px;margin:8px 0 12px;padding:10px 12px;background:var(--fill2);border:1px solid var(--rule);max-width:760px}
+.meta b{font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13px;align-items:center;padding:8px 0}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.sw{display:inline-block;width:26px;height:14px;border:1px solid var(--line)}
+.toc{columns:3 260px;font-size:14px;padding-left:18px}
+.toc li{break-inside:avoid}
+.ctrl{position:sticky;top:0;z-index:5;background:var(--page);border-bottom:1px solid var(--rule);padding:8px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+.ctrl select,.ctrl button{font:inherit;padding:3px 8px;border:1px solid var(--line);background:var(--paper);border-radius:4px;max-width:100%}
+.ctrl button[aria-pressed="true"]{background:var(--accbg);border-color:var(--acc)}
+.sat{display:inline-flex;flex-wrap:wrap;gap:4px;margin:2px 0 8px}
+.sat b{font-size:12px;border:1px solid var(--acc);color:var(--acc);border-radius:3px;padding:0 6px;background:var(--paper)}
+.ann{font-size:14px;margin:8px 0 0;padding-left:20px}
+.ann li{margin:2px 0}
+.ann li::marker{color:var(--soft)}
+.tablewrap{overflow-x:auto;max-width:100%}
+table.tr{border-collapse:collapse;font-size:14px;min-width:760px;width:100%}
+table.tr th,table.tr td{border:1px solid var(--rule);padding:4px 8px;text-align:left;vertical-align:top}
+table.tr th{background:var(--fill)}
+.hidden{display:none!important}
+
+/* ---------- wireframe primitives ---------- */
+.frame{overflow-x:auto;max-width:100%;border:1px solid var(--rule);background:#f0f0f0;padding:10px;-webkit-overflow-scrolling:touch}
+.wf{min-width:980px;background:var(--paper);border:2px solid #444;font:12px/1.35 system-ui,sans-serif;color:#222}
+.wf.sm{min-width:640px}
+.wf .bar{display:flex;flex-wrap:nowrap;gap:5px;align-items:center;background:var(--fill);border-bottom:1px solid var(--line);padding:3px 6px;white-space:nowrap}
+.wf .bar.dark{background:#d6d6d6}
+.wf .ttl{font-weight:600;margin-right:6px}
+.btn{display:inline-block;border:1px solid #888;background:#fff;padding:0 6px;border-radius:3px;line-height:18px;white-space:nowrap}
+.btn.pri{border-width:2px;font-weight:600}
+.btn.on{border-color:var(--acc);background:var(--accbg)}
+.k{display:inline-block;border:1px solid #888;border-bottom-width:2px;border-radius:3px;padding:0 4px;font:11px/15px ui-monospace,monospace;background:#fff}
+.tab{display:inline-block;border:1px solid var(--line);border-bottom:none;padding:2px 8px;background:#e4e4e4;border-radius:4px 4px 0 0;margin-right:2px}
+.tab.on{background:#fff;font-weight:600;position:relative;top:1px}
+.tabs{padding:4px 6px 0;border-bottom:1px solid var(--line);background:var(--fill2);white-space:nowrap}
+.pane{border:1px solid var(--line);background:#fff;padding:6px;min-width:0}
+.ph{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;border-bottom:1px solid var(--rule);margin:-6px -6px 6px;padding:3px 6px;background:var(--fill2);display:flex;justify-content:space-between;gap:6px}
+.box{border:1px solid #777;background:#fff;padding:4px 6px;border-radius:2px}
+.gbox{border:1px dashed #888;background:var(--fill2);padding:4px 6px}
+.hl{outline:2px solid var(--acc);outline-offset:-1px;background:var(--accbg)!important}
+.hlt{color:var(--acc);font-weight:600}
+.sel{outline:3px solid var(--acc);outline-offset:0;background:var(--accbg)!important}
+.ro{background:repeating-linear-gradient(135deg,#f3f3f3 0 6px,#e3e3e3 6px 12px)!important}
+.tag{display:inline-block;border:1px solid #777;border-radius:9px;padding:0 6px;font-size:10px;line-height:15px;background:#fff;white-space:nowrap}
+.tag.hil{border-style:dashed;border-width:1.5px}
+.tag.ne{background:repeating-linear-gradient(45deg,#fff 0 3px,#d4d4d4 3px 6px);border-color:#444;font-weight:600}
+.tag.cv{border:2px solid #222;font-weight:700}
+.tag.ok{background:#fff}
+.tag.fail{background:#222;color:#fff;border-color:#222}
+.tag.acc{border-color:var(--acc);color:var(--acc)}
+.fld{display:inline-block;border:1px solid #888;background:#fff;min-width:60px;padding:0 4px;line-height:18px}
+.fld.wide{display:block;min-height:20px}
+.chk{display:inline-block;width:11px;height:11px;border:1px solid #555;vertical-align:-1px;background:#fff}
+.chk.x{background:#555}
+.muted{color:#777}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+.col{display:flex;flex-direction:column;gap:6px}
+.g{display:grid;gap:6px}
+.p6{padding:6px}
+.tree{list-style:none;margin:0;padding-left:0;font-size:12px}
+.tree ul{list-style:none;margin:0;padding-left:14px;border-left:1px dotted #aaa}
+.tree li{padding:1px 0;white-space:nowrap}
+.tree .c{color:#888;font-size:10px;margin-left:4px}
+.wt{border-collapse:collapse;width:100%;font-size:11.5px}
+.wt th,.wt td{border:1px solid #bbb;padding:2px 4px;text-align:left;vertical-align:top}
+.wt th{background:#eee;font-weight:600}
+.code{font:11.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre;margin:0;padding:0}
+.code .ln{display:inline-block;width:30px;color:#999;text-align:right;margin-right:8px;user-select:none}
+.code .cm{color:#777}
+.code .kw{font-weight:700}
+.code .l{display:block;padding-right:8px}
+.status{display:flex;gap:14px;align-items:center;background:#d9d9d9;border-top:1px solid #888;padding:2px 8px;font-size:11.5px;white-space:nowrap;overflow:hidden}
+.status .sep{color:#999}
+.callout{font-size:10.5px;color:#333;border:1px solid #999;background:#fffff8;padding:1px 4px}
+.num{display:inline-block;min-width:16px;height:16px;border-radius:8px;background:#222;color:#fff;font-size:10px;line-height:16px;text-align:center;font-weight:700;padding:0 3px}
+svg text{font-family:system-ui,sans-serif}
+.sb{display:grid;grid-template-columns:repeat(6,minmax(230px,1fr));gap:10px;min-width:1440px}
+.sb4{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:10px;min-width:1120px}
+.sbf{border:2px solid #444;background:#fff;font:11.5px/1.35 system-ui,sans-serif;display:flex;flex-direction:column}
+.sbf .cap{background:#222;color:#fff;padding:3px 6px;font-weight:600}
+.sbf .body{padding:6px;flex:1;display:flex;flex-direction:column;gap:5px}
+.sbf .foot{border-top:1px solid #bbb;padding:3px 6px;font-size:10.5px;color:#444;background:var(--fill2)}
+.stepper{display:flex;gap:0;font-size:11px}
+.stepper span{border:1px solid #888;padding:1px 6px;background:#fff;margin-right:-1px}
+.stepper span.done{background:#e0e0e0}
+.stepper span.cur{background:var(--accbg);border-color:var(--acc);font-weight:700;position:relative;z-index:1}
+@media (max-width:700px){
+  body{font-size:14px}
+  h1{font-size:21px}
+  h2{font-size:18px}
+  .meta{grid-template-columns:1fr}
+  .frame{padding:6px}
+}
+@media print{.ctrl{display:none}.frame{overflow:visible}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>EmbedForge — Phase 0 (i) UI wireframes</h1>
+<div class="meta">
+  <b>Baseline</b><span>EmbedForge_prompt_v3.5 (section 12, UI-01..UI-23)</span>
+  <b>Version</b><span>0.1.0</span>
+  <b>Date</b><span>2026-10-05</span>
+  <b>Prepared by</b><span>builder (Claude)</span>
+  <b>Status</b><span>draft</span>
+  <b>Human review record (DOC-12)</b><span>pending</span>
+</div>
+
+<p>These are low-fidelity wireframes. They fix <em>what</em> each view contains, how views link to each other, and which states must be visible. They do not fix visual design, exact spacing, icons or colours. Grey boxes are placeholders; the one accent colour marks the current selection and cross-highlighted artefacts (UI-02).</p>
+<p><b>Example project in every wireframe:</b> ACC-02 on an ELEGOO UNO R3 (PCB build, Uno shield, module part style). Signals: A, B analog in; C, D, E digital in; U, V digital out; W analog out by PWM + RC filter (no DAC on the Uno, ACC-02 Q8); counter output P on a PWM pin; DC motor via a TB6612FNG module with a separate supply. The pin assignment, requirement numbers and parameter values shown are illustrative placeholders chosen to be plausible on the Uno; the real values come from ED-01 and the clarification answers.</p>
+<p><b>Project state assumed in the wireframes</b> (unless a frame says otherwise): status <b>Designed</b> (ST-03); all automated gates pass, so the project is <em>Verified-auto</em> (ST-09); VER-06 is not yet passed only because the DOC-12 human review records are missing, so status Verified is not claimed. Generated code carries the <b>Code verified</b> label (INV-06), which is shown separately from the project status. Four HIL checklist items are HIL-pending (ST-08).</p>
+
+<div class="legend" aria-label="Legend">
+  <span><i class="sw" style="background:var(--accbg);outline:2px solid var(--acc);outline-offset:-1px"></i>selected / cross-highlighted (UI-02)</span>
+  <span><i class="sw ro"></i>read-only generated region (UI-12)</span>
+  <span><span class="tag hil">HIL-pending</span>ST-08</span>
+  <span><span class="tag ne">not emulated</span>EM-08</span>
+  <span><span class="tag cv">Code verified</span>INV-06 label</span>
+  <span><span class="tag fail">fail</span>gate failed</span>
+  <span><span class="num">1</span>annotation marker</span>
+</div>
+
+<h3 style="margin-top:12px">Contents</h3>
+<ol class="toc">
+  <li><a href="#g">G. Global layout (1920×1080 and 1366×768)</a></li>
+  <li><a href="#w01">W-01 Project navigator — UI-01</a></li>
+  <li><a href="#w02">W-02 Cross-highlight and related navigation — UI-02, UI-03</a></li>
+  <li><a href="#w04">W-04 Natural-language workspace — UI-04</a></li>
+  <li><a href="#w05">W-05 Functional block diagram — UI-05</a></li>
+  <li><a href="#w06">W-06 Behaviour view — UI-06</a></li>
+  <li><a href="#w07">W-07 Pin allocation view — UI-07</a></li>
+  <li><a href="#w08">W-08 Schematic view — UI-08</a></li>
+  <li><a href="#w09">W-09 Breadboard view — UI-09</a></li>
+  <li><a href="#w10">W-10 PCB view — UI-10</a></li>
+  <li><a href="#w11">W-11 Emulation dashboard — UI-11</a></li>
+  <li><a href="#w12">W-12 Code view — UI-12</a></li>
+  <li><a href="#w13">W-13 Verification dashboard — UI-13</a></li>
+  <li><a href="#w14">W-14 Assembly guide viewer — UI-14</a></li>
+  <li><a href="#w15">W-15 History view — UI-15</a></li>
+  <li><a href="#w16">W-16 Board manager and flashing — UI-16</a></li>
+  <li><a href="#w17">W-17 Library browsers — UI-17</a></li>
+  <li><a href="#w18">W-18 Guided and expert mode — UI-18</a></li>
+  <li><a href="#w19">W-19 Export and print — UI-19</a></li>
+  <li><a href="#w20">W-20 Cross-cutting: keyboard, themes, undo, help — UI-20..UI-23</a></li>
+  <li><a href="#s1">S-1 Storyboard: guided mode with ACC-02</a></li>
+  <li><a href="#s2">S-2 Storyboard: cross-highlight of R3</a></li>
+  <li><a href="#trace">T. Traceability UI-ID → wireframe</a></li>
+  <li><a href="#open">O. Open points for review</a></li>
+</ol>
+
+<div class="ctrl" role="toolbar" aria-label="View controls">
+  <label for="pick">Show section:</label>
+  <select id="pick">
+    <option value="all">All sections</option>
+  </select>
+  <button type="button" id="prev" aria-label="Previous section">◀ Prev</button>
+  <button type="button" id="next" aria-label="Next section">Next ▶</button>
+</div>
+
+<!-- ======================================================= G -->
+<section class="sec" id="g" data-title="G. Global layout">
+<h2>G. Global layout</h2>
+<div class="sat"><b>UI-01</b><b>UI-02</b><b>UI-18</b><b>UI-20</b><b>UI-23</b><b>ST-01</b><b>ST-09</b><b>EM-06</b><b>HOST-02(e)</b></div>
+
+<h3>G-1 Full workspace, 1920×1080</h3>
+<div class="frame"><div class="wf" style="min-width:1180px">
+  <div class="bar dark"><span class="ttl">EmbedForge</span><span>File</span><span>Edit</span><span>View</span><span>Project</span><span>Design</span><span>Verify</span><span>Emulate</span><span>Board</span><span>Library</span><span>Window</span><span>Help</span><span style="margin-left:auto" class="muted">ACC-02 · ELEGOO UNO R3 · baseline B4 + changes</span></div>
+  <div class="bar">
+    <span class="btn">↶ Undo</span><span class="btn">↷ Redo</span><span class="muted">|</span>
+    <span class="btn">Save</span><span class="btn">Baseline…</span><span class="muted">|</span>
+    <span class="btn">Regenerate</span><span class="btn">Run gates</span><span class="btn">▶ Emulate</span><span class="btn">Flash</span><span class="muted">|</span>
+    <span class="btn">Export…</span><span class="btn">Print</span>
+    <span style="margin-left:auto">Mode:</span><span class="btn">Guided</span><span class="btn on">Expert</span>
+    <span class="fld" style="min-width:200px">🔍 Find artefact (Ctrl+P)</span>
+    <span class="btn" title="Command palette">⌘ Ctrl+Shift+P</span>
+  </div>
+  <div class="g" style="grid-template-columns:230px 1fr 270px;height:470px;padding:4px;background:#e8e8e8">
+    <div class="pane" style="overflow:hidden">
+      <div class="ph"><span>Navigator (UI-01)</span><span>« collapse</span></div>
+      <ul class="tree">
+        <li>▾ Requirements <span class="c">11</span>
+          <ul><li>R1 Analog input A</li><li>R2 Analog input B</li><li class="sel">R3 U ON when A = B</li><li>R4 Inputs C, D, E</li><li>R5 Counter…</li><li class="muted">… 6 more</li></ul></li>
+        <li>▸ Clarifications <span class="c">10/10 resolved</span></li>
+        <li>▾ Blocks <span class="c">11</span><ul><li class="hl">BLK-CMP (L-CMP)</li><li>BLK-DIN</li><li class="muted">…</li></ul></li>
+        <li>▸ Interfaces</li><li>▸ Parameters</li>
+        <li>▸ Code <span class="c hlt">●</span></li><li>▸ Pin map <span class="c hlt">●</span></li>
+        <li>▸ Schematic <span class="c hlt">●</span></li><li>▸ Breadboard</li><li>▸ Layout (PCB)</li><li>▸ BOM</li>
+        <li>▸ Emulation scenarios</li><li>▸ Tests</li><li>▸ Documentation</li><li>▸ History</li>
+      </ul>
+    </div>
+    <div class="col" style="min-width:0">
+      <div class="tabs"><span class="tab">NL workspace</span><span class="tab">Blocks</span><span class="tab on">Schematic</span><span class="tab">Code: main.cpp</span><span class="tab">Pins</span><span class="tab">+</span><span style="float:right" class="muted">Split: ▥ ▤ ⊞</span></div>
+      <div class="g" style="grid-template-columns:1fr 1fr;flex:1;gap:4px">
+        <div class="pane"><div class="ph"><span>Schematic (UI-08)</span><span>sheet 1/2</span></div>
+          <svg viewBox="0 0 300 200" width="100%" height="330" role="img" aria-label="schematic placeholder">
+            <rect x="110" y="40" width="80" height="120" fill="#fff" stroke="#555"/><text x="150" y="35" text-anchor="middle" font-size="9">UNO R3 (U1)</text>
+            <line x1="40" y1="60" x2="110" y2="60" stroke="#0a66c2" stroke-width="3"/><text x="44" y="56" font-size="8" fill="#0a66c2">NET_A → A0</text>
+            <line x1="40" y1="80" x2="110" y2="80" stroke="#0a66c2" stroke-width="3"/><text x="44" y="76" font-size="8" fill="#0a66c2">NET_B → A1</text>
+            <line x1="190" y1="70" x2="260" y2="70" stroke="#0a66c2" stroke-width="3"/><text x="200" y="66" font-size="8" fill="#0a66c2">D8 → NET_U</text>
+            <line x1="190" y1="110" x2="260" y2="110" stroke="#777"/><text x="200" y="106" font-size="8">D5 → PWMA</text>
+            <line x1="190" y1="130" x2="260" y2="130" stroke="#777"/><text x="200" y="126" font-size="8">D9 → RC → W</text>
+            <rect x="20" y="130" width="60" height="40" fill="#fff" stroke="#999" stroke-dasharray="3 2"/><text x="50" y="153" text-anchor="middle" font-size="8">TB6612FNG</text>
+          </svg></div>
+        <div class="pane"><div class="ph"><span>Emulation (UI-11)</span><span>▶ running</span></div>
+          <div class="g" style="grid-template-columns:1fr 1fr;gap:4px">
+            <div class="box hl">A <span class="fld">2.51 V</span> slider</div><div class="box hl">B <span class="fld">2.49 V</span> slider</div>
+            <div class="box">C ☐ D ☐ E ☐</div><div class="box hl">U ● ON</div>
+            <div class="box" style="grid-column:span 2;height:110px">oscilloscope placeholder (W, P)</div>
+            <div class="box" style="grid-column:span 2">Motor: 42 % speed</div>
+          </div></div>
+      </div>
+    </div>
+    <div class="pane" style="overflow:hidden">
+      <div class="ph"><span>Properties · Help (UI-23)</span><span>collapse »</span></div>
+      <div class="col">
+        <div><b>R3</b> U shall be ON while |A − B| ≤ 50 mV, with 20 mV hysteresis.</div>
+        <div class="muted">Verification: unit test, emulation scenario, HIL item</div>
+        <div><span class="tag">VER-04 ✓</span> <span class="tag">VER-05 ✓</span> <span class="tag hil">HIL-pending</span></div>
+        <div class="gbox"><b>Related (UI-03)</b><br>→ BLK-CMP · → cmp.cpp 3–4, 41–46 · → pins A0, A1, D8 · → NET_A, NET_B, NET_U · → UT-CMP-01..04 · → EMU-SC-03</div>
+        <div class="gbox"><b>Help for: Schematic view</b><br>What this view shows · How to edit a net · Netlist is the source of truth (INV-08)<br><u>Open full topic (F1)</u></div>
+      </div>
+    </div>
+  </div>
+  <div class="status">
+    <span><b>Status: Designed</b> (ST-01)</span><span class="sep">|</span>
+    <span>Verified-auto ✓ — review records pending (DOC-12)</span><span class="sep">|</span>
+    <span>Gates: 10/11 pass · VER-06 review record missing</span><span class="sep">|</span>
+    <span>HIL-pending: 4</span><span class="sep">|</span>
+    <span><span class="tag cv">Code verified</span></span><span class="sep">|</span>
+    <span>Emulation 0.98× real time (EM-06)</span><span class="sep">|</span>
+    <span>Offline</span><span style="margin-left:auto">Undo: 14 · Font 100 % · Light</span>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Menu bar and toolbar give every command; every command is also in the command palette (Ctrl+Shift+P) so the keyboard reaches every function (UI-20).</li>
+  <li>Left: project navigator tree (UI-01). Right: properties and context-help pane (UI-23). Both are collapsible; their state is remembered per display size.</li>
+  <li>Centre: tabbed multi-view area. Each tab group can split side by side or top/bottom (▥ ▤ ⊞), so two or four views show the same selection at once (UI-02).</li>
+  <li>Status bar always shows: project status (exactly one of the six ST-01 values), Verified-auto vs Verified distinction (ST-09), gate summary (click opens UI-13), HIL-pending count (ST-08), Code verified label (INV-06), emulated-to-real-time ratio (EM-06) while emulation runs, offline state (INV-01).</li>
+  <li>Selection made in any view (here R3 in the navigator) is shown in every open view in the accent colour and as a dot (●) on navigator nodes that contain highlighted items.</li>
+</ol>
+
+<h3>G-2 Compact workspace, 1366×768 (HOST-02(e))</h3>
+<div class="frame"><div class="wf" style="min-width:860px;max-width:1000px">
+  <div class="bar dark"><span class="ttl">EmbedForge</span><span>File</span><span>Edit</span><span>View</span><span>Project</span><span>Design</span><span>Verify</span><span>Emulate</span><span>Board</span><span>Library</span><span>Help</span></div>
+  <div class="bar"><span class="btn">↶</span><span class="btn">↷</span><span class="btn">Run gates</span><span class="btn">▶</span><span class="btn">Flash</span><span class="btn">⋯ more</span><span style="margin-left:auto" class="btn">Expert ▾</span><span class="fld">🔍 Ctrl+P</span></div>
+  <div class="g" style="grid-template-columns:34px 1fr 26px;height:300px;padding:4px;background:#e8e8e8">
+    <div class="pane" style="padding:2px;text-align:center;font-size:14px;line-height:28px">☰<br>R<br>B<br>&lt;/&gt;<br>⏚<br>▶<br>✓</div>
+    <div class="col" style="min-width:0">
+      <div class="tabs"><span class="tab">Blocks</span><span class="tab on">Schematic</span><span class="tab">Code</span><span class="tab">▾ 3 more</span></div>
+      <div class="pane" style="flex:1"><div class="ph"><span>Schematic (single view, splits off)</span><span></span></div><div class="gbox" style="height:200px;display:flex;align-items:center;justify-content:center">schematic canvas — same content as G-1</div></div>
+    </div>
+    <div class="pane" style="padding:2px;writing-mode:vertical-rl;text-align:center">Properties · Help (F1)</div>
+  </div>
+  <div class="status"><span><b>Designed</b></span><span>Gates 10/11</span><span>HIL 4</span><span class="tag cv">Code verified</span><span>0.98×</span><span style="margin-left:auto">ⓘ</span></div>
+</div></div>
+<ol class="ann">
+  <li>Navigator collapses to an icon rail (one icon per top-level tree node); clicking an icon opens the tree as an overlay drawer. Properties/help collapse to an edge tab and open as an overlay.</li>
+  <li>Toolbar overflows into “⋯ more”; tabs overflow into a “▾ n more” list. Nothing is removed — every function stays reachable through menus, overflow lists and the command palette.</li>
+  <li>Splits are off by default at this size; the user can still split (cross-highlight works the same).</li>
+  <li>Status bar shortens labels; hovering or focusing each item shows the full text.</li>
+  <li>Edge case: at 200 % font scale (UI-21) on 1366×768, panes stay collapsed and the status bar wraps to two lines rather than clipping.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-01 -->
+<section class="sec" id="w01" data-title="W-01 Project navigator">
+<h2>W-01 Project navigator</h2>
+<div class="sat"><b>UI-01</b><b>UI-02</b><b>UI-03</b><b>ST-08</b><b>EM-08</b></div>
+<div class="frame"><div class="wf sm" style="max-width:820px">
+  <div class="bar"><span class="ttl">Navigator</span><span class="fld" style="min-width:160px">filter…</span><span class="btn">Filter: all ▾</span><span class="btn">Show only highlighted</span><span class="btn">⇅ Sort</span></div>
+  <div class="g" style="grid-template-columns:1fr 1fr;padding:6px">
+    <ul class="tree">
+      <li>▾ <b>ACC-02 — UNO R3</b> <span class="c">Designed</span>
+        <ul>
+          <li>▾ Requirements <span class="c">11</span>
+            <ul><li>R1 Analog input A (0–5 V)</li><li>R2 Analog input B (0–5 V)</li>
+              <li class="sel">R3 U ON while A = B <span class="tag hil">HIL-pending</span></li>
+              <li>R4 Digital inputs C, D, E</li><li>R5 Counter on rising edge of C·D·¬E</li>
+              <li>R6 Counter value on PWM output P</li><li>R7 Motor speed ∝ counter</li>
+              <li>R8 W follows A (PWM + RC)</li><li>R9 V mirrors E</li><li>R10 Self-test</li><li>R11 Supply and power budget</li></ul></li>
+          <li>▸ Clarifications <span class="c">Q1–Q10 resolved</span></li>
+          <li>▸ Assumptions <span class="c">3 approved</span></li>
+          <li>▾ Blocks <span class="c">11</span><ul><li class="hl">BLK-CMP · L-CMP 1.2.0</li><li>BLK-DIN · L-DEB</li><li>BLK-TT · L-TT</li><li class="muted">… 8 more</li></ul></li>
+          <li>▸ Interfaces <span class="c">22</span></li>
+          <li>▸ Parameters <span class="c">params v3</span></li>
+        </ul></li>
+    </ul>
+    <ul class="tree">
+      <li>▾ Code <span class="c">C++ · Code verified</span><ul><li>main.cpp</li><li class="hl">cmp.cpp ● 1 range</li><li>params.h (generated)</li></ul></li>
+      <li>▸ Pin map <span class="c hlt">● 3 pins</span></li>
+      <li>▸ Schematic <span class="c hlt">● 3 nets</span></li>
+      <li>▸ Breadboard</li>
+      <li>▸ Layout (PCB, Uno shield) <span class="c hlt">● 3 traces</span></li>
+      <li>▸ BOM <span class="c">14 lines</span></li>
+      <li>▾ Emulation scenarios <ul><li class="hl">EMU-SC-03 A = B band</li><li>EMU-SC-07 motor ramp</li></ul></li>
+      <li>▸ Tests <span class="c hlt">● 4</span></li>
+      <li>▸ Documentation <span class="c">DOC-01..09</span></li>
+      <li>▸ History <span class="c">baselines B1–B4</span></li>
+      <li class="muted">Variant shown dashed when a part is unmodelled: <span class="tag ne">not emulated</span></li>
+    </ul>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>The tree lists every artefact class named in UI-01: requirements, clarifications, blocks, interfaces, parameters, code, pin map, schematic, breadboard, layout, BOM, emulation scenarios, tests, documentation, history (plus assumptions as a child of clarifications’ outcome).</li>
+  <li>Selecting a node publishes it on the shared selection bus (UI-02). Nodes that contain highlighted items show a ● and a count, so highlights in closed views are still discoverable.</li>
+  <li>Double-click or Enter opens the artefact in its view; context menu “Show related” lists the UI-03 links.</li>
+  <li>Badges: HIL-pending (ST-08) on requirements, “not emulated” (EM-08) on parts/blocks without a qualified model, status per artefact (“stale” after an ST-07 recompute).</li>
+  <li>Filter “Show only highlighted” reduces the tree to the current cross-highlight set.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-02 -->
+<section class="sec" id="w02" data-title="W-02 Cross-highlight & related navigation">
+<h2>W-02 Cross-highlight and related navigation</h2>
+<div class="sat"><b>UI-02</b><b>UI-03</b><b>PERF-10</b><b>INV-08</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Selection: R3 “U ON while A = B”</span><span class="tag acc">23 related artefacts · 7 views</span><span class="btn">Clear (Esc)</span><span class="btn">Pin selection</span><span class="btn">Highlight depth: direct ▾</span><span style="margin-left:auto" class="muted">highlight time 120 ms (PERF-10 ≤ 200 ms)</span></div>
+  <div class="g" style="grid-template-columns:1.2fr 1fr;padding:6px">
+    <div class="pane"><div class="ph"><span>Related artefacts panel (UI-03)</span><span>Alt+R</span></div>
+      <table class="wt">
+        <tr><th>Kind</th><th>Artefact</th><th>Go to</th></tr>
+        <tr><td>Block</td><td class="hl">BLK-CMP (L-CMP 1.2.0)</td><td>Blocks view ↗</td></tr>
+        <tr><td>Interface</td><td>A_mV, B_mV in → eq out</td><td>Blocks view ↗</td></tr>
+        <tr><td>Parameters</td><td>CMP_TOL_MV = 50, CMP_HYS_MV = 20</td><td>Parameter set ↗</td></tr>
+        <tr><td>Code lines</td><td class="hl">cmp.cpp 3–4, 41–46; params.h 12–13</td><td>Code view ↗</td></tr>
+        <tr><td>Pins</td><td class="hl">A0 (A), A1 (B), D8 (U)</td><td>Pin view ↗</td></tr>
+        <tr><td>Nets</td><td class="hl">NET_A, NET_B, NET_U</td><td>Schematic ↗</td></tr>
+        <tr><td>Traces</td><td class="hl">T7, T8 (top), T12 (bottom)</td><td>PCB ↗</td></tr>
+        <tr><td>Parts</td><td>R4 (330 Ω), LED2 (U)</td><td>BOM ↗</td></tr>
+        <tr><td>Emulation widgets</td><td class="hl">Slider A, Slider B, LED U</td><td>Emulation ↗</td></tr>
+        <tr><td>Tests</td><td class="hl">UT-CMP-01..04, EMU-SC-03, HIL-03</td><td>Verification ↗</td></tr>
+        <tr><td>Clarification</td><td>Q1 tolerance and hysteresis</td><td>NL workspace ↗</td></tr>
+      </table></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>In-view affordance</span><span></span></div>
+        Every view: right-click → “Go to related ▸” submenu; keyboard <span class="k">Alt</span>+<span class="k">R</span> opens the panel; <span class="k">Alt</span>+<span class="k">←</span>/<span class="k">→</span> navigation history (back/forward).</div>
+      <div class="pane"><div class="ph"><span>Breadcrumb</span><span></span></div>
+        R3 › BLK-CMP › cmp.cpp:41 › <span class="hlt">pin D8</span> › NET_U › T12</div>
+      <div class="pane"><div class="ph"><span>Closed views</span><span></span></div>
+        Views not open show a count on their tab icon / navigator node (e.g. “PCB ● 3”). Opening the view shows the highlight already applied.</div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Selection is one shared bus. The chain followed is requirement → block → code lines → pins → nets → traces → emulation widgets → tests, in both directions (selecting trace T12 highlights NET_U, pin D8, R3 and every other artefact linked to NET_U).</li>
+  <li>“Highlight depth: direct” follows direct trace links only; “transitive” also highlights e.g. other requirements sharing BLK-CMP. Default is direct to keep highlights readable.</li>
+  <li>Measured highlight time is shown in a debug tooltip only; the PERF-10 budget is ≤ 200 ms (profile A).</li>
+  <li>Edge case: a related artefact that does not exist yet (e.g. layout not generated) is listed greyed with “not generated”.</li>
+  <li>Full sequence shown in storyboard <a href="#s2">S-2</a>.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-04 -->
+<section class="sec" id="w04" data-title="W-04 Natural-language workspace">
+<h2>W-04 Natural-language workspace</h2>
+<div class="sat"><b>UI-04</b><b>NL-01</b><b>NL-02</b><b>NL-03</b><b>INV-12</b><b>ST-02</b><b>TB-05</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">NL workspace</span><span>Target board: <span class="btn">ELEGOO UNO R3 ▾</span></span><span>LLM profile: large (local)</span><span class="btn pri">Generate requirements</span><span class="btn">Re-analyse</span><span style="margin-left:auto"><span class="tag">10 questions · 7 answered · 3 defaults pending</span></span></div>
+  <div class="g" style="grid-template-columns:1fr 1fr 1fr;padding:6px;height:430px">
+    <div class="pane" style="overflow:hidden"><div class="ph"><span>1 · Your description (original)</span><span>edit</span></div>
+      <div class="fld wide" style="white-space:normal;line-height:1.4;padding:4px">“Create a module with 2 generic analog inputs (named A and B), 3 generic digital inputs (named C, D, E), 2 digital outputs (named U and V) and one analog output (named W). <span class="hl">Whenever A is equal to B, switch U ON.</span> Whenever C and D are ON but E is OFF, increment the value of U, output it on a PWM output of the board and set the speed of a controlled motor proportionally.”</div>
+      <p class="muted" style="margin:6px 0 0">Phrases are linked: clicking a highlighted phrase selects the requirement(s) and questions it produced.</p>
+    </div>
+    <div class="pane" style="overflow:hidden"><div class="ph"><span>2 · Clarification questions (NL-02)</span><span>3 open</span></div>
+      <div class="col">
+        <div class="box sel"><b>Q1 (d) missing tolerance</b> — Tolerance and hysteresis for A = B?<br>Proposed default: |A − B| ≤ <span class="fld">50</span> mV, hysteresis <span class="fld">20</span> mV<br><span class="btn">Accept default</span> <span class="btn">Answer…</span> <span class="muted">→ R3, BLK-CMP</span></div>
+        <div class="box"><b>Q2 (c) type conflict</b> — U is digital but is incremented and output as PWM.<br>Default: separate counter N with PWM output P; U stays digital. <span class="btn">Accept</span> <span class="btn">Redefine U</span></div>
+        <div class="box"><b>Q8 (h) board capability</b> — UNO R3 has no DAC. Default: PWM + RC filter for W (cut-off 16 Hz). <span class="btn">Accept</span> <span class="btn">External DAC (MCP4725)</span></div>
+        <div class="box muted">Q3 edge vs rate · Q4 motor scaling · Q5 motor type/driver · Q6 W behaviour · Q7 V behaviour · Q9 ranges · Q10 input type/debounce — answered ✓</div>
+        <div class="box"><b>Q (i) no qualified template</b> example: <span class="btn">Nearest template</span> <span class="btn">Simplify</span> <span class="btn">Manual block (unverified)</span></div>
+      </div></div>
+    <div class="pane" style="overflow:hidden"><div class="ph"><span>3 · Generated requirement set (DOC-01)</span><span>lint: 0 weak words</span></div>
+      <table class="wt">
+        <tr><th>ID</th><th>Requirement</th><th>Ver.</th></tr>
+        <tr><td>R1</td><td>A: analog input, 0–5 V, sampled every 10 ms</td><td>T,E</td></tr>
+        <tr><td>R2</td><td>B: analog input, 0–5 V, sampled every 10 ms</td><td>T,E</td></tr>
+        <tr class="hl"><td>R3</td><td>U shall be ON while |A − B| ≤ 50 mV; OFF when |A − B| &gt; 70 mV</td><td>T,E,H</td></tr>
+        <tr><td>R5</td><td>On each rising edge of C·D·¬E, N := min(N+1, 255)</td><td>T,E</td></tr>
+        <tr><td colspan="3" class="muted">… R4, R6–R11 · Blocks (NL-03) tab ▸</td></tr>
+      </table>
+      <div class="gbox" style="margin-top:6px"><b>Assumptions (need approval)</b><br>
+        <span class="chk x"></span> A1 Inputs C, D, E use internal pull-ups, active LOW<br>
+        <span class="chk x"></span> A2 Motor 6 V DC, ≤ 0.6 A, separate supply<br>
+        <span class="chk"></span> A3 Counter not stored across power cycles <span class="btn">Approve</span> <span class="btn">Edit</span></div>
+    </div>
+  </div>
+  <div class="bar" style="border-top:1px solid #999;border-bottom:none"><span class="btn pri">Approve requirement set → Clarified</span><span class="muted">disabled until all questions resolved and assumptions approved (INV-12, ST-02)</span></div>
+</div></div>
+<ol class="ann">
+  <li>Original text stays visible beside the generated set (UI-04). Each question names its NL-02 category (a)–(i), shows a proposed default with editable answer fields, and links to the requirements and blocks it affects.</li>
+  <li>Assumptions are a separate list; each needs an explicit approve tick. Design generation is blocked until every question is answered and every assumption approved (INV-12).</li>
+  <li>Cross-highlight: selecting Q1 highlights the source phrase, R3, BLK-CMP and the CMP parameters in other views.</li>
+  <li>Edge case NL-02(i): the “manual block” option creates a code block outside generated regions, marked unverified until its gates pass.</li>
+  <li>Edge case TB-05: if the request exceeds the board (e.g. too many PWM channels), the capability gap appears as a question with options such as “change board” or “add expander”.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-05 -->
+<section class="sec" id="w05" data-title="W-05 Functional block diagram">
+<h2>W-05 Functional block diagram</h2>
+<div class="sat"><b>UI-05</b><b>NL-03</b><b>ST-07</b><b>UI-22</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Blocks</span><span class="btn">+ Block from template</span><span class="btn">Connect</span><span class="btn">Auto-layout</span><span class="btn">↶</span><span class="btn">↷</span><span style="margin-left:auto" class="tag">2 drafted requirement changes awaiting approval</span></div>
+  <div class="g" style="grid-template-columns:1fr 280px;padding:6px">
+    <div class="pane">
+      <svg viewBox="0 0 640 280" width="100%" height="300" role="img" aria-label="Block diagram">
+        <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#555"/></marker></defs>
+        <g font-size="10">
+        <rect x="10" y="20" width="90" height="40" fill="#fff" stroke="#555"/><text x="55" y="38" text-anchor="middle">BLK-AIN A</text><text x="55" y="52" text-anchor="middle" fill="#777">analog in</text>
+        <rect x="10" y="75" width="90" height="40" fill="#fff" stroke="#555"/><text x="55" y="93" text-anchor="middle">BLK-AIN B</text>
+        <rect x="160" y="45" width="100" height="45" fill="#d7e8f8" stroke="#0a66c2" stroke-width="2.5"/><text x="210" y="64" text-anchor="middle" font-weight="700">BLK-CMP</text><text x="210" y="79" text-anchor="middle" fill="#555">L-CMP 1.2.0</text>
+        <rect x="320" y="45" width="90" height="40" fill="#fff" stroke="#555"/><text x="365" y="68" text-anchor="middle">BLK-DOUT U</text>
+        <rect x="10" y="150" width="90" height="55" fill="#fff" stroke="#555"/><text x="55" y="172" text-anchor="middle">BLK-DIN</text><text x="55" y="186" text-anchor="middle" fill="#777">C, D, E · L-DEB</text>
+        <rect x="140" y="155" width="70" height="40" fill="#fff" stroke="#555"/><text x="175" y="178" text-anchor="middle">BLK-TT</text>
+        <rect x="235" y="155" width="70" height="40" fill="#fff" stroke="#555"/><text x="270" y="178" text-anchor="middle">BLK-EDGE</text>
+        <rect x="330" y="155" width="70" height="40" fill="#fff" stroke="#555"/><text x="365" y="178" text-anchor="middle">BLK-CNT</text>
+        <rect x="430" y="130" width="80" height="35" fill="#fff" stroke="#555"/><text x="470" y="151" text-anchor="middle">BLK-PWM P</text>
+        <rect x="430" y="185" width="80" height="35" fill="#fff" stroke="#555"/><text x="470" y="206" text-anchor="middle">BLK-MAP</text>
+        <rect x="540" y="185" width="90" height="35" fill="#fff" stroke="#555"/><text x="585" y="206" text-anchor="middle">BLK-MOTOR</text>
+        <rect x="430" y="235" width="80" height="35" fill="#fff" stroke="#555"/><text x="470" y="256" text-anchor="middle">BLK-WOUT</text>
+        <line x1="100" y1="40" x2="160" y2="60" stroke="#0a66c2" stroke-width="2" marker-end="url(#ar)"/><text x="108" y="38" fill="#0a66c2">A_mV</text>
+        <line x1="100" y1="95" x2="160" y2="78" stroke="#0a66c2" stroke-width="2" marker-end="url(#ar)"/><text x="108" y="104" fill="#0a66c2">B_mV</text>
+        <line x1="260" y1="66" x2="320" y2="66" stroke="#0a66c2" stroke-width="2" marker-end="url(#ar)"/><text x="276" y="60" fill="#0a66c2">eq</text>
+        <line x1="100" y1="175" x2="140" y2="175" stroke="#555" marker-end="url(#ar)"/>
+        <line x1="210" y1="175" x2="235" y2="175" stroke="#555" marker-end="url(#ar)"/>
+        <line x1="305" y1="175" x2="330" y2="175" stroke="#555" marker-end="url(#ar)"/>
+        <line x1="400" y1="168" x2="430" y2="150" stroke="#555" marker-end="url(#ar)"/>
+        <line x1="400" y1="182" x2="430" y2="200" stroke="#555" marker-end="url(#ar)"/>
+        <line x1="510" y1="202" x2="540" y2="202" stroke="#555" marker-end="url(#ar)"/>
+        <path d="M100,40 C380,10 380,250 430,252" fill="none" stroke="#555" stroke-dasharray="4 3" marker-end="url(#ar)"/><text x="330" y="125" fill="#777">A → W (R8)</text>
+        </g>
+      </svg></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Interface: BLK-CMP</span><span>v1.2.0</span></div>
+        <table class="wt"><tr><th>Port</th><th>Dir</th><th>Type/unit</th><th>Range</th></tr>
+        <tr><td>A_mV</td><td>in</td><td>int16 mV</td><td>0..5000</td></tr>
+        <tr><td>B_mV</td><td>in</td><td>int16 mV</td><td>0..5000</td></tr>
+        <tr><td>eq</td><td>out</td><td>bool</td><td>—</td></tr></table>
+        <div class="muted">Timing: every 10 ms · Errors: E_RANGE</div>
+        <div>Tolerance <span class="fld">50</span> mV → edited to <span class="fld hl">30</span> mV</div></div>
+      <div class="pane"><div class="ph"><span>Drafted change (approval)</span><span></span></div>
+        R3: “≤ 50 mV” → “≤ 30 mV” · hysteresis unchanged<br>
+        <span class="btn pri">Approve</span> <span class="btn">Reject</span><br>
+        <span class="muted">On approve: NL-02 checks run → status recomputed (ST-07, Designed → Clarified) → code and circuit regenerated and re-verified.</span></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Blocks and interfaces are editable (add from template, connect, edit ports and parameters). Edits never change requirements silently: they produce a drafted requirement change that the user approves or rejects.</li>
+  <li>After approval the pipeline shown in the draft panel runs; the status bar shows the recomputed status (ST-07) and a progress indicator for regeneration.</li>
+  <li>Block label shows the template ID and version; unmodelled parts on device blocks carry <span class="tag ne">not emulated</span>.</li>
+  <li>Cross-highlights: block → its requirements, code region, pins, nets, tests.</li>
+  <li>Undo/redo (UI-22) covers diagram edits; an approved requirement change is undone through History (UI-15) or by reverting the drafted change.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-06 -->
+<section class="sec" id="w06" data-title="W-06 Behaviour view">
+<h2>W-06 Behaviour view</h2>
+<div class="sat"><b>UI-06</b><b>NL-03</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Behaviour</span><span class="tab on">State machines</span><span class="tab">Truth tables</span><span class="btn">Simulate step</span><span style="margin-left:auto" class="muted">Generated from R3, R5 — read-only; edit via requirements or block parameters</span></div>
+  <div class="g" style="grid-template-columns:1fr 1fr;padding:6px">
+    <div class="pane"><div class="ph"><span>State machine: BLK-CMP (R3)</span><span>L-SM</span></div>
+      <svg viewBox="0 0 360 170" width="100%" height="190" role="img" aria-label="State machine">
+        <defs><marker id="ar2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#444"/></marker></defs>
+        <g font-size="10">
+        <rect x="30" y="60" width="100" height="44" rx="20" fill="#fff" stroke="#444"/><text x="80" y="80" text-anchor="middle" font-weight="700">U_OFF</text><text x="80" y="94" text-anchor="middle" fill="#666">U := 0</text>
+        <rect x="230" y="60" width="100" height="44" rx="20" fill="#d7e8f8" stroke="#0a66c2" stroke-width="2.5"/><text x="280" y="80" text-anchor="middle" font-weight="700">U_ON</text><text x="280" y="94" text-anchor="middle" fill="#666">U := 1</text>
+        <path d="M130,70 C170,40 190,40 230,70" fill="none" stroke="#444" marker-end="url(#ar2)"/><text x="180" y="38" text-anchor="middle">|A−B| ≤ TOL</text>
+        <path d="M230,96 C190,126 170,126 130,96" fill="none" stroke="#444" marker-end="url(#ar2)"/><text x="180" y="140" text-anchor="middle">|A−B| &gt; TOL+HYS</text>
+        <circle cx="12" cy="82" r="5" fill="#444"/><line x1="17" y1="82" x2="30" y2="82" stroke="#444" marker-end="url(#ar2)"/>
+        </g></svg></div>
+    <div class="pane"><div class="ph"><span>Truth table: BLK-TT (R5 trigger)</span><span>L-TT</span></div>
+      <table class="wt" style="text-align:center">
+        <tr><th>C</th><th>D</th><th>E</th><th>trig</th><th>count action</th></tr>
+        <tr><td>0</td><td>×</td><td>×</td><td>0</td><td>—</td></tr>
+        <tr><td>×</td><td>0</td><td>×</td><td>0</td><td>—</td></tr>
+        <tr><td>1</td><td>1</td><td>1</td><td>0</td><td>—</td></tr>
+        <tr class="hl"><td>1</td><td>1</td><td>0</td><td>1</td><td>rising edge → N+1 (sat. 255)</td></tr>
+      </table>
+      <p class="muted" style="margin:6px 0 0">Row hover shows the requirement text; click selects R5 and BLK-EDGE/BLK-CNT.</p></div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>State machines and truth tables are generated from the requirements and the chosen block parameters; they are read-only representations.</li>
+  <li>“Simulate step” lets the user feed input values and see the next state without running full emulation.</li>
+  <li>Cross-highlight: a state or transition selects the requirement and the code lines implementing it; during emulation the active state is shown in the accent colour.</li>
+  <li>Edge case: a requirement with no state behaviour (e.g. R11 power) shows “no behaviour model — not applicable”.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-07 -->
+<section class="sec" id="w07" data-title="W-07 Pin allocation view">
+<h2>W-07 Pin allocation view</h2>
+<div class="sat"><b>UI-07</b><b>ED-01</b><b>VER-10</b><b>UI-12</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Pin allocation — ELEGOO UNO R3</span><span class="btn">Re-allocate (ED-01)</span><span class="btn">Lock pin</span><span class="btn">Swap…</span><span style="margin-left:auto"><span class="tag">VER-10 ✓</span> <span class="tag">ERC ✓</span></span></div>
+  <div class="g" style="grid-template-columns:1fr 360px;padding:6px">
+    <div class="pane">
+      <svg viewBox="0 0 560 280" width="100%" height="300" role="img" aria-label="UNO R3 board with allocated pins">
+        <g font-size="9">
+        <rect x="80" y="60" width="380" height="170" rx="6" fill="#efefef" stroke="#444" stroke-width="1.5"/>
+        <rect x="80" y="90" width="44" height="40" fill="#ccc" stroke="#555"/><text x="102" y="114" text-anchor="middle">USB</text>
+        <rect x="80" y="170" width="34" height="34" fill="#ccc" stroke="#555"/><text x="97" y="190" text-anchor="middle">DC</text>
+        <rect x="250" y="120" width="120" height="34" fill="#ddd" stroke="#555"/><text x="310" y="141" text-anchor="middle">ATmega328P</text>
+        <!-- top header D0..D13 -->
+        <g>
+          <rect x="190" y="62" width="250" height="14" fill="#fff" stroke="#555"/>
+          <text x="196" y="72">13 12 11 10  9  8 | 7  6  5  4  3  2  1  0</text>
+        </g>
+        <rect x="236" y="62" width="14" height="14" fill="none" stroke="#777" stroke-width="2"/>
+        <rect x="268" y="62" width="14" height="14" fill="#d7e8f8" stroke="#0a66c2" stroke-width="2.5"/>
+        <!-- bottom header -->
+        <rect x="200" y="214" width="250" height="14" fill="#fff" stroke="#555"/>
+        <text x="206" y="224">5V GND VIN | A0  A1  A2  A3  A4  A5</text>
+        <rect x="288" y="214" width="18" height="14" fill="#d7e8f8" stroke="#0a66c2" stroke-width="2.5"/>
+        <rect x="312" y="214" width="18" height="14" fill="#d7e8f8" stroke="#0a66c2" stroke-width="2.5"/>
+        <!-- callouts -->
+        <line x1="275" y1="62" x2="275" y2="30" stroke="#0a66c2"/><rect x="236" y="10" width="110" height="20" fill="#fff" stroke="#0a66c2"/><text x="240" y="23" fill="#0a66c2">D8 · U · out · 5 V · R3</text>
+        <line x1="243" y1="62" x2="160" y2="30" stroke="#777"/><rect x="96" y="10" width="120" height="20" fill="#fff" stroke="#777"/><text x="100" y="23">D9 · W PWM(T1) · out · R8</text>
+        <line x1="297" y1="228" x2="250" y2="262" stroke="#0a66c2"/><rect x="180" y="256" width="110" height="20" fill="#fff" stroke="#0a66c2"/><text x="184" y="269" fill="#0a66c2">A0 · A · ADC0 · in · R1,R3</text>
+        <line x1="321" y1="228" x2="360" y2="262" stroke="#0a66c2"/><rect x="330" y="256" width="110" height="20" fill="#fff" stroke="#0a66c2"/><text x="334" y="269" fill="#0a66c2">A1 · B · ADC1 · in · R2,R3</text>
+        <text x="470" y="80" fill="#555">+ 9 more callouts</text><text x="470" y="94" fill="#555">(toggle: all / selected)</text>
+        </g></svg></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Allocated pins</span><span>13 / 20</span></div>
+        <table class="wt">
+          <tr><th>Pin</th><th>Name</th><th>Function</th><th>Dir</th><th>V</th><th>Req.</th></tr>
+          <tr class="hl"><td>A0</td><td>A</td><td>ADC0</td><td>in</td><td>5</td><td>R1,R3</td></tr>
+          <tr class="hl"><td>A1</td><td>B</td><td>ADC1</td><td>in</td><td>5</td><td>R2,R3</td></tr>
+          <tr><td>D2</td><td>C</td><td>GPIO pull-up</td><td>in</td><td>5</td><td>R4</td></tr>
+          <tr><td>D4</td><td>D</td><td>GPIO pull-up</td><td>in</td><td>5</td><td>R4</td></tr>
+          <tr><td>D7</td><td>E</td><td>GPIO pull-up</td><td>in</td><td>5</td><td>R4,R9</td></tr>
+          <tr class="hl"><td>D8</td><td>U</td><td>GPIO</td><td>out</td><td>5</td><td>R3</td></tr>
+          <tr><td>D12</td><td>V</td><td>GPIO</td><td>out</td><td>5</td><td>R9</td></tr>
+          <tr><td>D9</td><td>W</td><td>PWM OC1A</td><td>out</td><td>5</td><td>R8</td></tr>
+          <tr><td>D6</td><td>P</td><td>PWM OC0A</td><td>out</td><td>5</td><td>R6</td></tr>
+          <tr><td>D5</td><td>PWMA</td><td>PWM OC0B</td><td>out</td><td>5</td><td>R7</td></tr>
+          <tr><td colspan="6" class="muted">A2 AIN1 · A3 AIN2 · A4 STBY (digital out, R7)</td></tr>
+        </table></div>
+      <div class="pane"><div class="ph"><span>Resources</span><span>used / total</span></div>
+        PWM ▮▮▮▯▯▯ 3/6 · ADC ▮▮▯▯▯▯ 2/6 · DAC 0/0 (none) · Timers T0 ▮ T1 ▮ T2 ▯ · I²C free · SPI free · UART reserved (USB)</div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Board image with a callout per allocated pin giving name, function, direction, voltage level and served requirement; table lists the same data and is the keyboard-accessible equivalent.</li>
+  <li>Resource summary shows used and free PWM, ADC, DAC, timers and buses; “DAC 0/0” makes the Q8 capability gap visible.</li>
+  <li>Changing a pin here (swap, lock, re-allocate) is a netlist command (INV-08) and is one of the two ways to change generated code regions (UI-12); VER-10 re-runs.</li>
+  <li>Invalid drops are refused with the reason (e.g. “D4 has no PWM”). Timer conflicts (T0 used by millis() and PWM on D5/D6) are shown as notes, not hidden.</li>
+  <li>Cross-highlight: selecting a pin highlights its net, code constant, breadboard wire, PCB trace and emulation pin-state row.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-08 -->
+<section class="sec" id="w08" data-title="W-08 Schematic view">
+<h2>W-08 Schematic view</h2>
+<div class="sat"><b>UI-08</b><b>INV-08</b><b>ED-02</b><b>ED-03</b><b>ED-04</b><b>UI-22</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Schematic</span><span class="btn">Select</span><span class="btn">Wire (W)</span><span class="btn">Place part (P)</span><span class="btn">Label net (L)</span><span class="btn">Run ERC</span><span class="btn">Sheet 1 ▾</span><span class="btn">↶</span><span class="btn">↷</span><span style="margin-left:auto" class="muted">Edits apply as netlist commands (INV-08)</span></div>
+  <div class="g" style="grid-template-columns:1fr 260px;padding:6px">
+    <div class="pane">
+      <svg viewBox="0 0 620 260" width="100%" height="290" role="img" aria-label="Schematic">
+        <g font-size="9" stroke-width="1.2">
+        <rect x="250" y="40" width="110" height="180" fill="#fff" stroke="#444"/><text x="305" y="34" text-anchor="middle" font-weight="700">U1 ELEGOO UNO R3</text>
+        <text x="256" y="65">A0</text><text x="256" y="85">A1</text><text x="256" y="125">D2</text><text x="256" y="140">D4</text><text x="256" y="155">D7</text>
+        <text x="335" y="65">D8</text><text x="335" y="95">D9</text><text x="335" y="130">D5</text><text x="335" y="160">D6</text>
+        <line x1="120" y1="62" x2="250" y2="62" stroke="#0a66c2" stroke-width="3"/><text x="125" y="58" fill="#0a66c2">NET_A</text>
+        <rect x="70" y="54" width="40" height="16" fill="#fff" stroke="#444"/><text x="74" y="65">J1 A</text>
+        <line x1="120" y1="82" x2="250" y2="82" stroke="#0a66c2" stroke-width="3"/><text x="125" y="78" fill="#0a66c2">NET_B</text>
+        <rect x="70" y="74" width="40" height="16" fill="#fff" stroke="#444"/><text x="74" y="85">J1 B</text>
+        <text x="150" y="100" fill="#666">R1/R2 series 1 kΩ + clamp (ED-04a)</text>
+        <line x1="120" y1="122" x2="250" y2="122" stroke="#444"/><line x1="120" y1="137" x2="250" y2="137" stroke="#444"/><line x1="120" y1="152" x2="250" y2="152" stroke="#444"/>
+        <rect x="70" y="114" width="40" height="46" fill="#fff" stroke="#444"/><text x="74" y="140">J2 C D E</text>
+        <line x1="360" y1="62" x2="470" y2="62" stroke="#0a66c2" stroke-width="3"/><text x="380" y="58" fill="#0a66c2">NET_U</text>
+        <rect x="470" y="54" width="60" height="16" fill="#fff" stroke="#444"/><text x="474" y="65">R4 330 Ω</text><text x="540" y="65">LED2</text>
+        <line x1="360" y1="92" x2="440" y2="92" stroke="#444"/><rect x="440" y="84" width="96" height="16" fill="#fff" stroke="#444"/><text x="444" y="95">R5 10k · C3 1 µF → W</text>
+        <line x1="360" y1="127" x2="430" y2="127" stroke="#444"/><rect x="430" y="115" width="110" height="60" fill="#fff" stroke="#444" stroke-dasharray="4 2"/><text x="436" y="130">M1 TB6612FNG module</text><text x="436" y="145">VM ← 6 V ext (ED-04e)</text><text x="436" y="160">AO1/AO2 → MOT1</text>
+        <line x1="360" y1="157" x2="420" y2="157" stroke="#444"/><text x="380" y="172">NET_P</text>
+        <circle cx="560" cy="210" r="9" fill="none" stroke="#222" stroke-width="2"/><text x="574" y="214">ERC: 0 errors, 1 info</text>
+        </g></svg></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Net NET_U</span><span>selected</span></div>
+        Pins: U1.D8, R4.1 · Class: signal 5 V<br>Requirement: R3 · Pin map: D8<br><span class="btn">Rename</span> <span class="btn">Go to PCB trace</span></div>
+      <div class="pane"><div class="ph"><span>ERC (ED-03)</span><span>VER-03</span></div>
+        ✓ pin reuse · ✓ levels · ✓ current · ✓ pull-ups · ✓ flyback (driver internal) · ✓ motor not on board 5 V<br><span class="muted">i: TB6612FNG VM from external supply, common GND</span></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Generated from the netlist (ED-02). Editing (wire, place, label) is applied as a netlist command and propagates to breadboard, PCB and pin definitions; the view stores geometry only (INV-08).</li>
+  <li>Interface circuits (ED-04) appear as grouped sub-circuits with their calculation (“RC cut-off 16 Hz”) on hover.</li>
+  <li>ERC results (ED-03) are listed and linked to the offending symbol; clicking a result selects it.</li>
+  <li>Edge case: a module without a qualified model is drawn with a dashed outline and a <span class="tag ne">not emulated</span> tag (EM-08).</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-09 -->
+<section class="sec" id="w09" data-title="W-09 Breadboard view">
+<h2>W-09 Breadboard view</h2>
+<div class="sat"><b>UI-09</b><b>VER-15</b><b>INV-08</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Breadboard</span><span class="btn">Move part</span><span class="btn">Draw wire</span><span class="btn">Wire colour ▾</span><span class="btn">Show pin labels ✓</span><span class="btn">Check (VER-15)</span><span class="btn">↶</span><span class="btn">↷</span><span style="margin-left:auto"><span class="tag">VER-15 ✓ 0 missing · 0 extra</span></span></div>
+  <div class="pane" style="margin:6px">
+    <svg viewBox="0 0 760 250" width="100%" height="260" role="img" aria-label="Breadboard">
+      <g font-size="9">
+      <rect x="10" y="40" width="200" height="150" rx="5" fill="#ececec" stroke="#444"/><text x="110" y="120" text-anchor="middle">UNO R3</text>
+      <text x="20" y="54">D13…D0</text><text x="20" y="184">A0 A1 …</text>
+      <rect x="250" y="30" width="480" height="190" fill="#fafafa" stroke="#444"/>
+      <g fill="#bbb"><circle cx="270" cy="50" r="2"/><circle cx="290" cy="50" r="2"/><circle cx="310" cy="50" r="2"/><circle cx="330" cy="50" r="2"/><circle cx="350" cy="50" r="2"/><circle cx="370" cy="50" r="2"/></g>
+      <text x="260" y="44" fill="#777">+ / − rails</text>
+      <rect x="300" y="90" width="40" height="22" fill="#fff" stroke="#444"/><text x="303" y="104">pot A</text>
+      <rect x="360" y="90" width="40" height="22" fill="#fff" stroke="#444"/><text x="363" y="104">pot B</text>
+      <rect x="430" y="80" width="30" height="16" fill="#fff" stroke="#0a66c2" stroke-width="2"/><text x="433" y="92" fill="#0a66c2">LED U</text>
+      <rect x="480" y="130" width="70" height="50" fill="#fff" stroke="#444"/><text x="484" y="150">TB6612FNG</text><text x="484" y="164" fill="#777">VM GND AO1…</text>
+      <rect x="580" y="130" width="40" height="40" rx="20" fill="#fff" stroke="#444"/><text x="588" y="154">M</text>
+      <rect x="640" y="120" width="70" height="30" fill="#fff" stroke="#444"/><text x="644" y="138">6 V supply</text>
+      <rect x="300" y="160" width="60" height="22" fill="#fff" stroke="#444"/><text x="303" y="174">btn C D E</text>
+      <path d="M180,184 C230,200 270,130 320,112" fill="none" stroke="#0a66c2" stroke-width="3"/><text x="230" y="205" fill="#0a66c2">yellow · A0</text>
+      <path d="M190,184 C250,215 330,140 380,112" fill="none" stroke="#0a66c2" stroke-width="3"/>
+      <path d="M150,48 C250,10 400,40 445,80" fill="none" stroke="#0a66c2" stroke-width="3"/><text x="330" y="22" fill="#0a66c2">green · D8 → LED U</text>
+      <path d="M140,48 C260,70 420,120 480,145" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="6 2"/><text x="400" y="128" fill="#555">orange · D5 PWMA</text>
+      <path d="M710,135 C730,160 640,190 550,170" fill="none" stroke="#222" stroke-width="2"/><text x="640" y="200">red/black · VM</text>
+      </g></svg>
+  </div>
+  <div class="bar" style="border-top:1px solid #999;border-bottom:none"><span>Wire colour code: red +5 V · black GND · yellow analog · green digital out · blue digital in · orange PWM · white ext. supply</span><span style="margin-left:auto" class="muted">Hover a pin: label + net + requirement</span></div>
+</div></div>
+<ol class="ann">
+  <li>Each part is drawn in its physical form (module outlines, potentiometers, LED polarity) with pin labels; wires follow a fixed colour code (a legend is always visible). Low-fi wireframe uses greys; the real view uses the colour code.</li>
+  <li>Moving parts or drawing a wire is a netlist command; VER-15 checks breadboard ↔ netlist (missing, extra or mismatched connections) and shows the result in the toolbar.</li>
+  <li>This view is reused by the emulation dashboard (animated) and the assembly guide (step highlight).</li>
+  <li>Edge case: a part that cannot be placed on a breadboard (non-2.54 mm) is flagged per VER-13 with “not breadboard-compatible”.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-10 -->
+<section class="sec" id="w10" data-title="W-10 PCB view">
+<h2>W-10 PCB view</h2>
+<div class="sat"><b>UI-10</b><b>VER-08</b><b>VER-09</b><b>VER-11</b><b>UI-19</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">PCB — Uno shield, 2 layers</span><span class="btn on">2D</span><span class="btn">3D</span><span class="btn">Place</span><span class="btn">Route (X)</span><span class="btn">Auto-route</span><span class="btn">Run DRC</span><span class="btn">Fab profile: JLC 2L ▾</span><span class="btn">↶</span><span class="btn">↷</span><span style="margin-left:auto"><span class="tag">DRC 1 marker</span> <span class="tag">0 unrouted</span></span></div>
+  <div class="g" style="grid-template-columns:150px 1fr 280px;padding:6px">
+    <div class="pane"><div class="ph"><span>Layers</span><span></span></div>
+      <div class="col"><span>☑ F.Cu (top)</span><span>☑ B.Cu (bottom)</span><span>☑ F.Silk</span><span>☐ B.Silk</span><span>☑ Edge.Cuts</span><span>☐ Courtyard</span><span>☑ DRC markers</span><span class="muted">Solo layer: Alt+click</span></div></div>
+    <div class="pane">
+      <svg viewBox="0 0 480 260" width="100%" height="270" role="img" aria-label="PCB">
+        <g font-size="9">
+        <path d="M20,20 H440 V230 H60 L20,200 Z" fill="#f4f4f4" stroke="#222" stroke-width="2"/>
+        <rect x="60" y="30" width="340" height="10" fill="#ddd" stroke="#777"/><text x="64" y="38">header D</text>
+        <rect x="80" y="210" width="300" height="10" fill="#ddd" stroke="#777"/><text x="84" y="218">header A / power</text>
+        <rect x="260" y="90" width="80" height="60" fill="#fff" stroke="#555"/><text x="265" y="120">M1 TB6612</text>
+        <rect x="90" y="100" width="40" height="20" fill="#fff" stroke="#555"/><text x="94" y="113">J1</text>
+        <rect x="380" y="90" width="40" height="24" fill="#fff" stroke="#555"/><text x="383" y="105">J4 MOT</text>
+        <path d="M180,210 V140 H130" fill="none" stroke="#0a66c2" stroke-width="4"/><text x="150" y="160" fill="#0a66c2">T7</text>
+        <path d="M200,210 V130 H130" fill="none" stroke="#0a66c2" stroke-width="4"/><text x="205" y="170" fill="#0a66c2">T8</text>
+        <path d="M230,40 V70 H170" fill="none" stroke="#0a66c2" stroke-width="4" stroke-dasharray="7 3"/><text x="180" y="66" fill="#0a66c2">T12 (B.Cu)</text>
+        <path d="M290,40 V90" fill="none" stroke="#777" stroke-width="3"/>
+        <path d="M340,120 H380" fill="none" stroke="#777" stroke-width="6"/>
+        <circle cx="352" cy="150" r="10" fill="none" stroke="#222" stroke-width="2"/><text x="366" y="160">!</text>
+        </g></svg></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>DRC (VER-08)</span><span>1</span></div>
+        ⚠ Clearance 0.18 mm &lt; 0.20 mm between T19 and pad M1.12 <span class="btn">Zoom</span><br><span class="muted">Profile rules from Phase 0 (f)</span></div>
+      <div class="pane"><div class="ph"><span>Consistency</span><span></span></div>
+        VER-09 schematic ↔ PCB ✓ · VER-11 Gerber re-read ✓ (last export)</div>
+      <div class="pane"><div class="ph"><span>3D view (thumbnail)</span><span>open ↗</span></div>
+        <div class="gbox" style="height:70px;display:flex;align-items:center;justify-content:center">assembled shield on UNO, orbit / zoom</div></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Per-layer 2D view with layer toggles and solo; interactive placement and route editing (manual routing, push-and-shove optional), auto-route.</li>
+  <li>DRC markers drawn on the board and listed; a marker click zooms to it. VER-08 needs zero DRC errors and zero unrouted nets.</li>
+  <li>3D tab shows the assembled board (parts on the shield on the UNO); 3D export to SVG embeds a raster (UI-19).</li>
+  <li>Perfboard builds replace this view’s canvas with a perfboard/stripboard grid plus hand-wiring list (PCB-08, VER-14); breadboard builds hide it.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-11 -->
+<section class="sec" id="w11" data-title="W-11 Emulation dashboard">
+<h2>W-11 Emulation dashboard</h2>
+<div class="sat"><b>UI-11</b><b>EM-06</b><b>EM-07</b><b>EM-08</b><b>EMU-02</b><b>VER-05</b><b>ST-08</b></div>
+<div class="frame"><div class="wf" style="min-width:1100px">
+  <div class="bar"><span class="ttl">Emulation</span><span class="btn">▶ Start</span><span class="btn">⏸ Pause</span><span class="btn">⏭ Step 1 ms ▾</span><span class="btn">⏹ Reset</span><span>Speed <span class="fld">1×</span> (0.1×–10×, max)</span><span class="btn">Mode: standard ▾</span><span class="muted">(accurate = full SPICE)</span>
+    <span style="margin-left:auto;padding:0 6px" class="hl">Emulated t = 00:01:12.430 · <b>ratio 0.98× real time</b></span></div>
+  <div class="g" style="grid-template-columns:1.25fr 1fr 230px;padding:6px">
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Animated breadboard</span><span>live</span></div>
+        <div class="gbox" style="height:150px;position:relative">breadboard view (W-09) with live wire states: HIGH wires thick, PWM wires dashed with duty %, LED U lit <span class="hl" style="padding:0 4px">● U ON</span>, motor shaft rotating (42 %)
+          <div style="position:absolute;right:6px;bottom:6px"><span class="tag ne">not emulated</span> <span class="muted">variant: shown on a part without a qualified model</span></div></div></div>
+      <div class="pane"><div class="ph"><span>Input drive (EM-07a)</span><span></span></div>
+        <div class="g" style="grid-template-columns:1fr 1fr;gap:4px">
+          <div class="hl p6">A ━━━━━●━━━━ <span class="fld">2.510</span> V</div>
+          <div class="hl p6">B ━━━━━●━━━━ <span class="fld">2.490</span> V</div>
+          <div class="box">C <span class="btn">press</span> <span class="btn on">hold</span></div>
+          <div class="box">D <span class="btn on">hold</span> · E <span class="btn">hold</span></div>
+        </div></div>
+      <div class="pane"><div class="ph"><span>Scenarios (EM-07b, EMU-02)</span><span>12/12 pass</span></div>
+        <table class="wt">
+          <tr><th>Scenario</th><th>Req.</th><th>Result</th></tr>
+          <tr class="hl"><td>EMU-SC-03 A = B band with hysteresis</td><td>R3</td><td>pass</td></tr>
+          <tr><td>EMU-SC-05 counter saturates at 255</td><td>R5</td><td>pass</td></tr>
+          <tr><td>EMU-SC-07 motor ramp ∝ N</td><td>R7</td><td>pass</td></tr>
+          <tr><td colspan="3"><span class="btn">Run all</span> <span class="btn">Record new from session</span> <span class="btn">Edit stimuli…</span></td></tr>
+        </table></div>
+    </div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Oscilloscope</span><span>2 ch · 5 ms/div</span></div>
+        <svg viewBox="0 0 300 100" width="100%" height="110" role="img" aria-label="scope"><rect width="300" height="100" fill="#f7f7f7" stroke="#999"/>
+        <path d="M0,70 h20 v-40 h12 v40 h20 v-40 h12 v40 h20 v-40 h12 v40 h20 v-40 h12 v40 h20 v-40 h12 v40 h20 v-40 h12 v40 h20 v-40 h12 v40 h20" fill="none" stroke="#444"/>
+        <path d="M0,45 C60,44 120,46 300,45" fill="none" stroke="#0a66c2" stroke-width="2"/><text x="4" y="12" font-size="9">CH1 P (PWM)  CH2 W (after RC)</text></svg></div>
+      <div class="pane"><div class="ph"><span>Logic analyser</span><span>C D E U V</span></div>
+        <div class="gbox" style="height:56px">5 digital traces, cursor, edge-to-edge timing</div></div>
+      <div class="g" style="grid-template-columns:1fr 1fr;gap:6px">
+        <div class="pane"><div class="ph"><span>Multimeter</span><span>DC V</span></div><span style="font-size:18px">2.47 V</span><br><span class="muted">probe: NET_W</span></div>
+        <div class="pane"><div class="ph"><span>Serial plotter</span><span></span></div><div class="gbox" style="height:40px">N, A, B</div></div>
+      </div>
+      <div class="pane"><div class="ph"><span>Serial monitor</span><span>115200</span></div><pre class="code">SELFTEST OK
+N=17 P=6.7% MOT=42%
+EQ=1 A=2510 B=2490</pre><span class="fld" style="min-width:200px">send…</span></div>
+    </div>
+    <div class="pane"><div class="ph"><span>Pin states</span><span></span></div>
+      <table class="wt">
+        <tr><th>Pin</th><th>Sig</th><th>State</th></tr>
+        <tr class="hl"><td>A0</td><td>A</td><td>514</td></tr>
+        <tr class="hl"><td>A1</td><td>B</td><td>510</td></tr>
+        <tr><td>D2</td><td>C</td><td>LOW*</td></tr>
+        <tr><td>D4</td><td>D</td><td>LOW*</td></tr>
+        <tr><td>D7</td><td>E</td><td>HIGH</td></tr>
+        <tr class="hl"><td>D8</td><td>U</td><td>HIGH</td></tr>
+        <tr><td>D12</td><td>V</td><td>LOW</td></tr>
+        <tr><td>D9</td><td>W</td><td>PWM 50 %</td></tr>
+        <tr><td>D6</td><td>P</td><td>PWM 7 %</td></tr>
+        <tr><td>D5</td><td>PWMA</td><td>PWM 42 %</td></tr>
+      </table>
+      <p class="muted" style="margin:4px 0">* active LOW (pull-up)</p>
+      <div class="gbox"><b>HIL-pending</b> (ST-08)<br>HIL-03 U LED visible at A = B on hardware <span class="tag hil">HIL-pending</span></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Controls: start, pause, step (step size selectable), speed; the emulated-to-real-time ratio is always visible in the toolbar and status bar (EM-06). If the host cannot keep up, the ratio drops below 1× and timing stays correct (time-accurate).</li>
+  <li>Instruments: virtual multimeter, oscilloscope, logic analyser, serial monitor, serial plotter, pin-state panel — each is a dockable widget; probes are attached by clicking a net in the animated breadboard.</li>
+  <li>Users drive inputs interactively (sliders, buttons; temperature/joystick widgets appear when such parts exist) and run scripted scenarios with expected outputs; scenario results feed VER-05.</li>
+  <li>Every part without a qualified model shows <span class="tag ne">not emulated</span> on the breadboard, in pin states and in widgets (EM-08); requirements depending on it show HIL-pending.</li>
+  <li>Cross-highlight: selecting R3 highlights sliders A, B, LED U, pin rows A0, A1, D8 and scenario EMU-SC-03.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-12 -->
+<section class="sec" id="w12" data-title="W-12 Code view">
+<h2>W-12 Code view</h2>
+<div class="sat"><b>UI-12</b><b>INV-06</b><b>ED-06</b><b>VER-01</b><b>VER-02</b><b>CG-01</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Code: cmp.cpp</span><span class="tab">main.cpp</span><span class="tab on">cmp.cpp</span><span class="tab">params.h</span><span class="btn">Compile (VER-01)</span><span class="btn">Analyse (VER-02)</span><span class="btn">Regenerate…</span><span class="btn">↶</span><span class="btn">↷</span><span style="margin-left:auto"><span class="tag cv">Code verified</span> <span class="muted">VER-01 ✓ 02 ✓ 04 ✓ 10 ✓ 05 ✓</span></span></div>
+  <div class="g" style="grid-template-columns:1fr 290px;padding:6px">
+    <div class="pane" style="overflow:hidden"><pre class="code"><span class="l ro"><span class="ln">1</span><span class="cm">// ==== BEGIN GENERATED REGION pins (from pin map, UI-07) — read-only ====</span></span><span class="l ro"><span class="ln">2</span><span class="kw">constexpr</span> uint8_t PIN_A = A0;   <span class="cm">// R1</span></span><span class="l ro hl"><span class="ln">3</span><span class="kw">constexpr</span> uint8_t PIN_B = A1;   <span class="cm">// R2, R3</span></span><span class="l ro hl"><span class="ln">4</span><span class="kw">constexpr</span> uint8_t PIN_U = 8;    <span class="cm">// R3</span></span><span class="l ro"><span class="ln">5</span><span class="cm">// ==== END GENERATED REGION pins ====</span></span><span class="l"><span class="ln">…</span></span><span class="l" style="border-top:1px dashed #888"><span class="ln">40</span><span class="cm">// ---- block BLK-CMP · L-CMP 1.2.0 · in: A_mV,B_mV int16 mV 0..5000 · out: eq bool ----</span></span><span class="l hl"><span class="ln">41</span><span class="kw">bool</span> cmpUpdate(int16_t a, int16_t b) {</span><span class="l hl"><span class="ln">42</span>  int16_t d = abs(a - b);</span><span class="l hl"><span class="ln">43</span>  <span class="kw">if</span> (!eq &amp;&amp; d &lt;= CMP_TOL_MV) eq = <span class="kw">true</span>;</span><span class="l hl"><span class="ln">44</span>  <span class="kw">else if</span> (eq &amp;&amp; d &gt; CMP_TOL_MV + CMP_HYS_MV) eq = <span class="kw">false</span>;</span><span class="l hl"><span class="ln">45</span>  <span class="kw">return</span> eq;</span><span class="l hl"><span class="ln">46</span>}</span><span class="l" style="border-left:4px solid #222"><span class="ln">47</span><span class="cm">// manual edit (recorded 2026-10-04, re-verified ✓)</span></span><span class="l" style="border-left:4px solid #222"><span class="ln">48</span>Serial.print(F(<span class="cm">"EQ="</span>)); Serial.println(eq);</span><span class="l" style="background:#222;color:#fff"><span class="ln" style="color:#ccc">49</span>  int x = PIN_U + 1;   ⚠ warning: unused variable 'x' [-Wunused-variable]</span><span class="l"><span class="ln">50</span><span class="cm">// ---- end block BLK-CMP ----</span></span></pre></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Problems</span><span>0 err · 1 warn</span></div>
+        ⚠ cmp.cpp:49 unused variable 'x' <span class="btn">Go</span><br><span class="muted">Third-party/core warnings: 3 (logged, not gating)</span></div>
+      <div class="pane"><div class="ph"><span>Generated region (line 3)</span><span></span></div>
+        Read-only. Change through:<br><span class="btn">Pin map (UI-07)</span> <span class="btn">Parameter set (ED-06)</span><br><span class="muted">Typing here shows: “Generated region — edit the pin map or parameter set.”</span></div>
+      <div class="pane"><div class="ph"><span>Manual edits</span><span>2</span></div>
+        cmp.cpp 47–48 (recorded) · main.cpp 88 · each re-verified on save</div>
+      <div class="pane"><div class="ph"><span>Merge on regenerate</span><span>3-way</span></div>
+        BLK-CMP: auto-merged ✓<br>BLK-CNT: <b>1 conflict</b> <span class="btn pri">Resolve…</span><br><span class="muted">Panel: base | generated | yours | result</span></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Syntax highlighting, block boundaries (dashed rule with block ID, template version and interface summary), interface annotations, compile errors and warnings linked to lines.</li>
+  <li>Generated regions are hatched and read-only; the only ways to change them are the pin map (UI-07) and the parameter set (ED-06), offered as buttons.</li>
+  <li>Manual edits outside generated regions get a margin bar, are recorded with date, and trigger re-verification; the <span class="tag cv">Code verified</span> label is withdrawn until VER-01, 02, 04, 10 and 05 pass again (INV-06). In this frame line 49 would remove the label after save (warning at -Wall).</li>
+  <li>On regeneration, manual edits are kept per block by a Git three-way merge; conflicts open a four-pane resolver.</li>
+  <li>The Code verified label is never shown as the project status; the status bar shows status separately (ST-04 vs INV-06).</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-13 -->
+<section class="sec" id="w13" data-title="W-13 Verification dashboard">
+<h2>W-13 Verification dashboard</h2>
+<div class="sat"><b>UI-13</b><b>ST-01..ST-09</b><b>VER-01..VER-15</b><b>INV-06</b><b>DOC-12</b></div>
+<div class="frame"><div class="wf" style="min-width:1100px">
+  <div class="bar"><span class="ttl">Verification</span><span class="btn">Run all gates</span><span class="btn">Run selected</span><span class="btn">Record HIL result…</span><span class="btn">Record review (DOC-12)…</span>
+    <span style="margin-left:auto">Status: <b>Designed</b> → next: Verified (missing: VER-06 review records)</span></div>
+  <div class="pane" style="margin:6px">
+    <div class="stepper"><span class="done">Draft</span><span class="done">Clarified</span><span class="cur">Designed</span><span>Verified</span><span>Released for fabrication</span><span>Hardware-validated</span><span style="border:none;margin-left:10px">Verified-auto ✓ (ST-09) · <span class="tag cv">Code verified</span></span></div>
+  </div>
+  <div class="g" style="grid-template-columns:1fr 300px;padding:0 6px 6px">
+    <div class="pane" style="overflow:hidden"><div class="ph"><span>Gate matrix — requirement × gate (build style: PCB)</span><span>filter ▾</span></div>
+      <table class="wt" style="text-align:center">
+        <tr><th style="text-align:left">Req.</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>10</th><th>13</th><th>08</th><th>09</th><th>11</th><th>07 HIL</th><th>12 HIL</th></tr>
+        <tr><td style="text-align:left">R1</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>◐</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+        <tr><td style="text-align:left">R2</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>◐</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+        <tr class="hl"><td style="text-align:left">R3</td><td>✓</td><td>✓</td><td>✓</td><td class="sel">✓</td><td>✓</td><td>◐</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td><span class="tag hil">HIL-pending</span></td><td>—</td></tr>
+        <tr><td style="text-align:left">R7</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>◐</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td><span class="tag hil">HIL-pending</span></td><td>—</td></tr>
+        <tr><td style="text-align:left">R11</td><td>—</td><td>—</td><td>✓</td><td>—</td><td>✓</td><td>◐</td><td>—</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td><span class="tag hil">HIL-pending</span></td></tr>
+        <tr><td style="text-align:left" colspan="14" class="muted">… R4–R6, R8–R10 · ◐ = automated part passes, human review record missing · — = not applicable</td></tr>
+        <tr><td style="text-align:left">Variant</td><td colspan="4" class="muted" style="text-align:left">if R7 depended on an unmodelled part:</td><td><span class="tag ne">not emulated</span></td><td colspan="8" class="muted" style="text-align:left">VER-05 not applicable; R7 HIL-pending (EM-08)</td></tr>
+      </table></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Evidence: R3 × VER-04</span><span>drill-down</span></div>
+        UT-CMP-01..04 · 4/4 pass · host mocks<br>Run 2026-10-04 21:12 · log ↗ · inputs ↗<br>Template L-CMP 1.2.0 · params v3 · commit 3f9a…</div>
+      <div class="pane"><div class="ph"><span>Project gates</span><span>10/11</span></div>
+        VER-03 ERC + power ✓ · VER-08 DRC ✓ · VER-09 ✓ · VER-11 ✓ · VER-13 ✓<br>VER-06: lint ✓ · traceability ✓ · <b>review records 0/12</b> ✗</div>
+      <div class="pane"><div class="ph"><span>Why not Verified?</span><span></span></div>
+        Status Verified needs the DOC-12 human review on each document (ST-09). <span class="btn pri">Open review checklist</span></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Matrix of every gate per requirement, columns limited to gates of the project’s build style (PCB here; perfboard shows VER-14, breadboard VER-15). Each cell drills down to evidence: logs, inputs, versions.</li>
+  <li>Project status stepper shows all six ST-01 states, the current one, and exactly what blocks the next one. Verified-auto is displayed separately and never labelled “Verified” (ST-09).</li>
+  <li>HIL items show <span class="tag hil">HIL-pending</span> until a result is recorded (ST-08); recording opens the DOC-07 result form.</li>
+  <li>After any change (ST-07) cells turn “stale” (outlined, not ticked) until gates re-run; status drops to the highest still-valid state.</li>
+  <li>Code verified label and its gate list (INV-06) are shown next to, not inside, the status.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-14 -->
+<section class="sec" id="w14" data-title="W-14 Assembly guide viewer">
+<h2>W-14 Assembly guide viewer</h2>
+<div class="sat"><b>UI-14</b><b>VER-07</b><b>VER-12</b><b>DOC-07</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Assembly guide — PCB build</span><span>Step 6 of 18</span><span class="btn">◀ Prev</span><span class="btn">Next ▶</span><span class="btn">Breadboard / 3D ▾</span><span class="btn">Print guide</span><span style="margin-left:auto">▮▮▮▮▮▯▯▯▯▯▯▯▯▯▯▯▯▯</span></div>
+  <div class="g" style="grid-template-columns:1fr 330px;padding:6px">
+    <div class="pane"><div class="ph"><span>3D view — step highlight</span><span>orbit</span></div>
+      <div class="gbox" style="height:230px;display:flex;align-items:center;justify-content:center;gap:10px">shield in 3D · <span class="hl" style="padding:2px 6px">R4 330 Ω</span><span class="hl" style="padding:2px 6px">LED2 (U)</span> highlighted, other parts faded</div></div>
+    <div class="col">
+      <div class="pane"><div class="ph"><span>Step 6: Fit LED U and its resistor</span><span></span></div>
+        Parts: R4 330 Ω (E24), LED2 5 mm green<br>Insert R4 at position R4, LED2 flat side to the silk mark.<br><span class="muted">Related: R3 · NET_U · pin D8</span></div>
+      <div class="pane"><div class="ph"><span>Expected measurement</span><span></span></div>
+        Power off: R4 = 330 Ω ± 5 % across pads<br>Power on, A = B: D8 ≈ 5 V, LED on<br>Result: <span class="fld">____</span> <span class="btn">Pass</span> <span class="btn">Fail</span></div>
+      <div class="pane"><span class="chk"></span> Step completed <span class="muted">(saved to DOC-07)</span></div>
+      <div class="pane muted">HIL items reached here: HIL-03 <span class="tag hil">HIL-pending</span></div>
+    </div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>One step per screen; the step’s parts and wires are highlighted in the breadboard view (breadboard build) or 3D view (PCB build); the switcher allows either.</li>
+  <li>Each step has a completion checkbox and expected measurements; entering a result records it (DOC-07) and can clear an HIL-pending item.</li>
+  <li>Steps are keyboard-navigable (PgUp/PgDn) and printable as a booklet (UI-19).</li>
+  <li>Edge case: if the design changes after a step is ticked (ST-07), affected steps reset to unticked with a “design changed” note.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-15 -->
+<section class="sec" id="w15" data-title="W-15 History view">
+<h2>W-15 History view</h2>
+<div class="sat"><b>UI-15</b><b>CM-09</b><b>INV-03</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">History</span><span>Compare</span><span class="btn">B2 ▾</span><span>with</span><span class="btn">Working copy ▾</span><span class="tab">Requirements</span><span class="tab on">Code</span><span class="tab">Schematic</span><span class="tab">PCB</span><span class="btn">Restore baseline…</span></div>
+  <div class="pane" style="margin:6px">
+    <svg viewBox="0 0 900 60" width="100%" height="60" role="img" aria-label="timeline">
+      <g font-size="10"><line x1="20" y1="30" x2="880" y2="30" stroke="#666" stroke-width="2"/>
+      <circle cx="80" cy="30" r="7" fill="#fff" stroke="#222" stroke-width="2"/><text x="60" y="54">B1 Clarified</text>
+      <circle cx="280" cy="30" r="9" fill="#d7e8f8" stroke="#0a66c2" stroke-width="3"/><text x="255" y="54" fill="#0a66c2">B2 Designed</text>
+      <circle cx="480" cy="30" r="7" fill="#fff" stroke="#222" stroke-width="2"/><text x="455" y="54">B3 tol 30 mV</text>
+      <circle cx="680" cy="30" r="7" fill="#fff" stroke="#222" stroke-width="2"/><text x="660" y="54">B4 PCB routed</text>
+      <rect x="830" y="20" width="20" height="20" fill="#d7e8f8" stroke="#0a66c2" stroke-width="3"/><text x="800" y="14" fill="#0a66c2">working copy</text>
+      <g fill="#999"><circle cx="160" cy="30" r="3"/><circle cx="200" cy="30" r="3"/><circle cx="380" cy="30" r="3"/><circle cx="560" cy="30" r="3"/><circle cx="760" cy="30" r="3"/></g></g></svg></div>
+  <div class="g" style="grid-template-columns:1fr 1fr;padding:0 6px 6px">
+    <div class="pane"><div class="ph"><span>B2 · params.h</span><span></span></div><pre class="code"><span class="l"><span class="ln">12</span>CMP_TOL_MV = 50;</span><span class="l"><span class="ln">13</span>CMP_HYS_MV = 20;</span></pre></div>
+    <div class="pane"><div class="ph"><span>Working copy · params.h</span><span>1 change</span></div><pre class="code"><span class="l hl"><span class="ln">12</span>CMP_TOL_MV = 30;   ← changed (R3 approved 2026-10-03)</span><span class="l"><span class="ln">13</span>CMP_HYS_MV = 20;</span></pre></div>
+  </div>
+  <div class="bar" style="border-top:1px solid #999;border-bottom:none"><span>Schematic/PCB diff: overlay mode — added in accent outline, removed hatched, moved shown with arrow</span><span style="margin-left:auto" class="muted">Each baseline records: status, gate results, app and library versions</span></div>
+</div></div>
+<ol class="ann">
+  <li>Timeline of baselines (large dots) and intermediate commits (small dots); any two points can be compared.</li>
+  <li>Visual diffs for requirements (text diff), code (side-by-side), schematic and PCB (overlay with added/removed/moved marking).</li>
+  <li>Restore a baseline (CM-09) creates a new commit; it never rewrites history. Status is recomputed after restore (ST-07).</li>
+  <li>Cross-highlight works inside diffs: selecting a changed line highlights the requirement and artefacts touched by that change.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-16 -->
+<section class="sec" id="w16" data-title="W-16 Board manager and flashing">
+<h2>W-16 Board manager and flashing</h2>
+<div class="sat"><b>UI-16</b><b>SS-04</b><b>HOST-05</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Board manager</span><span class="btn">Rescan ports</span><span class="btn">Driver help</span><span style="margin-left:auto" class="muted">Offline · no network needed for flashing</span></div>
+  <div class="g" style="grid-template-columns:1fr 1fr;padding:6px">
+    <div class="pane"><div class="ph"><span>Detected boards</span><span>2</span></div>
+      <table class="wt">
+        <tr><th>Board</th><th>Port</th><th>USB chip</th><th>Driver</th><th></th></tr>
+        <tr class="sel"><td>ELEGOO UNO R3</td><td>COM5 / ttyUSB0</td><td>CH340</td><td>✓ installed</td><td>target</td></tr>
+        <tr><td>Unknown (VID 2341)</td><td>COM7</td><td>ATmega16U2</td><td>⚠ not installed</td><td><span class="btn">Fix…</span></td></tr>
+      </table>
+      <p class="muted" style="margin:6px 0 0">Mismatch warning if the detected board differs from the project target board.</p></div>
+    <div class="pane"><div class="ph"><span>Flash</span><span>avrdude · 115200</span></div>
+      Firmware: build 3f9a · <span class="tag cv">Code verified</span><br>
+      <div class="box" style="margin:6px 0">Writing flash ▮▮▮▮▮▮▮▮▮▯▯▯ 74 %</div>
+      <span class="btn pri">Flash</span> <span class="btn">Verify read-back</span> <span class="btn">Cancel</span>
+      <pre class="code" style="margin-top:6px;border:1px solid #bbb;padding:4px">avrdude: AVR device initialized
+avrdude: writing flash (9 412 bytes) ...
+avrdude: 9412 bytes of flash verified</pre></div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Lists detected boards with port, USB chip and driver status; drivers not shipped (SS-04) show an explanation and the offline instructions from DOC-11.</li>
+  <li>Flash progress and full logs; copy/save log. Flashing firmware without the Code verified label asks for confirmation and names the failing gates.</li>
+  <li>Raspberry Pi targets add “Image SD card” and “Deploy over SSH (local network)” tabs (INV-02(b)); Pico shows UF2 drag mode.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-17 -->
+<section class="sec" id="w17" data-title="W-17 Library browsers">
+<h2>W-17 Library browsers</h2>
+<div class="sat"><b>UI-17</b><b>INV-11</b><b>EM-08</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Library</span><span class="tab">Boards</span><span class="tab">Component models</span><span class="tab on">Parts catalogue</span><span class="tab">Code libraries</span><span class="tab">Datasheets</span><span class="fld" style="min-width:220px;margin-left:10px">🔍 motor driver</span></div>
+  <div class="g" style="grid-template-columns:200px 1fr 280px;padding:6px">
+    <div class="pane"><div class="ph"><span>Filters</span><span>reset</span></div>
+      <div class="col"><b>Class</b><span><span class="chk x"></span> discrete</span><span><span class="chk x"></span> generic module</span><b>Lifecycle</b><span><span class="chk x"></span> active only</span><b>Model</b><span><span class="chk"></span> qualified model only</span><b>Kit part</b><span><span class="chk"></span> ELEGOO / SunFounder</span><b>Footprint</b><span>THT · 2.54 ▾</span><b>Supply V</b><span>2.7 – 13.5 V</span></div></div>
+    <div class="pane"><div class="ph"><span>Results</span><span>6</span></div>
+      <table class="wt">
+        <tr><th>Part</th><th>Class</th><th>Model</th><th>Life</th><th>Kit</th></tr>
+        <tr class="sel"><td>TB6612FNG module</td><td>generic module</td><td>qualified</td><td>active</td><td>—</td></tr>
+        <tr><td>L298N module</td><td>generic module</td><td>qualified</td><td>active</td><td>ELEGOO</td></tr>
+        <tr><td>L293D</td><td>discrete</td><td>qualified</td><td>active</td><td>ELEGOO</td></tr>
+        <tr><td>DRV8833 module</td><td>generic module</td><td><span class="tag ne">not emulated</span></td><td>active</td><td>—</td></tr>
+        <tr class="muted"><td>L9110S module</td><td>generic module</td><td>—</td><td>obsolete IC</td><td>—</td></tr>
+      </table></div>
+    <div class="pane"><div class="ph"><span>Detail</span><span></span></div>
+      TB6612FNG module · reference design · 2 sources<br>VM 4.5–13.5 V · 1.2 A/ch<br>Footprint: 2×8 header 2.54 mm<br>Model: behavioural 1.0.3 (qualified)<br>Snapshot 2026-09-15<br><span class="btn">Datasheet (offline)</span> <span class="btn">Used in 1 project</span></div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Five browsers share one layout: search, faceted filters, result table, detail pane. Datasheets open in the offline viewer.</li>
+  <li>Non-active parts are shown greyed and cannot be added to a design (INV-11); unmodelled parts carry <span class="tag ne">not emulated</span> (EM-08).</li>
+  <li>From the detail pane: “Use in design” (expert mode) or “Suggest to clarification” (guided mode).</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-18 -->
+<section class="sec" id="w18" data-title="W-18 Guided and expert mode">
+<h2>W-18 Guided and expert mode</h2>
+<div class="sat"><b>UI-18</b><b>UI-01</b><b>UI-04</b></div>
+<div class="frame"><div class="wf">
+  <div class="bar"><span class="ttl">Guided mode</span>
+    <div class="stepper"><span class="done">1 Board ✓</span><span class="done">2 Describe ✓</span><span class="done">3 Clarify ✓</span><span class="cur">4 Review</span><span>5 Emulate</span><span>6 Build</span></div>
+    <span style="margin-left:auto">Mode:</span><span class="btn on">Guided</span><span class="btn">Expert</span><span class="muted">(Ctrl+Shift+M)</span></div>
+  <div class="g" style="grid-template-columns:1fr 280px;padding:6px">
+    <div class="pane"><div class="ph"><span>Step 4 — Review the design</span><span></span></div>
+      <div class="g" style="grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div class="box">Requirements R1–R11 ✓ approved</div><div class="box">Blocks 11 · from qualified templates</div><div class="box">Pins 13/20 · resources OK</div>
+        <div class="box">Schematic preview</div><div class="box">BOM 14 lines · standard parts ✓</div><div class="box">Power budget ✓ · ext. 6 V for motor</div>
+      </div>
+      <p style="margin:6px 0">Each card opens the full view read-only in guided mode, with a “Change…” button that returns to the step that owns it.</p>
+      <span class="btn">◀ Back to Clarify</span> <span class="btn pri">Continue to Emulate ▶</span></div>
+    <div class="pane"><div class="ph"><span>Expert mode differences</span><span></span></div>
+      Navigator, all views and splits always available; no stepper; every function in menus.<br><br>Switching keeps the selection, open views and undo history. Guided mode hides no state: the status bar is identical.</div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Guided mode is a six-step stepper: board → describe → clarify → review → emulate → build. A step is unlocked when the previous one’s exit condition holds (e.g. Clarify needs INV-12).</li>
+  <li>Expert mode: all views freely accessible (layout G-1). The switch is in the toolbar and in the command palette; it works at any time without losing work.</li>
+  <li>Edge case: switching to guided mode on a project that is already Designed puts the user on the furthest unlocked step.</li>
+  <li>Full guided flow for ACC-02: storyboard <a href="#s1">S-1</a>.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-19 -->
+<section class="sec" id="w19" data-title="W-19 Export and print">
+<h2>W-19 Export and print</h2>
+<div class="sat"><b>UI-19</b></div>
+<div class="frame"><div class="wf sm" style="max-width:760px">
+  <div class="bar"><span class="ttl">Export view — Oscilloscope</span><span style="margin-left:auto" class="btn">✕</span></div>
+  <div class="g p6" style="grid-template-columns:1fr 1fr">
+    <div class="col">
+      <b>Format</b><span><span class="chk x"></span> PDF</span><span><span class="chk"></span> PNG <span class="fld">300</span> dpi</span><span><span class="chk"></span> SVG <span class="muted">(raster embedded for this view)</span></span><span><span class="chk"></span> Print…</span>
+      <b>Content</b><span><span class="chk x"></span> Whole view</span><span><span class="chk"></span> Visible area</span><span><span class="chk"></span> Selection only</span>
+      <span><span class="chk x"></span> Title block (project, baseline, status, date)</span><span><span class="chk x"></span> Keep highlights</span>
+    </div>
+    <div class="col"><b>Preview</b><div class="gbox" style="height:150px">A4 landscape preview with title block</div><span>Paper <span class="btn">A4 ▾</span> <span class="btn">Landscape ▾</span></span>
+      <span><span class="btn">Cancel</span> <span class="btn pri">Export</span></span></div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>Same dialog from every view (File → Export…, Ctrl+E) with PDF, PNG, SVG and Print. The 3D view, oscilloscope, logic analyser and animated emulation views export SVG with an embedded raster image; the dialog says so.</li>
+  <li>The title block carries project status and the Code verified label exactly as on screen, so a printout cannot overstate verification.</li>
+</ol>
+</section>
+
+<!-- ======================================================= W-20 -->
+<section class="sec" id="w20" data-title="W-20 Cross-cutting UI-20..UI-23">
+<h2>W-20 Cross-cutting: keyboard, themes and font scale, undo, context help</h2>
+<div class="sat"><b>UI-20</b><b>UI-21</b><b>UI-22</b><b>UI-23</b></div>
+<div class="frame"><div class="wf" style="min-width:1100px">
+  <div class="g" style="grid-template-columns:1.2fr 1fr 1fr 1fr;padding:6px">
+    <div class="pane"><div class="ph"><span>Keyboard map (UI-20)</span><span>Help → Keys</span></div>
+      <table class="wt">
+        <tr><td><span class="k">Ctrl</span>+<span class="k">Shift</span>+<span class="k">P</span></td><td>Command palette (every command)</td></tr>
+        <tr><td><span class="k">Ctrl</span>+<span class="k">P</span></td><td>Find artefact</td></tr>
+        <tr><td><span class="k">F6</span> / <span class="k">Shift</span>+<span class="k">F6</span></td><td>Cycle panes</td></tr>
+        <tr><td><span class="k">Ctrl</span>+<span class="k">Tab</span></td><td>Next view tab</td></tr>
+        <tr><td><span class="k">Alt</span>+<span class="k">R</span></td><td>Related artefacts (UI-03)</td></tr>
+        <tr><td><span class="k">Alt</span>+<span class="k">←</span>/<span class="k">→</span></td><td>Navigation back / forward</td></tr>
+        <tr><td><span class="k">Ctrl</span>+<span class="k">Z</span> / <span class="k">Ctrl</span>+<span class="k">Y</span></td><td>Undo / redo</td></tr>
+        <tr><td><span class="k">F5</span> / <span class="k">F7</span> / <span class="k">F10</span></td><td>Emulate / run gates / step</td></tr>
+        <tr><td><span class="k">F1</span></td><td>Context help</td></tr>
+        <tr><td>arrows + <span class="k">Enter</span></td><td>Canvas: move focus between symbols/pins; Enter selects</td></tr>
+        <tr><td><span class="k">Ctrl</span>+<span class="k">Shift</span>+<span class="k">M</span></td><td>Guided / expert</td></tr>
+      </table>
+      <p class="muted" style="margin:4px 0 0">Remappable; conflicts flagged. Visible focus ring in both themes.</p></div>
+    <div class="pane"><div class="ph"><span>Appearance (UI-21)</span><span>Settings</span></div>
+      <div class="col">
+        <span>Theme: <span class="btn on">Light</span> <span class="btn">Dark</span> <span class="btn">Follow OS</span></span>
+        <span>Font scale: 80 % ━━●━━━━━━━ 200 % <span class="fld">100 %</span></span>
+        <span class="muted">Steps: 80, 90, 100, 110, 125, 150, 175, 200 % · <span class="k">Ctrl</span>+<span class="k">+</span>/<span class="k">−</span>/<span class="k">0</span></span>
+        <div class="g" style="grid-template-columns:1fr 1fr;gap:4px">
+          <div class="box" style="font-size:9px">Aa light 80 %<br>R3 U ON…</div>
+          <div class="box" style="background:#333;color:#eee;font-size:16px">Aa dark 200 %</div>
+        </div>
+        <span class="muted">Canvases (schematic, PCB) keep their own zoom; font scale applies to labels, tables, code and UI chrome. Highlight colour stays distinguishable in both themes.</span>
+      </div></div>
+    <div class="pane"><div class="ph"><span>Undo history (UI-22)</span><span>per editor</span></div>
+      <div class="col">
+        <span class="muted">Editor: Schematic</span>
+        <div class="box">↶ Move R4 to (42, 18)</div>
+        <div class="box">↶ Label net NET_U</div>
+        <div class="box hl">● current — Wire D8 → R4.1</div>
+        <div class="box muted">↷ Delete C3 (redo available)</div>
+        <span class="muted">Netlist commands undo as one command across all views (INV-08). Requirement approvals and baselines are undone through History, not the editor stack.</span>
+      </div></div>
+    <div class="pane"><div class="ph"><span>Context help (UI-23)</span><span>F1</span></div>
+      <div class="col">
+        <b>Pin allocation view</b>
+        <span>What you see · How to swap a pin · Why a pin is refused · Timer conflicts</span>
+        <div class="gbox">Field help on focus: “Voltage level — the logic level of this pin; 5 V on UNO R3.”</div>
+        <span><span class="btn">Open in offline docs</span> <span class="btn">Search help</span></span>
+        <span class="muted">Every view has a ? button in its header and F1; links open the bundled documentation (no network, INV-01).</span>
+      </div></div>
+  </div>
+</div></div>
+<ol class="ann">
+  <li>UI-20: every command is in the command palette and menus; canvases support keyboard focus traversal (symbols, pins, wires, traces) so editing does not require a mouse.</li>
+  <li>UI-21: light and dark themes; font scale 80–200 %. At 200 % on 1366×768 the compact layout (G-2) is used.</li>
+  <li>UI-22: undo/redo in every editor (requirements text, blocks, parameters, pin map, schematic, breadboard, PCB, code, scenarios); history list shows the stack.</li>
+  <li>UI-23: context help pane (right side in G-1) follows the focused view and field; it links to the offline documentation.</li>
+</ol>
+</section>
+
+<!-- ======================================================= S-1 -->
+<section class="sec" id="s1" data-title="S-1 Storyboard: guided mode">
+<h2>S-1 Storyboard: guided mode with ACC-02</h2>
+<div class="sat"><b>UI-18</b><b>UI-04</b><b>UI-07</b><b>UI-11</b><b>UI-13</b><b>UI-14</b><b>UI-16</b><b>NL-01</b><b>NL-02</b><b>INV-12</b></div>
+<div class="frame"><div class="sb">
+  <div class="sbf"><div class="cap">1 · Board</div><div class="body">
+    <div class="stepper"><span class="cur">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+    <div class="fld">🔍 uno</div>
+    <div class="box sel">ELEGOO UNO R3 · ATmega328P · 5 V<br><span class="muted">detected on COM5 ✓</span></div>
+    <div class="box">ELEGOO MEGA 2560 R3</div><div class="box">Raspberry Pi Pico</div>
+    <div>Build style: <span class="btn on">PCB</span> <span class="btn">Perfboard</span> <span class="btn">Breadboard</span></div>
+    <span class="btn pri">Next ▶</span></div>
+    <div class="foot">Board chosen first (NL-01). Detected board pre-selected; can be changed later.</div></div>
+  <div class="sbf"><div class="cap">2 · Describe</div><div class="body">
+    <div class="stepper"><span class="done">1</span><span class="cur">2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+    <div class="fld wide" style="white-space:normal;padding:4px">“Create a module with 2 generic analog inputs (named A and B), 3 generic digital inputs (named C, D, E), 2 digital outputs (named U and V) and one analog output (named W). Whenever A is equal to B, switch U ON. …”</div>
+    <span class="muted">Tips: name signals; give ranges and units.</span>
+    <span class="btn pri">Analyse ▶</span></div>
+    <div class="foot">Local LLM; expected time shown (HOST-03(e) on Pi).</div></div>
+  <div class="sbf"><div class="cap">3 · Clarify</div><div class="body">
+    <div class="stepper"><span class="done">1</span><span class="done">2</span><span class="cur">3</span><span>4</span><span>5</span><span>6</span></div>
+    <div class="box sel"><b>Q1</b> Tolerance and hysteresis for A = B?<br>Default ±50 mV, hyst. 20 mV<br><span class="btn">Accept</span> <span class="btn">Change</span></div>
+    <div class="box"><b>Q2</b> U digital but incremented/PWM → separate counter N + PWM P?</div>
+    <div class="box"><b>Q8</b> No DAC: W by PWM + RC?</div>
+    <div class="muted">Q3–Q7, Q9, Q10 … · 7/10 done</div>
+    <span class="btn">Next ▶ (locked)</span></div>
+    <div class="foot">One question at a time; all 10 ACC-02 questions with defaults (NL-02). Locked until INV-12 holds.</div></div>
+  <div class="sbf"><div class="cap">4 · Review</div><div class="body">
+    <div class="stepper"><span class="done">1</span><span class="done">2</span><span class="done">3</span><span class="cur">4</span><span>5</span><span>6</span></div>
+    <div class="box">R1–R11 · lint ✓ · <b>Clarified</b></div>
+    <div class="box">Assumptions A1–A3 approved ✓</div>
+    <div class="box">Pins: A0 A1 D2 D4 D7 D8 D12 D9 D6 D5 …</div>
+    <div class="box">TB6612FNG + 6 V supply · BOM 14 · power ✓</div>
+    <span class="btn pri">Generate design ▶</span></div>
+    <div class="foot">Design generated → status Designed (ST-03).</div></div>
+  <div class="sbf"><div class="cap">5 · Emulate</div><div class="body">
+    <div class="stepper"><span class="done">1</span><span class="done">2</span><span class="done">3</span><span class="done">4</span><span class="cur">5</span><span>6</span></div>
+    <div class="box">A ━━●━━ 2.51 V · B ━━●━━ 2.49 V</div>
+    <div class="box hl">U ● ON</div>
+    <div class="box">C D held, E off → N=17 · motor 42 %</div>
+    <div class="box">Scenarios 12/12 pass ✓ · 0.98×</div>
+    <span class="btn pri">Next ▶</span></div>
+    <div class="foot">Simplified dashboard; “Open full dashboard” goes to UI-11.</div></div>
+  <div class="sbf"><div class="cap">6 · Build</div><div class="body">
+    <div class="stepper"><span class="done">1</span><span class="done">2</span><span class="done">3</span><span class="done">4</span><span class="done">5</span><span class="cur">6</span></div>
+    <div class="box">Gates 10/11 · Verified-auto ✓<br>Review records needed → <span class="btn">Review…</span></div>
+    <div class="box">Fabrication package (after Verified)</div>
+    <div class="box"><span class="tag cv">Code verified</span> <span class="btn">Flash UNO</span></div>
+    <div class="box">Assembly guide · 18 steps <span class="tag hil">HIL ×4</span></div></div>
+    <div class="foot">Links to UI-13, UI-16, UI-14. Status Verified only after DOC-12 review.</div></div>
+</div></div>
+</section>
+
+<!-- ======================================================= S-2 -->
+<section class="sec" id="s2" data-title="S-2 Storyboard: cross-highlight">
+<h2>S-2 Storyboard: cross-highlight of requirement R3</h2>
+<div class="sat"><b>UI-02</b><b>UI-03</b><b>UI-01</b><b>PERF-10</b></div>
+<div class="frame"><div class="sb4">
+  <div class="sbf"><div class="cap">1 · Select R3</div><div class="body">
+    <ul class="tree"><li>▾ Requirements<ul><li>R2 Analog input B</li><li class="sel">R3 U ON while A = B</li><li>R4 Inputs C, D, E</li></ul></li></ul>
+    <div class="muted">Click in navigator, or in the NL workspace requirement table, or the verification matrix row.</div></div>
+    <div class="foot">Selection published on the shared bus.</div></div>
+  <div class="sbf"><div class="cap">2 · Every open view highlights (≤ 200 ms)</div><div class="body">
+    <div class="g" style="grid-template-columns:1fr 1fr;gap:4px">
+      <div class="box hl">Block: BLK-CMP</div>
+      <div class="box hl">Code: cmp.cpp 3–4, 41–46; params.h 12–13</div>
+      <div class="box hl">Pins: A0, A1, D8</div>
+      <div class="box hl">Nets: NET_A, NET_B, NET_U</div>
+      <div class="box hl">Traces: T7, T8, T12</div>
+      <div class="box hl">Emulation: slider A, B, LED U</div>
+      <div class="box hl" style="grid-column:span 2">Tests: UT-CMP-01..04, EMU-SC-03, HIL-03 <span class="tag hil">HIL-pending</span></div>
+    </div></div>
+    <div class="foot">Requirement → block → code lines → pins → nets → traces → emulation widgets → tests.</div></div>
+  <div class="sbf"><div class="cap">3 · Closed views show counts</div><div class="body">
+    <div class="tabs" style="font-size:11px"><span class="tab on">Schematic</span><span class="tab">PCB ● 3</span><span class="tab">Tests ● 6</span></div>
+    <ul class="tree"><li>▸ Layout (PCB) <span class="c hlt">● 3 traces</span></li><li>▸ Tests <span class="c hlt">● 6</span></li></ul>
+    <div class="muted">Opening PCB shows T7, T8, T12 already highlighted and zooms to fit them.</div></div>
+    <div class="foot">Nothing related is hidden just because its view is closed.</div></div>
+  <div class="sbf"><div class="cap">4 · Navigate (UI-03)</div><div class="body">
+    <div class="box">Right-click NET_U → Go to related ▸<br>&nbsp;· Requirement R3<br>&nbsp;· Pin D8<br>&nbsp;· <b>Trace T12 (PCB)</b><br>&nbsp;· Test UT-CMP-03</div>
+    <div class="muted">Breadcrumb: R3 › NET_U › T12 · <span class="k">Alt</span>+<span class="k">←</span> returns.</div></div>
+    <div class="foot">Same navigation from every view; keyboard Alt+R.</div></div>
+</div></div>
+</section>
+
+<!-- ======================================================= T -->
+<section class="sec" id="trace" data-title="T. Traceability">
+<h2>T. Traceability: UI requirement → wireframe</h2>
+<div class="tablewrap"><table class="tr">
+  <thead><tr><th>UI-ID</th><th>Requirement (short)</th><th>Wireframe section(s)</th><th>Related requirements</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>UI-01</td><td>Project navigator tree</td><td><a href="#w01">W-01</a>, <a href="#g">G-1</a>, G-2, S-2</td><td>ST-08, EM-08</td><td>All 15 artefact classes listed; ● counts for highlights; icon rail at 1366×768.</td></tr>
+    <tr><td>UI-02</td><td>Cross-highlight in every open view</td><td><a href="#w02">W-02</a>, <a href="#s2">S-2</a>, G-1</td><td>PERF-10, INV-08</td><td>Shared selection bus; direct vs transitive depth; closed-view counts.</td></tr>
+    <tr><td>UI-03</td><td>Navigation to related artefacts</td><td><a href="#w02">W-02</a>, S-2 frame 4</td><td>—</td><td>Related panel, context submenu, breadcrumb, back/forward.</td></tr>
+    <tr><td>UI-04</td><td>NL workspace</td><td><a href="#w04">W-04</a>, S-1 frames 2–3</td><td>NL-01..03, INV-12, ST-02, TB-05</td><td>Original text beside requirement set; questions with defaults; assumption approval.</td></tr>
+    <tr><td>UI-05</td><td>Block diagram, editable with approval</td><td><a href="#w05">W-05</a></td><td>NL-03, ST-07</td><td>Drafted requirement change → approve → NL-02 → ST-07 → regenerate.</td></tr>
+    <tr><td>UI-06</td><td>Behaviour view</td><td><a href="#w06">W-06</a></td><td>NL-03</td><td>Generated state machine (R3) and truth table (R5); read-only.</td></tr>
+    <tr><td>UI-07</td><td>Pin allocation view</td><td><a href="#w07">W-07</a>, S-1 frame 4</td><td>ED-01, VER-10, UI-12</td><td>Per-pin name, function, direction, voltage, requirement; resource summary incl. DAC 0/0.</td></tr>
+    <tr><td>UI-08</td><td>Schematic, editable</td><td><a href="#w08">W-08</a>, G-1</td><td>INV-08, ED-02..04</td><td>Edits as netlist commands; ERC list.</td></tr>
+    <tr><td>UI-09</td><td>Breadboard, editable</td><td><a href="#w09">W-09</a></td><td>VER-15, INV-08</td><td>Physical forms, pin labels, colour-coded wires with legend.</td></tr>
+    <tr><td>UI-10</td><td>PCB 2D/3D, DRC markers</td><td><a href="#w10">W-10</a></td><td>VER-08, 09, 11, PCB-08</td><td>Layer toggles, place/route, DRC markers, 3D view.</td></tr>
+    <tr><td>UI-11</td><td>Emulation dashboard</td><td><a href="#w11">W-11</a>, G-1, S-1 frame 5</td><td>EM-06, EM-07, EM-08, VER-05</td><td>All five instruments, pin states, controls, ratio; “not emulated” labels.</td></tr>
+    <tr><td>UI-12</td><td>Code view, generated regions read-only, 3-way merge</td><td><a href="#w12">W-12</a></td><td>INV-06, ED-06, VER-01/02</td><td>Hatched read-only regions; manual edits recorded; merge resolver.</td></tr>
+    <tr><td>UI-13</td><td>Verification dashboard</td><td><a href="#w13">W-13</a>, G-1 status bar</td><td>ST-01..09, VER-01..15, DOC-12</td><td>Gate × requirement matrix with evidence; status stepper; Verified-auto vs Verified.</td></tr>
+    <tr><td>UI-14</td><td>Assembly guide viewer</td><td><a href="#w14">W-14</a>, S-1 frame 6</td><td>VER-07, VER-12, DOC-07</td><td>One step per screen, highlight, checkbox, expected measurements.</td></tr>
+    <tr><td>UI-15</td><td>History and visual diffs</td><td><a href="#w15">W-15</a></td><td>CM-09, INV-03</td><td>Timeline of baselines; diffs of requirements, code, schematic, PCB.</td></tr>
+    <tr><td>UI-16</td><td>Board manager and flashing</td><td><a href="#w16">W-16</a>, S-1 frames 1, 6</td><td>SS-04, HOST-05</td><td>Detected boards, ports, driver status, progress, logs.</td></tr>
+    <tr><td>UI-17</td><td>Library browsers</td><td><a href="#w17">W-17</a></td><td>INV-11, EM-08</td><td>Five browsers with search and filters.</td></tr>
+    <tr><td>UI-18</td><td>Guided and expert mode</td><td><a href="#w18">W-18</a>, <a href="#s1">S-1</a>, G-1 toolbar</td><td>INV-12</td><td>Six-step stepper; switch at any time without losing state.</td></tr>
+    <tr><td>UI-19</td><td>Export PDF/PNG/SVG, print</td><td><a href="#w19">W-19</a>, toolbar in G-1</td><td>—</td><td>One dialog for all views; raster-in-SVG noted for 3D/scope/LA/animated views.</td></tr>
+    <tr><td>UI-20</td><td>Keyboard reachability</td><td><a href="#w20">W-20</a>, G-1</td><td>—</td><td>Command palette, pane cycling, canvas focus traversal.</td></tr>
+    <tr><td>UI-21</td><td>Themes, font scale 80–200 %</td><td><a href="#w20">W-20</a>, G-2 note</td><td>HOST-02(e)</td><td>Light/dark/follow OS; scale steps; compact layout at 200 % on 1366×768.</td></tr>
+    <tr><td>UI-22</td><td>Undo/redo in every editor</td><td><a href="#w20">W-20</a>, W-05, W-08, W-12</td><td>INV-08</td><td>Per-editor stack; netlist commands undo across views.</td></tr>
+    <tr><td>UI-23</td><td>Context help, offline docs</td><td><a href="#w20">W-20</a>, G-1 right pane</td><td>INV-01</td><td>F1 and ? in every view header; field-level help.</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<!-- ======================================================= O -->
+<section class="sec" id="open" data-title="O. Open points">
+<h2>O. Open points for review</h2>
+<ol>
+  <li><b>Cross-highlight depth.</b> Proposed default “direct links only”; “transitive” on request. Please confirm.</li>
+  <li><b>Guided-mode Review step.</b> Proposed: views open read-only with “Change…” that returns to the owning step. Alternative: allow edits in place with the same approval flow as expert mode.</li>
+  <li><b>Flashing without Code verified.</b> Proposed: allowed after an explicit confirmation naming the failing gates. Alternative: blocked entirely.</li>
+  <li><b>1366×768.</b> Proposed: splits off by default, panes as overlays. Needs a usability check in Increment 2 with the real toolkit.</li>
+  <li><b>Wire colour code</b> (W-09) is a proposal; to align with ELEGOO kit tutorials if you prefer.</li>
+  <li>Pin numbers, requirement numbering (R1–R11) and parameter values in this document are illustrative; they will be replaced by the ED-01 output and your clarification answers when ACC-02 runs in Increment 3.</li>
+</ol>
+<p class="muted">End of document. Human review record (DOC-12): pending.</p>
+</section>
+
+</main>
+<script>
+(function(){
+  var secs=[].slice.call(document.querySelectorAll('section.sec'));
+  var pick=document.getElementById('pick');
+  secs.forEach(function(s){var o=document.createElement('option');o.value=s.id;o.textContent=s.getAttribute('data-title');pick.appendChild(o);});
+  function show(id){
+    secs.forEach(function(s){s.classList.toggle('hidden',id!=='all'&&s.id!==id);});
+    pick.value=id;
+    if(id!=='all'){var t=document.getElementById(id);if(t)t.scrollIntoView({block:'start'});}
+  }
+  pick.addEventListener('change',function(){show(pick.value);});
+  function step(d){
+    var i=secs.findIndex(function(s){return s.id===pick.value;});
+    if(i<0)i=d>0?-1:secs.length;
+    i=Math.max(0,Math.min(secs.length-1,i+d));
+    show(secs[i].id);
+  }
+  document.getElementById('prev').addEventListener('click',function(){step(-1);});
+  document.getElementById('next').addEventListener('click',function(){step(1);});
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a[href^="#"]');
+    if(!a)return;var id=a.getAttribute('href').slice(1);
+    if(pick.value!=='all'&&document.getElementById(id)&&document.getElementById(id).classList.contains('sec')){e.preventDefault();show(id);}
+    else if(pick.value!=='all'){show('all');}
+  });
+})();
+</script>
+</body>
+</html>
