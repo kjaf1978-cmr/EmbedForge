@@ -1,12 +1,15 @@
 # Phase 0 (d) — ELEGOO and SunFounder kit inventory (EM-02)
 
-- Baseline: prompt v3.3
+- Baseline: prompt v3.4
 - Version: 0.1.0 (26 September 2026)
 - Status: draft; desk research only. Human review record (DOC-12): pending.
 
 **Evidence rule:** only the vendors' own pages and docs were used (elegoo.com and its regional
 stores; sunfounder.com; docs.sunfounder.com), plus manufacturer pages for lifecycle flags.
 Where a list could not be read, the item is marked UNVERIFIED; contents were not guessed.
+
+> **D12 (5 October 2026):** MPR121 is excluded (discontinued, no successor). The counts below
+> predate D12: full models are now 58 and parts outside EM-03 are 35.
 
 ## 1. Frozen kit list (proposed)
 
@@ -94,7 +97,7 @@ user-driven value and no physical fidelity; *not emulated* = radio, camera, audi
 | ADC0834 ADC IC | SR | TI ADC0834 | Serial (3-wire) | Full model | No | Active (TI ADC0834-N; newer ADS7958 offered) |  |
 | MCP3008 ADC IC | SR | Microchip MCP3008 | SPI | Full model | No | UNVERIFIED |  |
 | PCF8591 ADC/DAC module | UM | NXP PCF8591 | I²C | Full model | No | EOL (NXP) → EM-02A substitute needed | Candidate substitute: ADS1115 + MCP4725 (both EM-03) |
-| MPR121 capacitive touch module | SE, SEU, SK | NXP MPR121 | I²C | Full model | No | Discontinued (NXP) → EM-02A substitute needed | Electrode touches user-driven |
+| MPR121 capacitive touch module | SE, SEU, SK | NXP MPR121 | I²C | **Excluded (D12)** | No | Discontinued (NXP), no successor → excluded | Electrode touches user-driven |
 | 7-segment display (1 digit) | SE, S3, SR, SEU, SK | — | Digital | Full model | Yes | — |  |
 | 4-digit 7-segment display | E3, SR, SEU, SK | — | Digital (multiplexed) | Full model | Yes | — |  |
 | 8×8 LED matrix (bare) | SEU, SK | 788BS (Euler); Kepler type UNVERIFIED | Digital (multiplexed) | Full model | No | — |  |

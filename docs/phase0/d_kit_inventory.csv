@@ -40,7 +40,7 @@ L9110 motor driver module,"S3, SU, UM",L9110 (maker UNVERIFIED),Digital/PWM,Full
 ADC0834 ADC IC,SR,TI ADC0834,Serial (3-wire),Full model,No,Active (TI ADC0834-N; newer ADS7958 offered),
 MCP3008 ADC IC,SR,Microchip MCP3008,SPI,Full model,No,UNVERIFIED,
 PCF8591 ADC/DAC module,UM,NXP PCF8591,I²C,Full model,No,EOL (NXP) → EM-02A substitute needed,Candidate substitute: ADS1115 + MCP4725 (both EM-03)
-MPR121 capacitive touch module,"SE, SEU, SK",NXP MPR121,I²C,Full model,No,Discontinued (NXP) → EM-02A substitute needed,Electrode touches user-driven
+MPR121 capacitive touch module,"SE, SEU, SK",NXP MPR121,I²C,Excluded (D12),No,"Discontinued (NXP), no successor → excluded",Electrode touches user-driven
 7-segment display (1 digit),"SE, S3, SR, SEU, SK",—,Digital,Full model,Yes,—,
 4-digit 7-segment display,"E3, SR, SEU, SK",—,Digital (multiplexed),Full model,Yes,—,
 8×8 LED matrix (bare),"SEU, SK",788BS (Euler); Kepler type UNVERIFIED,Digital (multiplexed),Full model,No,—,

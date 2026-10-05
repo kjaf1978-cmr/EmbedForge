@@ -1,6 +1,6 @@
 # Phase 0 status
 
-Baseline: docs/requirements/EmbedForge_prompt_v3.3.md · Phase 0 is read-only (no application
+Baseline: docs/requirements/EmbedForge_prompt_v3.4.md · Phase 0 is read-only (no application
 code).
 
 | Item | Deliverable | Status | Evidence / file |
@@ -18,7 +18,7 @@ code).
 | (k) | Risk register | **v0.2.0 delivered** (36 risks, 10 high) | phase0/k_risk_register.md |
 | (l) | Block-template library plan | **Draft delivered**: ~65 templates, package format, 12-check qualification suite, ACC coverage | phase0/l_template_plan.md |
 | (m) | RP2040/RP2350 emulator evaluation + Pi virtual-clock spike | **Draft delivered**; measured in the container, not Profile A | phase0/m_emulator_evaluation.md, spikes/m/ |
-| (n) | Active equivalents | Kit parts added: MFRC522 → PN5180, PCF8591 → ADS1115 + MCP4725, BMP180 → BME280. Still open: MPR121 substitute, BMP280 status, GY-87 magnetometer | phase0/n_active_equivalents.md |
+| (n) | Active equivalents | Kit parts added: MFRC522 → PN5180, PCF8591 → ADS1115 + MCP4725, BMP180 → BME280. MPR121 excluded (D12). Still open: BMP280 status, GY-87 magnetometer | phase0/n_active_equivalents.md |
 | (o) | Catalogue data sources and terms | **Draft delivered** | phase0/o_catalogue_sources.md |
 
 Next: (c) model benchmark scripts → (e) code/symbol/footprint sets → (f) fabrication profile → (g) sizes → (h) PERF procedures → (i) wireframes.
@@ -37,6 +37,7 @@ Actions for you:
 | D9 | 2026-09-26 | Accept all v3 review resolutions → v3.1 (section 26). |
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
+| D12 | 2026-10-05 | Exclude discontinued kit parts with no successor (no active equivalent of the same function and interface) → v3.4 (section 29). Today: MPR121. |
 
 ## Open questions
 | ID | Raised | Question |
