@@ -351,29 +351,58 @@ impl RecoveryStore {
         Ok(out)
     }
 
-    /// CM-03: restore a baseline in one action. Everything is checked before anything is
-    /// changed; on a failure part-way, the previously active versions are reinstalled.
+    /// CM-03: restore a baseline in one action: afterwards exactly the baseline's versions
+    /// are active, and items added since are deactivated (they stay in the store). Everything
+    /// is checked before anything is changed; on a failure part-way, the previously active
+    /// versions are reinstalled.
     pub fn restore_baseline(
         &self,
         name: &str,
         install_root: &Path,
     ) -> Result<Vec<String>, CmError> {
         let b: Baseline = read_json(&self.root.join("baselines").join(format!("{name}.json")))?;
-        for (ci, v) in &b.versions {
+        self.apply_set(&b.versions, install_root, true)
+    }
+
+    /// Makes every version in `set` active in one action (installation, update, baseline
+    /// restore). The objects and the dependencies of the resulting active set are checked
+    /// before anything is changed; on a failure part-way, the previously active versions are
+    /// reinstalled. Returns the items whose version changed.
+    pub fn activate_set(
+        &self,
+        set: &BTreeMap<String, Version>,
+        install_root: &Path,
+    ) -> Result<Vec<String>, CmError> {
+        self.apply_set(set, install_root, false)
+    }
+
+    fn apply_set(
+        &self,
+        set: &BTreeMap<String, Version>,
+        install_root: &Path,
+        exact: bool,
+    ) -> Result<Vec<String>, CmError> {
+        for (ci, v) in set {
             for f in self.get(ci, v)?.files {
                 if !self.objects.has(&f.sha256) {
                     return Err(CmError::MissingObject(f.sha256));
                 }
             }
         }
-        let viol = self.check_set(&b.versions)?;
+        let before = self.active()?;
+        let mut after = if exact {
+            BTreeMap::new()
+        } else {
+            before.clone()
+        };
+        after.extend(set.clone());
+        let viol = self.check_set(&after)?;
         if !viol.is_empty() {
             return Err(CmError::Dependencies(viol));
         }
-        let before = self.active()?;
         let mut changed: Vec<String> = Vec::new();
-        for (ci, v) in &b.versions {
-            if before.get(ci) != Some(v) {
+        for (ci, v) in set {
+            if before.get(ci) != Some(v) || !install_root.join(ci).exists() {
                 if let Err(e) = self.materialize(ci, v, install_root) {
                     for c in &changed {
                         if let Some(old) = before.get(c) {
@@ -385,10 +414,22 @@ impl RecoveryStore {
                 changed.push(ci.clone());
             }
         }
-        let mut after = before.clone();
-        after.extend(b.versions.clone());
+        for ci in before.keys().filter(|c| !after.contains_key(*c)) {
+            let d = install_root.join(ci);
+            if d.exists() {
+                io(&d, fs::remove_dir_all(&d))?;
+            }
+            changed.push(ci.clone());
+        }
         self.set_active(&after)?;
         Ok(changed)
+    }
+
+    /// Removes `ci` from the active set (it stays in the store for rollback).
+    pub fn deactivate(&self, ci: &str) -> Result<(), CmError> {
+        let mut a = self.active()?;
+        a.remove(ci);
+        self.set_active(&a)
     }
 
     /// Records the versions a known project pins (CM-06); they are protected from pruning.

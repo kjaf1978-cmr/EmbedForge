@@ -1,0 +1,83 @@
+{
+  "kind": "install",
+  "app_version": "0.1.0",
+  "os": "raspios",
+  "arch": "aarch64",
+  "components": [
+    {
+      "ci": "embedforge-app",
+      "kind": "app_back_end_module",
+      "version": "0.1.0",
+      "title": "EmbedForge application, installer and privileged helper",
+      "optional": false,
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "date": "2026-10-05",
+          "text": "Increment 1: application shell, CM backbone, integrity check, installer, privileged-helper skeleton."
+        }
+      ]
+    },
+    {
+      "ci": "host-deps-raspios-bookworm",
+      "kind": "runtime",
+      "version": "2026.10.0",
+      "title": "Dependency packages for Raspberry Pi OS Bookworm",
+      "applies_to": [
+        "raspios-bookworm"
+      ],
+      "changelog": [
+        {
+          "version": "2026.10.0",
+          "date": "2026-10-05",
+          "text": "Packages the app needs that a clean desktop image lacks (SS-01)."
+        }
+      ],
+      "consequence": "required on this release: the app does not start without these packages"
+    },
+    {
+      "ci": "host-deps-raspios-trixie",
+      "kind": "runtime",
+      "version": "2026.10.0",
+      "title": "Dependency packages for Raspberry Pi OS Trixie",
+      "applies_to": [
+        "raspios-trixie"
+      ],
+      "changelog": [
+        {
+          "version": "2026.10.0",
+          "date": "2026-10-05",
+          "text": "Packages the app needs that a clean desktop image lacks (SS-01)."
+        }
+      ],
+      "consequence": "required on this release: the app does not start without these packages"
+    }
+  ],
+  "files": [
+    {
+      "path": "embedforge-setup_0.1.0_arm64.deb",
+      "from": "files/embedforge-setup_0.1.0_arm64.deb",
+      "role": "bootstrap"
+    },
+    {
+      "path": "licences/LICENSE",
+      "from": "files/licences/LICENSE",
+      "role": "licence"
+    },
+    {
+      "path": "README.txt",
+      "from": "files/README.txt",
+      "role": "other"
+    },
+    {
+      "path": "source/embedforge-0.1.0-source.tar.gz",
+      "from": "files/source/embedforge-0.1.0-source.tar.gz",
+      "role": "source"
+    },
+    {
+      "path": "install.sh",
+      "from": "files/install.sh",
+      "role": "script"
+    }
+  ]
+}

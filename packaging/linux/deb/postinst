@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+if [ "$1" = "configure" ] && [ -z "${EMBEDFORGE_SETUP_RUNNING:-}" ]; then
+    echo "EmbedForge bootstrap installed. To install EmbedForge itself, run: sh <medium>/install.sh"
+fi
+exit 0

@@ -1,0 +1,136 @@
+# Increment 1 WP 1.3: packaging pipeline (SS-01..05, SS-08, SS-09, SEC-02, VAPP-03/04/05).
+#
+# Hosted runners build DEVELOPMENT media, signed with a throwaway key generated in the job,
+# install them on the runner and run the scripted checks. They are never release media: only
+# debug builds started with EMBEDFORGE_DEV_TRUSTED_KEY accept them.
+# Release media are built and signed on your self-hosted Profile A runner (job "release",
+# TEST-01, TEST-04); it stays disabled until that runner is registered (F3-06).
+name: package
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Build signed release media on the self-hosted runners"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  linux-medium:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04, spec: ubuntu-x86_64, install_test: true }
+          - { runner: ubuntu-24.04-arm, spec: raspios-aarch64, install_test: false }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev minisign xvfb
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Development medium (stage, sign with a throwaway key, pack, verify)
+        run: packaging/build-medium.sh ${{ matrix.spec }} out/medium --dev-key --allow-missing
+      - name: VAPP-05 test update package
+        run: packaging/test/make-test-update.sh out/medium.work out/usb-update out/medium.work/dev.key out/medium.work/dev.pub
+      - name: Install from the medium (SS-01), system-wide
+        if: matrix.install_test
+        run: |
+          export EMBEDFORGE_DEV_TRUSTED_KEY=$(tail -n 1 out/medium.work/dev.pub)
+          sudo -E sh out/medium/install.sh --yes
+          test -x /opt/embedforge/embedforge-app/bin/embedforge
+          test -f /etc/udev/rules.d/60-embedforge.rules
+          systemctl is-enabled embedforge-helper.socket
+      - name: VAPP-04, VAPP-05, VAPP-03 (scripted)
+        if: matrix.install_test
+        run: |
+          export EMBEDFORGE_DEV_TRUSTED_KEY=$(tail -n 1 out/medium.work/dev.pub)
+          xvfb-run -a sudo -E /opt/embedforge/embedforge-app/bin/embedforge-setup vapp --package out/usb-update | tee out/vapp.txt
+      - name: Privileged helper refuses a foreign caller (SS-05)
+        if: matrix.install_test
+        run: |
+          python3 - <<'PY'
+          import json, socket
+          s = socket.socket(socket.AF_UNIX); s.connect("/run/embedforge/helper.sock")
+          s.sendall(json.dumps({"id": 1, "request": {"op": "install_debs", "files": ["/etc/passwd"]}}).encode() + b"\n")
+          r = json.loads(s.makefile().readline()); print(r)
+          assert r["decision"] == "rejected" and "not the EmbedForge app" in r["message"]
+          PY
+          sudo tail -n 2 /var/log/embedforge/helper.log
+      - name: Uninstall through the package manager
+        if: matrix.install_test
+        run: |
+          sudo dpkg -r embedforge-setup
+          test ! -e /opt/embedforge && test ! -e /etc/udev/rules.d/60-embedforge.rules
+      - name: Per-user installation (SS-05) and uninstallation
+        if: matrix.install_test
+        run: |
+          export EMBEDFORGE_DEV_TRUSTED_KEY=$(tail -n 1 out/medium.work/dev.pub)
+          sh out/medium/install.sh --per-user --yes
+          ~/.local/share/embedforge/embedforge-app/bin/embedforge-setup repair --per-user
+          ~/.local/share/embedforge/embedforge-app/bin/embedforge-setup uninstall --per-user --yes
+          test ! -e ~/.local/share/embedforge
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dev-medium-${{ matrix.spec }}
+          retention-days: 7
+          path: |
+            out/medium/medium.json
+            out/medium/*.deb
+            out/vapp.txt
+
+  windows-medium:
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHON: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: minisign
+        run: |
+          curl -fsSL -o minisign.zip https://github.com/jedisct1/minisign/releases/download/0.12/minisign-0.12-win64.zip
+          mkdir -p "$HOME/bin" && unzip -j -o minisign.zip '*minisign.exe' -d "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Development medium
+        run: packaging/build-medium.sh windows-x86_64 out/medium --dev-key --allow-missing
+      - name: VAPP-05 test update package
+        run: packaging/test/make-test-update.sh out/medium.work out/usb-update out/medium.work/dev.key out/medium.work/dev.pub
+      - name: Install (system-wide; the runner is an administrator), VAPP-04/05, uninstall
+        run: |
+          export EMBEDFORGE_DEV_TRUSTED_KEY=$(tail -n 1 out/medium.work/dev.pub)
+          out/medium/EmbedForge-Setup-0.1.0-x64.exe install --yes --allow-unsupported-host --accept webview2-runtime --medium out/medium
+          T="$PROGRAMFILES/EmbedForge"
+          "$T/embedforge-app/bin/embedforge-setup.exe" vapp --no-app --package out/usb-update --target "$T"
+          reg query 'HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\EmbedForge'
+          "$T/embedforge-app/bin/embedforge-setup.exe" versions --target "$T"
+          cp "$T/embedforge-app/bin/embedforge-setup.exe" setup-copy.exe
+          ./setup-copy.exe uninstall --yes --target "$T"
+          test ! -e "$T"
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    # Your Profile A test PC with the offline Ed25519 key and the Authenticode token (TEST-04).
+    runs-on: [self-hosted, profile-a]
+    env:
+      # set on the runner, never in the repository
+      EF_RELEASE_KEY: ${{ vars.EF_RELEASE_KEY_PATH }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ubuntu medium (signed)
+        run: packaging/build-medium.sh ubuntu-x86_64 out/medium-ubuntu --key "$EF_RELEASE_KEY"
+      - name: exFAT image
+        run: sudo packaging/medium/make-image.sh out/medium-ubuntu out/EmbedForge-0.1.0-ubuntu-x86_64.img

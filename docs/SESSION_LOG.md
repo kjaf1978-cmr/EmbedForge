@@ -74,3 +74,33 @@
   - 12 unit tests and 10 browser tests pass (axe: 0 serious/critical).
   - The Tauri shell builds; clippy is clean and its 2 tests pass.
   - The native app ran under Xvfb against the real Rust core.
+
+## 2026-10-05 — session 3 (repository-connected)
+- Restored your backup bundle: `main` is fast-forwarded from 33be9fb to f4ed97b on GitHub.
+  Pushing the 12 tags (phase0-s1..s9, inc1-wp1.1, inc1-wp1.2) was refused by this session's
+  git proxy (HTTP 403). The tags exist in the bundle and in this workspace; phase0-s1 was
+  already on GitHub.
+- WP 1.3 packaging, installers and helper skeleton:
+  - New crates: `ef-pack` (packs ≤ 1.9 GiB, signed index), `ef-release` (release tool, never
+    signs), `ef-install` (`embedforge-setup`: install, update, rollback, baselines, repair,
+    uninstall, VAPP-03 audit, scripted VAPP-03/04/05), `ef-helper` (`embedforge-helper`).
+  - `ef-integrity` gained signed per-component manifests and the start-up and background
+    passes; DIAG-01 (a) reads them.
+  - App: start-up check on its own thread, start-up banner, status-bar integrity state,
+    Repair.
+  - Results:
+    - core: 57 tests; clippy is clean on Linux and the Windows target; the licence gate
+      passes (72 crates);
+    - UI: 11 browser tests, 3 consecutive runs;
+    - shell: 4 tests.
+- End to end in this container:
+  - development medium built, signed with a throwaway key and verified;
+  - installed with `install.sh`, also inside a network namespace without network;
+  - `embedforge-setup vapp`: VAPP-04, 05 and 03 PASS;
+  - the installed app repaired a deleted and a corrupted file at start-up;
+  - the installed helper refused a foreign caller;
+  - per-user install and dpkg uninstall work.
+- PERF-08: hashing is now parallel. 1 GiB start-up tier in 1.5 s on 4 vCPU; it was 6.0 s.
+- Conflict F1-01 (SS-08 repair vs SS-05 rights on system-wide installs) raised for D16, with
+  options A/B/C; nothing chosen.
+- Next: D16, then WP 1.4. Your actions: release keys, self-hosted runners.

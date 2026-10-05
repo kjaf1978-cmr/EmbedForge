@@ -1,0 +1,94 @@
+{
+  "kind": "install",
+  "app_version": "0.1.0",
+  "os": "windows",
+  "arch": "x86_64",
+  "components": [
+    {
+      "ci": "embedforge-app",
+      "kind": "app_back_end_module",
+      "version": "0.1.0",
+      "title": "EmbedForge application, installer and privileged helper",
+      "optional": false,
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "date": "2026-10-05",
+          "text": "Increment 1: application shell, CM backbone, integrity check, installer, privileged-helper skeleton."
+        }
+      ]
+    },
+    {
+      "ci": "webview2-runtime",
+      "kind": "runtime",
+      "version": "0.0.0",
+      "title": "Microsoft Edge WebView2 Runtime (Fixed Version)",
+      "changelog": [
+        {
+          "version": "0.0.0",
+          "date": "2026-10-05",
+          "text": "Version set from the bundled package at release time."
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "EmbedForge-Setup-0.1.0-x64.exe",
+      "from": "files/EmbedForge-Setup-0.1.0-x64.exe",
+      "role": "bootstrap"
+    },
+    {
+      "path": "licences/LICENSE",
+      "from": "files/licences/LICENSE",
+      "role": "licence"
+    },
+    {
+      "path": "README.txt",
+      "from": "files/README.txt",
+      "role": "other"
+    },
+    {
+      "path": "source/embedforge-0.1.0-source.tar.gz",
+      "from": "files/source/embedforge-0.1.0-source.tar.gz",
+      "role": "source"
+    },
+    {
+      "path": "licences/webview2-runtime.txt",
+      "from": "files/licences/webview2-runtime.txt",
+      "role": "notice"
+    }
+  ],
+  "notices": [
+    {
+      "id": "webview2-runtime",
+      "title": "Microsoft Edge WebView2 Runtime licence terms",
+      "text_file": "licences/webview2-runtime.txt",
+      "must_accept": true
+    }
+  ],
+  "unbundled_drivers": [
+    {
+      "driver": "WCH CH340/CH341 (Windows)",
+      "boards": [
+        "Arduino Uno R3 clones with CH340",
+        "Arduino Nano clones with CH340"
+      ],
+      "reason": "redistribution permission requested from WCH (F0-02), not yet granted"
+    },
+    {
+      "driver": "Silicon Labs CP210x (Windows)",
+      "boards": [
+        "ESP32 DevKit boards with CP2102 (Tier 2)"
+      ],
+      "reason": "no written redistribution permission (SS-04)"
+    },
+    {
+      "driver": "FTDI VCP (Windows)",
+      "boards": [
+        "boards and adapters with FT232R/FT231X"
+      ],
+      "reason": "no written redistribution permission (SS-04)"
+    }
+  ]
+}

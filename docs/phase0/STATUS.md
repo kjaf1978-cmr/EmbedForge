@@ -24,6 +24,11 @@ code).
 **Phase 0 approved on 2026-10-05, with the gate-report conditions.** You replied "Please continue from here" to the approval request. Increment 1 has started (docs/inc1/).
 
 Actions for you:
+- Decide D16 (F1-01, docs/inc1/findings_for_D16.md): reply A, B or C.
+- Create the release key pair, primary and standby, offline, and send me the two public key
+  lines (docs/inc1/procedures/SEC-02_key_rotation.md, step 1).
+- Register the self-hosted runners (Profile A PC with label `profile-a`, Pi 5) when convenient;
+  release media and VAPP-06 need them.
 - Request CH341SER redistribution permission from WCH (F0-02).
 - Ask Raspberry Pi Ltd about Pi OS image redistribution (F0-03).
 - Run the LLM benchmark (spikes/c/README.md) on the Profile A PC and the Pi 5, and send me the results archives.
@@ -46,4 +51,5 @@ Actions for you:
 ## Open questions
 | ID | Raised | Question |
 |---|---|---|
+| D16 / F1-01 | 2026-10-05 | System-wide installations: SS-08 start-up repair needs write access that SS-05 allows only to the installer. Options A (helper function (d)), B (user-writable app folder), C (repair is an installer action). See docs/inc1/findings_for_D16.md. |
 | Q-01 | 2026-09-26 | You stated the app is for non-commercial use. GPL-3.0-or-later cannot carry a non-commercial restriction: §10 forbids imposing further restrictions, and §7 lets recipients remove them. Is this (1) your intended use only, keeping GPL-3.0-or-later (D5), or (2) a request to change the licence to a non-commercial one? A non-commercial licence would no longer be open source. It would reverse D5 and replace the §7 WebView2 permission (F0-01). It would not change the aggregated GPL tools, the datasheet and distributor-data restrictions, or the excluded research-only models. | **Answered by D15 (2026-10-05).**

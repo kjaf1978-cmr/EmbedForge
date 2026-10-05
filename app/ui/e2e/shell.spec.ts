@@ -131,3 +131,24 @@ for (const theme of ['light', 'dark']) {
   });
   });
 }
+
+test.describe(() => { test.use({ bypassCSP: true });
+test('SS-08 + HOST-04: start-up banner reports offline repair and stays accessible', async ({ page }) => {
+  await page.goto('/?preview-startup=repaired');
+  const banner = page.getByRole('alert', { name: 'Start-up checks' });
+  await expect(banner).toContainText('restored from the local recovery store');
+  await expect(page.getByRole('status', { name: 'Status bar' })).toContainText('Integrity: OK (3 components)');
+  expect(await axe(page)).toEqual([]);
+  await banner.getByRole('button', { name: 'Open self-diagnosis' }).click();
+  await expect(page.getByRole('heading', { name: 'Self-diagnosis', level: 1, exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(banner).toHaveCount(0);
+
+  await page.goto('/?preview-startup=unrecoverable');
+  await expect(page.getByRole('alert', { name: 'Start-up checks' })).toContainText('embedforge-setup repair');
+  await expect(page.getByRole('status', { name: 'Status bar' })).toContainText('1 not restored');
+  // the default preview has no banner: nothing was repaired and the host has no shortfall
+  await page.goto('/');
+  await expect(page.getByRole('alert', { name: 'Start-up checks' })).toHaveCount(0);
+});
+});

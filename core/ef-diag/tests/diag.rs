@@ -32,7 +32,10 @@ fn ctx<'a>(
     free: f64,
     full: bool,
 ) -> Context<'a> {
-    let host = ef_host::HostFacts { free_disk_gb: free, ..Default::default() };
+    let host = ef_host::HostFacts {
+        free_disk_gb: free,
+        ..Default::default()
+    };
     Context {
         app_version: "0.1.0".into(),
         install_root: t.join("app"),

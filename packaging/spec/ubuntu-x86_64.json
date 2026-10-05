@@ -1,0 +1,100 @@
+{
+  "kind": "install",
+  "app_version": "0.1.0",
+  "os": "ubuntu",
+  "arch": "x86_64",
+  "components": [
+    {
+      "ci": "embedforge-app",
+      "kind": "app_back_end_module",
+      "version": "0.1.0",
+      "title": "EmbedForge application, installer and privileged helper",
+      "optional": false,
+      "changelog": [
+        {
+          "version": "0.1.0",
+          "date": "2026-10-05",
+          "text": "Increment 1: application shell, CM backbone, integrity check, installer, privileged-helper skeleton."
+        }
+      ]
+    },
+    {
+      "ci": "host-deps-ubuntu-22.04",
+      "kind": "runtime",
+      "version": "2026.10.0",
+      "title": "Dependency packages for Ubuntu 22.04 LTS",
+      "applies_to": [
+        "ubuntu-22.04"
+      ],
+      "changelog": [
+        {
+          "version": "2026.10.0",
+          "date": "2026-10-05",
+          "text": "Packages the app needs that a clean desktop image lacks (SS-01)."
+        }
+      ],
+      "consequence": "required on this release: the app does not start without these packages"
+    },
+    {
+      "ci": "host-deps-ubuntu-24.04",
+      "kind": "runtime",
+      "version": "2026.10.0",
+      "title": "Dependency packages for Ubuntu 24.04 LTS",
+      "applies_to": [
+        "ubuntu-24.04"
+      ],
+      "changelog": [
+        {
+          "version": "2026.10.0",
+          "date": "2026-10-05",
+          "text": "Packages the app needs that a clean desktop image lacks (SS-01)."
+        }
+      ],
+      "consequence": "required on this release: the app does not start without these packages"
+    },
+    {
+      "ci": "host-deps-ubuntu-26.04",
+      "kind": "runtime",
+      "version": "2026.10.0",
+      "title": "Dependency packages for Ubuntu 26.04 LTS",
+      "applies_to": [
+        "ubuntu-26.04"
+      ],
+      "changelog": [
+        {
+          "version": "2026.10.0",
+          "date": "2026-10-05",
+          "text": "Packages the app needs that a clean desktop image lacks (SS-01)."
+        }
+      ],
+      "consequence": "required on this release: the app does not start without these packages"
+    }
+  ],
+  "files": [
+    {
+      "path": "embedforge-setup_0.1.0_amd64.deb",
+      "from": "files/embedforge-setup_0.1.0_amd64.deb",
+      "role": "bootstrap"
+    },
+    {
+      "path": "licences/LICENSE",
+      "from": "files/licences/LICENSE",
+      "role": "licence"
+    },
+    {
+      "path": "README.txt",
+      "from": "files/README.txt",
+      "role": "other"
+    },
+    {
+      "path": "source/embedforge-0.1.0-source.tar.gz",
+      "from": "files/source/embedforge-0.1.0-source.tar.gz",
+      "role": "source"
+    },
+    {
+      "path": "install.sh",
+      "from": "files/install.sh",
+      "role": "script"
+    }
+  ]
+}

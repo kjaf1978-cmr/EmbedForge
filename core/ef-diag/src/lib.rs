@@ -102,11 +102,33 @@ pub fn run(ctx: &Context) -> Report {
     }
 }
 
+/// The installed tree: components with signed manifests (installer layout) or, for trees
+/// built before the installer existed, a single signed `manifest.json`.
+fn installed_manifest(ctx: &Context) -> Result<(ef_integrity::Manifest, Vec<String>), String> {
+    let root = &ctx.install_root;
+    if root.join("manifest.json").exists() || !root.join("recovery").join("active.json").exists() {
+        return ef_integrity::load_manifest(root, &ctx.trusted_keys)
+            .map(|m| (m, vec![]))
+            .map_err(|e| e.to_string());
+    }
+    let store = ef_cm::RecoveryStore::open(root.join("recovery")).map_err(|e| e.to_string())?;
+    let inst = ef_integrity::load_installed(root, &store, &ctx.trusted_keys, &ctx.app_version)
+        .map_err(|e| e.to_string())?;
+    let mut notes = vec![format!(
+        "{} components with valid signed manifests",
+        inst.components.len()
+    )];
+    for p in &inst.problems {
+        notes.push(format!("component {} {}: {:?}", p.ci, p.version, p.problem));
+    }
+    Ok((inst.manifest, notes))
+}
+
 fn integrity(ctx: &Context) -> Section {
     let title = "Bundled component integrity (SS-08)";
-    let m = match ef_integrity::load_manifest(&ctx.install_root, &ctx.trusted_keys) {
+    let (m, notes) = match installed_manifest(ctx) {
         Ok(m) => m,
-        Err(e) => return Section { id: 'a', title, status: Status::Fail, details: vec![e.to_string()],
+        Err(e) => return Section { id: 'a', title, status: Status::Fail, details: vec![e],
             remediation: vec!["Reinstall from the signed installation medium; the manifest itself cannot be trusted.".into()] },
     };
     let r = match ef_integrity::check_startup(&ctx.install_root, &m) {
@@ -122,10 +144,12 @@ fn integrity(ctx: &Context) -> Section {
         }
     };
     let mut findings = r.findings.clone();
-    let mut details = vec![format!(
+    let broken_components = notes.len().saturating_sub(1);
+    let mut details = notes;
+    details.push(format!(
         "{} files fully hashed, {} checked by size",
         r.checked_full, r.checked_quick
-    )];
+    ));
     if ctx.full {
         match ef_integrity::check_full(&ctx.install_root, &m, &r.background_queue) {
             Ok(bg) => {
@@ -146,7 +170,7 @@ fn integrity(ctx: &Context) -> Section {
     for f in &findings {
         details.push(format!("{}: {:?}", f.path, f.problem));
     }
-    let (status, remediation) = if findings.is_empty() {
+    let (status, remediation) = if findings.is_empty() && broken_components == 0 {
         (Status::Pass, vec![])
     } else if ctx.recovery.is_some() {
         (Status::Fail, vec!["Run \"Repair\": affected files are restored from the local recovery store (no network needed).".into()])

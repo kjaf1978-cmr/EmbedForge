@@ -1,0 +1,4 @@
+# EmbedForge release public keys (SEC-02), one minisign public key (base64) per line.
+# The private keys are held offline by the project owner (TEST-04); only public keys are here.
+# Several lines = key rotation: packages signed with any listed key are accepted. See
+# docs/inc1/procedures/SEC-02_key_rotation.md. Empty = development build, nothing is trusted.

@@ -1,0 +1,15 @@
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+PASS VAPP-04 — Self-repair from the local recovery store, offline (SS-08)
+    deleted /opt/embedforge/embedforge-app/share/embedforge.png, corrupted /opt/embedforge/embedforge-app/bin/embedforge-helper
+    found: ["embedforge-app/bin/embedforge-helper HashMismatch", "embedforge-app/share/embedforge.png Missing"]
+    restored: ["embedforge-app/bin/embedforge-helper", "embedforge-app/share/embedforge.png"]
+    second full check: clean
+    integrity log: 2 event(s)
+PASS VAPP-05 — Offline update and rollback with a USB package (SS-09, CM-09)
+    updated embedforge-app: 0.1.0 → 0.1.1
+    updated vapp05-test-item: (new) → 1.0.0
+    baseline install-0.1.0 restored offline, changed ["embedforge-app", "vapp05-test-item"]
+    active versions equal the installed ones again; the update stays in the recovery store
+PASS VAPP-03 — Dependency audit of the running app
+    3 process(es): 1 files in the app directory, 196 OS standard, 1 app data, 0 outside

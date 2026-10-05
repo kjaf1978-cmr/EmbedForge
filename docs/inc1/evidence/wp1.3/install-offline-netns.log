@@ -1,0 +1,32 @@
+no network: confirmed
+Selecting previously unselected package embedforge-setup.
+(Reading database ... 65151 files and directories currently installed.)
+Preparing to unpack .../embedforge-setup_0.1.0_amd64.deb ...
+Unpacking embedforge-setup (0.1.0) ...
+Setting up embedforge-setup (0.1.0) ...
+EmbedForge 0.1.0 for ubuntu x86_64 — system-wide installation into /opt/embedforge
+
+Host check (HOST-04): profile A
+  Shortfall CPU (HOST-02(a)): found 4 cores / 4 threads, required ≥ 4 cores / 8 threads — LLM requirement drafting (PERF-03), autorouting (PERF-06) and emulation (PERF-05) may miss their targets.
+  Advice RAM (HOST-02(b)): found 16.9 GB, required 32 GB recommended — Fine for the default selection; the 14B model and parallel work are slower.
+  Shortfall free SSD space (HOST-02(c)): found 19 GB, required ≥ 60 GB (≈ 75 GB with every optional pack) — Installation of the typical selection or later updates (recovery store, CM-09) may fail.
+
+Packs to install:
+  embedforge-app               0.1.0         0.29 GB installed  EmbedForge application, installer and privileged helper
+
+Space: 0.87 GB needed (installed tree + recovery store), 18.62 GB free
+  checking the medium: 100 %
+  [1/1] embedforge-app
+  activating the installed set
+  udev rules for USB serial access (SS-04)
+  note: udevadm control --reload-rules: No such file or directory (os error 2)
+  note: udevadm trigger --subsystem-match=tty: No such file or directory (os error 2)
+  privileged helper (SS-05)
+  note: systemctl daemon-reload failed: System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+  note: systemctl enable --now embedforge-helper.socket failed: Created symlink /etc/systemd/system/sockets.target.wants/embedforge-helper.socket → /etc/systemd/system/embedforge-helper.socket.
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+
+EmbedForge 0.1.0 is installed in /opt/embedforge (11 s).
+Start it from the applications menu, or run /opt/embedforge/embedforge-app/bin/embedforge

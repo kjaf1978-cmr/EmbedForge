@@ -1,0 +1,26 @@
+[package]
+name = "ef-helper"
+description = "EmbedForge privileged helper skeleton: closed request set, caller check against the signed app binary, boot-medium guard, .deb allowlist, request log (SS-05)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "embedforge-helper"
+path = "src/main.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ef-cm = { path = "../ef-cm" }
+ef-host = { path = "../ef-host" }
+ef-integrity = { path = "../ef-integrity" }
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+minisign.workspace = true
+semver.workspace = true

@@ -1,0 +1,8 @@
+# Packages the EmbedForge app needs at run time on Ubuntu Desktop and Raspberry Pi OS
+# (Tauri 2 / WebKitGTK 4.1). collect-deps.sh downloads them with all their dependencies and
+# keeps only those missing from a clean desktop image of the release (SS-01).
+libwebkit2gtk-4.1-0
+libgtk-3-0
+libsoup-3.0-0
+libjavascriptcoregtk-4.1-0
+librsvg2-common

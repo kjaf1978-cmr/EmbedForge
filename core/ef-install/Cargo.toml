@@ -1,0 +1,29 @@
+[package]
+name = "ef-install"
+description = "EmbedForge bootstrap installer, offline update and rollback, repair, uninstaller, VAPP-03 audit (SS-01..05, SS-08, SS-09, CM-04)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "embedforge-setup"
+path = "src/main.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+semver.workspace = true
+ef-cm = { path = "../ef-cm" }
+ef-host = { path = "../ef-host" }
+ef-integrity = { path = "../ef-integrity" }
+ef-pack = { path = "../ef-pack" }
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+minisign.workspace = true
+ef-diag = { path = "../ef-diag" }

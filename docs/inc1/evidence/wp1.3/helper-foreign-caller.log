@@ -1,0 +1,2 @@
+{"at":"2026-10-05T20:16:40Z","event":"helper_started","install_root":"/opt/embedforge","version":"0.1.0"}
+{"at":"2026-10-05T20:16:40Z","decision":"rejected","id":1,"message":"caller rejected: caller /usr/bin/python3.11 is not the EmbedForge app","op":"install_debs","peer":{"exe":"/usr/bin/python3.11","pid":25229,"uid":0},"request":{"files":["/etc/passwd"],"op":"install_debs"}}

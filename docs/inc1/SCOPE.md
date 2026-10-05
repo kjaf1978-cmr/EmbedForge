@@ -32,6 +32,11 @@
 | 1.3 | Packaging pipeline: pack builder (≤ 1.9 GiB files, zstd), signed manifest, bootstrap installers (Windows EXE, .deb ×2), privileged helper skeleton | CI on hosted runners; signing steps scripted for your infrastructure; VAPP-01/03/04/05 procedures |
 | 1.4 | Increment 1 test report (TEST-03), usability scenarios, user-executed procedures, version tag | — |
 
+Status on 5 October 2026:
+- WP 1.1, 1.2 and 1.3 are done; see WP1.1_report.md, WP1.2_report.md and WP1.3_report.md.
+- WP 1.3 raised F1-01 for D16.
+- The user-executed procedures are in procedures/.
+
 ## Out of scope for Increment 1
 
 - Board definitions, flashing and the real helper actions: Increment 2.

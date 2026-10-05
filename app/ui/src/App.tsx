@@ -6,7 +6,7 @@ import { UndoStack } from './core/undo';
 import { DocsIndex, type DocPage } from './core/docsIndex';
 import { buildModel, type ProjectDocs } from './core/projectModel';
 import type { LibraryItem } from './core/library';
-import type { Backend } from './backend';
+import type { Backend, HostFinding, StartupStatus } from './backend';
 import { Navigator } from './components/Navigator';
 import { CommandPalette } from './components/CommandPalette';
 import { ArtefactView, DiagView, DocsView, HostView, LibraryView, SettingsView, TraceView } from './components/views';
@@ -55,6 +55,23 @@ export function App({ backend }: { backend: Backend }) {
   const [, force] = useState(0);
   const [announce, setAnnounce] = useState('');
 
+  // SS-08 start-up check (runs in the back-end while the window opens) and HOST-04
+  const [startup, setStartup] = useState<StartupStatus | null>(null);
+  const [hostIssues, setHostIssues] = useState<HostFinding[]>([]);
+  const [bannerClosed, setBannerClosed] = useState(false);
+  useEffect(() => {
+    let stop = false;
+    const poll = async () => {
+      const s = await backend.startupStatus();
+      if (stop) return;
+      setStartup(s);
+      if (s.phase === 'running' || s.phase === 'background') setTimeout(poll, 500);
+    };
+    void poll();
+    void backend.hostCheck([window.screen.width, window.screen.height])
+      .then((r) => setHostIssues(r.findings.filter((f) => f.severity !== 'advice')));
+    return () => { stop = true; };
+  }, []);
   useEffect(() => { void backend.appVersion().then(setVersion); void backend.loadSettings().then((s) => s && setSettingsRaw(sanitise(s))); }, []);
   // F0-24(d): in the compact layout the side panes are overlays, closed until asked for
   useEffect(() => { setShowNav(!compact); setShowHelp(!compact); }, [compact]);
@@ -177,6 +194,7 @@ export function App({ backend }: { backend: Backend }) {
         <button onClick={() => setShowHelp((x) => !x)} aria-pressed={showHelp}>Help</button>
         <button onClick={() => setPalette(true)} title="Ctrl+Shift+P">⌘ Commands</button>
       </header>
+      {!bannerClosed && <StartupBanner startup={startup} host={hostIssues} onOpen={(v) => setView(v)} onClose={() => setBannerClosed(true)} />}
       <div class="body">
         {showNav && navPane}
         <main id="pane-workspace" class="pane work" aria-label={VIEW_TITLE[view]} tabIndex={-1}>
@@ -196,10 +214,44 @@ export function App({ backend }: { backend: Backend }) {
         <span>Highlight: {settings.highlightMode}{latency !== null ? ` · last ${latency.toFixed(0)} ms` : ''}</span>
         <span>{settings.mode === 'guided' ? 'Guided' : 'Expert'} mode</span>
         <span>{compact ? 'Compact layout' : 'Full layout'}</span>
+        <span>{integrityLabel(startup)}</span>
         <span class="muted">{version}</span>
       </footer>
       <div class="sr-only" aria-live="polite">{announce}</div>
       {palette && <CommandPalette keymap={keymap} onClose={() => setPalette(false)} />}
+    </div>
+  );
+}
+
+function integrityLabel(s: StartupStatus | null): string {
+  if (!s) return 'Integrity: …';
+  switch (s.phase) {
+    case 'running': return 'Integrity: checking…';
+    case 'background': return `Integrity: ${s.checked_full} files checked, background pass running`;
+    case 'done': return s.unrecoverable.length ? `Integrity: ${s.unrecoverable.length} not restored` : `Integrity: OK (${s.components} components)`;
+    case 'untrusted': return 'Integrity: development build';
+    case 'preview': return 'Integrity: desktop app only';
+    default: return 'Integrity: error';
+  }
+}
+
+/** Shown at start-up when SS-08 repaired or could not repair something, or HOST-04 found a shortfall. */
+function StartupBanner({ startup, host, onOpen, onClose }: { startup: StartupStatus | null; host: HostFinding[]; onOpen: (v: 'diagnostics' | 'host') => void; onClose: () => void }) {
+  const restored = startup?.restored ?? [];
+  const lost = startup?.unrecoverable ?? [];
+  if (!restored.length && !lost.length && !host.length && startup?.phase !== 'error') return null;
+  return (
+    <div class="banner startup" role="alert" aria-label="Start-up checks">
+      {restored.length > 0 && <p>Start-up integrity check: {restored.length} damaged or missing file(s) were restored from the local recovery store (no network needed): {restored.join(', ')}.</p>}
+      {lost.length > 0 && <p><strong>{lost.length} file(s) could not be restored:</strong> {lost.join(', ')}.
+        {startup?.needs_elevated_repair ? ' The installation folder is read-only for your account: run “embedforge-setup repair” as administrator.' : ' Reinstall the affected pack from the installation medium.'}</p>}
+      {startup?.phase === 'error' && <p>The start-up integrity check failed: {startup.message}</p>}
+      {host.length > 0 && <p>Host check: {host.length} shortfall(s) — {host.map((h) => h.check).join(', ')}.</p>}
+      <div class="row">
+        {(restored.length > 0 || lost.length > 0 || startup?.phase === 'error') && <button onClick={() => onOpen('diagnostics')}>Open self-diagnosis</button>}
+        {host.length > 0 && <button onClick={() => onOpen('host')}>Open host check</button>}
+        <button onClick={onClose}>Dismiss</button>
+      </div>
     </div>
   );
 }

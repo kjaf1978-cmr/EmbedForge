@@ -1,0 +1,23 @@
+[package]
+name = "ef-pack"
+description = "EmbedForge component packs: zstd tar streams split into files of at most 1.9 GiB, signed medium and update indexes (SS-01, SS-09, CM-10, SEC-02)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+hex.workspace = true
+semver.workspace = true
+tar.workspace = true
+zstd.workspace = true
+ef-cm = { path = "../ef-cm" }
+ef-integrity = { path = "../ef-integrity" }
+
+[dev-dependencies]
+tempfile.workspace = true
+minisign.workspace = true

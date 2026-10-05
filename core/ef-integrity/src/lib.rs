@@ -9,6 +9,12 @@
 //!   or uncached ones are queued for the background pass ([`check_full`]).
 //! - [`repair`] restores corrupted or missing files from the local recovery store, without
 //!   network access, and every event is appended to a JSON-lines log.
+//! - [`component`]: installations made by the bootstrap installer consist of components that
+//!   each carry a signed manifest; [`startup_pass`] and [`background_pass`] run the checks
+//!   above over the union of them and also restore whole components.
+
+pub mod component;
+pub use component::*;
 
 use ef_cm::objects::sha256_file;
 use ef_cm::ObjectStore;
@@ -21,6 +27,30 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 pub const MANIFEST_FORMAT: &str = "ef.manifest@1.0";
+
+const TRUSTED_KEYS_FILE: &str = include_str!("../trusted-keys.txt");
+
+/// Release public keys built into this binary (SEC-02), from `trusted-keys.txt`. Debug builds
+/// also trust `EMBEDFORGE_DEV_TRUSTED_KEY`, so that tests and local trials can use a scratch
+/// key; release builds ignore that variable.
+pub fn release_keys() -> Vec<String> {
+    let mut v: Vec<String> = TRUSTED_KEYS_FILE
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(String::from)
+        .collect();
+    if cfg!(debug_assertions) {
+        if let Ok(k) = std::env::var("EMBEDFORGE_DEV_TRUSTED_KEY") {
+            v.extend(
+                k.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
+            );
+        }
+    }
+    v
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum IntegrityError {
@@ -37,7 +67,7 @@ pub enum IntegrityError {
     Cm(#[from] ef_cm::CmError),
 }
 
-fn io<T>(path: &Path, r: std::io::Result<T>) -> Result<T, IntegrityError> {
+pub(crate) fn io<T>(path: &Path, r: std::io::Result<T>) -> Result<T, IntegrityError> {
     r.map_err(|source| IntegrityError::Io {
         path: path.into(),
         source,
@@ -90,12 +120,12 @@ pub fn classify(rel_path: &str, executable_bit: bool) -> Tier {
 }
 
 #[cfg(unix)]
-fn exec_bit(m: &fs::Metadata) -> bool {
+pub(crate) fn exec_bit(m: &fs::Metadata) -> bool {
     use std::os::unix::fs::PermissionsExt;
     m.permissions().mode() & 0o111 != 0
 }
 #[cfg(not(unix))]
-fn exec_bit(_m: &fs::Metadata) -> bool {
+pub(crate) fn exec_bit(_m: &fs::Metadata) -> bool {
     false
 }
 
@@ -264,12 +294,37 @@ fn mtime_ns(m: &fs::Metadata) -> u128 {
         .map_or(0, |d| d.as_nanos())
 }
 
+/// Hashes files on every core (PERF-08): returns the SHA-256 of each path, in order.
+fn hash_parallel(paths: &[PathBuf]) -> Vec<Option<String>> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let next = AtomicUsize::new(0);
+    let out: Vec<std::sync::Mutex<Option<String>>> =
+        paths.iter().map(|_| Default::default()).collect();
+    let threads = std::thread::available_parallelism()
+        .map_or(1, |n| n.get())
+        .min(paths.len().max(1));
+    std::thread::scope(|sc| {
+        for _ in 0..threads {
+            sc.spawn(|| loop {
+                let i = next.fetch_add(1, Ordering::Relaxed);
+                if i >= paths.len() {
+                    break;
+                }
+                let h = sha256_file(&paths[i]).ok().map(|(h, _)| h);
+                *out[i].lock().unwrap() = h;
+            });
+        }
+    });
+    out.into_iter().map(|m| m.into_inner().unwrap()).collect()
+}
+
 /// SS-08 foreground check.
 pub fn check_startup(root: &Path, m: &Manifest) -> Result<Report, IntegrityError> {
     let cache = load_cache(root);
     let mut r = Report::default();
     let mut priority = Vec::new();
     let mut rest = Vec::new();
+    let mut to_hash: Vec<&ManifestEntry> = Vec::new();
     for f in &m.files {
         let p = root.join(&f.path);
         let meta = match fs::metadata(&p) {
@@ -290,15 +345,7 @@ pub fn check_startup(root: &Path, m: &Manifest) -> Result<Report, IntegrityError
             continue;
         }
         match f.tier {
-            Tier::Startup => {
-                r.checked_full += 1;
-                if sha256_file(&p)?.0 != f.sha256 {
-                    r.findings.push(Finding {
-                        path: f.path.clone(),
-                        problem: Problem::HashMismatch,
-                    });
-                }
-            }
+            Tier::Startup => to_hash.push(f),
             Tier::Deferred => {
                 r.checked_quick += 1;
                 let fresh = cache.get(&f.path).is_some_and(|c| {
@@ -312,6 +359,22 @@ pub fn check_startup(root: &Path, m: &Manifest) -> Result<Report, IntegrityError
             }
         }
     }
+    let paths: Vec<PathBuf> = to_hash.iter().map(|f| root.join(&f.path)).collect();
+    for (f, h) in to_hash.iter().zip(hash_parallel(&paths)) {
+        r.checked_full += 1;
+        match h {
+            Some(h) if h == f.sha256 => {}
+            Some(_) => r.findings.push(Finding {
+                path: f.path.clone(),
+                problem: Problem::HashMismatch,
+            }),
+            None => r.findings.push(Finding {
+                path: f.path.clone(),
+                problem: Problem::Missing,
+            }),
+        }
+    }
+    r.findings.sort_by(|a, b| a.path.cmp(&b.path));
     priority.extend(rest);
     r.background_queue = priority;
     Ok(r)

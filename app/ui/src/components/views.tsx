@@ -141,14 +141,26 @@ const STATUS_LABEL: Record<string, string> = { pass: 'Pass', warn: 'Warning', fa
 export function DiagView({ backend }: { backend: Backend }) {
   const [rep, setRep] = useState<{ overall: string; sections: DiagSection[] } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [repaired, setRepaired] = useState<string | null>(null);
   const run = async (full: boolean) => { setBusy(true); setRep(await backend.diagnose(full)); setBusy(false); };
+  const repair = async () => {
+    setBusy(true);
+    const r = await backend.repair();
+    setRepaired(r.phase === 'done'
+      ? `${r.restored.length} restored, ${r.unrecoverable.length} not restored${r.needs_elevated_repair ? ' (read-only installation: run “embedforge-setup repair” as administrator)' : ''}`
+      : r.message);
+    setRep(await backend.diagnose(true));
+    setBusy(false);
+  };
   useEffect(() => { void run(false); }, []);
   return (
     <section aria-label="Self-diagnosis">
       <div class="row"><button onClick={() => run(false)} disabled={busy}>Run check</button>
         <button onClick={() => run(true)} disabled={busy}>Full verification</button>
+        <button onClick={repair} disabled={busy || backend.kind !== 'tauri'} title="Restore damaged files from the local recovery store">Repair</button>
         {rep && <span class={`status s-${rep.overall}`}>Overall: {STATUS_LABEL[rep.overall] ?? rep.overall}</span>}</div>
       {busy && <p aria-live="polite">Checking…</p>}
+      {repaired && <p role="status">Repair: {repaired}</p>}
       {rep?.sections.map((s) => (
         <article key={s.id} class={`diag s-${s.status}`}>
           <h3>({s.id}) {s.title} — {STATUS_LABEL[s.status]}</h3>

@@ -1,0 +1,5 @@
+PLACEHOLDER — NOT FOR RELEASE
+
+The release pipeline replaces this file with the licence terms of the Microsoft Edge
+WebView2 Runtime (Fixed Version) that are shipped with the runtime package being bundled
+(SS-02, F0-01). A release medium is refused while this placeholder is present.

@@ -6,6 +6,11 @@ edition = "2021"
 license = "GPL-3.0-or-later"
 rust-version = "1.80"
 
+[features]
+# Release builds serve the bundled UI from inside the binary (no dev server); the packaging
+# pipeline builds with --features custom-protocol.
+custom-protocol = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -26,3 +31,7 @@ tempfile = "3"
 lto = true
 codegen-units = 1
 strip = true
+
+# The start-up integrity check hashes every executable; keep hashing fast in debug builds too.
+[profile.dev.package.sha2]
+opt-level = 3

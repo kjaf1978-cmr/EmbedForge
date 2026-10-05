@@ -20,6 +20,20 @@ export interface DiagSection {
   remediation: string[];
 }
 
+/** SS-08 start-up integrity check, as reported by the back-end. */
+export interface StartupStatus {
+  phase: 'running' | 'background' | 'done' | 'untrusted' | 'error' | 'preview';
+  components: number;
+  checked_full: number;
+  checked_quick: number;
+  found: string[];
+  restored: string[];
+  unrecoverable: string[];
+  needs_elevated_repair: boolean;
+  message: string;
+  foreground_ms: number;
+}
+
 export interface Backend {
   kind: 'tauri' | 'preview';
   appVersion(): Promise<string>;
@@ -27,6 +41,8 @@ export interface Backend {
   diagnose(full: boolean): Promise<{ overall: string; sections: DiagSection[] }>;
   loadSettings(): Promise<unknown>;
   saveSettings(s: UiSettings): Promise<void>;
+  startupStatus(): Promise<StartupStatus>;
+  repair(): Promise<StartupStatus>;
 }
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -44,6 +60,8 @@ class TauriBackend implements Backend {
   diagnose(full: boolean) { return this.invoke<{ overall: string; sections: DiagSection[] }>('diagnose', { full }); }
   loadSettings() { return this.invoke<unknown>('settings_load'); }
   async saveSettings(s: UiSettings) { await this.invoke('settings_save', { settings: s }); }
+  startupStatus() { return this.invoke<StartupStatus>('startup_status'); }
+  repair() { return this.invoke<StartupStatus>('repair'); }
 }
 
 class PreviewBackend implements Backend {
@@ -71,6 +89,16 @@ class PreviewBackend implements Backend {
   }
   async loadSettings() { return this.settings; }
   async saveSettings(s: UiSettings) { this.settings = s; }
+  /** `?preview-startup=repaired|unrecoverable` lets UI tests show the start-up banner. */
+  async startupStatus(): Promise<StartupStatus> {
+    const mode = new URLSearchParams(window.location.search).get('preview-startup');
+    const base: StartupStatus = { phase: 'preview', components: 0, checked_full: 0, checked_quick: 0, found: [], restored: [], unrecoverable: [],
+      needs_elevated_repair: false, message: 'browser preview: the integrity check runs in the desktop app', foreground_ms: 0 };
+    if (mode === 'repaired') return { ...base, phase: 'done', components: 3, found: ['embedforge-app/bin/embedforge: HashMismatch'], restored: ['embedforge-app/bin/embedforge'], message: '' };
+    if (mode === 'unrecoverable') return { ...base, phase: 'done', components: 3, found: ['llm-default/model.gguf: Missing'], unrecoverable: ['llm-default/model.gguf'], needs_elevated_repair: true, message: '' };
+    return base;
+  }
+  async repair() { return this.startupStatus(); }
 }
 
 export function createBackend(): Backend {

@@ -168,8 +168,22 @@ fn baseline_restore_in_one_action_cm03() {
     s.tag_baseline("B1", "2026-10-05").unwrap();
     s.activate("kicad", &v("2.0.0"), &inst).unwrap();
     s.activate("catalogue", &v("2.0.0"), &inst).unwrap();
+    s.add_version(meta("fab", "1.0.0", &[]), &src(t.path(), &[("v", "f")]))
+        .unwrap();
+    s.activate("fab", &v("1.0.0"), &inst).unwrap();
     let changed = s.restore_baseline("B1", &inst).unwrap();
-    assert_eq!(changed.len(), 2);
+    assert_eq!(
+        changed.len(),
+        3,
+        "two restored, one added later deactivated"
+    );
+    assert!(!inst.join("fab").exists());
+    assert!(!s.active().unwrap().contains_key("fab"));
+    assert_eq!(
+        s.versions("fab").unwrap(),
+        vec![v("1.0.0")],
+        "kept in the store"
+    );
     assert_eq!(read(&inst.join("kicad/v")), "1.0.0");
     assert_eq!(read(&inst.join("catalogue/v")), "1.0.0");
     assert_eq!(s.active().unwrap()["kicad"], v("1.0.0"));

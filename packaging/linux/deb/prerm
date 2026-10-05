@@ -1,0 +1,7 @@
+#!/bin/sh
+# Removing the bootstrap package (apt remove embedforge-setup) removes EmbedForge as well.
+set -e
+if [ "$1" = "remove" ] && [ -f /opt/embedforge/state/install.json ]; then
+    EMBEDFORGE_FROM_DPKG=1 /opt/embedforge-setup/embedforge-setup uninstall --target /opt/embedforge --yes || true
+fi
+exit 0
