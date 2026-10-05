@@ -37,7 +37,7 @@ Actions for you:
 | D9 | 2026-09-26 | Accept all v3 review resolutions → v3.1 (section 26). |
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
-| D12 | 2026-10-05 | Exclude discontinued kit parts with no successor (no active equivalent of the same function and interface) → v3.4 (section 29). Today: MPR121. |
+| D12 | 2026-10-05 | Exclude discontinued kit parts with no successor (no active equivalent of the same function and interface) → v3.4 (section 29). Today: MPR121. You confirmed this reading on 2026-10-05 and declined the stricter "manufacturer-named successor" rule. |
 
 ## Open questions
 | ID | Raised | Question |

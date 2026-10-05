@@ -46,3 +46,4 @@
 - Q-01 still open.
 - D12: exclude discontinued kit parts with no successor → v3.4 via tools/apply_d12.py. MPR121
   excluded; HD44780, PCF8591, MPU-6050, MFRC522 and BMP180 stay because active equivalents exist.
+- D12: you confirmed the reading (active equivalent counts as a successor) and declined the stricter rule.
