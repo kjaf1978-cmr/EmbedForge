@@ -57,3 +57,4 @@
 - (h) PERF assessment and DATA-04 hand BOM (43 parts > 40). (i) wireframes HTML (23/23).
 - D14 findings F0-21..F0-24 raised. Phase 0 gate report drafted.
 - D14 accepted with DATA-04 set by you to 100 parts → v3.6 via tools/apply_d14.py; R-37 added (PERF at 100 parts, SP-100 stress project).
+- D15 (Q-01): GPL-3.0-or-later kept for non-commercial use; any licence limit on the specification is reported at the next gate → v3.7.

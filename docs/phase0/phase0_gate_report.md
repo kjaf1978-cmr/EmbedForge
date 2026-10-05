@@ -1,6 +1,6 @@
 # Phase 0 gate report (draft for your approval)
 
-- Baseline: prompt v3.6 (D14 applied)
+- Baseline: prompt v3.7 (D15 applied)
 - Date: 5 October 2026
 - Repository tag: phase0-s7
 - Human review record (DOC-12): pending for every Phase 0 document
@@ -27,9 +27,13 @@
 
 ## 2. Decisions
 
-- **Taken:** D9–D14 (prompt v3.1 → v3.6). DATA-04 is now 100 parts, which adds a 100-part
+- **Taken:** D9–D15 (prompt v3.1 → v3.7). DATA-04 is now 100 parts, which adds a 100-part
   stress project to the PERF measurements (R-37).
-- **Pending:** Q-01, licence versus non-commercial use.
+- **Pending:** none. D15 answered Q-01: GPL-3.0-or-later for non-commercial use.
+- **Licence check:** no requirement is currently limited by the licence.
+  - WebView2 is covered by the §7 permission (F0-01).
+  - Template output is MIT (F0-12).
+  - The only GPL-only code libraries were replaced (F0-13).
 
 ## 3. Open external actions
 
@@ -40,7 +44,6 @@
 
 **Approve Phase 0 with three entry conditions:**
 1. **Before Increment 1:**
-   - Q-01 answered.
    - The kit list confirmed.
    - GitHub repository access for the builder, or continued bundle pushes.
    - Self-hosted runners registered on the Profile A PC and a Pi 5.

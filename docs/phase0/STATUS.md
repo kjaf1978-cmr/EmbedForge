@@ -1,6 +1,6 @@
 # Phase 0 status
 
-Baseline: docs/requirements/EmbedForge_prompt_v3.6.md · Phase 0 is read-only (no application
+Baseline: docs/requirements/EmbedForge_prompt_v3.7.md · Phase 0 is read-only (no application
 code).
 
 | Item | Deliverable | Status | Evidence / file |
@@ -26,7 +26,6 @@ Next: **Phase 0 gate** (phase0_gate_report.md); then Increment 1 after your appr
 Actions for you:
 - Request CH341SER redistribution permission from WCH (F0-02).
 - Ask Raspberry Pi Ltd about Pi OS image redistribution (F0-03).
-- Answer Q-01.
 - Run the LLM benchmark (spikes/c/README.md) on the Profile A PC and the Pi 5, and send me the results archives.
 - Approve, or comment on, the Phase 0 gate report (phase0/phase0_gate_report.md).
 - Confirm or correct the frozen kit list in d_kit_inventory.md section 1.
@@ -39,6 +38,7 @@ Actions for you:
 | D9 | 2026-09-26 | Accept all v3 review resolutions → v3.1 (section 26). |
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
+| D15 | 2026-10-05 | Q-01 answered: keep GPL-3.0-or-later for non-commercial use, unless the licence limits implementation of the specification (then reported at the next gate) → v3.7 (section 32). |
 | D14 | 2026-10-05 | Accept F0-21, F0-22, F0-24; F0-23 modified by you to 100 parts → v3.6 (section 31). |
 | D13 | 2026-10-05 | Accept F0-12..F0-20 → v3.5 (section 30). |
 | D12 | 2026-10-05 | Exclude discontinued kit parts with no successor (no active equivalent of the same function and interface) → v3.4 (section 29). Today: MPR121. You confirmed this reading on 2026-10-05 and declined the stricter "manufacturer-named successor" rule. |
@@ -46,4 +46,4 @@ Actions for you:
 ## Open questions
 | ID | Raised | Question |
 |---|---|---|
-| Q-01 | 2026-09-26 | You stated the app is for non-commercial use. GPL-3.0-or-later cannot carry a non-commercial restriction: §10 forbids imposing further restrictions, and §7 lets recipients remove them. Is this (1) your intended use only, keeping GPL-3.0-or-later (D5), or (2) a request to change the licence to a non-commercial one? A non-commercial licence would no longer be open source. It would reverse D5 and replace the §7 WebView2 permission (F0-01). It would not change the aggregated GPL tools, the datasheet and distributor-data restrictions, or the excluded research-only models. |
+| Q-01 | 2026-09-26 | You stated the app is for non-commercial use. GPL-3.0-or-later cannot carry a non-commercial restriction: §10 forbids imposing further restrictions, and §7 lets recipients remove them. Is this (1) your intended use only, keeping GPL-3.0-or-later (D5), or (2) a request to change the licence to a non-commercial one? A non-commercial licence would no longer be open source. It would reverse D5 and replace the §7 WebView2 permission (F0-01). It would not change the aggregated GPL tools, the datasheet and distributor-data restrictions, or the excluded research-only models. | **Answered by D15 (2026-10-05).**
