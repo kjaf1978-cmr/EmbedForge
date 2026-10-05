@@ -1,6 +1,6 @@
 # Increment 1 · WP 1.3 — Packaging, installers, privileged helper: test report (TEST-03 format)
 
-- Baseline: prompt v3.7
+- Baseline: prompt v3.7; v3.8 (D16) for SS-05(d)
 - Date: 5 October 2026
 - Code:
   - `core/ef-pack`, `ef-release`, `ef-install`, `ef-helper` (new);
@@ -12,24 +12,25 @@
   extensions), rustc 1.97. It is not a Profile A host and not a clean image. It has no
   systemd, no udev and no exFAT kernel module.
 - Human review record (DOC-12): pending
-- **Open decision:** D16 / F1-01 (docs/inc1/findings_for_D16.md).
+- D16 / F1-01: option A, implemented (docs/inc1/findings_for_D16.md).
 
 ## 1. Evidence summary
 
 | Check | Command | Result |
 |---|---|---|
-| Rust core: all tests | `cd core && cargo test --locked` | **57 passed** (31 in WP 1.1) |
+| Rust core: all tests | `cd core && cargo test --locked` | **58 passed** (31 in WP 1.1) |
 | Clippy, Linux | `cargo clippy --all-targets --locked -- -D warnings` | **0 warnings** |
 | Clippy, Windows target | `cargo clippy --target x86_64-pc-windows-gnu --workspace --all-targets -- -D warnings` | **0 warnings**; `embedforge-setup.exe` links (MinGW) |
 | Formatting | `cargo fmt --all -- --check` | clean |
 | Linked-crate licence gate | `python3 tools/check_licences.py core` | **PASS: 72 crates** (new: tar, zstd, libc; all MIT/Apache) |
-| Tauri shell | `cd app/src-tauri && cargo test && cargo clippy … -D warnings` | **4 passed**, 0 warnings |
+| Tauri shell | `cd app/src-tauri && cargo test && cargo clippy … -D warnings` | **5 passed**, 0 warnings |
 | UI | `npm test`, `npm run build`, `npx playwright test` ×3 | 12 unit; **11 browser tests passed in 3 consecutive runs** (new: start-up banner + axe) |
 | Development medium, end to end | `packaging/build-medium.sh ubuntu-x86_64 … --dev-key --allow-missing` | stage → sign → pack → index → sign → `ef-release verify`: **PASS**. 60 MB medium (debug binaries) |
 | Real installation from it | `sh install.sh --yes` as root | installed in **11–12 s**; udev rules, systemd units and desktop entry written; `systemctl`/`udevadm` warn because the container has no systemd |
 | Installation with **no network** (INV-01) | `unshare -n sh install.sh --yes` | **installed** (curl inside the namespace fails, as it should): `evidence/wp1.3/install-offline-netns.log` |
 | Scripted VAPP-04/05/03 on that installation | `embedforge-setup vapp --package usb-update` (Xvfb) | **PASS, PASS, PASS**: `evidence/wp1.3/vapp-container-run.txt` |
 | Start-up repair in the real app | delete a file and corrupt the helper, then start the app | both restored before the window was used; banner shown; `foreground_ms` 1 560: `evidence/native-linux-startup-repair-banner.png` |
+| D16: unprivileged app on a system-wide install | system install, file corrupted, app run as a new non-root user | the helper restored it (`restore_files` → `done`); banner shown: `evidence/native-linux-user-repair-via-helper.png`, `evidence/wp1.3/helper-restore-d16.log` |
 | Helper refuses a foreign caller | Python client on the installed helper's socket | `rejected: caller /usr/bin/python3.11 is not the EmbedForge app`, logged: `evidence/wp1.3/helper-foreign-caller.log` |
 | Per-user installation and uninstallation | `sh install.sh --per-user --yes` as a new unprivileged user | installed with the missing functions listed; no root command run; uninstalled cleanly |
 | Uninstallation through dpkg | `dpkg -r embedforge-setup` | `/opt/embedforge`, udev rules, units and desktop entry removed |
@@ -50,8 +51,8 @@ Status key:
 | SS-02 | Increment 1 ships only the app. The WebView2 terms are presented and must be accepted (notice mechanism). Source pack: EmbedForge source archive on the medium, with a script for the dependency .deb sources | P | `plan_blocks_with_reasons` (terms not accepted → blocked). **Missing:** the bundled runtimes and toolchains arrive with their increments; the WebView2 fixed runtime has no stable download URL (`fetch-webview2.sh` takes your file) |
 | SS-03 | Everything is installed below the install root; the app finds its root from its own path. The VAPP-03 audit tool counts system-wide copies of bundled tools as *outside* | B (container) / U | `audit_classifies_files_vapp03`; container audit **0 files outside** (`vapp03-audit-container.json`) |
 | SS-04 | Linux: udev rules for CH340/CP210x/FTDI/Arduino/RP2040/RP2350, `uaccess`, dialout/plugdev membership. Windows: no driver bundled (first release); the installer lists the drivers not included and the affected boards (INV-10) | P | system-install test; container install wrote the rules. **Missing:** accepting your own copy of a driver, with board detection (Increment 2); real serial access (U, Increment 2) |
-| SS-05 | Administrator rights only in the installer (system mode checks it; the app never elevates). One helper with exactly three request types (closed set: unknown operations and fields are rejected). Caller check: SO_PEERCRED → `/proc/<pid>/exe` must be the installed app binary *and* its SHA-256 must match the signed manifest. Boot-medium guard: whole removable disk only; never a disk holding `/`, `/boot*`, `/usr`, `/var`, `/home`, `/opt`, swap or the install root; device-mapper layers resolved. .deb allowlist from the signed dependency sets. Every request logged. Per-user installation without drivers or helper, with the missing functions listed. systemd socket activation | P | `requests_are_a_closed_set_ss05`, `boot_medium_guard_ss05a`, `caller_check_allowlist_and_log`, `unix_socket_identifies_the_caller_by_so_peercred`, `per_user_installation_lists_missing_functions_ss05`; installed helper rejects a foreign caller. **Missing:** performing the actions (Increment 2, by scope); Windows service transport (Increment 2); F1-01 |
-| SS-08 | Start-up wiring: the foreground pass runs on its own thread while the window opens; the background pass follows. Whole components are restored if their folder or signed manifest is missing or tampered. Files are restored from the recovery store. Status bar, start-up banner, and **Repair** in Self-diagnosis | P | `installed_view_and_component_restore`, `self_repair_offline_vapp04_ss08`, `read_only_install_reports_that_repair_needs_the_installer` (as non-root); real app run (screenshot). **Missing:** the system-wide case needs D16 (F1-01); PERF-08 on hosts (U) |
+| SS-05 | Administrator rights only in the installer (system mode checks it; the app never elevates). One helper with exactly three request types (closed set: unknown operations and fields are rejected). Caller check: SO_PEERCRED → `/proc/<pid>/exe` must be the installed app binary *and* its SHA-256 must match the signed manifest. Boot-medium guard: whole removable disk only; never a disk holding `/`, `/boot*`, `/usr`, `/var`, `/home`, `/opt`, swap or the install root; device-mapper layers resolved. .deb allowlist from the signed dependency sets. Every request logged. Per-user installation without drivers or helper, with the missing functions listed. systemd socket activation | P | `requests_are_a_closed_set_ss05`, `boot_medium_guard_ss05a`, `caller_check_allowlist_and_log`, `unix_socket_identifies_the_caller_by_so_peercred`, `per_user_installation_lists_missing_functions_ss05`; installed helper rejects a foreign caller. Function (d) `restore_files` (D16) is performed: `restores_only_signed_files_of_the_active_version_ss05d`. **Missing:** performing (a)–(c) (Increment 2, by scope); Windows service transport (Increment 2) |
+| SS-08 | Start-up wiring: the foreground pass runs on its own thread while the window opens; the background pass follows. Whole components are restored if their folder or signed manifest is missing or tampered. Files are restored from the recovery store. Status bar, start-up banner, and **Repair** in Self-diagnosis | P | `installed_view_and_component_restore`, `self_repair_offline_vapp04_ss08`, `read_only_install_reports_that_repair_needs_the_installer` (as non-root); real app run (screenshot). System-wide Linux installs repair through the helper (D16, container run). **Missing:** Windows system-wide installs until the helper's Windows transport (Increment 2); PERF-08 on hosts (U) |
 | SS-09 | Signed update package from USB (`embedforge-setup update --package`). Same signature checks as the medium. Host and app-version checks. CM-04 dependency check before anything changes. After activation the install-time check (CM-05(b): DIAG-01 (a)); a failure rolls every changed item back | P | `offline_update_and_rollback_from_usb_vapp05_ss09_cm04`, `update_refusals_change_nothing_sec02_cm04`; container VAPP-05 PASS. **Missing:** the smoke-project set of CM-05(b) (no buildable projects before Increment 3); the update manager UI (Increment 8) |
 | SEC-02 | Every index and component manifest verified against the trusted keys; several keys allowed (rotation); unsigned, wrong-key and tampered files refused at plan, update and start-up. Signing scripts for your host only (minisign; Authenticode via signtool). Key-rotation procedure | P | `index_signature_and_part_hashes_are_enforced_sec02`, `damaged_medium_is_refused_before_anything_changes`, `update_refusals_change_nothing_sec02_cm04`; `procedures/SEC-02_key_rotation.md`. **Missing:** your release keys (`trusted-keys.txt` is empty) and a signed release (U) |
 | CM-03 / CM-04 / CM-09 (install level) | Baseline `install-<version>` tagged at installation. Restoring a baseline sets exactly its versions, and items added later are deactivated. Rollback with dependency check; every version kept for offline rollback | B | `baseline_restore_undoes_an_update_completely_cm03`, `baseline_restore_in_one_action_cm03` (extended), VAPP-05 run |
@@ -89,4 +90,3 @@ See `findings_for_D16.md` section 2 (7 items). The most visible:
 - The two usability scenarios.
 - The user-executed procedures run by you.
 - Your release keys, a signed release, and tag v0.1.0.
-- F1-01 resolved by D16.

@@ -722,6 +722,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ef-helper"
+version = "0.1.0"
+dependencies = [
+ "ef-cm",
+ "ef-host",
+ "ef-integrity",
+ "libc",
+ "semver",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ef-host"
 version = "0.1.0"
 dependencies = [
@@ -777,6 +790,7 @@ version = "0.1.0"
 dependencies = [
  "ef-cm",
  "ef-diag",
+ "ef-helper",
  "ef-host",
  "ef-integrity",
  "ef-schema",

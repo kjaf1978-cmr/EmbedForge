@@ -8,17 +8,21 @@
 //! - (b) installing, starting, stopping and removing the single EmbedForge project service
 //!   (HOST-07(b), Pi 5 hosts only);
 //! - (c) installing .deb packages taken only from the signed offline dependency set of the
-//!   running EmbedForge version, allowlisted by package hash ([`deb_allowlist`]).
+//!   running EmbedForge version, allowlisted by package hash ([`deb_allowlist`]);
+//! - (d) restoring files of the installed EmbedForge version from the local recovery store
+//!   (SS-08, decision D16): only paths listed in a signed component manifest of the active
+//!   version, and only content whose hash matches it ([`restore`]).
 //!
 //! It accepts requests only from the app's own signed executable ([`authorize`]): the peer
 //! process's executable must be the installed app binary, and its SHA-256 must equal the
 //! entry in the signed manifest of the `embedforge-app` component. Every request — accepted
 //! or not — is logged as one JSON line.
 //!
-//! Increment 1 delivers the protocol, the caller check, the guards, the allowlist and the
-//! log. The actions themselves are performed from Increment 2 on (they are the Increment 2
-//! functions BRD-02, BRD-03 and HOST-07(b)); until then a request that passes every check is
-//! answered `validated` and nothing is changed on the host.
+//! Increment 1 delivers the protocol, the caller check, the guards, the allowlist, the log
+//! and function (d), which the start-up integrity check needs now. Actions (a)–(c) are
+//! performed from Increment 2 on (they are the Increment 2 functions BRD-02, BRD-03 and
+//! HOST-07(b)); until then such a request that passes every check is answered `validated` and
+//! nothing is changed on the host.
 
 use ef_cm::objects::sha256_file;
 use serde::{Deserialize, Serialize};
@@ -59,6 +63,9 @@ pub enum Request {
     },
     /// (c) Install .deb files from the signed offline dependency set.
     InstallDebs { files: Vec<String> },
+    /// (d) Restore files of the installed version from the recovery store: `<item>/<path>`
+    /// for one file, `<item>/` for a whole component (folder or manifest missing or broken).
+    RestoreFiles { files: Vec<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -74,6 +81,8 @@ pub enum Decision {
     Rejected,
     /// Every check passed; the action is performed from Increment 2 on.
     Validated,
+    /// Every check passed and the action was performed.
+    Done,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -403,7 +412,134 @@ fn validate(ctx: &Context, r: &Request) -> Result<String, String> {
             }
             Ok(format!("{} package(s) are in the signed dependency set; installation through the helper is performed from Increment 2 on", files.len()))
         }
+        Request::RestoreFiles { files } => {
+            restore(ctx, files).map(|r| format!("restored {}", r.join(", ")))
+        }
     }
+}
+
+/// SS-05(d): restores `files` of the active version from the recovery store. Every entry is
+/// checked before anything is written; a single file must be listed in the verified signed
+/// manifest of its component, and the recovery object is hash-checked while it is copied.
+/// A whole component is restored only if the signed manifest stored for that version
+/// verifies and lists exactly the files of the stored record with the same hashes.
+pub fn restore(ctx: &Context, files: &[String]) -> Result<Vec<String>, String> {
+    if files.is_empty() {
+        return Err("no files given".into());
+    }
+    let keys = ctx.keys();
+    let store =
+        ef_cm::RecoveryStore::open(ctx.install_root.join("recovery")).map_err(|e| e.to_string())?;
+    let active = store.active().map_err(|e| e.to_string())?;
+    let inst = ef_integrity::load_installed(&ctx.install_root, &store, &keys, "")
+        .map_err(|e| e.to_string())?;
+    let listed: BTreeMap<&str, &str> = inst
+        .manifest
+        .files
+        .iter()
+        .map(|f| (f.path.as_str(), f.sha256.as_str()))
+        .collect();
+    enum Job {
+        File(String, String),
+        Component(String, semver::Version),
+    }
+    let mut jobs = vec![];
+    for f in files {
+        let (ci, rest) = f
+            .split_once('/')
+            .ok_or_else(|| format!("{f}: not <item>/<path>"))?;
+        let v = active
+            .get(ci)
+            .ok_or_else(|| format!("{f}: {ci} is not an active item"))?;
+        if rest.is_empty() {
+            verify_stored_component(&store, ci, v, &keys)?;
+            jobs.push(Job::Component(ci.to_string(), v.clone()));
+        } else {
+            let sha = listed
+                .get(f.as_str())
+                .ok_or_else(|| format!("{f} is not listed in the signed manifest of {ci} {v}"))?;
+            jobs.push(Job::File(f.clone(), sha.to_string()));
+        }
+    }
+    let mut done = vec![];
+    for j in jobs {
+        match j {
+            Job::File(path, sha) => {
+                store
+                    .objects()
+                    .restore_to(&sha, &ctx.install_root.join(&path))
+                    .map_err(|e| format!("{path}: {e}"))?;
+                done.push(path);
+            }
+            Job::Component(ci, v) => {
+                store
+                    .activate(&ci, &v, &ctx.install_root)
+                    .map_err(|e| format!("{ci}/: {e}"))?;
+                done.push(format!("{ci}/"));
+            }
+        }
+    }
+    Ok(done)
+}
+
+/// Checks a stored component version against its own signed manifest before it is written.
+fn verify_stored_component(
+    store: &ef_cm::RecoveryStore,
+    ci: &str,
+    v: &semver::Version,
+    keys: &[&str],
+) -> Result<(), String> {
+    let rec = store.get(ci, v).map_err(|e| e.to_string())?;
+    let obj = |p: &str| {
+        rec.files
+            .iter()
+            .find(|f| f.path == p)
+            .map(|f| f.sha256.clone())
+    };
+    let (m, s) = (
+        obj(ef_integrity::COMPONENT_FILE),
+        obj(ef_integrity::COMPONENT_SIG),
+    );
+    let (Some(m), Some(s)) = (m, s) else {
+        return Err(format!(
+            "{ci} {v}: no signed manifest in the recovery store"
+        ));
+    };
+    let tmp = std::env::temp_dir().join(format!("ef-helper-verify-{}-{ci}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&tmp);
+    let r = (|| {
+        store
+            .objects()
+            .restore_to(&m, &tmp.join(ef_integrity::COMPONENT_FILE))
+            .map_err(|e| e.to_string())?;
+        store
+            .objects()
+            .restore_to(&s, &tmp.join(ef_integrity::COMPONENT_SIG))
+            .map_err(|e| e.to_string())?;
+        let cm = ef_integrity::load_component(&tmp, keys).map_err(|e| e.to_string())?;
+        if cm.ci != ci || &cm.version != v {
+            return Err(format!("stored manifest is for {} {}", cm.ci, cm.version));
+        }
+        let signed: BTreeSet<(&str, &str)> = cm
+            .files
+            .iter()
+            .map(|f| (f.path.as_str(), f.sha256.as_str()))
+            .collect();
+        let stored: BTreeSet<(&str, &str)> = rec
+            .files
+            .iter()
+            .filter(|f| {
+                f.path != ef_integrity::COMPONENT_FILE && f.path != ef_integrity::COMPONENT_SIG
+            })
+            .map(|f| (f.path.as_str(), f.sha256.as_str()))
+            .collect();
+        if signed != stored {
+            return Err("the stored record differs from its signed manifest".into());
+        }
+        Ok(())
+    })();
+    let _ = std::fs::remove_dir_all(&tmp);
+    r.map_err(|e| format!("{ci} {v}: {e}"))
 }
 
 /// Handles one request line from an already identified peer, and logs it.
@@ -426,7 +562,11 @@ pub fn handle_line(ctx: &Context, peer: &Peer, exe_reader: &Path, line: &str) ->
     let resp = match result {
         Ok(m) => Response {
             id,
-            decision: Decision::Validated,
+            decision: if op.as_deref() == Some("restore_files") {
+                Decision::Done
+            } else {
+                Decision::Validated
+            },
             message: m,
         },
         Err(m) => Response {
@@ -514,6 +654,18 @@ pub mod server {
             uid: cred.uid,
             exe,
         })
+    }
+
+    /// Client side, used by the app: sends one request and reads the answer.
+    pub fn request(socket: &Path, id: u64, request: Request) -> std::io::Result<Response> {
+        let mut s = UnixStream::connect(socket)?;
+        s.set_read_timeout(Some(std::time::Duration::from_secs(120)))?;
+        let line =
+            serde_json::to_string(&Envelope { id, request }).map_err(std::io::Error::other)?;
+        writeln!(s, "{line}")?;
+        let mut resp = String::new();
+        BufReader::new(&s).read_line(&mut resp)?;
+        serde_json::from_str(&resp).map_err(std::io::Error::other)
     }
 
     /// The listener from systemd socket activation (`LISTEN_FDS`), or a socket bound at `path`.

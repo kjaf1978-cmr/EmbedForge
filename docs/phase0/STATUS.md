@@ -1,6 +1,6 @@
 # Phase 0 status
 
-Baseline: docs/requirements/EmbedForge_prompt_v3.7.md · Phase 0 is read-only (no application
+Baseline: docs/requirements/EmbedForge_prompt_v3.8.md · Phase 0 is read-only (no application
 code).
 
 | Item | Deliverable | Status | Evidence / file |
@@ -24,7 +24,6 @@ code).
 **Phase 0 approved on 2026-10-05, with the gate-report conditions.** You replied "Please continue from here" to the approval request. Increment 1 has started (docs/inc1/).
 
 Actions for you:
-- Decide D16 (F1-01, docs/inc1/findings_for_D16.md): reply A, B or C.
 - Create the release key pair, primary and standby, offline, and send me the two public key
   lines (docs/inc1/procedures/SEC-02_key_rotation.md, step 1).
 - Register the self-hosted runners (Profile A PC with label `profile-a`, Pi 5) when convenient;
@@ -43,6 +42,7 @@ Actions for you:
 | D9 | 2026-09-26 | Accept all v3 review resolutions → v3.1 (section 26). |
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
+| D16 | 2026-10-05 | F1-01, option A: privileged-helper function (d) restores signed files of the installed version from the recovery store, so start-up repair works on system-wide installations → v3.8 (section 33). |
 | D15 | 2026-10-05 | Q-01 answered: keep GPL-3.0-or-later for non-commercial use, unless the licence limits implementation of the specification (then reported at the next gate) → v3.7 (section 32). |
 | D14 | 2026-10-05 | Accept F0-21, F0-22, F0-24; F0-23 modified by you to 100 parts → v3.6 (section 31). |
 | D13 | 2026-10-05 | Accept F0-12..F0-20 → v3.5 (section 30). |
@@ -51,5 +51,4 @@ Actions for you:
 ## Open questions
 | ID | Raised | Question |
 |---|---|---|
-| D16 / F1-01 | 2026-10-05 | System-wide installations: SS-08 start-up repair needs write access that SS-05 allows only to the installer. Options A (helper function (d)), B (user-writable app folder), C (repair is an installer action). See docs/inc1/findings_for_D16.md. |
 | Q-01 | 2026-09-26 | You stated the app is for non-commercial use. GPL-3.0-or-later cannot carry a non-commercial restriction: §10 forbids imposing further restrictions, and §7 lets recipients remove them. Is this (1) your intended use only, keeping GPL-3.0-or-later (D5), or (2) a request to change the licence to a non-commercial one? A non-commercial licence would no longer be open source. It would reverse D5 and replace the §7 WebView2 permission (F0-01). It would not change the aggregated GPL tools, the datasheet and distributor-data restrictions, or the excluded research-only models. | **Answered by D15 (2026-10-05).**

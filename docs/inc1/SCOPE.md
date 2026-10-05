@@ -1,6 +1,6 @@
 # Increment 1 — scope (step 1 of the increment process, section 22)
 
-- Baseline: prompt v3.7
+- Baseline: prompt v3.7; v3.8 from 5 October 2026 (D16, SS-05(d))
 - Started: 5 October 2026
 - **Phase 0 gate:** treated as approved with the gate report's conditions. You replied "Please
   continue from here" to the approval request. If you did not mean approval, say so and work
@@ -34,7 +34,7 @@
 
 Status on 5 October 2026:
 - WP 1.1, 1.2 and 1.3 are done; see WP1.1_report.md, WP1.2_report.md and WP1.3_report.md.
-- WP 1.3 raised F1-01 for D16.
+- WP 1.3 raised F1-01; D16 chose option A (prompt v3.8), implemented.
 - The user-executed procedures are in procedures/.
 
 ## Out of scope for Increment 1

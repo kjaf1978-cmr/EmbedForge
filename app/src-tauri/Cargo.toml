@@ -23,6 +23,7 @@ ef-cm = { path = "../../core/ef-cm" }
 ef-integrity = { path = "../../core/ef-integrity" }
 ef-host = { path = "../../core/ef-host" }
 ef-diag = { path = "../../core/ef-diag" }
+ef-helper = { path = "../../core/ef-helper" }
 
 [dev-dependencies]
 tempfile = "3"

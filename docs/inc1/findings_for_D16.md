@@ -2,8 +2,9 @@
 
 - Baseline: prompt v3.7
 - Date: 5 October 2026
-- Status: **open — your decision is needed**. Nothing has been chosen for you. What is
-  implemented now is the behaviour that changes no requirement, and it is described as such.
+- Status: **decided — D16 (5 October 2026): option A.** Applied in prompt v3.8 (section 33,
+  `tools/apply_d16.py`) and implemented: helper request `restore_files` (SS-05(d)); the app
+  calls it when the installation folder is read-only for the user.
 
 ## F1-01 — SS-08 repair vs SS-05 rights on a system-wide installation (conflict)
 
@@ -41,8 +42,20 @@ non-root user.
 | B | Install system-wide, but make the app folder writable for the installing user. | No helper change. | Weakens the protection of the program folder. Other users of the PC cannot repair. Unusual on Windows. |
 | C | Amend SS-08: on system-wide installations, repair is an installer action (`embedforge-setup repair`, administrator). | No new privileged code. | The user must act. The app does not heal itself on the most common installation type. |
 
-**Please reply with A, B or C**, or with another rule. I then change the prompt text (v3.8) and
-the code accordingly.
+**Your decision: A.** Implemented as follows:
+- The helper restores `<item>/<path>` only if the path is in the verified signed manifest of
+  the active version; the recovery object is hash-checked while it is copied.
+- `<item>/` (a whole component) is restored only if the manifest stored for that version
+  verifies and lists exactly the stored files.
+- Every entry is checked before anything is written. Requests from any program other than
+  the signed app are refused, as for (a)–(c).
+- Verified by `restores_only_signed_files_of_the_active_version_ss05d`. In the container, a
+  system-wide installation was damaged and the app was run as an unprivileged user: the
+  helper restored the file and the banner reported it
+  (`evidence/native-linux-user-repair-via-helper.png`, `evidence/wp1.3/helper-restore-d16.log`).
+- **Windows:** the helper's service transport arrives in Increment 2. Until then, Windows
+  system-wide installations behave as before: the app reports the files, and
+  `embedforge-setup repair` as administrator restores them.
 
 ## Decisions taken inside the requirements (no conflict; please review)
 

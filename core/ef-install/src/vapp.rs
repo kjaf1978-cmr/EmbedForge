@@ -48,7 +48,9 @@ pub fn vapp04(target: &Path, keys: &[&str]) -> Step {
         (|| {
             let app = target.join(crate::APP_CI);
             let deleted = app.join("share").join("embedforge.png");
-            let corrupted = platform::helper_binary(target);
+            // the app binary: not running during this check (the helper may be, and a running
+            // executable cannot be written in place)
+            let corrupted = platform::app_binary(target);
             fs::remove_file(&deleted).map_err(|x| format!("{}: {x}", deleted.display()))?;
             let mut b = fs::read(&corrupted).map_err(|x| x.to_string())?;
             let i = b.len() / 2;

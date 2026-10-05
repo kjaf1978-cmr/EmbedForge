@@ -1,0 +1,3 @@
+{"at":"2026-10-05T21:23:19Z","event":"helper_started","install_root":"/opt/embedforge","version":"0.1.0"}
+{"at":"2026-10-05T21:23:25Z","decision":"done","id":1,"message":"restored embedforge-app/share/embedforge.png","op":"restore_files","peer":{"exe":"/opt/embedforge/embedforge-app/bin/embedforge","pid":4708,"uid":30033},"request":{"files":["embedforge-app/share/embedforge.png"],"op":"restore_files"}}
+{"at":"2026-10-05T21:25:26Z","decision":"done","id":1,"message":"restored embedforge-app/bin/embedforge-setup","op":"restore_files","peer":{"exe":"/opt/embedforge/embedforge-app/bin/embedforge","pid":5161,"uid":30033},"request":{"files":["embedforge-app/bin/embedforge-setup"],"op":"restore_files"}}

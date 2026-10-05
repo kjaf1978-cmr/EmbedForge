@@ -425,7 +425,9 @@ pub fn check_full(
             );
         }
     }
-    save_cache(root, &cache)?;
+    // the cache only saves work; a read-only installation (system-wide, running as a user)
+    // simply re-hashes in the background next time
+    let _ = save_cache(root, &cache);
     Ok(out)
 }
 
@@ -456,13 +458,14 @@ pub fn repair(
         };
         let result = objects.restore_to(&e.sha256, &root.join(&e.path));
         let ok = result.is_ok();
-        log_event(
+        // the event log is best effort: a read-only state folder must not stop the repair
+        let _ = log_event(
             log,
             &serde_json::json!({
                 "at": at, "event": if ok { "restored" } else { "unrecoverable" }, "path": e.path,
                 "problem": fd.problem, "error": result.err().map(|x| x.to_string())
             }),
-        )?;
+        );
         if ok {
             out.restored.push(e.path.clone())
         } else {

@@ -186,7 +186,7 @@ pub struct Plan {
 pub fn missing_functions(mode: Mode, host: &HostId) -> Vec<String> {
     if mode == Mode::System {
         return if host.os == "windows" {
-            vec!["Privileged helper on Windows: its service and named-pipe transport arrive with the functions that use it (Increment 2); nothing in Increment 1 needs it.".into()]
+            vec!["Privileged helper on Windows: its service and named-pipe transport arrive in Increment 2. Until then the app cannot restore damaged files in the program folder itself; it says so, and \"embedforge-setup repair\" (as administrator) restores them (SS-05(d)).".into()]
         } else {
             vec![]
         };

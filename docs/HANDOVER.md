@@ -1,10 +1,11 @@
 # Handover for a new session
 
 State on 5 October 2026: Phase 0 is approved; Increment 1 work packages 1.1, 1.2 and 1.3 are
-done. Decision D16 (finding F1-01, docs/inc1/findings_for_D16.md) is open.
+done. Decision D16 (finding F1-01) chose option A: applied in prompt v3.8 and implemented
+(helper function (d), `restore_files`).
 Read in this order:
 
-1. docs/requirements/EmbedForge_prompt_v3.7.md: the baseline (sections 25–32 are the decision
+1. docs/requirements/EmbedForge_prompt_v3.8.md: the baseline (sections 25–33 are the decision
    change logs).
 2. docs/phase0/STATUS.md: decisions D9–D15, open actions.
 3. docs/inc1/SCOPE.md, WP1.1_report.md, WP1.2_report.md, WP1.3_report.md, findings_for_D16.md,
@@ -13,9 +14,7 @@ Read in this order:
 5. docs/SESSION_LOG.md: history.
 
 Next:
-1. D16, once you have answered: implement your option. For option A, that is helper
-   function (d) and the prompt v3.8 text.
-2. WP 1.4:
+1. WP 1.4:
    - the Increment 1 test report (TEST-03) over WP 1.1–1.3;
    - the usability scenarios;
    - recording your procedure results;

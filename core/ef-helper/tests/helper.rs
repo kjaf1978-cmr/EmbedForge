@@ -343,3 +343,65 @@ fn unix_socket_identifies_the_caller_by_so_peercred() {
         "the kernel-reported caller is logged"
     );
 }
+
+#[test]
+fn restores_only_signed_files_of_the_active_version_ss05d() {
+    let me = std::env::current_exe().unwrap();
+    let i = install(&me);
+    let log = i.root.join("helper.log");
+    let c = ctx(&i, me.clone(), &log);
+    let peer = Peer {
+        pid: std::process::id() as i32,
+        uid: 1000,
+        exe: fs::canonicalize(&me).unwrap(),
+    };
+    let ask = |files: &[&str]| {
+        let req = serde_json::json!({"id": 9, "request": {"op": "restore_files", "files": files}});
+        handle_line(&c, &peer, &me, &req.to_string())
+    };
+    let deb = "host-deps-ubuntu-24.04/debs/libfoo_1.0_amd64.deb";
+    fs::write(&i.deb, "corrupted").unwrap();
+    let r = ask(&[deb]);
+    assert_eq!(r.decision, Decision::Done, "{}", r.message);
+    assert_eq!(fs::read(&i.deb).unwrap(), b"allowed deb");
+
+    for (bad, why) in [
+        ("host-deps-ubuntu-24.04/evil.sh", "not listed"),
+        ("host-deps-ubuntu-24.04/../../etc/passwd", "not listed"),
+        ("nonexistent/x", "not an active item"),
+        ("no-slash", "not <item>/<path>"),
+    ] {
+        let r = ask(&[deb, bad]);
+        assert_eq!(r.decision, Decision::Rejected, "{bad}");
+        assert!(r.message.contains(why), "{bad}: {}", r.message);
+    }
+    assert!(!i.root.join("host-deps-ubuntu-24.04/evil.sh").exists());
+
+    // whole component
+    fs::remove_dir_all(i.root.join("host-deps-ubuntu-24.04")).unwrap();
+    let r = ask(&["host-deps-ubuntu-24.04/"]);
+    assert_eq!(r.decision, Decision::Done, "{}", r.message);
+    assert!(i.deb.exists());
+
+    // a tampered stored record is refused before anything is written
+    let rec_path = i
+        .root
+        .join("recovery/items/host-deps-ubuntu-24.04/0.1.0.json");
+    let mut rec: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&rec_path).unwrap()).unwrap();
+    let some_sha = rec["files"][0]["sha256"].clone();
+    rec["files"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"path": "extra.sh", "sha256": some_sha, "size": 1}));
+    fs::write(&rec_path, rec.to_string()).unwrap();
+    fs::remove_dir_all(i.root.join("host-deps-ubuntu-24.04")).unwrap();
+    let r = ask(&["host-deps-ubuntu-24.04/"]);
+    assert_eq!(r.decision, Decision::Rejected);
+    assert!(
+        r.message.contains("differs from its signed manifest"),
+        "{}",
+        r.message
+    );
+    assert!(!i.root.join("host-deps-ubuntu-24.04").exists());
+}

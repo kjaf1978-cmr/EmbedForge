@@ -70,9 +70,45 @@ fn absorb(st: &mut StartupStatus, o: &ef_integrity::StartupOutcome) {
     st.needs_elevated_repair |= o.needs_elevated_repair;
 }
 
+/// SS-05(d) / D16: files the app could not restore because the installation folder is
+/// read-only for this user are restored by the privileged helper. The helper writes only
+/// signed content of the installed version and checks that this caller is the signed app.
+pub fn escalate(root: &Path, o: &mut ef_integrity::StartupOutcome, socket: &Path) -> Option<String> {
+    if !o.needs_elevated_repair || o.unrecoverable.is_empty() {
+        return None;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let files = o.unrecoverable.clone();
+        let r = ef_helper::server::request(socket, 1, ef_helper::Request::RestoreFiles { files: files.clone() });
+        let _ = root;
+        match r {
+            Ok(resp) if resp.decision == ef_helper::Decision::Done => {
+                o.restored.extend(files);
+                o.unrecoverable.clear();
+                o.needs_elevated_repair = false;
+                Some(format!("restored through the privileged helper: {}", resp.message))
+            }
+            Ok(resp) => Some(format!("the privileged helper refused: {}", resp.message)),
+            Err(e) => Some(format!("the privileged helper is not reachable ({e})")),
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, socket);
+        Some("the privileged helper's Windows transport arrives in Increment 2; run embedforge-setup repair as administrator".into())
+    }
+}
+
+pub const HELPER_SOCKET: &str = "/run/embedforge/helper.sock";
+
 /// SS-08 at start-up: foreground pass (start-up tier, offline repair), then the deferred
 /// tier in the background. Runs on its own thread; the window opens meanwhile.
 pub fn startup_check(root: &Path, keys: &[String], shared: &Shared) {
+    startup_check_with(root, keys, shared, Path::new(HELPER_SOCKET))
+}
+
+pub fn startup_check_with(root: &Path, keys: &[String], shared: &Shared, socket: &Path) {
     let set = |f: &dyn Fn(&mut StartupStatus)| {
         if let Ok(mut s) = shared.lock() {
             f(&mut s)
@@ -94,10 +130,13 @@ pub fn startup_check(root: &Path, keys: &[String], shared: &Shared) {
     };
     let t0 = std::time::Instant::now();
     let at = ef_integrity::now_rfc3339();
-    let fg = match ef_integrity::startup_pass(root, &store, &keys, version, &at) {
+    let mut fg = match ef_integrity::startup_pass(root, &store, &keys, version, &at) {
         Ok(o) => o,
         Err(e) => return set(&|s| { s.phase = "error".into(); s.message = e.to_string(); }),
     };
+    if let Some(m) = escalate(root, &mut fg, socket) {
+        set(&|s| s.message = m.clone());
+    }
     let ms = t0.elapsed().as_millis();
     set(&|s| {
         absorb(s, &fg);
@@ -109,7 +148,12 @@ pub fn startup_check(root: &Path, keys: &[String], shared: &Shared) {
     let _ = ef_integrity::log_event(&ef_integrity::log_path(root), &serde_json::json!({"at": at, "event": "startup_check", "foreground_ms": ms,
         "components": fg.components, "hashed": fg.report.checked_full, "queued": fg.report.background_queue.len()}));
     match ef_integrity::background_pass(root, &store, &keys, version, &fg.report.background_queue, &at) {
-        Ok(bg) => set(&|s| { absorb(s, &bg); s.phase = "done".into(); }),
+        Ok(mut bg) => {
+            if let Some(m) = escalate(root, &mut bg, socket) {
+                set(&|s| s.message = m.clone());
+            }
+            set(&|s| { absorb(s, &bg); s.phase = "done".into(); })
+        }
         Err(e) => set(&|s| { s.phase = "error".into(); s.message = e.to_string(); }),
     }
 }
@@ -257,6 +301,17 @@ mod tests {
         assert_eq!(install_root_of(&bin.join("embedforge")), bin, "no active.json: not an installation");
         std::fs::write(d.path().join("recovery/active.json"), "{}").unwrap();
         assert_eq!(install_root_of(&bin.join("embedforge")), d.path());
+    }
+
+    #[test]
+    fn escalation_only_for_permission_problems_and_reports_an_absent_helper() {
+        let d = tempfile::tempdir().unwrap();
+        let mut o = ef_integrity::StartupOutcome { unrecoverable: vec!["x/y".into()], ..Default::default() };
+        assert_eq!(escalate(d.path(), &mut o, &d.path().join("none.sock")), None, "a missing recovery object is not escalated");
+        o.needs_elevated_repair = true;
+        let m = escalate(d.path(), &mut o, &d.path().join("none.sock")).unwrap();
+        assert!(m.contains("helper"), "{m}");
+        assert_eq!(o.unrecoverable, vec!["x/y".to_string()], "still reported");
     }
 
     #[test]

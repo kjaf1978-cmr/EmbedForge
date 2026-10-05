@@ -104,3 +104,14 @@
 - Conflict F1-01 (SS-08 repair vs SS-05 rights on system-wide installs) raised for D16, with
   options A/B/C; nothing chosen.
 - Next: D16, then WP 1.4. Your actions: release keys, self-hosted runners.
+- D16: you chose A. Prompt v3.8 via tools/apply_d16.py (5 replacements, section 33).
+  - Helper function (d) `restore_files`: only signed files of the active version; whole
+    components only after their stored signed manifest verifies.
+  - The app escalates to the helper when the install folder is read-only for the user.
+  - The state log and cache are best effort on read-only installs.
+  - Verified in the container: system-wide install, the app run as an unprivileged user,
+    the file was restored by the helper (screenshot). Core 58 tests, shell 5.
+  - VAPP-04 now corrupts the app binary instead of the helper: a running executable cannot
+    be written in place.
+  - Windows keeps the `embedforge-setup repair` path until the helper's Windows transport
+    arrives in Increment 2.
