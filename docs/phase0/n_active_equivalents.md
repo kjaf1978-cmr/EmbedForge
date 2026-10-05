@@ -64,3 +64,14 @@ Where the main IC stays unidentifiable, the module is handled by the D9 rule (A3
 - Replace **MPU-6050 with ICM-42688-P** in EM-03, as the prompt text anticipates. MPU-6050
   remains a *kit part* under EM-02A.
 - Keep BMP280 pending a manufacturer confirmation.
+
+## 5. Kit parts (from (d)), checked 5 October 2026
+
+| Kit part | Status (manufacturer page) | Proposed active equivalent | Basis |
+|---|---|---|---|
+| NXP MFRC522 (RC522 RFID module) | **End of Life**, "not recommended for new designs"; NXP names CLRC663 *plus* as successor (nxp.com/products/MFRC52202HN1) | **NXP PN5180** — Active, SPI host interface (nxp.com/products/PN5180); sold as hobby NFC modules | Same function (13.56 MHz reader) and bus (SPI). The register model differs, so it needs its own driver template. RFID stays a behavioural stub (card presence and UID) in emulation |
+| NXP PN532 (if offered as an alternative) | **NRND**; NXP recommends PN7160 (nxp.com/products/PN5321A3HN) | Not used | — |
+| NXP PCF8591 (ADC/DAC module) | **End of Life** / discontinued (nxp.com/products/PCF8591T) | **TI ADS1115 + Microchip MCP4725**: both active, both already in EM-03 | Same bus (I²C). Two modules replace one, recorded in DOC-09 |
+| NXP MPR121 (capacitive touch) | **Discontinued**, no successor named (nxp.com/products/MPR121) | **Open.** Microchip CAP1188 is the candidate, but its status could not be read (the Microchip page did not render and Octopart shows no status) | You or I confirm before the catalogue freezes. Until then MPR121 is a *kit part* only |
+| Bosch BMP180 (in GY-87) | Not on Bosch's site (from (d)) | **Bosch BME280** (active) | I²C; BMP280 still pending (section 1) |
+| GY-87 10-DOF module (MPU-6050 + QMC5883L + BMP180) | MPU-6050 obsolete; QMC5883L UNVERIFIED | ICM-42688-P + BME280. Magnetometer substitute open (QMC5883L or ST LIS3MDL, both UNVERIFIED) | Stays a *kit part* (EM-02A) |

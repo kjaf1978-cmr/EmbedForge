@@ -14,14 +14,14 @@ code).
 | (g) | Installer and installed size per OS | Not started | — |
 | (h) | PERF / VAPP-06 thresholds, DATA-04 part limit | Not started (host runs by you) | — |
 | (i) | UI wireframes UI-01..23 | Not started | — |
-| (j) | Draft VAPP-06 corpus | Not started | — |
+| (j) | Draft VAPP-06 corpus | **Draft delivered**: 45 prompts, 148 tagged questions; tools/check_corpus.py PASS (11/11 boards, 9/9 NL-02 types, 45/45 EM-03 parts) | phase0/j_vapp06_corpus.yaml |
 | (k) | Risk register | **v0.2.0 delivered** (36 risks, 10 high) | phase0/k_risk_register.md |
-| (l) | Block-template library plan | Not started | — |
+| (l) | Block-template library plan | **Draft delivered**: ~65 templates, package format, 12-check qualification suite, ACC coverage | phase0/l_template_plan.md |
 | (m) | RP2040/RP2350 emulator evaluation + Pi virtual-clock spike | **Draft delivered**; measured in the container, not Profile A | phase0/m_emulator_evaluation.md, spikes/m/ |
-| (n) | Active equivalents | Partial: EM-03 and ACC parts done; kit parts MFRC522, MPR121, PCF8591, BMP180 (GY-87) still need substitutes | phase0/n_active_equivalents.md |
+| (n) | Active equivalents | Kit parts added: MFRC522 → PN5180, PCF8591 → ADS1115 + MCP4725, BMP180 → BME280. Still open: MPR121 substitute, BMP280 status, GY-87 magnetometer | phase0/n_active_equivalents.md |
 | (o) | Catalogue data sources and terms | **Draft delivered** | phase0/o_catalogue_sources.md |
 
-Next: (n) kit-part substitutes → (l) template plan → (j) corpus → (c) models → (e), (f), (g), (h) → (i).
+Next: (c) model benchmark scripts → (e) code/symbol/footprint sets → (f) fabrication profile → (g) sizes → (h) PERF procedures → (i) wireframes.
 
 Actions for you:
 - Request CH341SER redistribution permission from WCH (F0-02).

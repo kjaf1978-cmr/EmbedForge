@@ -30,3 +30,17 @@
   - No RP2350 emulator passes (GPIO does not work), so Pico 2 stays HIL-pending.
   - The Pi virtual clock works: 60 s emulated in ≤ 0.03 s, deterministic.
 - Spike code in spikes/m/ (third-party clones git-ignored).
+
+## 2026-10-05 — session 2
+- GitHub still shows only phase0-s1 (33be9fb), so s2/s3 have not been pushed yet. The
+  phase0-s4 bundle is full and contains everything.
+- (n) kit-part substitutes, checked on nxp.com:
+  - MFRC522 is EOL → PN5180 (Active, SPI).
+  - PN532 is NRND, so not used.
+  - PCF8591 is EOL → ADS1115 + MCP4725.
+  - MPR121 is discontinued; its substitute is still open.
+  - BMP180 → BME280.
+- (l) block-template plan delivered.
+- (j) draft VAPP-06 corpus, 45 prompts. tools/check_corpus.py checks coverage and passes; the
+  ACC-02 prompt matches the prompt text verbatim (checked by script).
+- Q-01 still open.
