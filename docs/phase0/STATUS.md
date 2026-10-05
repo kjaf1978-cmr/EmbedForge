@@ -1,6 +1,6 @@
 # Phase 0 status
 
-Baseline: docs/requirements/EmbedForge_prompt_v3.5.md · Phase 0 is read-only (no application
+Baseline: docs/requirements/EmbedForge_prompt_v3.6.md · Phase 0 is read-only (no application
 code).
 
 | Item | Deliverable | Status | Evidence / file |
@@ -28,7 +28,6 @@ Actions for you:
 - Ask Raspberry Pi Ltd about Pi OS image redistribution (F0-03).
 - Answer Q-01.
 - Run the LLM benchmark (spikes/c/README.md) on the Profile A PC and the Pi 5, and send me the results archives.
-- Decide D14 (phase0/findings_for_D14.md).
 - Approve, or comment on, the Phase 0 gate report (phase0/phase0_gate_report.md).
 - Confirm or correct the frozen kit list in d_kit_inventory.md section 1.
 - If you own any of the three ELEGOO kits, send photos of their packing lists so the unverified contents can be confirmed.
@@ -40,7 +39,7 @@ Actions for you:
 | D9 | 2026-09-26 | Accept all v3 review resolutions → v3.1 (section 26). |
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
-| D14 | pending | F0-21..F0-24 (phase0/findings_for_D14.md). |
+| D14 | 2026-10-05 | Accept F0-21, F0-22, F0-24; F0-23 modified by you to 100 parts → v3.6 (section 31). |
 | D13 | 2026-10-05 | Accept F0-12..F0-20 → v3.5 (section 30). |
 | D12 | 2026-10-05 | Exclude discontinued kit parts with no successor (no active equivalent of the same function and interface) → v3.4 (section 29). Today: MPR121. You confirmed this reading on 2026-10-05 and declined the stricter "manufacturer-named successor" rule. |
 

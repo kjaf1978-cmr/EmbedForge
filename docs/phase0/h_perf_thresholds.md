@@ -1,6 +1,6 @@
 # Phase 0 (h) — PERF targets, VAPP-06 thresholds and the DATA-04 part limit
 
-- Baseline: prompt v3.5
+- Baseline: prompt v3.6
 - Version: 0.1.0 (5 October 2026)
 - Status: draft. Human review record (DOC-12): pending.
 
@@ -62,6 +62,20 @@ measured, so those measurements are comparable.
 - Nets are about 35, well within 120.
 - **Finding:** ACC-02 exceeds the 40-part limit as specified.
 
-**Proposed DATA-04 correction (D14):** at most **60 parts**, 120 nets, and an outline with
+**Decision D14 (5 October 2026):** you set the limit at **100 parts** (I had proposed 60);
+120 nets and the outline rule are unchanged.
+
+**Consequences of 100 parts:**
+- **Nets:** the ACC-02 ratio (about 0.8 nets per part) gives about 80 nets at 100 parts,
+  within the 120-net limit.
+- **PERF targets:** they apply up to the DATA-04 limits, so PERF-05 (many component models),
+  PERF-06 (autoroute) and PERF-10 (highlight) must hold at 100 parts, not only for the ACC
+  projects. They stay plausible but with less margin.
+- **Stress project:** a 100-part reference project (SP-100, 2-layer, custom outline
+  ≤ 10 000 mm²) will be defined in Increment 6 and measured alongside the ACC projects.
+- **Board size:** 100 through-hole parts will not fit on an Uno shield. DATA-04's size warning
+  and the layout DRC will report that, which is the intended behaviour.
+
+Original proposal, for the record: at most **60 parts**, 120 nets, and an outline with
 longest side ≤ 110 mm and area ≤ 10 000 mm². The PERF-06 and PERF-10 assessments above
 still hold at 60 parts.

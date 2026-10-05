@@ -1,6 +1,6 @@
 # Phase 0 gate report (draft for your approval)
 
-- Baseline: prompt v3.5 (D13 applied; D14 pending)
+- Baseline: prompt v3.6 (D14 applied)
 - Date: 5 October 2026
 - Repository tag: phase0-s7
 - Human review record (DOC-12): pending for every Phase 0 document
@@ -16,8 +16,8 @@
 | (e) Code / symbol / footprint / datasheet sets | Draft | Licences read from repositories | Review |
 | (f) Default fabrication profile | Draft: EF-PROTO-STD v1.0.0 | 5 fabs' published capabilities | Review |
 | (g) Installer sizes | Estimates | Published sizes + labelled estimates | Clean-image measurement in CI |
-| (h) PERF / VAPP-06 / DATA-04 | Assessed; measurement methods fixed | Evidence from (c), (g), (m) | D14; measurements at each increment |
-| (i) UI wireframes | Draft, 23/23 UI IDs | Rendered at 1920, 1366 and 390 px | Review; D14 F0-24 |
+| (h) PERF / VAPP-06 / DATA-04 | Assessed; measurement methods fixed; D14 applied | Evidence from (c), (g), (m) | Measurements at each increment |
+| (i) UI wireframes | Draft, 23/23 UI IDs | Rendered at 1920, 1366 and 390 px | Review |
 | (j) Draft VAPP-06 corpus | 45 prompts | tools/check_corpus.py PASS | Review the expected questions |
 | (k) Risk register | v0.2.0 | Score arithmetic checked | Review |
 | (l) Block-template plan | Draft, about 65 templates | — | Review |
@@ -27,10 +27,9 @@
 
 ## 2. Decisions
 
-- **Taken:** D9–D13 (prompt v3.1 → v3.5).
-- **Pending:**
-  - D14 (F0-21..F0-24).
-  - Q-01: licence versus non-commercial use.
+- **Taken:** D9–D14 (prompt v3.1 → v3.6). DATA-04 is now 100 parts, which adds a 100-part
+  stress project to the PERF measurements (R-37).
+- **Pending:** Q-01, licence versus non-commercial use.
 
 ## 3. Open external actions
 
@@ -42,7 +41,6 @@
 **Approve Phase 0 with three entry conditions:**
 1. **Before Increment 1:**
    - Q-01 answered.
-   - D14 decided.
    - The kit list confirmed.
    - GitHub repository access for the builder, or continued bundle pushes.
    - Self-hosted runners registered on the Profile A PC and a Pi 5.

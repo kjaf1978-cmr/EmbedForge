@@ -56,3 +56,4 @@
 - D13 accepted → v3.5 via tools/apply_d13.py (14 replacements, section 30).
 - (h) PERF assessment and DATA-04 hand BOM (43 parts > 40). (i) wireframes HTML (23/23).
 - D14 findings F0-21..F0-24 raised. Phase 0 gate report drafted.
+- D14 accepted with DATA-04 set by you to 100 parts → v3.6 via tools/apply_d14.py; R-37 added (PERF at 100 parts, SP-100 stress project).

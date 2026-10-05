@@ -85,6 +85,7 @@ the runners are also below Profile A's minimum RAM.
 | R-34 | Arduino's arm64 avr-gcc may be 32-bit ARM (toolchain-avr#73) → Profile B cannot compile AVR, or compiles with a different compiler | SS-02, INV-07 | 3 | 4 | 12 M | Test on Pi 5; native aarch64 build of the identical version (F0-08) | (b) | B |
 | R-35 | Freerouting 2.4.1 needs Java 25; Temurin 25 arm64 unconfirmed | SS-02 | 2 | 3 | 6 L | Bundle Temurin 25 (F0-07); native autorouter as fallback | (b) | B |
 | R-36 | Raspberry Pi OS image redistribution terms unpublished; GPL source duty for the images | TB-02, SS-01 | 3 | 3 | 9 M | Lite images only, source pack, user-imported image with hash check until Raspberry Pi Ltd confirms (F0-03) | (a), your enquiry | J |
+| R-37 | DATA-04 raised to 100 parts (D14) → PERF-05/06/10 must hold for larger projects than the ACC set | DATA-04, PERF-05/06/10 | 3 | 3 | 9 M | SP-100 stress project measured from Increment 6; emulator model updates batched | Inc 5–7 | B |
 
 ## 4. Summary
 
