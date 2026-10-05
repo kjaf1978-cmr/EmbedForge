@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Main window: core events only. EmbedForge's own commands are always allowed; no shell, file-system or HTTP plugin is enabled (INV-01, SEC-03).",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

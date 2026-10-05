@@ -1,1 +1,7 @@
 core/target/
+app/ui/node_modules/
+app/ui/dist/
+app/ui/test-results/
+app/ui/playwright-report/
+app/src-tauri/target/
+app/src-tauri/gen/

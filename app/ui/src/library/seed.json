@@ -1,0 +1,1617 @@
+{
+ "generated_from": [
+  "spikes/c/boards.json",
+  "docs/phase0/d_kit_inventory.csv",
+  "docs/phase0/e_curated_sets.md"
+ ],
+ "boards": [
+  {
+   "id": "uno",
+   "name": "Arduino Uno R3 (ELEGOO UNO R3)",
+   "facets": {
+    "logic": "5.0 V",
+    "MCU": "ATmega328P",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 6 channels A0-A5, 10-bit, 0-5 V; DAC: none; PWM: 6 pins (D3, D5, D6, D9, D10, D11); 1 I2C, 1 SPI, 1 UART (shared with USB); pin current: 20 mA recommended, 40 mA absolute per pin"
+  },
+  {
+   "id": "nano",
+   "name": "Arduino Nano (ATmega328P)",
+   "facets": {
+    "logic": "5.0 V",
+    "MCU": "ATmega328P",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 8 channels A0-A7 (A6/A7 analog only), 10-bit, 0-5 V; DAC: none; PWM: 6 pins (D3, D5, D6, D9, D10, D11); 1 I2C, 1 SPI, 1 UART (shared with USB); pin current: 20 mA recommended, 40 mA absolute per pin"
+  },
+  {
+   "id": "mega2560",
+   "name": "Arduino Mega 2560 R3 (ELEGOO MEGA 2560 R3)",
+   "facets": {
+    "logic": "5.0 V",
+    "MCU": "ATmega2560",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 16 channels, 10-bit, 0-5 V; DAC: none; PWM: 15 pins; 1 I2C, 1 SPI, 4 UART; pin current: 20 mA recommended, 40 mA absolute per pin"
+  },
+  {
+   "id": "pico",
+   "name": "Raspberry Pi Pico",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "RP2040",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 3 user channels (GPIO26-28), 12-bit, 0-3.3 V; DAC: none; PWM: 16 channels, any GPIO; 2 I2C, 2 SPI, 2 UART, PIO; pin current: drive strength 2-12 mA per pin, 50 mA total"
+  },
+  {
+   "id": "picow",
+   "name": "Raspberry Pi Pico W",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "RP2040 + CYW43439 Wi-Fi",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 3 user channels (GPIO26-28), 12-bit, 0-3.3 V; DAC: none; PWM: 16 channels, any GPIO; 2 I2C, 2 SPI, 2 UART, PIO; Wi-Fi not emulated; pin current: drive strength 2-12 mA per pin, 50 mA total"
+  },
+  {
+   "id": "pico2",
+   "name": "Raspberry Pi Pico 2",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "RP2350",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 3 user channels (GPIO26-28), 12-bit, 0-3.3 V; DAC: none; PWM: 24 channels, any GPIO; 2 I2C, 2 SPI, 2 UART, PIO; no qualified emulator (HIL-pending); pin current: drive strength 2-12 mA per pin"
+  },
+  {
+   "id": "pico2w",
+   "name": "Raspberry Pi Pico 2 W",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "RP2350 + CYW43439 Wi-Fi",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: 3 user channels (GPIO26-28), 12-bit, 0-3.3 V; DAC: none; PWM: 24 channels, any GPIO; 2 I2C, 2 SPI, 2 UART, PIO; Wi-Fi not emulated; HIL-pending; pin current: drive strength 2-12 mA per pin"
+  },
+  {
+   "id": "pi5",
+   "name": "Raspberry Pi 5",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "BCM2712 + RP1",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: none; DAC: none; PWM: hardware PWM on GPIO12/13/18/19, software PWM elsewhere; I2C, SPI, UART on header; pin current: 16 mA per pin, keep total low"
+  },
+  {
+   "id": "pi4b",
+   "name": "Raspberry Pi 4 Model B",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "BCM2711",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: none; DAC: none; PWM: 2 hardware PWM channels (GPIO12/13/18/19), software PWM elsewhere; I2C, SPI, UART on header; pin current: 16 mA per pin, 50 mA total"
+  },
+  {
+   "id": "pi3bplus",
+   "name": "Raspberry Pi 3 Model B+",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "BCM2837B0",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: none; DAC: none; PWM: 2 hardware PWM channels, software PWM elsewhere; I2C, SPI, UART on header; pin current: 16 mA per pin, 50 mA total"
+  },
+  {
+   "id": "pizero2w",
+   "name": "Raspberry Pi Zero 2 W",
+   "facets": {
+    "logic": "3.3 V",
+    "MCU": "RP3A0",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ADC: none; DAC: none; PWM: 2 hardware PWM channels, software PWM elsewhere; I2C, SPI, UART on header; pin current: 16 mA per pin, 50 mA total"
+  }
+ ],
+ "models": [
+  {
+   "id": "gpio-extension-board-t-type",
+   "name": "GPIO extension board (T-type)",
+   "facets": {
+    "interface": "Wiring",
+    "emulation": "Full model",
+    "in EM-03": "n/a (accessory)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: None (passive); kits: SR; Raspberry Pi board itself not included in kit"
+  },
+  {
+   "id": "elegoo-expansion-board",
+   "name": "ELEGOO expansion board",
+   "facets": {
+    "interface": "UNVERIFIED",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: UNVERIFIED; kits: E1, E8; Named on product page only; type UNVERIFIED"
+  },
+  {
+   "id": "breadboard-power-supply-module",
+   "name": "Breadboard power supply module",
+   "facets": {
+    "interface": "Power",
+    "emulation": "Full model",
+    "in EM-03": "Yes (voltage regulator)",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Regulator IC UNVERIFIED; kits: E3, SE, SEU, SR, UM; Regulator IC to be identified from sample"
+  },
+  {
+   "id": "li-po-charger-module",
+   "name": "Li-po charger module",
+   "facets": {
+    "interface": "Power",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Charger IC UNVERIFIED; kits: SK; Charge state as user-set value"
+  },
+  {
+   "id": "9-v-battery-with-dc-plug",
+   "name": "9 V battery with DC plug",
+   "facets": {
+    "interface": "Power",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E3; Ideal source with user-set voltage"
+  },
+  {
+   "id": "resistors-assorted",
+   "name": "Resistors (assorted)",
+   "facets": {
+    "interface": "Passive",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E1, E8, SE, S3, SR, SEU, SK, SU; Values per kit UNVERIFIED"
+  },
+  {
+   "id": "capacitors-assorted",
+   "name": "Capacitors (assorted)",
+   "facets": {
+    "interface": "Passive",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, S3, SR, SEU, SK, SU; Values UNVERIFIED"
+  },
+  {
+   "id": "diodes-rectifier",
+   "name": "Diodes (rectifier)",
+   "facets": {
+    "interface": "Passive",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Type UNVERIFIED; kits: E1, E8, SE, SR, SEU, SK; "
+  },
+  {
+   "id": "transistors-bjt",
+   "name": "Transistors (BJT)",
+   "facets": {
+    "interface": "Analogue/switch",
+    "emulation": "Full model",
+    "in EM-03": "Yes (BJT)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Type UNVERIFIED; kits: SE, SR, SEU, SK; NPN/PNP types UNVERIFIED"
+  },
+  {
+   "id": "led-single-colour",
+   "name": "LED (single colour)",
+   "facets": {
+    "interface": "Digital/PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E3, E1, E8, SE, S3, SR, SEU, SK; "
+  },
+  {
+   "id": "rgb-led-discrete",
+   "name": "RGB LED (discrete)",
+   "facets": {
+    "interface": "PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, S3, SR, SEU, SK; Common anode/cathode UNVERIFIED"
+  },
+  {
+   "id": "rgb-led-module",
+   "name": "RGB LED module",
+   "facets": {
+    "interface": "PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes (RGB LED)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SU, UM; "
+  },
+  {
+   "id": "traffic-light-module",
+   "name": "Traffic light module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes (LEDs)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: 3 LEDs; kits: SU, UM; "
+  },
+  {
+   "id": "led-bar-graph-10-segment",
+   "name": "LED bar graph (10-segment)",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes (LEDs)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SR, SEU, SK; Package of LEDs"
+  },
+  {
+   "id": "potentiometer",
+   "name": "Potentiometer",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E1, E8, SE, S3, SR, SEU, SK; "
+  },
+  {
+   "id": "potentiometer-module",
+   "name": "Potentiometer module",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SU, UM; "
+  },
+  {
+   "id": "push-button",
+   "name": "Push-button",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E1, E8, SE, S3, SR, SEU, SK; "
+  },
+  {
+   "id": "button-module",
+   "name": "Button module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SU, UM; "
+  },
+  {
+   "id": "micro-switch",
+   "name": "Micro switch",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes (switch)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SR, SEU, SK; "
+  },
+  {
+   "id": "slide-switch",
+   "name": "Slide switch",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes (switch)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SR, SEU, SK; "
+  },
+  {
+   "id": "tilt-switch-ball",
+   "name": "Tilt switch (ball)",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes (switch)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, SR, SEU, SK; Contact state driven by virtual tilt"
+  },
+  {
+   "id": "reed-switch-module",
+   "name": "Reed switch / module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes (switch)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: S3, SR, SEU, SK; Raphael supplies module form"
+  },
+  {
+   "id": "photoresistor-ldr",
+   "name": "Photoresistor (LDR)",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Full model",
+    "in EM-03": "Yes (LDR)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: CdS cell; kits: SE, S3, SR, SEU, SK; CdS content: RoHS status to check"
+  },
+  {
+   "id": "photoresistor-module",
+   "name": "Photoresistor module",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Full model",
+    "in EM-03": "Yes (LDR)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: CdS cell; kits: SU, UM; "
+  },
+  {
+   "id": "thermistor-ntc",
+   "name": "Thermistor (NTC)",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, S3, SR, SEU, SK; Beta model"
+  },
+  {
+   "id": "buzzer-active-passive",
+   "name": "Buzzer (active/passive)",
+   "facets": {
+    "interface": "Digital/PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, S3, SR, SEU, SK; Active vs passive per kit UNVERIFIED"
+  },
+  {
+   "id": "passive-buzzer-module",
+   "name": "Passive buzzer module",
+   "facets": {
+    "interface": "PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SU, UM; "
+  },
+  {
+   "id": "74hc595-shift-register",
+   "name": "74HC595 shift register",
+   "facets": {
+    "interface": "Serial (SPI-like)",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "Not checked (multi-source)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: 74HC595 (maker UNVERIFIED); kits: E3, E1, E8, SE, S3, SR, SEU, SK; "
+  },
+  {
+   "id": "l293d-motor-driver-ic",
+   "name": "L293D motor driver IC",
+   "facets": {
+    "interface": "Digital/PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "Active (TI, ST per item n)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: L293D; kits: E1, E8, SR, SEU; "
+  },
+  {
+   "id": "uln2003-stepper-driver-board",
+   "name": "ULN2003 stepper driver board",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "Active (TI, ST per item n)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: ULN2003A; kits: E3; Paired with stepper motor"
+  },
+  {
+   "id": "ta6586-motor-driver-ic",
+   "name": "TA6586 motor driver IC",
+   "facets": {
+    "interface": "Digital/PWM",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Fuman TA6586; kits: SE, SK; H-bridge truth table"
+  },
+  {
+   "id": "l9110-motor-driver-module",
+   "name": "L9110 motor driver module",
+   "facets": {
+    "interface": "Digital/PWM",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: L9110 (maker UNVERIFIED); kits: S3, SU, UM; Could be substituted by TB6612FNG (EM-03)"
+  },
+  {
+   "id": "adc0834-adc-ic",
+   "name": "ADC0834 ADC IC",
+   "facets": {
+    "interface": "Serial (3-wire)",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "Active (TI ADC0834-N; newer ADS7958 offered)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: TI ADC0834; kits: SR; "
+  },
+  {
+   "id": "mcp3008-adc-ic",
+   "name": "MCP3008 ADC IC",
+   "facets": {
+    "interface": "SPI",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Microchip MCP3008; kits: SR; "
+  },
+  {
+   "id": "pcf8591-adc-dac-module",
+   "name": "PCF8591 ADC/DAC module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "EOL (NXP) → EM-02A substitute needed",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: NXP PCF8591; kits: UM; Candidate substitute: ADS1115 + MCP4725 (both EM-03)"
+  },
+  {
+   "id": "mpr121-capacitive-touch-module",
+   "name": "MPR121 capacitive touch module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Excluded (D12)",
+    "in EM-03": "No",
+    "lifecycle": "Discontinued (NXP), no successor → excluded",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: NXP MPR121; kits: SE, SEU, SK; Electrode touches user-driven"
+  },
+  {
+   "id": "7-segment-display-1-digit",
+   "name": "7-segment display (1 digit)",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, S3, SR, SEU, SK; "
+  },
+  {
+   "id": "4-digit-7-segment-display",
+   "name": "4-digit 7-segment display",
+   "facets": {
+    "interface": "Digital (multiplexed)",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E3, SR, SEU, SK; "
+  },
+  {
+   "id": "8-8-led-matrix-bare",
+   "name": "8×8 LED matrix (bare)",
+   "facets": {
+    "interface": "Digital (multiplexed)",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: 788BS (Euler); Kepler type UNVERIFIED; kits: SEU, SK; "
+  },
+  {
+   "id": "max7219-8-8-led-matrix-module",
+   "name": "MAX7219 8×8 LED matrix module",
+   "facets": {
+    "interface": "SPI-like",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "Active (ADI 'PRODUCTION')",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: ADI MAX7219; kits: SR; "
+  },
+  {
+   "id": "lcd1602-parallel",
+   "name": "LCD1602 (parallel)",
+   "facets": {
+    "interface": "Parallel 4/8-bit",
+    "emulation": "Full model",
+    "in EM-03": "Partly (EM-03 has I²C form)",
+    "lifecycle": "HD44780 original discontinued → treat as generic module",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: HD44780-compatible (controller UNVERIFIED); kits: E3, E1, E8; I²C backpack not stated on ELEGOO pages"
+  },
+  {
+   "id": "i-c-lcd1602",
+   "name": "I²C LCD1602",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "PCF8574: NXP EOL, TI active; backpack maker UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: HD44780-compatible + PCF8574-type backpack; kits: SE, S3, SU, UM, SR, SEU, SK; "
+  },
+  {
+   "id": "oled-display-module",
+   "name": "OLED display module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: SSD1306 (UM); SE/SU controller UNVERIFIED; kits: SE, SU, UM; "
+  },
+  {
+   "id": "ws2812-rgb-8-led-strip",
+   "name": "WS2812 RGB 8-LED strip",
+   "facets": {
+    "interface": "Single-wire 800 kHz",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Worldsemi WS2812; kits: SE, SEU, SK; "
+  },
+  {
+   "id": "audio-module-and-speaker",
+   "name": "Audio module and speaker",
+   "facets": {
+    "interface": "Analogue audio",
+    "emulation": "Not emulated",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: HXJ8002 amplifier; kits: SE, SR; Audio playback out of emulation scope"
+  },
+  {
+   "id": "dc-motor-small",
+   "name": "DC motor (small)",
+   "facets": {
+    "interface": "Power",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: E1, E8, SE, SR, SEU, SK; "
+  },
+  {
+   "id": "tt-gear-motor",
+   "name": "TT gear motor",
+   "facets": {
+    "interface": "Power",
+    "emulation": "Full model",
+    "in EM-03": "Yes (DC motor)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: S3, SU, UM; "
+  },
+  {
+   "id": "servo-sg90-class",
+   "name": "Servo (SG90-class)",
+   "facets": {
+    "interface": "PWM",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: SG90 named in SU/UM; others UNVERIFIED; kits: SE, S3, SU, UM, SR, SEU, SK; "
+  },
+  {
+   "id": "stepper-motor-28byj-48-class",
+   "name": "Stepper motor (28BYJ-48-class)",
+   "facets": {
+    "interface": "Coils (4-phase)",
+    "emulation": "Full model",
+    "in EM-03": "Yes (with ULN2003)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Model UNVERIFIED; kits: E3, SE; SE driver UNVERIFIED"
+  },
+  {
+   "id": "dc-water-pump-centrifugal",
+   "name": "DC water pump (centrifugal)",
+   "facets": {
+    "interface": "Power",
+    "emulation": "Behavioural stub",
+    "in EM-03": "Yes (DC motor)",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, S3, SU, UM, SEU, SK; Electrical side as DC motor; flow not modelled"
+  },
+  {
+   "id": "relay-5-v-relay-module",
+   "name": "Relay / 5 V relay module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Relay part UNVERIFIED; kits: SE, SR, SEU, SK, SU, UM; SU/UM: module form"
+  },
+  {
+   "id": "joystick-module",
+   "name": "Joystick module",
+   "facets": {
+    "interface": "Analogue + digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: 2 pots + switch; kits: SE, S3, SU, UM, SR, SEU, SK; "
+  },
+  {
+   "id": "4-4-membrane-keypad",
+   "name": "4×4 membrane keypad",
+   "facets": {
+    "interface": "Matrix scan",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SE, SR, SEU, SK; Size stated only for Kepler; others UNVERIFIED"
+  },
+  {
+   "id": "ir-receiver",
+   "name": "IR receiver",
+   "facets": {
+    "interface": "IR NEC (demodulated)",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Part UNVERIFIED; kits: SE, S3, SEU, SK; Remote control not listed on pages"
+  },
+  {
+   "id": "rotary-encoder-module",
+   "name": "Rotary encoder module",
+   "facets": {
+    "interface": "Quadrature digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SR, UM; "
+  },
+  {
+   "id": "touch-sensor-module",
+   "name": "Touch sensor module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: IC UNVERIFIED; kits: SR, SU, UM; Raphael: 'Touch Switch Module'"
+  },
+  {
+   "id": "hc-sr04-ultrasonic-module",
+   "name": "HC-SR04 ultrasonic module",
+   "facets": {
+    "interface": "Trigger/echo pulse",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Unmarked / varies; kits: SE, S3, SU, UM, SR, SEU, SK; Distance user-driven"
+  },
+  {
+   "id": "hc-sr501-pir-module",
+   "name": "HC-SR501 PIR module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: BISS0001-type (UNVERIFIED); kits: SE, SU, UM, SR, SEU, SK; "
+  },
+  {
+   "id": "dht11-humidity-temperature",
+   "name": "DHT11 humidity/temperature",
+   "facets": {
+    "interface": "Proprietary single-wire",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Aosong DHT11; kits: SE, S3, SU, UM, SEU, SK, SR; Raphael sensor chip UNVERIFIED (page not fetched)"
+  },
+  {
+   "id": "mpu-6050-module-gy-521",
+   "name": "MPU-6050 module (GY-521)",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "No (replaced by ICM-42688-P)",
+    "lifecycle": "Obsolete (TDK) → EM-02A substitute ICM-42688-P",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: TDK MPU-6050; kits: E8, SU, UM, SR, SEU, SK; ELEGOO E8 names GY-521"
+  },
+  {
+   "id": "gy-87-10-dof-imu",
+   "name": "GY-87 10-DOF IMU",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "MPU-6050 obsolete; BMP180 not on Bosch site → EM-02A substitute needed",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: MPU-6050 + QST QMC5883L + Bosch BMP180; kits: SE; Listed alongside 10-axis IMU; kit revision UNVERIFIED"
+  },
+  {
+   "id": "10-axis-imu-module",
+   "name": "10-axis IMU module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: SH3001 + QST QMC6310 + Goertek SPL06-001; kits: SE; Possibly newer kit revision"
+  },
+  {
+   "id": "mfrc522-rfid-module",
+   "name": "MFRC522 RFID module",
+   "facets": {
+    "interface": "SPI + RF 13.56 MHz",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "EOL (NXP; successor CLRC663 plus) → EM-02A substitute needed",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: NXP MFRC522 (ELEGOO chip UNVERIFIED); kits: SE, SR, SEU, SK, E1, E8; SPI register model with virtual cards; RF not emulated"
+  },
+  {
+   "id": "water-level-sensor-module",
+   "name": "Water level sensor module",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: —; kits: SEU, SK, UM; "
+  },
+  {
+   "id": "soil-moisture-module",
+   "name": "Soil moisture module",
+   "facets": {
+    "interface": "Analogue",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Capacitive (SU, UM); SE/S3 type UNVERIFIED; kits: SE, S3, SU, UM; "
+  },
+  {
+   "id": "ir-obstacle-avoidance-module",
+   "name": "IR obstacle avoidance module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: IR pair + comparator (UNVERIFIED); kits: S3, SU, UM, SR; "
+  },
+  {
+   "id": "line-tracking-module",
+   "name": "Line tracking module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: IR reflective sensor (UNVERIFIED); kits: S3; "
+  },
+  {
+   "id": "ir-speed-sensor-module-slotted",
+   "name": "IR speed sensor module (slotted)",
+   "facets": {
+    "interface": "Digital pulses",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Photo-interrupter (UNVERIFIED); kits: SU, UM, SR; Raphael: 'Speed Sensor Module'"
+  },
+  {
+   "id": "mq-2-gas-smoke-module",
+   "name": "MQ-2 gas/smoke module",
+   "facets": {
+    "interface": "Analogue + digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Winsen/Hanwei MQ-2 (UNVERIFIED); kits: SU, UM; Heater current relevant to power budget"
+  },
+  {
+   "id": "flame-sensor-module",
+   "name": "Flame sensor module",
+   "facets": {
+    "interface": "Analogue + digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: IR photodiode + comparator; kits: SU, UM; "
+  },
+  {
+   "id": "sw-420-vibration-module",
+   "name": "SW-420 vibration module",
+   "facets": {
+    "interface": "Digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: SW-420 switch + comparator; kits: SU, UM; "
+  },
+  {
+   "id": "raindrop-detection-module",
+   "name": "Raindrop detection module",
+   "facets": {
+    "interface": "Analogue + digital",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "—",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Resistive pad + comparator; kits: SU, UM; "
+  },
+  {
+   "id": "hall-sensor-module",
+   "name": "Hall sensor module",
+   "facets": {
+    "interface": "Digital/analogue",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: IC UNVERIFIED; kits: UM; "
+  },
+  {
+   "id": "ds18b20-temperature-module",
+   "name": "DS18B20 temperature module",
+   "facets": {
+    "interface": "1-Wire",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "Active (ADI, per item n)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: ADI DS18B20; kits: UM; "
+  },
+  {
+   "id": "bmp280-module",
+   "name": "BMP280 module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Full model",
+    "in EM-03": "Yes",
+    "lifecycle": "UNVERIFIED (see item n)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Bosch BMP280; kits: SU, UM; "
+  },
+  {
+   "id": "max30102-pulse-oximeter-module",
+   "name": "MAX30102 pulse oximeter module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "Active (ADI 'PRODUCTION')",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: ADI MAX30102; kits: SU, UM; Synthetic PPG waveform"
+  },
+  {
+   "id": "ds1302-rtc-module",
+   "name": "DS1302 RTC module",
+   "facets": {
+    "interface": "3-wire serial",
+    "emulation": "Full model",
+    "in EM-03": "No",
+    "lifecycle": "Active (ADI 'PRODUCTION')",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: ADI DS1302; kits: SU, UM; "
+  },
+  {
+   "id": "vl53l0x-tof-module",
+   "name": "VL53L0X ToF module",
+   "facets": {
+    "interface": "I²C",
+    "emulation": "Behavioural stub",
+    "in EM-03": "No",
+    "lifecycle": "Active (ST; longevity to Dec 2029)",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: ST VL53L0X; kits: SU, UM; Register model coarse; distance user-driven"
+  },
+  {
+   "id": "esp8266-wi-fi-module",
+   "name": "ESP8266 Wi-Fi module",
+   "facets": {
+    "interface": "UART (AT)",
+    "emulation": "Not emulated",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Espressif ESP8266EX (module type UNVERIFIED); kits: S3, SU, UM, SEU; Radio"
+  },
+  {
+   "id": "jdy-31-bluetooth-module",
+   "name": "JDY-31 Bluetooth module",
+   "facets": {
+    "interface": "UART",
+    "emulation": "Not emulated",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: IC UNVERIFIED; kits: SU, UM; Radio"
+  },
+  {
+   "id": "camera-module-5-mp",
+   "name": "Camera module (5 MP)",
+   "facets": {
+    "interface": "CSI",
+    "emulation": "Not emulated",
+    "in EM-03": "No",
+    "lifecycle": "UNVERIFIED",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "main IC: Sensor UNVERIFIED; kits: SR; Camera"
+  }
+ ],
+ "code_libraries": [
+  {
+   "id": "A1",
+   "name": "DHT sensor library (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "github.com/adafruit/DHT-sensor-library; 1.4.7 · 2026-02-26; arch *; needs A2"
+  },
+  {
+   "id": "A2",
+   "name": "Adafruit Unified Sensor (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "Apache-2.0",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "adafruit/Adafruit_Sensor; 1.1.15 · 2025-01-06; header only"
+  },
+  {
+   "id": "A3",
+   "name": "Adafruit BusIO (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "adafruit/Adafruit_BusIO; 1.17.4 · 2025-09-22; dependency of A5, A6, A8"
+  },
+  {
+   "id": "A4",
+   "name": "DallasTemperature (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "milesburton/Arduino-Temperature-Control-Library; 4.0.6 · 2026-02-13; needs A4b"
+  },
+  {
+   "id": "A4b",
+   "name": "OneWire (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT-style + Dallas notice",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "PaulStoffregen/OneWire; 2.3.8 · 2024-02-08; arch *"
+  },
+  {
+   "id": "A5",
+   "name": "Adafruit BME280 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "BSD-3-Clause",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "adafruit/Adafruit_BME280_Library; 2.3.0 · 2025-04-30; needs A2, A3"
+  },
+  {
+   "id": "A6",
+   "name": "Adafruit BMP280 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "adafruit/Adafruit_BMP280_Library; 3.0.0 · 2026-01-13; needs A2, A3"
+  },
+  {
+   "id": "A7",
+   "name": "ICM42688 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "finani/ICM42688; 1.1.0 · 2023-01-11 (last commit 2024-07-01); low maintenance; own driver is the fallback"
+  },
+  {
+   "id": "A8",
+   "name": "RTClib (C++) — DS1307, DS3231",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "adafruit/RTClib; 2.1.4 · 2024-04-09; needs A3"
+  },
+  {
+   "id": "A9",
+   "name": "ADS1X15 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "RobTillaart/ADS1X15; 0.6.2 · 2026-04-20; no dependencies (smaller on AVR than Adafruit + BusIO)"
+  },
+  {
+   "id": "A10",
+   "name": "MCP4725 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "RobTillaart/MCP4725; 0.4.3 · 2026-01-16; no dependencies"
+  },
+  {
+   "id": "A11",
+   "name": "PCF8574 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "RobTillaart/PCF8574; 0.4.5 · 2026-05-08; no dependencies"
+  },
+  {
+   "id": "A12",
+   "name": "MCP23017_RT (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "RobTillaart/MCP23017_RT; 0.9.3 · 2026-04-18; no dependencies"
+  },
+  {
+   "id": "A13",
+   "name": "LiquidCrystal_PCF8574 (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "BSD-3-Clause",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "mathertel/LiquidCrystal_PCF8574; 2.3.0 · 2026-02-22; arch *"
+  },
+  {
+   "id": "A14",
+   "name": "U8g2 (C++) — SSD1306",
+   "facets": {
+    "platform": "C++",
+    "licence": "BSD-2-Clause for code; fonts per group",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "olikraus/u8g2; 2.37.1 · 2026-05-26; On AVR use page-buffer or U8x8 mode: Adafruit_SSD1306 allocates WIDTH×HEIGHT/8 bytes (1 KB at 128×64, half the Uno's RAM). Ship only X11-group fonts (marked public domain on the u8g2 wiki)"
+  },
+  {
+   "id": "A15",
+   "name": "IRremote (C++)",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "Arduino-IRremote/Arduino-IRremote; 4.7.1 · 2026-04-08; rp2040 listed in architectures"
+  },
+  {
+   "id": "A16",
+   "name": "Servo (C++, AVR)",
+   "facets": {
+    "platform": "C++",
+    "licence": "LGPL-2.1",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "arduino-libraries/Servo; 1.3.0 · 2025-11-06; arch list excludes Arduino-Pico; Pico uses the core's Servo (LGPL-2.1-or-later, Arduino-Pico 6.2.0 · 2026-09-30)"
+  },
+  {
+   "id": "A17",
+   "name": "Stepper (C++) — ULN2003",
+   "facets": {
+    "platform": "C++",
+    "licence": "LGPL-2.1",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "arduino-libraries/Stepper; 1.1.3 · 2016-03-08 (commit 2026-07-01); stable"
+  },
+  {
+   "id": "A18",
+   "name": "StepperDriver (C++) — A4988, DRV8825",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "laurb9/StepperDriver; 1.6.0 · 2026-07-17; replaces AccelStepper"
+  },
+  {
+   "id": "A19",
+   "name": "LedControl (C++) — MAX7219",
+   "facets": {
+    "platform": "C++",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "wayoda/LedControl; 1.0.6 · 2015-04-03; stale; includes avr/pgmspace.h (Arduino-Pico ships a compatible header). Alternative: MD_MAX72XX 3.5.1, LGPL-2.1"
+  },
+  {
+   "id": "M1",
+   "name": "dht, onewire, ds18x20, neopixel (MicroPython, frozen in the rp2 port)",
+   "facets": {
+    "platform": "MicroPython",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "micropython/micropython-lib; v1.29.0 · 2026-08-17; built in, no install"
+  },
+  {
+   "id": "M2",
+   "name": "ssd1306 (MicroPython)",
+   "facets": {
+    "platform": "MicroPython",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "micropython-lib micropython/drivers/display/ssd1306; 0.1.0 (lib v1.29.0); uses framebuf"
+  },
+  {
+   "id": "M3",
+   "name": "python_lcd: lcd_api + machine_i2c_lcd (MicroPython)",
+   "facets": {
+    "platform": "MicroPython",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "dhylands/python_lcd; no tags · last commit 2023-02-16; stale but small"
+  },
+  {
+   "id": "M4",
+   "name": "BME280 (float), also BMP280 (MicroPython)",
+   "facets": {
+    "platform": "MicroPython",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "robert-hh/BME280; no tags · 2025-06-15; —"
+  },
+  {
+   "id": "M5",
+   "name": "ads1x15 (MicroPython)",
+   "facets": {
+    "platform": "MicroPython",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "robert-hh/ads1x15; no tags · 2025-09-17; —"
+  },
+  {
+   "id": "M6",
+   "name": "micropython_ir (NEC receiver)",
+   "facets": {
+    "platform": "other",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "peterhinch/micropython_ir; no tags · 2026-04-27; —"
+  },
+  {
+   "id": "M7",
+   "name": "max7219 (MicroPython)",
+   "facets": {
+    "platform": "MicroPython",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "mcauser/micropython-max7219; no tags · 2018-11-11; stale; small enough to vendor and maintain"
+  },
+  {
+   "id": "P1",
+   "name": "gpiozero (+ lgpio pin factory) (Pi Python)",
+   "facets": {
+    "platform": "Pi Python",
+    "licence": "BSD-3-Clause; lgpio 0.2.2.0 Unlicense",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "gpiozero/gpiozero; 2.0.1.post3 · 2026-07-27; already in (a)"
+  },
+  {
+   "id": "P2",
+   "name": "smbus2 (Pi Python)",
+   "facets": {
+    "platform": "Pi Python",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "kplindegaard/smbus2; 0.6.1 · 2026-04-09; carries all own I²C drivers"
+  },
+  {
+   "id": "P3",
+   "name": "RPLCD (Pi Python)",
+   "facets": {
+    "platform": "Pi Python",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "dbrgn/RPLCD; 1.4.0 · 2025-03-29; I²C via smbus2"
+  },
+  {
+   "id": "P4",
+   "name": "luma.oled (+ luma.core 2.6.0 MIT, Pillow 12.3.0 MIT-CMU, spidev 3.8 MIT) (Pi Python)",
+   "facets": {
+    "platform": "Pi Python",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "rm-hull/luma.oled; 3.16.0 · 2026-10-03; Pillow is the largest dependency"
+  },
+  {
+   "id": "P5",
+   "name": "luma.led_matrix (Pi Python)",
+   "facets": {
+    "platform": "Pi Python",
+    "licence": "MIT",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "rm-hull/luma.led_matrix; 1.9.0 · 2026-02-01; MAX7219"
+  },
+  {
+   "id": "P6",
+   "name": "evdev (Pi Python)",
+   "facets": {
+    "platform": "Pi Python",
+    "licence": "BSD-3-Clause",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "gvalkov/python-evdev; 2.0.0 · 2026-08-23; IR via kernel gpio-ir overlay"
+  }
+ ],
+ "datasheets": [
+  {
+   "id": "rp2040-rp2350-pico-pico-w-pico-2-pico-2-w",
+   "name": "RP2040, RP2350, Pico, Pico W, Pico 2, Pico 2 W",
+   "facets": {
+    "manufacturer": "Raspberry Pi Ltd",
+    "handling": "bundled",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "datasheets.raspberrypi.com (rp2040/, rp2350/, pico/, picow/)"
+  },
+  {
+   "id": "pi-5-pi-4b-pi-3b-zero-2-w-product-briefs-hat-spec",
+   "name": "Pi 5, Pi 4B, Pi 3B+, Zero 2 W product briefs; HAT+ spec",
+   "facets": {
+    "manufacturer": "Raspberry Pi Ltd",
+    "handling": "bundled",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "datasheets.raspberrypi.com (rpi5/, rpi4/, rpi3/, rpi-zero-2-w/, hat/)"
+  },
+  {
+   "id": "uno-r3-nano-mega-2560-boards",
+   "name": "Uno R3, Nano, Mega 2560 boards",
+   "facets": {
+    "manufacturer": "Arduino",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "docs.arduino.cc/hardware/…"
+  },
+  {
+   "id": "atmega328p-atmega2560-mcp4725-mcp23017",
+   "name": "ATmega328P, ATmega2560, MCP4725, MCP23017",
+   "facets": {
+    "manufacturer": "Microchip",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "microchip.com/en-us/product/<MPN>"
+  },
+  {
+   "id": "ads1115-pcf8574-a-l293d-uln2003a-drv8825-sn74hc595-txs0108e-",
+   "name": "ADS1115, PCF8574/A, L293D, ULN2003A, DRV8825, SN74HC595, TXS0108E, LM1117",
+   "facets": {
+    "manufacturer": "TI",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "ti.com/product/<MPN>"
+  },
+  {
+   "id": "l298",
+   "name": "L298",
+   "facets": {
+    "manufacturer": "ST",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "st.com/en/motor-drivers/l298.html"
+  },
+  {
+   "id": "tb6612fng",
+   "name": "TB6612FNG",
+   "facets": {
+    "manufacturer": "Toshiba",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "toshiba.semicon-storage.com (TB6612FNG)"
+  },
+  {
+   "id": "a4988",
+   "name": "A4988",
+   "facets": {
+    "manufacturer": "Allegro",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "allegromicro.com (A4988)"
+  },
+  {
+   "id": "ds18b20-ds1307-ds3231-max7219",
+   "name": "DS18B20, DS1307, DS3231, MAX7219",
+   "facets": {
+    "manufacturer": "ADI (Maxim)",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "analog.com/en/products/<part>.html"
+  },
+  {
+   "id": "bme280-bmp280",
+   "name": "BME280, BMP280",
+   "facets": {
+    "manufacturer": "Bosch Sensortec",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "bosch-sensortec.com/products/environmental-sensors/"
+  },
+  {
+   "id": "icm-42688-p",
+   "name": "ICM-42688-P",
+   "facets": {
+    "manufacturer": "TDK InvenSense",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/"
+  },
+  {
+   "id": "dht11-dht22-am2302",
+   "name": "DHT11, DHT22/AM2302",
+   "facets": {
+    "manufacturer": "Aosong (ASAIR)",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "asairsensors.com"
+  },
+  {
+   "id": "ssd1306",
+   "name": "SSD1306",
+   "facets": {
+    "manufacturer": "Solomon Systech",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "solomon-systech.com"
+  },
+  {
+   "id": "tsop38238",
+   "name": "TSOP38238",
+   "facets": {
+    "manufacturer": "Vishay",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "vishay.com (TSOP382)"
+  },
+  {
+   "id": "bss138bk",
+   "name": "BSS138BK",
+   "facets": {
+    "manufacturer": "Nexperia",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "nexperia.com/products/…/BSS138BK"
+  },
+  {
+   "id": "ao3400a-irlz44n-acc-01-mosfet-mpn-to-choose",
+   "name": "AO3400A / IRLZ44N (ACC-01 MOSFET, MPN to choose)",
+   "facets": {
+    "manufacturer": "Alpha & Omega / Infineon",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "aosmd.com / infineon.com"
+  },
+  {
+   "id": "hd44780-compatible-16-2-backpack",
+   "name": "HD44780-compatible 16×2 + backpack",
+   "facets": {
+    "manufacturer": "generic (controller ST7066U/SPLC780D/KS0066, UNVERIFIED)",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "module vendor page"
+  },
+  {
+   "id": "hc-sr04-hc-sr501-biss0001-ky-040-joystick-4-4-keypad-relay-m",
+   "name": "HC-SR04, HC-SR501 (BISS0001), KY-040, joystick, 4×4 keypad, relay module (SRD-05VDC), SG90 servo, 28BYJ-48, buzzer, LDR (GL55xx), LEDs, 7-segment",
+   "facets": {
+    "manufacturer": "generic / unidentifiable",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "vendor page if any"
+  },
+  {
+   "id": "resistors-capacitors-diodes-1n4148-1n400x-1n5819-bjts-opto-c",
+   "name": "Resistors, capacitors, diodes (1N4148/1N400x/1N5819), BJTs, opto-coupler (PC817-type), DC motor, fan",
+   "facets": {
+    "manufacturer": "generic / multi-source",
+    "handling": "parameter sheet + URL",
+    "status": "seed (Phase 0, not yet qualified)"
+   },
+   "text": "representative MPN page"
+  }
+ ]
+}

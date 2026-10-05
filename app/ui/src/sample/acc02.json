@@ -1,0 +1,35 @@
+{
+  "_note": "Illustrative sample used to exercise the Increment 1 shell (navigator, cross-highlight). It is not a generated or verified design; real projects come from Increments 3-7.",
+  "project": {"name": "ACC-02 sample", "target_board": "ELEGOO UNO R3", "status": "Draft", "build_style": "pcb", "part_style": "module"},
+  "requirements": {"items": [
+    {"id": "R1", "text": "Analog input A shall accept 0 V to 5 V.", "tests": ["T-A-range"]},
+    {"id": "R2", "text": "Analog input B shall accept 0 V to 5 V.", "tests": ["T-B-range"]},
+    {"id": "R3", "text": "U shall switch ON when |A − B| ≤ 0.05 V, with 0.02 V hysteresis.", "tests": ["T-U-equal"]},
+    {"id": "R4", "text": "Inputs C, D and E shall be debounced for 20 ms.", "tests": ["T-debounce"]},
+    {"id": "R5", "text": "On each rising edge of (C AND D AND NOT E) the counter shall increase by 1, saturating at 255.", "tests": ["T-counter"]},
+    {"id": "R6", "text": "Motor speed shall be proportional to the counter, 0 % to 100 % PWM duty.", "tests": ["T-motor"]}
+  ]},
+  "interfaces": {"blocks": [
+    {"id": "BLK-AIN", "name": "Analog inputs A, B", "template": "device: analog input", "satisfies": ["R1", "R2"], "code": ["src/ain.cpp"]},
+    {"id": "BLK-CMP", "name": "A = B comparator", "template": "L-CMP", "satisfies": ["R3"], "code": ["src/cmp.cpp"]},
+    {"id": "BLK-DIN", "name": "Digital inputs C, D, E", "template": "L-DEB", "satisfies": ["R4"], "code": ["src/din.cpp"]},
+    {"id": "BLK-CNT", "name": "Edge-triggered counter", "template": "L-EDGE + L-CNT", "satisfies": ["R5"], "code": ["src/cnt.cpp"]},
+    {"id": "BLK-MOT", "name": "Motor speed (TB6612FNG)", "template": "L-MAP + DC motor", "satisfies": ["R6"], "code": ["src/motor.cpp"]}
+  ]},
+  "parameters": {"params": [
+    {"name": "cmp_tolerance", "value": 0.05, "unit": "V", "used_by": ["BLK-CMP"]},
+    {"name": "cmp_hysteresis", "value": 0.02, "unit": "V", "used_by": ["BLK-CMP"]},
+    {"name": "debounce", "value": 20, "unit": "ms", "used_by": ["BLK-DIN"]},
+    {"name": "counter_max", "value": 255, "unit": "count", "used_by": ["BLK-CNT"]},
+    {"name": "pwm_frequency", "value": 1000, "unit": "Hz", "used_by": ["BLK-MOT"]}
+  ]},
+  "netlist": {
+    "parts": [{"ref": "U1", "catalogue_id": "board.elegoo-uno-r3"}, {"ref": "J2", "catalogue_id": "conn.terminal-3"}, {"ref": "R1", "catalogue_id": "res.1k.e12"}, {"ref": "M1", "catalogue_id": "module.tb6612fng"}],
+    "nets": [
+      {"name": "NET_A", "pins": ["J2.1", "R1.1"]},
+      {"name": "NET_A_IN", "pins": ["R1.2", "U1.A0"]},
+      {"name": "PWMA", "pins": ["U1.D5", "M1.PWMA"]},
+      {"name": "GND", "pins": ["J2.3", "U1.GND", "M1.GND"]}
+    ]
+  }
+}

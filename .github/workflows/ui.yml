@@ -1,0 +1,45 @@
+# Increment 1 CI for the UI and the Tauri shell (TEST-01).
+name: ui
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: app/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - name: Type check and build
+        run: npm run build
+      - name: Unit tests (UI logic)
+        run: npm test
+      - name: Browser tests (UI-01..03, 17, 20..23, SS-07, axe accessibility)
+        run: npx playwright install --with-deps chromium && npx playwright test
+  shell:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2025, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev libssl-dev libxdo-dev
+      - name: Build UI
+        run: npm ci && npm run build
+        working-directory: app/ui
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal -c clippy && rustup default stable
+      - name: Tauri shell tests and clippy
+        working-directory: app/src-tauri
+        run: cargo clippy --all-targets -- -D warnings && cargo test

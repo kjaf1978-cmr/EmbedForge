@@ -67,3 +67,10 @@
   - The licence gate passes for 67 linked crates.
   - The CI workflow is written but not yet run.
 - LICENSE (GPL-3.0 text) added.
+- You asked to keep working here without the PowerShell detour. From now on the work stays
+  in this workspace and a full git bundle is attached after each work package as a backup; no
+  action is needed from you. The repository is pushed to GitHub once a connection is available.
+- WP 1.2 application shell and UI:
+  - 12 unit tests and 10 browser tests pass (axe: 0 serious/critical).
+  - The Tauri shell builds; clippy is clean and its 2 tests pass.
+  - The native app ran under Xvfb against the real Rust core.
