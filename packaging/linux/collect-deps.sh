@@ -33,7 +33,7 @@ docker run --rm -v "$out/debs:/out" "$image" sh -ec "
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     $extra
-    cd /out && apt-get install -y -qq --download-only $pkgs >/dev/null
+    cd /out && apt-get install -y -qq --no-install-recommends --download-only $pkgs >/dev/null
     cp /var/cache/apt/archives/*.deb /out/ 2>/dev/null || true
     chmod a+rw /out/*.deb"
 # keep only what the clean desktop image lacks
