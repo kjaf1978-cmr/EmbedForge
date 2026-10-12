@@ -14,12 +14,12 @@ Read in this order:
 5. docs/SESSION_LOG.md: history.
 
 Next:
-1. WP 1.4:
-   - the Increment 1 test report (TEST-03) over WP 1.1–1.3;
-   - the usability scenarios;
-   - recording your procedure results;
-   - the first signed release;
-   - tag v0.1.0.
+1. WP 1.4. Done so far:
+   - docs/inc1/TEST_REPORT.md;
+   - docs/inc1/usability.md (scripted scenarios in app/ui/e2e/usability.spec.ts).
+
+   Still open: record your procedure results and the human usability run; the first signed
+   release; tag v0.1.0. All of these wait for the owner (keys, runs).
 
 Pending on your side: the release key pair (docs/inc1/procedures/SEC-02_key_rotation.md
 step 1) and the self-hosted runners.

@@ -36,6 +36,8 @@ Status on 5 October 2026:
 - WP 1.1, 1.2 and 1.3 are done; see WP1.1_report.md, WP1.2_report.md and WP1.3_report.md.
 - WP 1.3 raised F1-01; D16 chose option A (prompt v3.8), implemented.
 - The user-executed procedures are in procedures/.
+- WP 1.4: TEST_REPORT.md and usability.md are written; the signed release and tag v0.1.0
+  wait for the release keys.
 
 ## Out of scope for Increment 1
 

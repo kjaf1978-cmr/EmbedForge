@@ -115,3 +115,22 @@
     be written in place.
   - Windows keeps the `embedforge-setup repair` path until the helper's Windows transport
     arrives in Increment 2.
+
+## 2026-10-12 — session 3 (continued): CI fixes, WP 1.4 started
+- GitHub's hosted runners ran the workflows for the first time. They found three real
+  defects, all fixed:
+  - hand-built JSON in a helper test broke on Windows paths;
+  - minisign has no Ubuntu 22.04 package; it is now installed from the pinned release archive;
+  - the Windows build needs icons/icon.ico.
+- I also missed one `cargo fmt` run, which the CI fmt gate caught; fixed.
+- WP 1.4, the parts that need no release keys:
+  - usability scenarios (beginner, guided mode; expert, keyboard only), scripted with timings:
+    usability.md;
+  - finding U-1 (the DHT22 of ACC-01 is only a datasheet in the seed) fixed: the library
+    browser now names the libraries that match;
+  - Increment 1 test report: docs/inc1/TEST_REPORT.md.
+- Waiting for you:
+  - the release keys, then a signed release and tag v0.1.0;
+  - VAPP-01 and the test kit;
+  - the human usability run;
+  - the self-hosted runners.
