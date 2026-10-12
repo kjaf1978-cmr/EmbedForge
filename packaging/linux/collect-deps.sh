@@ -15,6 +15,7 @@
 # script is exercised by the "deps" CI job only.
 set -euo pipefail
 release=$1 manifest=$2 staging=$3 src=${4:-}
+mkdir -p "$staging" && staging=$(cd "$staging" && pwd)   # docker -v needs absolute paths
 here=$(cd "$(dirname "$0")" && pwd)
 case "$release" in
     ubuntu-*) image="ubuntu:${release#ubuntu-}"; extra="" ;;

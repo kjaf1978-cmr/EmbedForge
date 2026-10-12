@@ -144,3 +144,28 @@ fn detect_runs_on_this_host() {
     assert!(f.threads > 0 && f.ram_gb > 0.0, "{f:?}");
     let _ = evaluate(&f);
 }
+
+#[test]
+fn install_volume_is_found_on_every_host() {
+    let m = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    // Linux: the longest mount point that holds the target
+    let linux = m(&["/", "/boot/efi", "/opt"]);
+    assert_eq!(mount_for("/opt/embedforge", &linux, false), Some(2));
+    assert_eq!(
+        mount_for("/optical/x", &linux, false),
+        Some(0),
+        "not a prefix match on names"
+    );
+    assert_eq!(
+        mount_for("/home/u/.local/share/embedforge", &linux, false),
+        Some(0)
+    );
+    // Windows: canonicalize gives \\?\C:\..., mount points are C:\, and case does not matter
+    let win = m(&["C:\\", "D:\\"]);
+    assert_eq!(
+        mount_for(r"\\?\C:\Program Files\EmbedForge", &win, true),
+        Some(0)
+    );
+    assert_eq!(mount_for(r"d:\EmbedForge", &win, true), Some(1));
+    assert_eq!(mount_for(r"\\?\E:\x", &win, true), None);
+}

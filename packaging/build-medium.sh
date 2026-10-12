@@ -72,9 +72,12 @@ case "$os" in
         install -m 0644 "$here/linux/install.sh" "$files/install.sh" ;;
     windows)
         cp "$staging/embedforge-app/bin/embedforge-setup.exe" "$files/EmbedForge-Setup-$version-x64.exe"
-        [ -f "$files/licences/webview2-runtime.txt" ] || cp "$here/windows/webview2-runtime-terms.txt" "$files/licences/webview2-runtime.txt"
-        if [ "$dev" = 0 ] && grep -q "PLACEHOLDER" "$files/licences/webview2-runtime.txt"; then
-            echo "release medium refused: WebView2 terms placeholder present (run windows/fetch-webview2.sh)" >&2; exit 1
+        # the WebView2 terms belong on the medium only together with the runtime (SS-02)
+        if [ -d "$staging/webview2-runtime" ]; then
+            [ -f "$files/licences/webview2-runtime.txt" ] || cp "$here/windows/webview2-runtime-terms.txt" "$files/licences/webview2-runtime.txt"
+            if [ "$dev" = 0 ] && grep -q "PLACEHOLDER" "$files/licences/webview2-runtime.txt"; then
+                echo "release medium refused: WebView2 terms placeholder present (run windows/fetch-webview2.sh)" >&2; exit 1
+            fi
         fi ;;
 esac
 # the effective spec: components that are staged (or all, for a release)
@@ -88,6 +91,9 @@ if missing and not allow:
 for m in missing:
     print(f"left out (not staged): {m}")
 spec["components"] = [c for c in spec["components"] if c["ci"] not in missing]
+if "webview2-runtime" in missing:
+    spec["notices"] = [n for n in spec.get("notices", []) if n["id"] != "webview2-runtime"]
+    spec["files"] = [f for f in spec["files"] if f["path"] != "licences/webview2-runtime.txt"]
 # corresponding source of the dependency packages (collect-deps.sh --with-source), SS-02
 listed = {f["path"] for f in spec["files"]}
 src = os.path.join(staging, "files", "source")

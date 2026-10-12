@@ -257,6 +257,36 @@ pub fn evaluate(f: &HostFacts) -> (Profile, Vec<Finding>) {
 }
 
 /// Detects the facts of the running host. `install_dir` selects the disk to measure.
+/// Path text for comparing a target with mount points. On Windows `canonicalize` returns the
+/// verbatim form (`\\?\C:\...`), which never starts with a mount point such as `C:\`, and
+/// drive letters compare case-insensitively.
+pub fn comparable_path(p: &str, windows: bool) -> String {
+    if !windows {
+        return p.to_string();
+    }
+    let s = p
+        .strip_prefix(r"\\?\UNC\")
+        .map(|r| format!(r"\\{r}"))
+        .unwrap_or_else(|| p.strip_prefix(r"\\?\").unwrap_or(p).to_string());
+    s.replace('/', "\\").to_ascii_lowercase()
+}
+
+/// Index of the mount point that holds `target` (the longest matching one).
+pub fn mount_for(target: &str, mounts: &[String], windows: bool) -> Option<usize> {
+    let t = comparable_path(target, windows);
+    let sep = if windows { '\\' } else { '/' };
+    mounts
+        .iter()
+        .enumerate()
+        .filter(|(_, m)| {
+            let m = comparable_path(m, windows);
+            let m = m.trim_end_matches(sep);
+            t == m || t.starts_with(&format!("{m}{sep}")) || m.is_empty()
+        })
+        .max_by_key(|(_, m)| m.len())
+        .map(|(i, _)| i)
+}
+
 pub fn detect(install_dir: &Path) -> HostFacts {
     use sysinfo::{Disks, System};
     let mut sys = System::new();
@@ -264,11 +294,13 @@ pub fn detect(install_dir: &Path) -> HostFacts {
     sys.refresh_cpu_all();
     let disks = Disks::new_with_refreshed_list();
     let target = std::fs::canonicalize(install_dir).unwrap_or_else(|_| install_dir.to_path_buf());
-    let disk = disks
+    let mounts: Vec<String> = disks
         .list()
         .iter()
-        .filter(|d| target.starts_with(d.mount_point()))
-        .max_by_key(|d| d.mount_point().as_os_str().len());
+        .map(|d| d.mount_point().to_string_lossy().into_owned())
+        .collect();
+    let disk =
+        mount_for(&target.to_string_lossy(), &mounts, cfg!(windows)).map(|i| &disks.list()[i]);
     let pi_model = std::fs::read_to_string("/proc/device-tree/model")
         .ok()
         .map(|s| s.trim_end_matches('\0').trim().to_string());
