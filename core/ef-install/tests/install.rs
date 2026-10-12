@@ -266,7 +266,11 @@ fn system_install_verifies_stores_activates_and_integrates_ss01_ss04_ss05() {
     let sysroot = f.t.path().join("sysroot");
     assert!(read(&sysroot.join("etc/udev/rules.d/60-embedforge.rules")).contains("1a86"));
     let svc = read(&sysroot.join("etc/systemd/system/embedforge-helper.service"));
-    assert!(svc.contains("embedforge-app/bin/embedforge-helper") && svc.contains("--install-root"));
+    let helper = platform::helper_binary(&target).display().to_string();
+    assert!(
+        svc.contains(&helper) && svc.contains("--install-root"),
+        "{svc}"
+    );
     assert!(
         read(&sysroot.join("etc/systemd/system/embedforge-helper.socket"))
             .contains("/run/embedforge/helper.sock")

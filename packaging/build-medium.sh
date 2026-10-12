@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 spec="$here/spec/$spec_name.json"
-version=$(${PYTHON:-python3} -c "import json,sys;print(json.load(open(sys.argv[1]))['app_version'])" "$spec")
+version=$(${PYTHON:-python3} -c "import json,sys;print(json.load(open(sys.argv[1]))['app_version'])" "$spec" | tr -d '\r')
 os=${spec_name%-*}; arch=${spec_name#*-}
 work="$out.work"
 mkdir -p "$work"

@@ -11,8 +11,8 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 work=$1 out=$2 key=$3 pub=${4:-}
 spec_in="$work/spec.json"
-read -r os arch version < <(${PYTHON:-python3} -c "import json,sys;s=json.load(open(sys.argv[1]));print(s['os'],s['arch'],s['app_version'])" "$spec_in")
-next=$(${PYTHON:-python3} -c "import sys;a,b,c=sys.argv[1].split('-')[0].split('.');print(f'{a}.{b}.{int(c)+1}')" "$version")
+read -r os arch version < <(${PYTHON:-python3} -c "import json,sys;s=json.load(open(sys.argv[1]));print(s['os'],s['arch'],s['app_version'])" "$spec_in" | tr -d '\r')
+next=$(${PYTHON:-python3} -c "import sys;a,b,c=sys.argv[1].split('-')[0].split('.');print(f'{a}.{b}.{int(c)+1}')" "$version" | tr -d '\r')
 st="$out.staging"
 rm -rf "$st" && mkdir -p "$st"
 cp -r "$work/staging/embedforge-app" "$st/"
