@@ -302,3 +302,35 @@ fn project_repo_baselines_cm03_data01() {
     .unwrap();
     assert!(r.commit_all("bad").is_err());
 }
+
+#[test]
+fn switching_versions_replaces_files_in_place_and_drops_stale_ones() {
+    let t = tempfile::tempdir().unwrap();
+    let inst = t.path().join("app");
+    let s = RecoveryStore::open(t.path().join("store")).unwrap();
+    s.add_version(
+        meta("app", "1.0.0", &[]),
+        &src(t.path(), &[("bin/app", "one"), ("old.txt", "x")]),
+    )
+    .unwrap();
+    s.add_version(
+        meta("app", "2.0.0", &[]),
+        &src(t.path(), &[("bin/app", "two"), ("new/n.txt", "y")]),
+    )
+    .unwrap();
+    s.activate("app", &v("1.0.0"), &inst).unwrap();
+    // a file left aside by an earlier switch is cleaned up
+    std::fs::write(inst.join("app/bin/app.ef-old-1-1"), "stale").unwrap();
+    s.activate("app", &v("2.0.0"), &inst).unwrap();
+    assert_eq!(read(&inst.join("app/bin/app")), "two");
+    assert_eq!(read(&inst.join("app/new/n.txt")), "y");
+    assert!(!inst.join("app/old.txt").exists());
+    assert!(!inst.join("app/bin/app.ef-old-1-1").exists());
+    assert!(!inst.join(".app.staging").exists());
+    s.downgrade("app", &v("1.0.0"), &inst).unwrap();
+    assert_eq!(read(&inst.join("app/bin/app")), "one");
+    assert!(
+        !inst.join("app/new").exists(),
+        "emptied folders are removed"
+    );
+}

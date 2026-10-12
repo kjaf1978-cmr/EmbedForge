@@ -17,6 +17,82 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Suffix of files moved aside because they could not be replaced in place (a running
+/// program on Windows); they are deleted at the next materialisation.
+const MOVED_ASIDE: &str = ".ef-old-";
+
+fn walk_files(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), CmError> {
+    for e in io(dir, fs::read_dir(dir))? {
+        let p = io(dir, e)?.path();
+        if p.is_dir() {
+            walk_files(root, &p, out)?;
+        } else {
+            out.push(
+                p.strip_prefix(root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/"),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Replaces the tree `dest` by `staging` file by file. A file that cannot be replaced or
+/// removed in place (Windows refuses for a running program, but allows renaming it) is moved
+/// aside first. Files of `dest` that are not in `keep` are removed.
+fn replace_tree(staging: &Path, dest: &Path, keep: &HashSet<String>) -> Result<(), CmError> {
+    let mut old = vec![];
+    walk_files(dest, dest, &mut old)?;
+    let mut n = 0u32;
+    let mut aside = |p: &Path| -> Result<(), CmError> {
+        n += 1;
+        let name = format!(
+            "{}{MOVED_ASIDE}{}-{n}",
+            p.file_name().unwrap().to_string_lossy(),
+            std::process::id()
+        );
+        io(p, fs::rename(p, p.with_file_name(name)))
+    };
+    for rel in &old {
+        let p = dest.join(rel);
+        if rel.contains(MOVED_ASIDE) {
+            let _ = fs::remove_file(&p);
+        } else if !keep.contains(rel) && fs::remove_file(&p).is_err() {
+            aside(&p)?;
+        }
+    }
+    let mut new = vec![];
+    walk_files(staging, staging, &mut new)?;
+    for rel in &new {
+        let (from, to) = (staging.join(rel), dest.join(rel));
+        if let Some(d) = to.parent() {
+            io(d, fs::create_dir_all(d))?;
+        }
+        if fs::rename(&from, &to).is_err() {
+            aside(&to)?;
+            io(&to, fs::rename(&from, &to))?;
+        }
+    }
+    // folders left empty by removed files
+    let mut dirs = vec![];
+    fn collect_dirs(d: &Path, out: &mut Vec<PathBuf>) {
+        if let Ok(rd) = fs::read_dir(d) {
+            for e in rd.flatten() {
+                if e.path().is_dir() {
+                    collect_dirs(&e.path(), out);
+                    out.push(e.path());
+                }
+            }
+        }
+    }
+    collect_dirs(dest, &mut dirs);
+    for d in dirs {
+        let _ = fs::remove_dir(d);
+    }
+    Ok(())
+}
+
 /// Configuration-item kinds (CM-01, plus the DOC-10 weak-word list and block templates).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -287,10 +363,13 @@ impl RecoveryStore {
         for f in &meta.files {
             self.objects.restore_to(&f.sha256, &staging.join(&f.path))?;
         }
-        if dest.exists() {
-            io(&dest, fs::remove_dir_all(&dest))?;
+        if !dest.exists() {
+            return io(&dest, fs::rename(&staging, &dest));
         }
-        io(&dest, fs::rename(&staging, &dest))
+        let keep: HashSet<String> = meta.files.iter().map(|f| f.path.clone()).collect();
+        replace_tree(&staging, &dest, &keep)?;
+        let _ = fs::remove_dir_all(&staging);
+        Ok(())
     }
 
     /// Installs `ci` `v` and marks it active, after the dependency check (CM-04).

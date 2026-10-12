@@ -11,6 +11,9 @@
 #     the image (downloads.raspberrypi.com); first column = package name.
 #   --with-source: also downloads the source packages for the source pack (SS-02).
 #
+# Raspberry Pi OS: the Raspberry Pi archive key still carries a SHA-1 binding signature, which
+# the Sequoia verifier (sqv) of Debian trixie rejects since 2026-02-01; apt is told to use the
+# classic gpgv verifier inside the throwaway container.
 # UNVERIFIED in this session: docker is not available in the builder container, so the
 # script is exercised by the "deps" CI job only.
 set -euo pipefail
@@ -20,7 +23,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 case "$release" in
     ubuntu-*) image="ubuntu:${release#ubuntu-}"; extra="" ;;
     raspios-*) code=${release#raspios-}; image="debian:$code"
-        extra="printf 'deb http://archive.raspberrypi.com/debian/ $code main\\ndeb-src http://archive.raspberrypi.com/debian/ $code main\\n' > /etc/apt/sources.list.d/raspi.list && apt-get install -y -qq ca-certificates curl gnupg >/dev/null && curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dearmor > /etc/apt/trusted.gpg.d/raspi.gpg && apt-get update -qq" ;;
+        extra="printf 'deb http://archive.raspberrypi.com/debian/ $code main\\ndeb-src http://archive.raspberrypi.com/debian/ $code main\\n' > /etc/apt/sources.list.d/raspi.list && apt-get install -y -qq ca-certificates curl gnupg gpgv >/dev/null && curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dearmor > /etc/apt/trusted.gpg.d/raspi.gpg && echo 'APT::Key::GPGVCommand \"gpgv\";' > /etc/apt/apt.conf.d/99embedforge-gpgv && apt-get update -qq" ;;
     *) echo "unknown release $release" >&2; exit 2 ;;
 esac
 out="$staging/host-deps-$release"
