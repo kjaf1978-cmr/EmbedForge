@@ -225,3 +225,20 @@ fn signed_update_package_sec02_ss09() {
         "tampered"
     );
 }
+
+#[test]
+fn built_in_release_keys_are_valid_sec02() {
+    let release = release_keys();
+    assert!(release.len() >= 2, "primary and standby key");
+    for k in &release {
+        assert!(minisign_verify::PublicKey::from_base64(k).is_ok(), "{k}");
+    }
+    // a package signed with an unrelated key is still refused
+    let t = tempfile::tempdir().unwrap();
+    let other = keys();
+    let f = t.path().join("pkg");
+    fs::write(&f, "data").unwrap();
+    sign(&other, &f);
+    let trusted: Vec<&str> = release.iter().map(String::as_str).collect();
+    assert!(verify_signed_file(&f, &t.path().join("pkg.minisig"), &trusted).is_err());
+}

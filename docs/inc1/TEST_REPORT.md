@@ -58,7 +58,7 @@ CI status of the last commit is recorded in the session log; the self-hosted job
 | SS-05 | P | Rights only in the installer; one helper; closed request set; caller check against the signed app; boot-medium guard; .deb allowlist; log; per-user mode with missing functions; **(d) restore implemented (D16)**. (a)–(c) performed from Increment 2; Windows transport Increment 2 | WP 1.3, findings_for_D16.md |
 | SS-07 | P | 13 offline pages with search (installation page added); library docs, pinouts and tutorials arrive later | WP 1.2 |
 | SS-08 | P | Signed per-component manifests; F3-01 tiers; parallel start-up hashing; background pass; offline repair by the app, or through the helper on system-wide Linux installs; banner, status bar, Repair. **Missing:** Windows system-wide repair by the app (Increment 2); PERF-08 on hosts (U) | WP 1.1, WP 1.3 |
-| SEC-02 | P | Verification everywhere; key rotation; signing scripts for your host. **Missing:** your keys and a signed release (U) | WP 1.1, WP 1.3 |
+| SEC-02 | P | Verification everywhere; key rotation; signing scripts for your host; your primary and standby public keys are built in (`built_in_release_keys_are_valid_sec02`). **Missing:** a signed release (U) | WP 1.1, WP 1.3 |
 | CM-01 | B | Configuration-item kinds | WP 1.1 |
 | CM-02 | B | Semantic versions with changelog; immutable versions | WP 1.1 |
 | CM-03 | B | App baselines restored in one action, exactly; project baselines as Git tags | WP 1.1, WP 1.3 |
@@ -99,8 +99,9 @@ U-1 was fixed. The human run is U.
 
 ## 5. Open before the Increment 1 gate
 
-1. **Your release keys** (procedures/SEC-02_key_rotation.md step 1). I then add the public
-   keys, build the three signed media on your signing host, and tag **v0.1.0**.
+1. **Signed release.** Your release keys exist (12 October 2026). Their public keys are built in:
+   primary 39F9D3BC8498721D, standby 4D305CEFEB27CFBB. Next: sign the three media on your
+   PC, then tag **v0.1.0**.
 2. **Your runs:**
    - VAPP-01 on each host OS;
    - the VAPP test kit;

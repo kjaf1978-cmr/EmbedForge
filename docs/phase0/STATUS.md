@@ -24,8 +24,6 @@ code).
 **Phase 0 approved on 2026-10-05, with the gate-report conditions.** You replied "Please continue from here" to the approval request. Increment 1 has started (docs/inc1/).
 
 Actions for you:
-- Create the release key pair, primary and standby, offline, and send me the two public key
-  lines (docs/inc1/procedures/SEC-02_key_rotation.md, step 1).
 - Register the self-hosted runners (Profile A PC with label `profile-a`, Pi 5) when convenient;
   release media and VAPP-06 need them.
 - Request CH341SER redistribution permission from WCH (F0-02).

@@ -134,3 +134,6 @@
   - VAPP-01 and the test kit;
   - the human usability run;
   - the self-hosted runners.
+- You created the release keys offline on your Windows PC; the private keys are on two USB
+  sticks. Your public keys are now in core/ef-integrity/trusted-keys.txt, with a test that
+  every listed key parses: primary 39F9D3BC8498721D, standby 4D305CEFEB27CFBB.

@@ -2,3 +2,8 @@
 # The private keys are held offline by the project owner (TEST-04); only public keys are here.
 # Several lines = key rotation: packages signed with any listed key are accepted. See
 # docs/inc1/procedures/SEC-02_key_rotation.md. Empty = development build, nothing is trusted.
+#
+# primary (signs releases), key ID 39F9D3BC8498721D, created 2026-10-12
+RWQdcpiEvNP5OXNoojrGd3No3Yd6jKI688Qf7HDaKpAscTK+WIVYbuA0
+# standby (only if the primary is lost or compromised), key ID 4D305CEFEB27CFBB, created 2026-10-12
+RWS7zyfr71wwTQeju0gU+ZHaTSQ4H6v4HEPkvz151k5Cyn61Co+KGCei
