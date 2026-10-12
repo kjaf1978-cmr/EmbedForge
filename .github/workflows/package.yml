@@ -33,9 +33,16 @@ jobs:
       - name: Build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev minisign xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev xvfb
       - name: Rust toolchain
         run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: minisign 0.12 (Ubuntu 22.04 has no package; pinned release archive)
+        run: |
+          curl -fsSL -o minisign.tgz https://github.com/jedisct1/minisign/releases/download/0.12/minisign-0.12-linux.tar.gz
+          echo "9a599b48ba6eb7b1e80f12f36b94ceca7c00b7a5173c95c3efc88d9822957e73  minisign.tgz" | sha256sum -c -
+          tar xzf minisign.tgz "minisign-linux/$(uname -m)/minisign"
+          sudo install -m 0755 "minisign-linux/$(uname -m)/minisign" /usr/local/bin/minisign
+          minisign -v
       - name: Development medium (stage, sign with a throwaway key, pack, verify)
         run: packaging/build-medium.sh ${{ matrix.spec }} out/medium --dev-key --allow-missing
       - name: VAPP-05 test update package
@@ -103,7 +110,9 @@ jobs:
       - name: minisign
         run: |
           curl -fsSL -o minisign.zip https://github.com/jedisct1/minisign/releases/download/0.12/minisign-0.12-win64.zip
-          mkdir -p "$HOME/bin" && unzip -j -o minisign.zip '*minisign.exe' -d "$HOME/bin"
+          echo "37b600344e20c19314b2e82813db2bfdcc408b77b876f7727889dbd46d539479  minisign.zip" | sha256sum -c -
+          mkdir -p "$HOME/bin" && unzip -j -o minisign.zip 'minisign-win64/x86_64/minisign.exe' -d "$HOME/bin"
+          "$HOME/bin/minisign.exe" -v
           echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: Development medium
         run: packaging/build-medium.sh windows-x86_64 out/medium --dev-key --allow-missing

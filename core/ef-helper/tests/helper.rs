@@ -16,6 +16,11 @@ struct Install {
 
 type Files<'a> = Vec<(&'a str, Vec<u8>)>;
 
+/// A path as a JSON string literal (Windows paths contain backslashes).
+fn js(p: &Path) -> String {
+    serde_json::to_string(&p.display().to_string()).unwrap()
+}
+
 fn sign(kp: &minisign::KeyPair, file: &Path) {
     let sig = minisign::sign(
         Some(&kp.pk),
@@ -212,7 +217,7 @@ fn caller_check_allowlist_and_log() {
     };
     let line = |id: u64, req: &str| format!(r#"{{"id":{id},"request":{req}}}"#);
 
-    let allowed = format!(r#"{{"op":"install_debs","files":["{}"]}}"#, i.deb.display());
+    let allowed = format!(r#"{{"op":"install_debs","files":[{}]}}"#, js(&i.deb));
     let r = handle_line(&c, &peer, &me, &line(1, &allowed));
     assert_eq!(r.decision, Decision::Validated, "{}", r.message);
     assert!(
@@ -229,8 +234,8 @@ fn caller_check_allowlist_and_log() {
         &line(
             2,
             &format!(
-                r#"{{"op":"install_debs","files":["{}"]}}"#,
-                foreign.display()
+                r#"{{"op":"install_debs","files":[{}]}}"#,
+                js(&foreign)
             ),
         ),
     );
@@ -254,8 +259,8 @@ fn caller_check_allowlist_and_log() {
         line(
             4,
             &format!(
-                r#"{{"op":"write_image","device":"{dev}","image":"{}","image_sha256":"{sha}","first_boot":{{"user-data":"x"}}}}"#,
-                img.display()
+                r#"{{"op":"write_image","device":"{dev}","image":{},"image_sha256":"{sha}","first_boot":{{"user-data":"x"}}}}"#,
+                js(&img)
             ),
         )
     };
@@ -326,8 +331,8 @@ fn unix_socket_identifies_the_caller_by_so_peercred() {
         let mut s = UnixStream::connect(&sock).unwrap();
         writeln!(
             s,
-            r#"{{"id":7,"request":{{"op":"install_debs","files":["{}"]}}}}"#,
-            deb.display()
+            r#"{{"id":7,"request":{{"op":"install_debs","files":[{}]}}}}"#,
+            js(&deb)
         )
         .unwrap();
         let mut resp = String::new();
