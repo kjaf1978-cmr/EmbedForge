@@ -22,3 +22,13 @@ export function filterItems(items: LibraryItem[], query: string, facets: Record<
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** Other library tabs that match a query which finds nothing in the current one (usability
+ * finding U-1): [tab id, number of matches], in tab order. */
+export function matchesElsewhere(seed: Record<string, LibraryItem[]>, tabs: string[], current: string, query: string): [string, number][] {
+  if (!query.trim()) return [];
+  return tabs
+    .filter((t) => t !== current)
+    .map((t): [string, number] => [t, filterItems(seed[t] ?? [], query, {}).length])
+    .filter(([, n]) => n > 0);
+}

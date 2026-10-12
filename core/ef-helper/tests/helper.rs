@@ -233,10 +233,7 @@ fn caller_check_allowlist_and_log() {
         &me,
         &line(
             2,
-            &format!(
-                r#"{{"op":"install_debs","files":[{}]}}"#,
-                js(&foreign)
-            ),
+            &format!(r#"{{"op":"install_debs","files":[{}]}}"#, js(&foreign)),
         ),
     );
     assert_eq!(r.decision, Decision::Rejected);

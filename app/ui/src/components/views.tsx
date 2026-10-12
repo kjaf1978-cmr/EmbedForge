@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { ArtefactGraph, Highlight, HighlightBus } from '../core/highlightBus';
 import { DocsIndex } from '../core/docsIndex';
-import { facetValues, filterItems, type LibraryItem } from '../core/library';
+import { facetValues, filterItems, matchesElsewhere, type LibraryItem } from '../core/library';
 import { FONT_MAX, FONT_MIN, type UiSettings } from '../core/settings';
 import type { Backend, DiagSection, HostFinding } from '../backend';
 import { Markdown } from './Markdown';
@@ -82,6 +82,7 @@ export function LibraryView({ seed }: { seed: Record<string, LibraryItem[]> }) {
   const def = LIB_TABS.find((t) => t[0] === tab)!;
   const items = seed[tab] ?? [];
   const shown = filterItems(items, q, facets);
+  const elsewhere = shown.length === 0 ? matchesElsewhere(seed, LIB_TABS.map((t) => t[0]), tab, q) : [];
   return (
     <section aria-label="Library browsers">
       <div role="tablist" aria-label="Libraries" class="tabs">
@@ -101,6 +102,13 @@ export function LibraryView({ seed }: { seed: Record<string, LibraryItem[]> }) {
         ))}
         <span class="muted" aria-live="polite">{shown.length} shown</span>
       </div>
+      {elsewhere.length > 0 && (
+        <p role="status" aria-label="Matches in other libraries">No match in {def[1]}. Found in:{' '}
+          {elsewhere.map(([id, n]) => (
+            <button key={id} onClick={() => { setTab(id); setFacets({}); }}>{LIB_TABS.find((t) => t[0] === id)![1]} ({n})</button>
+          ))}
+        </p>
+      )}
       <p class="banner">Seed data from Phase 0 — not yet qualified. Nothing here can be used in a design until it passes qualification.</p>
       <div class="table-wrap">
         <table>

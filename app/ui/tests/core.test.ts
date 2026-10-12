@@ -3,7 +3,7 @@ import { ArtefactGraph, HighlightBus } from '../src/core/highlightBus';
 import { UndoStack } from '../src/core/undo';
 import { Keymap, eventKeys, normaliseKeys } from '../src/core/keymap';
 import { clampScale, sanitise, resolvedTheme } from '../src/core/settings';
-import { filterItems, facetValues } from '../src/core/library';
+import { filterItems, facetValues, matchesElsewhere } from '../src/core/library';
 import { DocsIndex } from '../src/core/docsIndex';
 import { buildModel, visibleIds } from '../src/core/projectModel';
 import sample from '../src/sample/acc02.json';
@@ -129,5 +129,18 @@ describe('project model (UI-01, INV-08)', () => {
   });
   it('keyboard tree navigation sees only expanded nodes', () => {
     expect(visibleIds(tree, new Set(['project']))).toHaveLength(1 + tree.children!.length);
+  });
+});
+
+describe('library matches in other tabs (usability finding U-1)', () => {
+  const seed = {
+    models: [{ id: 'dht11', name: 'DHT11', facets: {} }],
+    datasheets: [{ id: 'ds-dht', name: 'DHT11, DHT22/AM2302', facets: {} }],
+    boards: [{ id: 'uno', name: 'Uno', facets: {} }],
+  };
+  it('names the other libraries that match, in tab order', () => {
+    expect(matchesElsewhere(seed, ['boards', 'models', 'datasheets'], 'models', 'DHT22')).toEqual([['datasheets', 1]]);
+    expect(matchesElsewhere(seed, ['boards', 'models', 'datasheets'], 'models', '  ')).toEqual([]);
+    expect(matchesElsewhere(seed, ['boards', 'models', 'datasheets'], 'models', 'nothing')).toEqual([]);
   });
 });
