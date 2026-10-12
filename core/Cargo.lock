@@ -196,9 +196,11 @@ dependencies = [
  "ef-cm",
  "ef-integrity",
  "ef-pack",
+ "minisign",
  "semver",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]

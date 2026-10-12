@@ -33,6 +33,20 @@ use std::path::{Path, PathBuf};
 pub const COMPONENT_FORMAT: &str = "ef.component@1.0";
 pub const COMPONENT_FILE: &str = ".ef-component.json";
 pub const COMPONENT_SIG: &str = ".ef-component.json.minisig";
+/// Staging only: the relative paths of executable files, one per line. Zip archives (CI
+/// artifacts, the signing kit) do not keep Unix permissions, so a component staged on Linux
+/// and packed on Windows carries its executable bits in this file. It is never installed.
+pub const EXEC_LIST: &str = ".ef-exec";
+
+/// The executable files recorded in `<dir>/.ef-exec` (empty if there is none).
+pub fn exec_list(dir: &Path) -> std::collections::BTreeSet<String> {
+    fs::read_to_string(dir.join(EXEC_LIST))
+        .unwrap_or_default()
+        .lines()
+        .map(|l| l.trim().replace('\\', "/"))
+        .filter(|l| !l.is_empty())
+        .collect()
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ComponentManifest {
@@ -63,7 +77,7 @@ pub struct ComponentMeta {
 }
 
 fn is_manifest_file(rel: &str) -> bool {
-    rel == COMPONENT_FILE || rel == COMPONENT_SIG
+    rel == COMPONENT_FILE || rel == COMPONENT_SIG || rel == EXEC_LIST
 }
 
 /// Release-time: builds the manifest of a staged component directory. The pipeline writes it
@@ -79,6 +93,7 @@ pub fn build_component_manifest(
         )));
     }
     let mut files = Vec::new();
+    let exec = exec_list(dir);
     let mut stack = vec![dir.to_path_buf()];
     while let Some(d) = stack.pop() {
         for e in io(&d, fs::read_dir(&d))? {
@@ -97,7 +112,7 @@ pub fn build_component_manifest(
                 }
                 let (sha256, size) = sha256_file(&p)?;
                 files.push(ManifestEntry {
-                    tier: classify(&rel, exec_bit(&m)),
+                    tier: classify(&rel, exec_bit(&m) || exec.contains(&rel)),
                     path: rel,
                     size,
                     sha256,

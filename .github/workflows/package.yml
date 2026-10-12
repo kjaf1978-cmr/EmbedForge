@@ -15,6 +15,10 @@ on:
         description: "Build signed release media on the self-hosted runners"
         type: boolean
         default: false
+      kit:
+        description: "Build the release signing kit (release binaries, dependency sets; signed by the owner)"
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -129,6 +133,88 @@ jobs:
           cp "$T/embedforge-app/bin/embedforge-setup.exe" setup-copy.exe
           ./setup-copy.exe uninstall --yes --target "$T"
           test ! -e "$T"
+
+  # ---- release signing kit (docs/inc1/procedures/signing.md) -------------------------------
+  kit-linux:
+    if: github.event_name == 'workflow_dispatch' && inputs.kit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04, spec: ubuntu-x86_64, releases: "ubuntu-22.04 ubuntu-24.04 ubuntu-26.04" }
+          - { runner: ubuntu-24.04-arm, spec: raspios-aarch64, releases: "raspios-bookworm raspios-trixie" }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Release build of the app, installer and helper
+        run: packaging/stage-app.sh out/staging
+      - name: Dependency sets (SS-01) with their sources (SS-02)
+        run: |
+          for r in ${{ matrix.releases }}; do
+            packaging/linux/clean-manifest.sh "$r" "out/$r.manifest"
+            packaging/linux/collect-deps.sh "$r" "out/$r.manifest" out/staging --with-source
+          done
+      - name: Kit part
+        run: packaging/build-medium.sh ${{ matrix.spec }} out/medium --staged out/staging --kit-dir out/kit/${{ matrix.spec }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kit-${{ matrix.spec }}
+          path: out/kit
+          retention-days: 7
+
+  kit-windows:
+    if: github.event_name == 'workflow_dispatch' && inputs.kit
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHON: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Release build of the app, installer and helper
+        run: packaging/stage-app.sh out/staging
+      - name: Kit part (the WebView2 runtime is not bundled in 0.1.0)
+        run: packaging/build-medium.sh windows-x86_64 out/medium --staged out/staging --allow-missing --kit-dir out/kit/windows-x86_64
+      - name: embedforge-sign.exe
+        run: |
+          (cd core && cargo build --locked --release -p ef-release)
+          cp core/target/release/embedforge-sign.exe out/kit/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kit-windows-x86_64
+          path: out/kit
+          retention-days: 7
+
+  kit:
+    needs: [kit-linux, kit-windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kit-*
+          path: kit
+          merge-multiple: true
+      - name: Assemble
+        run: |
+          cp packaging/kit/SIGN-RELEASE.cmd packaging/kit/README.txt kit/
+          ls -la kit && du -sh kit
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EmbedForge-signing-kit
+          path: kit
+          retention-days: 30
 
   release:
     if: github.event_name == 'workflow_dispatch' && inputs.release

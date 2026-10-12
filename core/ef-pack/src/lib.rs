@@ -290,7 +290,9 @@ fn walk(dir: &Path) -> Result<Vec<(String, PathBuf, fs::Metadata)>, PackError> {
                 stack.push(p.clone());
                 out.push((rel, p, m));
             } else if m.is_file() {
-                out.push((rel, p, m));
+                if rel != ef_integrity::EXEC_LIST {
+                    out.push((rel, p, m));
+                }
             } else {
                 return Err(PackError::Pack {
                     pack: dir.display().to_string(),
@@ -345,6 +347,7 @@ pub fn pack_component(
     let out_dir = medium_root.join(PACK_DIR);
     io_err(&out_dir, fs::create_dir_all(&out_dir))?;
     let files = walk(dir)?;
+    let exec = ef_integrity::exec_list(dir);
     let split = SplitWriter {
         dir: out_dir.clone(),
         rel_dir: PACK_DIR.into(),
@@ -369,7 +372,11 @@ pub fn pack_component(
             io_err(abs, tar.append_data(&mut h, format!("{rel}/"), io::empty()))?;
         } else {
             h.set_entry_type(tar::EntryType::Regular);
-            h.set_mode(mode_of(m));
+            h.set_mode(if exec.contains(rel) {
+                0o755
+            } else {
+                mode_of(m)
+            });
             h.set_size(m.len());
             let f = io_err(abs, fs::File::open(abs))?;
             io_err(abs, tar.append_data(&mut h, rel, f))?;

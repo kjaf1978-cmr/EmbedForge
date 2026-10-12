@@ -137,3 +137,14 @@
 - You created the release keys offline on your Windows PC; the private keys are on two USB
   sticks. Your public keys are now in core/ef-integrity/trusted-keys.txt, with a test that
   every listed key parses: primary 39F9D3BC8498721D, standby 4D305CEFEB27CFBB.
+- Signing kit (your request):
+  - CI builds release binaries and the dependency sets for all three media up to the first
+    signature, as the artifact "EmbedForge-signing-kit" (workflow "package", option *kit*).
+  - `embedforge-sign.exe` (SIGN-RELEASE.cmd) asks for your primary key file and its password
+    once, then signs, assembles and verifies every medium on your PC. It refuses at once a key
+    that is not a release key.
+  - Executable bits travel in `.ef-exec` files, because zip archives drop them.
+  - Tested here: a password-protected throwaway key driven through a real terminal; the
+    signed medium installed with its executable bits intact.
+- Windows-only CI failures fixed and verified under Wine: a test path, and the carriage
+  return in Windows Python output.

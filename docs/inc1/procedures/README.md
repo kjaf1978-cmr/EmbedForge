@@ -11,7 +11,7 @@ report marks it **U (awaiting user execution)**.
 | [VAPP-04](VAPP-04.md) | Damaged or missing files are restored offline | Each host after VAPP-01 | VAPP test kit |
 | [VAPP-05](VAPP-05.md) | Offline update from USB and rollback | Each host after VAPP-01 | VAPP test kit |
 | [SEC-02 key rotation](SEC-02_key_rotation.md) | How release keys are created, used, rotated and replaced | Your offline signing host | minisign |
-| [Signing a release](signing.md) | The signing steps that run on your infrastructure | Profile A test PC (self-hosted runner) | Offline key, Authenticode token |
+| [Signing a release](signing.md) | Signing the release media with the signing kit | Your Windows PC | USB stick with your keys |
 
 **One run covers VAPP-03, 04 and 05.** After VAPP-01, run `run-vapp.cmd` (Windows) or
 `sh run-vapp.sh` (Linux) from the VAPP test kit folder. Each check prints PASS or FAIL, and

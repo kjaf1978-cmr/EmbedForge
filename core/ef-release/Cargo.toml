@@ -1,6 +1,6 @@
 [package]
 name = "ef-release"
-description = "EmbedForge release-time packaging tool: component manifests, packs, medium and update indexes, release verification (never signs)"
+description = "EmbedForge release packaging: ef-release (builder: component manifests, packs, indexes, verification; never signs) and embedforge-sign (owner: signs a signing kit with the offline key)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,3 +13,15 @@ semver.workspace = true
 ef-cm = { path = "../ef-cm" }
 ef-integrity = { path = "../ef-integrity" }
 ef-pack = { path = "../ef-pack" }
+minisign.workspace = true
+
+[[bin]]
+name = "ef-release"
+path = "src/main.rs"
+
+[[bin]]
+name = "embedforge-sign"
+path = "src/bin/embedforge-sign.rs"
+
+[dev-dependencies]
+tempfile.workspace = true
