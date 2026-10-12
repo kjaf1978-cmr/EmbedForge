@@ -20,7 +20,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 case "$release" in
     ubuntu-*) image="ubuntu:${release#ubuntu-}"; extra="" ;;
     raspios-*) code=${release#raspios-}; image="debian:$code"
-        extra="echo 'deb http://archive.raspberrypi.com/debian/ $code main' > /etc/apt/sources.list.d/raspi.list && apt-get install -y -qq ca-certificates curl gnupg >/dev/null && curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dearmor > /etc/apt/trusted.gpg.d/raspi.gpg && apt-get update -qq" ;;
+        extra="printf 'deb http://archive.raspberrypi.com/debian/ $code main\\ndeb-src http://archive.raspberrypi.com/debian/ $code main\\n' > /etc/apt/sources.list.d/raspi.list && apt-get install -y -qq ca-certificates curl gnupg >/dev/null && curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dearmor > /etc/apt/trusted.gpg.d/raspi.gpg && apt-get update -qq" ;;
     *) echo "unknown release $release" >&2; exit 2 ;;
 esac
 out="$staging/host-deps-$release"
@@ -50,7 +50,12 @@ if [ "$src" = "--with-source" ] && [ "$kept" -gt 0 ]; then
         export DEBIAN_FRONTEND=noninteractive
         sed -i 's/^Types: deb\$/Types: deb deb-src/' /etc/apt/sources.list.d/*.sources 2>/dev/null || sed -i 's/^deb \(.*\)/deb \1\ndeb-src \1/' /etc/apt/sources.list
         apt-get update -qq && apt-get install -y -qq dpkg-dev >/dev/null
-        cd /out && apt-get source --download-only $names >/dev/null"
+        cd /out
+        # one package at a time: a missing source package is listed, not fatal
+        for n in $names; do apt-get source --download-only \$n >/dev/null 2>&1 || echo \$n >> MISSING-SOURCES.txt; done"
+    if [ -s "$staging/files/source/host-deps-$release/MISSING-SOURCES.txt" ]; then
+        echo "WARNING: no source package found for $(wc -l < "$staging/files/source/host-deps-$release/MISSING-SOURCES.txt") binary package(s) of $release; listed in MISSING-SOURCES.txt (GPL source duty, R-16)" >&2
+    fi
     tar -C "$staging/files/source" -cf "$staging/files/source/host-deps-$release-source.tar" "host-deps-$release"
     rm -rf "$staging/files/source/host-deps-$release"
 fi

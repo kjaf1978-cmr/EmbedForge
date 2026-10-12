@@ -291,6 +291,37 @@ fn print_plan(p: &ef_install::Plan) {
     }
 }
 
+/// Windows cannot replace or delete a running program. A command that changes the
+/// installation this program belongs to (update, rollback, repair, uninstall, …) therefore
+/// runs from a temporary copy. Returns the copy's exit code, or `None` if no copy is needed.
+fn run_from_copy_if_inside(target: &Path, has_target_arg: bool) -> Result<Option<i32>, String> {
+    if !cfg!(windows) || std::env::var_os("EMBEDFORGE_SETUP_COPY").is_some() {
+        return Ok(None);
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let (Ok(e), Ok(t)) = (std::fs::canonicalize(&exe), std::fs::canonicalize(target)) else {
+        return Ok(None);
+    };
+    if !e.starts_with(&t) {
+        return Ok(None);
+    }
+    let copy = std::env::temp_dir().join(format!("embedforge-setup-{}.exe", std::process::id()));
+    std::fs::copy(&exe, &copy)
+        .map_err(|e| format!("cannot copy the installer to {}: {e}", copy.display()))?;
+    let mut args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    if !has_target_arg {
+        args.push("--target".into());
+        args.push(target.as_os_str().to_owned());
+    }
+    let st = std::process::Command::new(&copy)
+        .args(&args)
+        .env("EMBEDFORGE_SETUP_COPY", "1")
+        .status()
+        .map_err(|e| e.to_string())?;
+    let _ = std::fs::remove_file(&copy);
+    Ok(Some(st.code().unwrap_or(1)))
+}
+
 fn run() -> Result<i32, String> {
     let a = parse(std::env::args().skip(1))?;
     let keys_owned = ef_integrity::release_keys();
@@ -302,6 +333,14 @@ fn run() -> Result<i32, String> {
         Mode::System
     };
     let target_or_default = |m: Mode| a.target.clone().unwrap_or_else(|| default_target(m));
+    if matches!(
+        a.cmd.as_str(),
+        "update" | "rollback" | "restore-baseline" | "repair" | "uninstall" | "vapp"
+    ) {
+        if let Some(code) = run_from_copy_if_inside(&target_or_default(mode), a.target.is_some())? {
+            return Ok(code);
+        }
+    }
     let mut sys = if a.dry_run {
         let root = a.sysroot.clone().ok_or("--dry-run needs --sysroot DIR")?;
         Sys::scratch(&root)
