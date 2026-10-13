@@ -4,7 +4,7 @@
 import type { Circuit, Element } from '../sim/circuit';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, ZENERS, findModel, ledModel } from './models';
+import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS, findModel, ledModel } from './models';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
 import { pinPositions, type Part, type Sheet, type SimSettings } from './schematic';
@@ -145,6 +145,29 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       );
       break;
     }
+    case 'regulator': case 'lm317': {
+      const adj = s.id === 'lm317';
+      const m = findModel(adj ? ADJ_REGULATORS : REGULATORS, p.props.value).model;
+      const vin = adj ? pin['3'] : pin['1'], g = adj ? pin['1'] : pin['2'], vo = adj ? pin['2'] : pin['3'];
+      const r = `${ref}#r`, b = `${ref}#b`, h = `${ref}#h`;
+      out.push(
+        // reference, transconductance error amplifier fed from the input, NPN pass transistor
+        { kind: 'V', name: `${ref}_VREF`, p: r, n: g, dc: m.vout },
+        { kind: 'G', name: `${ref}_GERR`, p: vin, n: b, cp: r, cn: vo, gm: 0.1 },
+        { kind: 'R', name: `${ref}_RBE`, a: b, b: vo, r: 1e4 },
+        { kind: 'Q', name: `${ref}_QP`, c: vin, b, e: vo, model: { type: 'npn', is: 1e-13, bf: 100, br: 1, nf: 1, nr: 1 } },
+        // dropout: the base cannot rise above IN − dropout + one diode drop
+        { kind: 'V', name: `${ref}_VH`, p: vin, n: h, dc: m.dropout },
+        { kind: 'D', name: `${ref}_DH`, a: b, k: h, model: { is: 1e-14, n: 1, rs: 0 } },
+        { kind: 'R', name: `${ref}_RMIN`, a: vo, b: g, r: 1e5 },
+      );
+      if (adj) out.push({ kind: 'I', name: `${ref}_IADJ`, p: vin, n: g, dc: m.iq });
+      else out.push({ kind: 'R', name: `${ref}_RQ`, a: vin, b: g, r: 7 / m.iq });
+      break;
+    }
+    case 'timer555':
+      out.push({ kind: 'T', name: ref, gnd: pin['1'], trig: pin['2'], out: pin['3'], rst: pin['4'], ctrl: pin['5'], thr: pin['6'], dis: pin['7'], vcc: pin['8'] });
+      break;
     case 'switch': out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: p.props.closed === 'true' ? 0.01 : 1e9 }); break;
     case 'button': out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: p.props.pressed === 'true' ? 0.01 : 1e9 }); break;
     case 'spdt': {
@@ -186,7 +209,7 @@ export function planAnalysis(sim: SimSettings, sheet: Sheet, errors: string[]): 
       if (!(stop > 0)) errors.push('Stop time must be greater than 0');
       if (!(step > 0)) step = stop / 1000;
       if (stop / step > 100000) errors.push('More than 100 000 time steps: use a larger time step');
-      return { analysis: { type: 'tran', tstep: step, tstop: stop }, xLabel: 'Time', xUnit: 's' };
+      return { analysis: { type: 'tran', tstep: step, tstop: stop, uic: sim.start === 'zero' }, xLabel: 'Time', xUnit: 's' };
     }
     case 'ac': {
       const f0 = val(sim.fstart, 'Start frequency'), f1 = val(sim.fstop, 'Stop frequency'), pd = val(sim.perDecade, 'Points per decade');

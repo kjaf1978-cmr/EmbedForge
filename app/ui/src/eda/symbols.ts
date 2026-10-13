@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, ZENERS } from './models';
+import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -224,6 +224,39 @@ export const SYMBOLS: SymbolDef[] = [
     gfx: () => [path('M -50 -10 H -30 M -50 10 H -30 M 30 0 H 40 M -10 -40 V -20 M -10 40 V 20'), path('M -30 -30 L 30 0 L -30 30 Z', 'bg'),
       text(-24, -6, '+', 11), text(-24, 14, '−', 11)],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(OPAMPS.map((m) => m.name)), default: 'generic' }, params: [],
+  },
+  {
+    id: 'regulator', name: 'Voltage regulator', category: 'Integrated circuits', keywords: ['u', 'regulator', 'ldo', '7805', 'lm7805', '78xx', 'ams1117', 'supply', 'linear'], prefix: 'U',
+    description: 'Fixed linear voltage regulator (pins as TO-220 78xx: 1 IN, 2 GND, 3 OUT). Needs about 2 V more at the input than at the output (1.1 V for the AMS1117).',
+    pins: [{ id: '1', name: 'IN', x: -40, y: 0, type: 'power_in' }, { id: '2', name: 'GND', x: 0, y: 30, type: 'power_in' }, { id: '3', name: 'OUT', x: 40, y: 0, type: 'power_out' }],
+    refAt: { x: 0, y: -20 }, valAt: { x: 0, y: 44 }, simulated: true,
+    gfx: () => [path('M -40 0 H -25 M 25 0 H 40 M 0 10 V 30'), path('M -25 -10 H 25 V 10 H -25 Z', 'bg'), text(-14, 3, 'IN', 7), text(13, 3, 'OUT', 7), text(0, 8, 'GND', 6)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(REGULATORS.map((m) => m.name)), default: '7805' }, params: [],
+  },
+  {
+    id: 'lm317', name: 'Adjustable regulator', category: 'Integrated circuits', keywords: ['u', 'lm317', 'adjustable', 'regulator', 'variable supply'], prefix: 'U',
+    description: 'Adjustable linear regulator (pins as TO-220 LM317: 1 ADJ, 2 OUT, 3 IN). OUT stays 1.25 V above ADJ: Vout = 1.25 V × (1 + R2/R1) with R1 from OUT to ADJ and R2 from ADJ to ground.',
+    pins: [{ id: '3', name: 'IN', x: -40, y: 0, type: 'power_in' }, { id: '1', name: 'ADJ', x: 0, y: 30, type: 'input' }, { id: '2', name: 'OUT', x: 40, y: 0, type: 'power_out' }],
+    refAt: { x: 0, y: -20 }, valAt: { x: 0, y: 44 }, simulated: true,
+    gfx: () => [path('M -40 0 H -25 M 25 0 H 40 M 0 10 V 30'), path('M -25 -10 H 25 V 10 H -25 Z', 'bg'), text(-14, 3, 'IN', 7), text(13, 3, 'OUT', 7), text(0, 8, 'ADJ', 6)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(ADJ_REGULATORS.map((m) => m.name)), default: 'LM317' }, params: [],
+  },
+  {
+    id: 'timer555', name: '555 timer', category: 'Integrated circuits', keywords: ['u', '555', 'ne555', 'timer', 'oscillator', 'astable', 'monostable', 'blinker'], prefix: 'U',
+    description: '555 timer (DIP-8 pin numbers). Behavioural model: comparators at 2/3 and 1/3 of VCC, latch, output and discharge stages, NE555 output levels. Not exported to SPICE.',
+    pins: [
+      { id: '8', name: 'VCC', x: -10, y: -50, type: 'power_in' }, { id: '4', name: 'RESET', x: 10, y: -50, type: 'input' },
+      { id: '7', name: 'DIS', x: -40, y: -20, type: 'passive' }, { id: '6', name: 'THR', x: -40, y: 0, type: 'input' }, { id: '2', name: 'TRIG', x: -40, y: 20, type: 'input' },
+      { id: '3', name: 'OUT', x: 40, y: 0, type: 'output' }, { id: '5', name: 'CTRL', x: 40, y: 20, type: 'passive' },
+      { id: '1', name: 'GND', x: 0, y: 50, type: 'power_in' },
+    ],
+    refAt: { x: 0, y: -60 }, valAt: { x: 46, y: 46 }, simulated: true,
+    gfx: () => [
+      path('M -10 -50 V -35 M 10 -50 V -35 M -40 -20 H -25 M -40 0 H -25 M -40 20 H -25 M 25 0 H 40 M 25 20 H 40 M 0 35 V 50'),
+      path('M -25 -35 H 25 V 35 H -25 Z', 'bg'),
+      text(-10, -27, 'VCC', 6), text(10, -27, 'RST', 6), text(-15, -18, 'DIS', 6), text(-15, 2, 'THR', 6), text(-15, 22, 'TRG', 6), text(15, 2, 'OUT', 6), text(14, 22, 'CV', 6), text(0, 32, 'GND', 6), text(0, -8, '555', 9),
+    ],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(['NE555']), default: 'NE555' }, params: [],
   },
   {
     id: 'switch', name: 'Switch', category: 'Switches', keywords: ['sw', 'toggle', 'spst', 'on off'], prefix: 'SW',

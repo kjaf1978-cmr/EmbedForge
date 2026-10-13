@@ -2,7 +2,7 @@
 
 import { Engine, SimError, type Waveforms } from './engine';
 import { toSpice, spiceName, type Analysis } from './spice';
-import type { Element } from './circuit';
+import { terminals, type Element } from './circuit';
 import { buildSimNet, planAnalysis, type SimNet } from '../eda/simnet';
 import { connectivity } from '../eda/connectivity';
 import type { Sheet } from '../eda/schematic';
@@ -44,16 +44,7 @@ function pinCurrents(net: SimNet, w: Waveforms, imag: boolean): Record<string, n
   return out;
 }
 
-function terms(e: Element): string[] {
-  switch (e.kind) {
-    case 'R': case 'C': case 'L': return [e.a, e.b];
-    case 'V': case 'I': return [e.p, e.n];
-    case 'E': case 'G': return [e.p, e.n, e.cp, e.cn];
-    case 'D': return [e.a, e.k];
-    case 'Q': return [e.c, e.b, e.e];
-    case 'M': return [e.d, e.g, e.s];
-  }
-}
+const terms = terminals;
 
 export function simulate(sheet: Sheet): SimResult | SimFailure {
   const t0 = performance.now();
@@ -72,7 +63,7 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
         w = { x: [0], v: Object.fromEntries(Object.entries(r.v).map(([k, v]) => [k, [v]])), i: Object.fromEntries(Object.entries(r.i).map(([k, v]) => [k, v.map((x) => [x])])), warnings: r.warnings };
         break;
       }
-      case 'tran': w = eng.tran(plan.analysis.tstep, plan.analysis.tstop); break;
+      case 'tran': w = eng.tran(plan.analysis.tstep, plan.analysis.tstop, undefined, 200000, !!plan.analysis.uic); break;
       case 'ac': w = eng.ac(plan.points!); break;
       case 'dc': {
         const el = eng.element(plan.sweep!.element) as (Element & { kind: 'V' | 'I' }) | (Element & { kind: 'R' });

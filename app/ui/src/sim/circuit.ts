@@ -27,7 +27,10 @@ export type Element =
   | { kind: 'G'; name: string; p: string; n: string; cp: string; cn: string; gm: number }
   | { kind: 'D'; name: string; a: string; k: string; model: DiodeModel }
   | { kind: 'Q'; name: string; c: string; b: string; e: string; model: BjtModel }
-  | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel };
+  | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel }
+  /** 555 timer, behavioural (comparators at 2/3 and 1/3 of CTRL, latch, output and discharge
+   *  stages). It has no SPICE primitive; the export says so. */
+  | { kind: 'T'; name: string; gnd: string; trig: string; out: string; rst: string; ctrl: string; thr: string; dis: string; vcc: string };
 
 export interface Circuit {
   title?: string;
@@ -43,6 +46,7 @@ export function terminals(e: Element): string[] {
     case 'D': return [e.a, e.k];
     case 'Q': return [e.c, e.b, e.e];
     case 'M': return [e.d, e.g, e.s];
+    case 'T': return [e.gnd, e.trig, e.out, e.rst, e.ctrl, e.thr, e.dis, e.vcc];
   }
 }
 

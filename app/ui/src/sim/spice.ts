@@ -9,7 +9,7 @@ import { GSHUNT } from './engine';
 export type Analysis =
   | { type: 'op' }
   | { type: 'dc'; source: string; start: number; stop: number; step: number }
-  | { type: 'tran'; tstep: number; tstop: number; tmax?: number }
+  | { type: 'tran'; tstep: number; tstop: number; tmax?: number; uic?: boolean }
   | { type: 'ac'; perDecade: number; fstart: number; fstop: number };
 
 /** SPICE node names: letters, digits and _ only; "0" is ground. */
@@ -62,6 +62,9 @@ export function elementLine(e: Element, models: Map<string, string>): string {
       const card = `${m.type.toUpperCase()}(LEVEL=1 VTO=${n(m.vto)} KP=${n(m.kp)} LAMBDA=${n(m.lambda)} IS=${n(m.is)})`;
       return `${nm} ${N(e.d)} ${N(e.g)} ${N(e.s)} ${N(e.s)} ${model(models, 'M', card)} W=${n(m.w)} L=${n(m.l)}`;
     }
+    case 'T':
+      return `* ${e.name}: 555 timer (GND ${N(e.gnd)} TRIG ${N(e.trig)} OUT ${N(e.out)} RESET ${N(e.rst)} CTRL ${N(e.ctrl)} THR ${N(e.thr)} DIS ${N(e.dis)} VCC ${N(e.vcc)}). ` +
+        'EmbedForge simulates it with a behavioural model that has no SPICE primitive: insert a 555 subcircuit here.';
   }
 }
 
@@ -75,7 +78,7 @@ export function analysisLine(a: Analysis): string {
   switch (a.type) {
     case 'op': return '.op';
     case 'dc': return `.dc ${a.source} ${n(a.start)} ${n(a.stop)} ${n(a.step)}`;
-    case 'tran': return `.tran ${n(a.tstep)} ${n(a.tstop)} 0 ${n(a.tmax ?? a.tstep)}`;
+    case 'tran': return `.tran ${n(a.tstep)} ${n(a.tstop)} 0 ${n(a.tmax ?? a.tstep)}${a.uic ? ' uic' : ''}`;
     case 'ac': return `.ac dec ${a.perDecade} ${n(a.fstart)} ${n(a.fstop)}`;
   }
 }

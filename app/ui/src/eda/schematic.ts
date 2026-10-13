@@ -31,7 +31,7 @@ export type Probe =
 
 export type SimSettings =
   | { type: 'op' }
-  | { type: 'tran'; stop: string; step: string }
+  | { type: 'tran'; stop: string; step: string; /** 'zero': capacitors start discharged (SPICE uic) */ start?: 'op' | 'zero' }
   | { type: 'ac'; fstart: string; fstop: string; perDecade: string; probeIsDb?: boolean }
   | { type: 'dc'; target: string; param: string; start: string; stop: string; step: string };
 

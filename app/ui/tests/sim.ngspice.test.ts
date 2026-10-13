@@ -11,6 +11,8 @@ import { REFERENCE, type RefCase } from '../src/sim/reference';
 import { toSpice, spiceNode, spiceName } from '../src/sim/spice';
 import { Engine, decadePoints, linearPoints, type Waveforms } from '../src/sim/engine';
 import type { Element } from '../src/sim/circuit';
+import { EXAMPLES } from '../src/eda/examples';
+import { buildSimNet, planAnalysis } from '../src/eda/simnet';
 
 function haveNgspice(): boolean {
   try { execFileSync('ngspice', ['-v'], { stdio: 'ignore' }); return true; } catch { return false; }
@@ -56,7 +58,7 @@ function runEngine(rc: RefCase): Waveforms {
       const el = eng.element(a.source) as Element & { kind: 'V' | 'I' };
       return eng.dcSweep(linearPoints(a.start, a.stop, a.step), (v) => { el.dc = v; });
     }
-    case 'tran': return eng.tran(a.tstep, a.tstop, a.tmax);
+    case 'tran': return eng.tran(a.tstep, a.tstop, a.tmax, 200000, !!a.uic);
     case 'ac': return eng.ac(decadePoints(a.fstart, a.fstop, a.perDecade));
   }
 }
@@ -106,6 +108,44 @@ describe.skipIf(!ok)('SIM-04 reference suite against ngspice', () => {
         const el = rc.circuit.elements.find((x) => x.name === e)!;
         const key = `i(${spiceName(el).toLowerCase()})`;
         errs.push(...compare(key, ng.x, ng.cols[key], me.x, me.i[e][0], 1e-6, tran));
+      }
+      expect(errs.slice(0, 10)).toEqual([]);
+    });
+  }
+});
+
+// every example schematic that has SPICE primitives only (not the 555) is a reference case too
+const exampleCases: RefCase[] = EXAMPLES.flatMap((ex) => {
+  const sheet = ex.build();
+  const net = buildSimNet(sheet);
+  if (net.circuit.elements.some((e) => e.kind === 'T')) return [];
+  const errors: string[] = [];
+  const plan = planAnalysis(sheet.sim, sheet, errors);
+  let analysis = plan.analysis;
+  if (analysis.type === 'dc') {
+    const el = net.circuit.elements.find((e) => e.name === plan.sweep!.element)!;
+    analysis = { ...analysis, source: spiceName(el) };
+  }
+  const nodes = [...net.netNode.values()].filter((n) => n !== '0');
+  return [{ id: `example ${ex.id}`, circuit: net.circuit, analysis, nodes }];
+});
+
+describe.skipIf(!ok)('SIM-04 example schematics against ngspice', () => {
+  for (const rc of exampleCases) {
+    it(rc.id, () => {
+      const ng = runNgspice(rc);
+      const a = rc.analysis;
+      const me = a.type === 'dc'
+        ? (() => { const eng = new Engine(rc.circuit); const el = rc.circuit.elements.find((e) => spiceName(e) === a.source) as Element & { kind: 'V' };
+            const mine = eng.element(el.name) as Element & { kind: 'V' }; return eng.dcSweep(linearPoints(a.start, a.stop, a.step), (v) => { mine.dc = v; }); })()
+        : runEngine(rc);
+      const errs: string[] = [];
+      for (const nd of rc.nodes) {
+        const v = `v(${spiceNode(nd)})`;
+        if (a.type === 'ac') {
+          errs.push(...compare(`Re ${v}`, ng.x, ng.cols[`real(${v})`], me.x, me.v[nd], 1e-3, false));
+          errs.push(...compare(`Im ${v}`, ng.x, ng.cols[`imag(${v})`], me.x, me.vi![nd], 1e-3, false));
+        } else errs.push(...compare(v, ng.x, ng.cols[v], me.x, me.v[nd], 1e-3, a.type === 'tran'));
       }
       expect(errs.slice(0, 10)).toEqual([]);
     });

@@ -24,6 +24,7 @@ const DC_PATH: Record<string, string[][]> = {
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],
   opamp: [['6', '7', '4']], switch: [], button: [], spdt: [],
+  regulator: [['1', '2', '3']], lm317: [['1', '2', '3']], timer555: [['1', '3', '5', '7', '8']],
   // capacitors, current sources and op-amp inputs give no DC path
 };
 

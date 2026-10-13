@@ -108,6 +108,17 @@ export const REFERENCE: RefCase[] = [
     analysis: { type: 'tran', tstep: 1e-5, tstop: 8e-3 }, nodes: ['out'], currents: ['V1'],
   },
   {
+    id: 'rc-uic-tran',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 5 },
+      { kind: 'R', name: 'R1', a: 'in', b: 'out', r: 10e3 },
+      { kind: 'C', name: 'C1', a: 'out', b: '0', c: 1e-6 },
+      { kind: 'L', name: 'L1', a: 'out', b: 'x', l: 1e-3 },
+      { kind: 'R', name: 'R2', a: 'x', b: '0', r: 1e4 },
+    ] },
+    analysis: { type: 'tran', tstep: 1e-4, tstop: 50e-3, uic: true }, nodes: ['out'],
+  },
+  {
     id: 'rlc-ring-tran',
     circuit: { elements: [
       { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0, wave: { type: 'pulse', v1: 0, v2: 1, td: 0, tr: 1e-7, tf: 1e-7, pw: 1, per: 2 } },

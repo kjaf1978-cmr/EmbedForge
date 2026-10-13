@@ -206,6 +206,56 @@ export const EXAMPLES: Example[] = [
   },
 ];
 
+EXAMPLES.push(
+  {
+    id: 'blinker555', title: '555 LED blinker', level: 'intermediate',
+    summary: 'A 555 timer in astable mode charges C1 through R1 and R2 and discharges it through R2: the LED blinks at f = 1.44 / ((R1 + 2·R2)·C1) ≈ 1 Hz.',
+    tryThis: 'Look at THR: the capacitor swings between 3 V and 6 V (1/3 and 2/3 of 9 V). Change R2 to 33k and simulate again: the blinking gets about twice as fast.',
+    build: () => {
+      const b = new B();
+      b.part('timer555', 100, 0);
+      b.part('power', 90, -80, { value: '+9V' });
+      b.part('power', 20, -120, { value: '+9V' });
+      b.part('resistor', 20, -80, { value: '10k' }, 1);
+      b.part('resistor', 20, 10, { value: '68k' }, 1);
+      b.part('capacitor_pol', 50, 70, { value: '10u' }, 1);
+      b.part('capacitor', 160, 50, { value: '10n' }, 1);
+      b.part('resistor', 200, 0, { value: '330' });
+      const d = b.part('led', 230, 30, { colour: 'red' }, 1);
+      b.part('gnd', 50, 130); b.part('gnd', 160, 110); b.part('gnd', 100, 80); b.part('gnd', 230, 90);
+      b.wire([90, -80], [90, -50]); b.wire([110, -50], [110, -60], [90, -60]);
+      b.wire([20, -120], [20, -110]); b.wire([20, -50], [20, -20], [60, -20]);
+      b.wire([60, 0], [50, 0], [50, 40]); b.wire([60, 20], [50, 20]); b.wire([20, 40], [50, 40]);
+      b.wire([50, 100], [50, 130]); b.wire([140, 20], [160, 20]); b.wire([160, 80], [160, 110]); b.wire([100, 50], [100, 80]);
+      b.wire([140, 0], [170, 0]); b.wire([230, 60], [230, 90]);
+      b.label('THR', 50, 10); b.label('OUT', 150, 0);
+      b.v(50, 30); b.v(160, 0); b.i(d, '2');
+      b.sim({ type: 'tran', stop: '3', step: '1m', start: 'zero' });
+      return b.done();
+    },
+  },
+  {
+    id: 'regulator', title: '5 V supply with a 7805 regulator', level: 'beginner',
+    summary: 'A 9 V battery feeds a 7805 linear regulator with its input and output capacitors and a 100 Ω load (50 mA).',
+    tryThis: 'The DC sweep raises the battery voltage from 0 to 12 V: OUT follows the input up to about 7 V (the 2 V dropout), then stays at 5 V. Select U1 and choose AMS1117-5.0: the dropout shrinks to about 1.1 V.',
+    build: () => {
+      const b = new B();
+      b.part('battery', 0, 0, { value: '9', rint: '0.5' });
+      b.part('regulator', 100, -60, { value: '7805' });
+      b.part('capacitor', 40, -30, { value: '330n' }, 1);
+      b.part('capacitor', 160, -30, { value: '100n' }, 1);
+      b.part('resistor', 200, -30, { value: '100' }, 1);
+      b.part('gnd', 0, 60); b.part('gnd', 40, 30); b.part('gnd', 100, 0); b.part('gnd', 160, 30); b.part('gnd', 200, 30);
+      b.wire([0, -30], [0, -60], [60, -60]); b.wire([140, -60], [200, -60]);
+      b.wire([0, 30], [0, 60]); b.wire([40, 0], [40, 30]); b.wire([100, -30], [100, 0]); b.wire([160, 0], [160, 30]); b.wire([200, 0], [200, 30]);
+      b.label('IN', 20, -60); b.label('OUT', 180, -60);
+      b.v(10, -60); b.v(190, -60);
+      b.sim({ type: 'dc', target: 'BT1', param: 'value', start: '0', stop: '12', step: '0.1' });
+      return b.done();
+    },
+  },
+);
+
 export function exampleById(id: string): Example | undefined {
   return EXAMPLES.find((e) => e.id === id);
 }

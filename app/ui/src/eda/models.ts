@@ -60,3 +60,19 @@ export const OPAMPS: NamedModel<OpampModel>[] = [
 export function findModel<T>(list: NamedModel<T>[], name: string): NamedModel<T> {
   return list.find((m) => m.name.toLowerCase() === name.toLowerCase()) ?? list[0];
 }
+
+/** Linear regulators: macro model with reference, error amplifier, NPN pass transistor and a
+ *  dropout clamp (no current limit, no thermal model). */
+export interface RegulatorModel { vout: number; dropout: number; iq: number; adjustable?: boolean }
+
+export const REGULATORS: NamedModel<RegulatorModel>[] = [
+  { name: '7805', note: 'fixed 5 V, 1 A, dropout 2 V (L7805/LM7805 family)', model: { vout: 5, dropout: 2, iq: 5e-3 } },
+  { name: '7809', note: 'fixed 9 V, 1 A, dropout 2 V', model: { vout: 9, dropout: 2, iq: 5e-3 } },
+  { name: '7812', note: 'fixed 12 V, 1 A, dropout 2 V', model: { vout: 12, dropout: 2, iq: 5e-3 } },
+  { name: 'AMS1117-3.3', note: 'fixed 3.3 V, 1 A low-dropout (1.1 V)', model: { vout: 3.3, dropout: 1.1, iq: 5e-3 } },
+  { name: 'AMS1117-5.0', note: 'fixed 5 V, 1 A low-dropout (1.1 V)', model: { vout: 5, dropout: 1.1, iq: 5e-3 } },
+];
+
+export const ADJ_REGULATORS: NamedModel<RegulatorModel>[] = [
+  { name: 'LM317', note: 'adjustable, 1.25 V between OUT and ADJ, 1.5 A, dropout about 2 V; Vout = 1.25 V × (1 + R2/R1)', model: { vout: 1.25, dropout: 2, iq: 50e-6, adjustable: true } },
+];

@@ -111,3 +111,37 @@ describe('project files (DATA-01, INV-08)', () => {
     expect(fromFiles(files).notes.join(' ')).toMatch(/disagrees/);
   });
 });
+
+describe('555 timer and regulators', () => {
+  it('555 astable: about 1 Hz, THR between 1/3 and 2/3 of VCC', () => {
+    const s = EXAMPLES.find((e) => e.id === 'blinker555')!.build();
+    const r = simulate(s) as SimResult;
+    expect('error' in r).toBe(false);
+    const thr = r.v['THR'], out = r.v['OUT'];
+    // after the first cycle: thresholds at 3 V and 6 V (9 V supply)
+    const late = r.x.map((t, i) => [t, thr[i]] as const).filter(([t]) => t > 1.2).map(([, v]) => v);
+    expect(Math.min(...late)).toBeGreaterThan(2.85);
+    expect(Math.max(...late)).toBeLessThan(6.15);
+    // frequency from the rising edges of OUT
+    const rises: number[] = [];
+    for (let i = 1; i < out.length; i++) if (out[i - 1] < 3.5 && out[i] >= 3.5) rises.push(r.x[i]);
+    // skip the first cycle, which starts from a discharged capacitor
+    const f = (rises.length - 2) / (rises[rises.length - 1] - rises[1]);
+    const expected = 1.44 / ((10e3 + 2 * 68e3) * 10e-6);
+    expect(Math.abs(f / expected - 1)).toBeLessThan(0.05);
+  });
+  it('7805: 5 V within 1 % above the dropout, follows the input below it', () => {
+    const s = EXAMPLES.find((e) => e.id === 'regulator')!.build();
+    const r = simulate(s) as SimResult;
+    expect('error' in r).toBe(false);
+    const at = (v: number) => r.v['OUT'][r.x.findIndex((x) => Math.abs(x - v) < 1e-6)];
+    expect(at(9)).toBeGreaterThan(4.95); expect(at(9)).toBeLessThan(5.05);
+    expect(at(12)).toBeGreaterThan(4.95); expect(at(12)).toBeLessThan(5.05);
+    expect(at(5)).toBeLessThan(3.6);
+    // input current ≈ load current + quiescent current
+    const op = { ...s, sim: { type: 'op' as const } };
+    const o = simulate(op) as SimResult;
+    expect(-o.i['BT1.1'][0]).toBeGreaterThan(0.05);
+    expect(-o.i['BT1.1'][0]).toBeLessThan(0.0575);
+  });
+});

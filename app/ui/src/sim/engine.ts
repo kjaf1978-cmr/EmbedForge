@@ -29,6 +29,8 @@ interface Ctx {
   gshunt: number;
   init: boolean;
   noncon: boolean;
+  /** Transient start without an operating point: capacitors at 0 V, inductors at 0 A (SPICE uic). */
+  uic: boolean;
 }
 
 interface AcCtx { Ar: Float64Array; Ai: Float64Array; br: Float64Array; bi: Float64Array; n: number; w: number }
@@ -113,6 +115,9 @@ interface Device {
   acCurrents?(re: Float64Array, im: Float64Array, w: number): [number, number][];
   /** SPICE device convergence test: the linearised current agrees with the exact one at x. */
   converged?(x: Float64Array): boolean;
+  /** Devices with a discrete state (the 555 latch): would the solution x change it? */
+  pending?(x: Float64Array): boolean;
+  commitState?(x: Float64Array): void;
 }
 
 const near = (a: number, b: number) => Math.abs(a - b) <= RELTOL * Math.max(Math.abs(a), Math.abs(b)) + ABSTOL;
@@ -139,7 +144,7 @@ class Capacitor implements Device {
     const g = (2 * C) / c.h; return [g, g * this.vprev + this.iprev];
   }
   load(c: Ctx) {
-    if (c.mode === 'dc') return;
+    if (c.mode === 'dc') { if (c.uic) stampG(c, this.a, this.b, 1e4); return; }
     const [g, ieq] = this.comp(c); // i = g·v − ieq
     stampG(c, this.a, this.b, g);
     rhs(c, this.a, ieq); rhs(c, this.b, -ieq);
@@ -203,6 +208,7 @@ class Inductor extends Branch {
   iprev = 0; vprev = 0;
   constructor(public el: Element & { kind: 'L' }, p: number, q: number, k: number) { super(p, q, k); }
   load(c: Ctx) {
+    if (c.mode === 'dc' && c.uic) { add(c, this.p, this.k, 1); add(c, this.q, this.k, -1); add(c, this.k, this.k, 1); return; }
     this.stampBranch(c);
     if (c.mode === 'dc') return;
     const L = this.el.l;
@@ -508,6 +514,51 @@ class Mosfet implements Device {
   }
 }
 
+/** 555 timer: internal 5 kΩ divider, comparators at V(CTRL) and V(CTRL)/2, RS latch (trigger
+ *  wins, reset below 0.7 V), output 1.7 V below VCC or 0.1 V above GND through 10 Ω,
+ *  discharge 10 Ω to GND when the output is low. NE555 levels; the latch changes only at
+ *  accepted time points, located to within a small fraction of the time step. */
+class Timer555 implements Device {
+  q = 0;
+  private static readonly R = 5e3;
+  private static readonly GOUT = 1 / 10;
+  constructor(public el: Element & { kind: 'T' }, private n: { gnd: number; trig: number; out: number; rst: number; ctrl: number; thr: number; dis: number; vcc: number; n13: number }) {}
+  private next(x: Float64Array): number {
+    const n = this.n, g = V(x, n.gnd);
+    const ctrl = V(x, n.ctrl) - g;
+    if (V(x, n.rst) - g < 0.7) return 0;
+    if (V(x, n.trig) - g < ctrl / 2) return 1;
+    if (V(x, n.thr) - g > ctrl) return 0;
+    return this.q;
+  }
+  pending(x: Float64Array) { return this.next(x) !== this.q; }
+  commitState(x: Float64Array) { this.q = this.next(x); }
+  private stamp(c: { A: Float64Array; n: number }, z: ((i: number, v: number) => void) | null) {
+    const n = this.n, g = 1 / Timer555.R;
+    stampG(c, n.vcc, n.ctrl, g); stampG(c, n.ctrl, n.n13, g); stampG(c, n.n13, n.gnd, g);
+    const ref = this.q ? n.vcc : n.gnd, off = this.q ? -1.7 : 0.1;
+    stampG(c, n.out, ref, Timer555.GOUT);
+    if (z) { z(n.out, Timer555.GOUT * off); z(ref, -Timer555.GOUT * off); }
+    stampG(c, n.dis, n.gnd, this.q ? 1e-9 : Timer555.GOUT);
+  }
+  load(c: Ctx) { this.stamp(c, (i, v) => rhs(c, i, v)); }
+  loadAC(c: AcCtx) {
+    const shim = { A: c.Ar, n: c.n };
+    this.stamp(shim, null);
+  }
+  currents(x: Float64Array) {
+    const n = this.n, v = (i: number) => V(x, i), g = 1 / Timer555.R;
+    const ref = this.q ? n.vcc : n.gnd, off = this.q ? -1.7 : 0.1;
+    const iOut = Timer555.GOUT * (v(n.out) - v(ref) - off); // into the output pin
+    const iDis = (v(n.dis) - v(n.gnd)) * (this.q ? 1e-9 : Timer555.GOUT);
+    const iVcc = (v(n.vcc) - v(n.ctrl)) * g + (this.q ? -iOut : 0);
+    const iCtrl = (v(n.ctrl) - v(n.n13)) * g - (v(n.vcc) - v(n.ctrl)) * g;
+    const iGnd = -(iOut + iDis + iVcc + iCtrl);
+    // order: gnd, trig, out, rst, ctrl, thr, dis, vcc
+    return [iGnd, 0, iOut, 0, iCtrl, 0, iDis, iVcc];
+  }
+}
+
 export interface Waveforms {
   /** Sweep variable: time (s), frequency (Hz) or the swept value. */
   x: number[];
@@ -550,6 +601,8 @@ export class Engine {
     // internal nodes after the visible ones
     const internal: [Element & { kind: 'D' }, number][] = [];
     for (const e of circuit.elements) if (e.kind === 'D' && e.model.rs > 0) internal.push([e, node(`${e.name}#a`, false)]);
+    const timerNode = new Map<string, number>();
+    for (const e of circuit.elements) if (e.kind === 'T') timerNode.set(e.name, node(`${e.name}#n13`, false));
     let k = this.nNodes;
     const br = () => k++;
     for (const e of circuit.elements) {
@@ -569,6 +622,7 @@ export class Engine {
         }
         case 'Q': this.devices.push(new Bjt(e, ix(e.c), ix(e.b), ix(e.e))); break;
         case 'M': this.devices.push(new Mosfet(e, ix(e.d), ix(e.g), ix(e.s))); break;
+        case 'T': this.devices.push(new Timer555(e, { gnd: ix(e.gnd), trig: ix(e.trig), out: ix(e.out), rst: ix(e.rst), ctrl: ix(e.ctrl), thr: ix(e.thr), dis: ix(e.dis), vcc: ix(e.vcc), n13: timerNode.get(e.name)! })); break;
       }
     }
     this.n = k;
@@ -580,7 +634,7 @@ export class Engine {
   private ctx(over: Partial<Ctx>): Ctx {
     return {
       A: new Float64Array(this.n * this.n), z: new Float64Array(this.n), x: this.x, n: this.n,
-      mode: 'dc', t: 0, h: 0, method: 'be', srcScale: 1, gshunt: 0, init: false, noncon: false, ...over,
+      mode: 'dc', t: 0, h: 0, method: 'be', srcScale: 1, gshunt: 0, init: false, noncon: false, uic: false, ...over,
     };
   }
 
@@ -619,8 +673,23 @@ export class Engine {
     return -1;
   }
 
-  /** Operating point with GMIN stepping and source stepping when plain Newton fails. */
+  /** Operating point; devices with a discrete state are settled (at most 20 changes). */
   private solveDc(over: Partial<Ctx> = {}, fromScratch = true): Ctx {
+    let c = this.solveDc1(over, fromScratch);
+    for (let k = 0; k < 20; k++) {
+      const st = this.devices.filter((d) => d.pending?.(c.x));
+      if (!st.length) return c;
+      for (const d of st) d.commitState!(c.x);
+      this.x = c.x;
+      c = this.solveDc1(over, false);
+    }
+    if (this.devices.some((d) => d.pending?.(c.x)))
+      this.warnings.push('no stable DC operating point: the circuit oscillates (a 555 astable?). Use a transient analysis starting with the capacitors discharged.');
+    return c;
+  }
+
+  /** Operating point with GMIN stepping and source stepping when plain Newton fails. */
+  private solveDc1(over: Partial<Ctx> = {}, fromScratch = true): Ctx {
     const start = fromScratch ? new Float64Array(this.n) : this.x.slice();
     let c = this.ctx({ ...over, x: start });
     if (this.newton(c, 100, fromScratch) > 0) return c;
@@ -690,10 +759,11 @@ export class Engine {
   }
 
   /** Transient analysis from 0 to tstop; tstep is the output resolution and the largest step. */
-  tran(tstep: number, tstop: number, tmax?: number, maxPoints = 200000): Waveforms {
+  tran(tstep: number, tstop: number, tmax?: number, maxPoints = 200000, uic = false): Waveforms {
     if (!(tstep > 0 && tstop > 0)) throw new SimError('transient: step and stop time must be > 0');
     this.warnings = [];
-    let c = this.solveDc({ t: 0 });
+    let c = uic ? this.solveDc1({ t: 0, uic: true }) : this.solveDc({ t: 0 });
+    if (uic) for (const d of this.devices) d.commitState?.(c.x);
     this.x = c.x;
     for (const d of this.devices) d.initTran?.(c.x);
     const out = this.newWaveforms();
@@ -701,6 +771,7 @@ export class Engine {
     this.record(c, out, 0);
     const hmax = Math.min(tmax ?? tstep, tstop / 50);
     const hmin = tstop * 1e-12;
+    const hEvent = Math.max(hmax * 1e-3, tstop * 1e-9);
     const bps = new Set<number>([tstop]);
     for (const b of this.breaks) {
       const e = b.wave as Element & { kind: 'V' | 'I' };
@@ -721,6 +792,9 @@ export class Engine {
         if (h < hmin) throw new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence)`);
         continue;
       }
+      // a discrete state (555 latch) would change: find the instant to within hEvent first
+      const flips = this.devices.filter((d) => d.pending?.(c.x));
+      if (flips.length && hh > hEvent) { h = Math.max(hh / 4, hEvent); continue; }
       this.x = c.x;
       for (const d of this.devices) d.accept?.(c, c.x);
       t += hh;
@@ -728,7 +802,8 @@ export class Engine {
       if (out.x.length > maxPoints) throw new SimError(`transient: more than ${maxPoints} time points; use a larger step`);
       afterBreak = Math.abs(t - nb) <= eps;
       h = it <= 6 ? Math.min(hmax, hh * 2) : it > 20 ? hh / 2 : hh;
-      if (afterBreak) h = Math.min(h, hmax / 10); // restart small after a source corner
+      if (flips.length) { for (const d of flips) d.commitState!(c.x); afterBreak = true; }
+      if (afterBreak) h = Math.min(h, hmax / 10); // restart small after a source corner or a state change
     }
     return out;
   }

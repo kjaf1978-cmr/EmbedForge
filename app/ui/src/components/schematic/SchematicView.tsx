@@ -465,6 +465,26 @@ export function SchematicView(props: Props) {
     return m;
   }, [op, shown]);
 
+  // hover readout (LTspice style): what is under the pointer, with its value after a simulation
+  const hoverText = useMemo(() => {
+    if (drag || tool !== 'select') return '';
+    const h = hitTest(shown, cursor, 6 / view.z);
+    if (!h) return '';
+    const vOf = (net: string | null | undefined) => (net && op && ok?.analysis !== 'ac' && op.v[net] !== undefined ? ` = ${formatValue(op.v[net], 'V')}${op.final ? ' (end)' : ''}` : '');
+    if (h.kind === 'wire') { const n = conn.wireNet.get(h.wire); return n ? `net ${n}${vOf(n)}` : 'wire, not connected'; }
+    if (h.kind === 'pin') {
+      const p = shown.parts.find((x) => x.id === h.part)!;
+      const s = symbolOf(p.sym);
+      if (s.power) return `${p.props[s.value.key]}`;
+      const n = conn.pinNet.get(`${p.ref}.${h.pin}`);
+      const i = op && ok?.analysis !== 'ac' ? op.i[`${p.ref}.${h.pin}`] : undefined;
+      return `${p.ref} pin ${h.pin} (${s.pins.find((q) => q.id === h.pin)?.name}) · ${n ?? 'not connected'}${vOf(n)}${i !== undefined ? ` · I in ${formatValue(i, 'A')}` : ''}`;
+    }
+    if (h.kind === 'part') { const p = shown.parts.find((x) => x.id === h.part)!; const s = symbolOf(p.sym); return s.power ? `${s.name} ${p.props[s.value.key]}` : `${p.ref} · ${s.name} ${p.props[s.value.key] ?? ''}${s.interactive && hasRun ? ' · click to operate' : ''}`; }
+    if (h.kind === 'label') { const l = shown.labels.find((x) => x.id === h.label)!; return `label ${l.name}${vOf(l.name)}`; }
+    return '';
+  }, [cursor, shown, conn, op, ok, tool, drag, view.z, hasRun]);
+
   // probes → traces
   const probeName = (pr: Probe): string => {
     if (pr.kind === 'i') { const p = shown.parts.find((x) => x.id === pr.part); return p ? `I(${p.ref}.${pr.pin})` : 'I(?)'; }
@@ -669,6 +689,7 @@ export function SchematicView(props: Props) {
           )}
           <div class="sch-status small" aria-hidden="true">
             {Math.round(cursor.x)}, {Math.round(cursor.y)} · zoom {Math.round(view.z * 100)} % · {tool === 'wire' ? `wire (${vFirst ? 'vertical' : 'horizontal'} first, / switches)` : tool}
+            {hoverText && <> · <strong>{hoverText}</strong></>}
           </div>
           {props.tutorial && <TutorialCard step={tutStep} onEnd={props.onTutorialEnd} />}
           {!props.tutorial && props.hint && hintOpen && (
@@ -973,6 +994,13 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
         <div class="row wrap">
           {field('Stop time', s.stop, (v) => set({ ...s, stop: v }, `Stop time ${v}`), 's')}
           {field('Time step', s.step, (v) => set({ ...s, step: v }, `Time step ${v}`), 's', 'empty: stop time / 1000')}
+          <label class="field">Start from
+            <select value={s.start ?? 'op'} onChange={(e) => set({ ...s, start: (e.target as HTMLSelectElement).value as 'op' | 'zero' }, 'Transient start')}>
+              <option value="op">the DC operating point</option>
+              <option value="zero">discharged capacitors (power-on)</option>
+            </select>
+            <span class="small muted">Oscillators such as a 555 astable need "discharged".</span>
+          </label>
         </div>
       )}
       {s.type === 'ac' && (
