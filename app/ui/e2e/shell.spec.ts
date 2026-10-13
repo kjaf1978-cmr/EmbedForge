@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   (page as any).__errors = errors;
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Welcome', level: 1, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Start', level: 1, exact: true })).toBeVisible();
 });
 
 test.afterEach(async ({ page }) => {
@@ -57,7 +57,7 @@ test('UI-01/02/03 + PERF-10: keyboard-only selection cross-highlights every view
 test('F0-24(a): transitive highlighting on request', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByLabel('transitive').check();
-  await page.getByRole('button', { name: 'Project', exact: true }).click();
+  await page.getByRole('button', { name: 'Traceability', exact: true }).click();
   await page.getByRole('region', { name: 'Trace view' }).getByRole('button', { name: 'R3' }).click();
   await expect(page.getByRole('region', { name: 'Trace view' }).getByRole('button', { name: 'src/cmp.cpp' })).toHaveClass(/is-related/);
 });
@@ -83,7 +83,7 @@ test('HOST-02(e): 1366×768 at 200 % keeps every function reachable without page
   await expect(page.getByRole('status', { name: 'Status bar' })).toContainText('Compact layout');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
-  for (const name of ['Welcome', 'Project', 'Libraries', 'Documentation', 'Self-diagnosis', 'Host check', 'Settings', 'Navigator', 'Help'])
+  for (const name of ['Start', 'Schematic', 'Traceability', 'Libraries', 'Documentation', 'Self-diagnosis', 'Host check', 'Settings', 'Navigator', 'Help'])
     await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
 });
 
@@ -121,7 +121,7 @@ for (const theme of ['light', 'dark']) {
   test.describe(() => { test.use({ bypassCSP: true });
   test(`accessibility (axe): no serious or critical violations, ${theme} theme`, async ({ page }) => {
     if (theme === 'dark') await page.keyboard.press('Control+Shift+L');
-    const views = ['Welcome', 'Project', 'Libraries', 'Documentation', 'Self-diagnosis', 'Host check', 'Settings'];
+    const views = ['Start', 'Schematic', 'Traceability', 'Libraries', 'Documentation', 'Self-diagnosis', 'Host check', 'Settings'];
     for (const v of views) {
       await page.getByRole('button', { name: v, exact: true }).click();
       await page.waitForTimeout(100);

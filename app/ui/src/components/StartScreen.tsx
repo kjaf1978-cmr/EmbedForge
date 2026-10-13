@@ -76,15 +76,15 @@ function ExampleCard({ ex, onOpen }: { ex: Example; onOpen: () => void }) {
   const pad = 20;
   return (
     <article class="example">
-      <button class="example-preview" onClick={onOpen} aria-label={`Open example: ${ex.title}`}>
+      <div class="example-preview" onClick={onOpen} aria-hidden="true">
         <svg viewBox={`${b.x0 - pad} ${b.y0 - pad} ${b.x1 - b.x0 + 2 * pad} ${b.y1 - b.y0 + 2 * pad}`} class="sch-mini" aria-hidden="true">
           <SheetContent sheet={{ ...sheet, probes: [] }} view={{ conn }} />
         </svg>
-      </button>
+      </div>
       <h3>{ex.title} <span class={`level ${ex.level}`}>{ex.level}</span></h3>
       <p class="small">{ex.summary}</p>
       <p class="small muted"><strong>Try this:</strong> {ex.tryThis}</p>
-      <button onClick={onOpen}>Open</button>
+      <button onClick={onOpen} aria-label={`Open example: ${ex.title}`}>Open</button>
     </article>
   );
 }

@@ -69,6 +69,8 @@ interface Props {
   onTutorialEnd: () => void;
   /** Changes when another document is opened: the view refits. */
   docKey: string;
+  /** Short hint shown on the canvas (examples: what to try). */
+  hint?: string;
 }
 
 type Drag =
@@ -87,6 +89,7 @@ export function SchematicView(props: Props) {
   const valueRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
   const [size, setSize] = useState({ w: 900, h: 600 });
   const [view, setView] = useState({ x: -300, y: -250, z: 1.4 });
+  const userView = useRef(false);
   const [tool, setTool] = useState<Tool>('select');
   const [placing, setPlacing] = useState<{ sym: string; rot: Rot; mirror: boolean; props?: Record<string, string> } | null>(null);
   const [wirePts, setWirePts] = useState<Pt[]>([]);
@@ -109,6 +112,7 @@ export function SchematicView(props: Props) {
   const [plotOpen, setPlotOpen] = useState(true);
   const [spiceText, setSpiceText] = useState<string | null>(null);
   const [tutStep, setTutStep] = useState(0);
+  const [hintOpen, setHintOpen] = useState(true);
   const tutStart = useRef<Sheet>(sheet);
   const clip = useRef<Clip | null>(null);
   const spaceDown = useRef(false);
@@ -148,8 +152,11 @@ export function SchematicView(props: Props) {
     const z = Math.min(size.w / (b.x1 - b.x0 + 2 * pad), size.h / (b.y1 - b.y0 + 2 * pad), 3);
     setView({ x: (b.x0 + b.x1) / 2 - size.w / z / 2, y: (b.y0 + b.y1) / 2 - size.h / z / 2, z });
   };
-  useEffect(() => { fit(); setResult(null); setHasRun(false); setSel(noSelection()); setTutStep(0); tutStart.current = sheet; svgRef.current?.focus({ preventScroll: true }); }, [props.docKey, size.w > 0 && size.h > 0]);
+  useEffect(() => { userView.current = false; fit(); setResult(null); setHasRun(false); setSel(noSelection()); setTutStep(0); tutStart.current = sheet; setHintOpen(true); svgRef.current?.focus({ preventScroll: true }); }, [props.docKey]);
+  // until the user zooms or pans, the view follows the canvas size (the results panel takes room)
+  useEffect(() => { if (!userView.current) fit(); }, [size.w, size.h]);
   const zoomBy = (k: number, at?: Pt) => {
+    userView.current = true;
     const c = at ?? { x: view.x + size.w / view.z / 2, y: view.y + size.h / view.z / 2 };
     const z = Math.min(8, Math.max(0.2, view.z * k));
     setView({ z, x: c.x - (c.x - view.x) * (view.z / z), y: c.y - (c.y - view.y) * (view.z / z) });
@@ -159,6 +166,7 @@ export function SchematicView(props: Props) {
   const apply = (next: Sheet, label: string) => {
     const d = describeDiff(diffNetlist(buildNetlist(sheet), buildNetlist(next)));
     const full = d ? `${label}: ${d}` : label;
+    userView.current = true; // from the first edit on, the view no longer refits by itself
     commit(next, full);
     announce(full);
   };
@@ -250,7 +258,7 @@ export function SchematicView(props: Props) {
         break;
       }
       case 'select-all': setSel({ parts: sheet.parts.map((p) => p.id), wires: sheet.wires.map((w) => w.id), labels: sheet.labels.map((l) => l.id) }); break;
-      case 'fit': fit(); break;
+      case 'fit': userView.current = false; fit(); break;
       case 'zoom-in': zoomBy(1.25); break;
       case 'zoom-out': zoomBy(0.8); break;
       case 'annotate': apply(annotate(sheet), 'Annotate'); break;
@@ -328,11 +336,15 @@ export function SchematicView(props: Props) {
 
   // ---- pointer
   const onPointerDown = (e: PointerEvent) => {
-    svgRef.current?.focus();
+    // the element under the pointer may be re-rendered away (the placement ghost): keep the
+    // browser from moving focus on the mousedown that follows, and focus the canvas here
+    e.preventDefault();
+    svgRef.current?.focus({ preventScroll: true });
     setKbCursor(false);
     const p = toWorldPt(e);
     if (e.button === 1 || e.button === 2 || (e.button === 0 && spaceDown.current)) {
       e.preventDefault();
+      userView.current = true;
       setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
@@ -434,7 +446,7 @@ export function SchematicView(props: Props) {
     }
   };
   useEffect(() => {
-    if (!live || !hasRun || drag?.kind === 'move') return;
+    if (!live || !hasRun || (drag?.kind === 'move' && (drag.dx || drag.dy))) return;
     const t = setTimeout(() => void simulateNow(false), sheet.sim.type === 'op' ? 60 : 250);
     return () => clearTimeout(t);
   }, [shown, live]);
@@ -636,7 +648,7 @@ export function SchematicView(props: Props) {
           {!filtered.length && <p class="muted small">No part matches "{query}".</p>}
         </aside>
         <div class="sch-canvas-wrap">
-          <svg ref={svgRef} class={`sch-canvas tool-${tool}`} viewBox={vb} tabIndex={0} role="application"
+          <svg ref={svgRef} class={`sch-canvas tool-${tool}`} viewBox={vb} tabindex={0} role="application"
                aria-label="Schematic canvas. Tab selects parts; arrow keys move; Enter places or edits; letters choose tools (A, W, L, P, G, V, I, R, X)."
                onPointerDown={onPointerDown as never} onPointerMove={onPointerMove as never} onPointerUp={onPointerUp as never}
                onWheel={onWheel as never} onDblClick={onDblClick as never} onContextMenu={(e) => { e.preventDefault(); if (tool === 'wire') setWirePts([]); }}>
@@ -659,6 +671,12 @@ export function SchematicView(props: Props) {
             {Math.round(cursor.x)}, {Math.round(cursor.y)} · zoom {Math.round(view.z * 100)} % · {tool === 'wire' ? `wire (${vFirst ? 'vertical' : 'horizontal'} first, / switches)` : tool}
           </div>
           {props.tutorial && <TutorialCard step={tutStep} onEnd={props.onTutorialEnd} />}
+          {!props.tutorial && props.hint && hintOpen && (
+            <div class="tutorial hint" role="note" aria-label="Example hint">
+              <p><strong>Try this:</strong> {props.hint}</p>
+              <button onClick={() => setHintOpen(false)}>Close</button>
+            </div>
+          )}
         </div>
         <aside class="sch-side" aria-label="Properties and simulation">
           <div role="tablist" class="tabs">
@@ -690,7 +708,7 @@ export function SchematicView(props: Props) {
           {plotOpen && (traces.length ? (
             <Plot x={ok.x} xLabel={ok.xLabel} xUnit={ok.xUnit} log={ok.analysis === 'ac'} traces={traces} selected={selTrace} onSelect={setSelTrace}
                   onRemove={(id) => { const pid = id.replace(/:ph$/, ''); if (sheet.probes.some((p) => p.id === pid)) apply({ ...sheet, probes: sheet.probes.filter((p) => p.id !== pid) }, 'Remove probe'); }}
-                  onExportCsv={() => void exportCsv()} />
+                  onExportCsv={() => void exportCsv()} height={window.innerHeight < 900 ? 120 : 170} />
           ) : <p class="muted">Nothing to plot: add a probe (V, then click a wire).</p>)}
         </section>
       )}
@@ -703,7 +721,7 @@ function LibButton({ s, active, onPick }: { s: SymbolDef; active: boolean; onPic
   const xs = s.pins.map((p) => p.x), ys = s.pins.map((p) => p.y);
   const x0 = Math.min(-20, ...xs) - 6, x1 = Math.max(20, ...xs) + 6, y0 = Math.min(-20, ...ys) - 6, y1 = Math.max(20, ...ys) + 6;
   return (
-    <button class={`lib-item${active ? ' is-active' : ''}`} onClick={onPick} title={s.description} aria-label={`${s.name}: ${s.description}`}>
+    <button class={`lib-item${active ? ' is-active' : ''}`} onClick={onPick} title={s.description} aria-pressed={active}>
       <svg viewBox={`${x0} ${y0} ${x1 - x0} ${y1 - y0}`} width={44} height={34} aria-hidden="true">{s.gfx(props).map((g, i) => <GfxEl key={i} g={g} />)}</svg>
       <span>{s.name}</span>
     </button>

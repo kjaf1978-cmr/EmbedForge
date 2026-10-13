@@ -1,4 +1,4 @@
-# Increment 1 CI for the UI and the Tauri shell (TEST-01).
+# CI for the UI and the Tauri shell (TEST-01): Increment 1 shell, Increment 2 schematic editor and simulator.
 name: ui
 on:
   push:
@@ -18,9 +18,11 @@ jobs:
       - run: npm ci
       - name: Type check and build
         run: npm run build
-      - name: Unit tests (UI logic)
+      - name: ngspice for the simulator cross-check (SIM-04)
+        run: sudo apt-get update && sudo apt-get install -y ngspice && ngspice -v | head -2
+      - name: Unit tests (UI logic, schematic core, simulator; SIM-04 against ngspice)
         run: npm test
-      - name: Browser tests (UI-01..03, 17, 20..23, SS-07, axe accessibility)
+      - name: Browser tests (UI-01..03, 08, 17, 20..24, SS-07, SIM-01..03, axe accessibility)
         run: npx playwright install --with-deps chromium && npx playwright test
   shell:
     strategy:

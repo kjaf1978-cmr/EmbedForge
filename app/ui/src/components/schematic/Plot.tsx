@@ -17,12 +17,14 @@ interface Props {
   onSelect?: (id: string) => void;
   onRemove?: (id: string) => void;
   onExportCsv?: () => void;
+  height?: number;
 }
 
-const H = 170, ML = 64, MR = 16, MT = 10, MB = 24;
+const ML = 64, MR = 16, MT = 10, MB = 24;
 let plotSeq = 0;
 
-export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemove, onExportCsv }: Props) {
+export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemove, onExportCsv, height }: Props) {
+  const H = height ?? 170;
   const box = useRef<HTMLDivElement>(null);
   const uid = useMemo(() => ++plotSeq, []);
   const [w, setW] = useState(800);

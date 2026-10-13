@@ -1,4 +1,6 @@
-//! Tauri commands of the Increment 1 shell.
+//! Tauri commands of the shell (Increment 1) and the schematic projects (Increment 2).
+
+pub mod projects;
 
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -242,6 +244,37 @@ fn settings_save(app: tauri::AppHandle, settings: serde_json::Value) -> Result<(
     std::fs::write(&p, serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
 }
 
+fn projects_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    use tauri::Manager;
+    let docs = app.path().document_dir().or_else(|_| app.path().home_dir()).map_err(|e| e.to_string())?;
+    Ok(docs.join("EmbedForge Projects"))
+}
+
+#[tauri::command]
+fn project_list(app: tauri::AppHandle) -> Result<projects::ProjectList, String> {
+    projects::list(&projects_root(&app)?)
+}
+
+#[tauri::command]
+fn project_create(app: tauri::AppHandle, name: String) -> Result<projects::ProjectInfo, String> {
+    projects::create(&projects_root(&app)?, &name)
+}
+
+#[tauri::command]
+fn project_load(app: tauri::AppHandle, id: String) -> Result<projects::Loaded, String> {
+    projects::load(&projects_root(&app)?, &id)
+}
+
+#[tauri::command]
+fn project_save(app: tauri::AppHandle, id: String, files: serde_json::Map<String, serde_json::Value>, message: String) -> Result<bool, String> {
+    projects::save(&projects_root(&app)?, &id, &files, &message)
+}
+
+#[tauri::command]
+fn export_file(app: tauri::AppHandle, project: Option<String>, name: String, data: String) -> Result<String, String> {
+    projects::export(&projects_root(&app)?, project.as_deref(), &name, &data)
+}
+
 /// Windows: use the bundled fixed-version WebView2 runtime when it is installed (section 21),
 /// so that a clean offline Windows 10 image without the Evergreen runtime works.
 fn use_bundled_webview(root: &Path) {
@@ -260,7 +293,10 @@ pub fn run() {
     std::thread::spawn(move || startup_check(&root, &keys, &worker));
     tauri::Builder::default()
         .manage(shared)
-        .invoke_handler(tauri::generate_handler![app_version, host_check, diagnose, startup_status, repair, settings_load, settings_save])
+        .invoke_handler(tauri::generate_handler![
+            app_version, host_check, diagnose, startup_status, repair, settings_load, settings_save,
+            project_list, project_create, project_load, project_save, export_file
+        ])
         .run(tauri::generate_context!())
         .expect("error while running EmbedForge");
 }

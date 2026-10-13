@@ -788,12 +788,14 @@ checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
 name = "embedforge"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "ef-cm",
  "ef-diag",
  "ef-helper",
  "ef-host",
  "ef-integrity",
  "ef-schema",
+ "git2",
  "serde",
  "serde_json",
  "tauri",

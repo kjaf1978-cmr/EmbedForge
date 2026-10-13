@@ -98,13 +98,18 @@ button.big { padding: 0.5em 1em; font-size: 1.05em; }
 .example h3 { font-size: 1em; margin: 0.2em 0 0; }
 .example p { margin: 0; }
 .example > button:last-child { align-self: flex-start; margin-top: auto; }
-.example-preview { padding: 0; background: var(--sch-bg); border-radius: 6px; height: 9em; }
+.example-preview { padding: 0; background: var(--sch-bg); border: 1px solid var(--line); border-radius: 6px; height: 9em; cursor: pointer; }
 .sch-mini { width: 100%; height: 100%; }
 .level { font-size: 0.75em; font-weight: normal; border: 1px solid var(--line); border-radius: 3px; padding: 0 0.3em; color: var(--muted); }
 .roadmap { background: var(--panel); border: 1px dashed var(--line); border-radius: 8px; padding: 0.5em 1em; }
 .dialog { padding: 1em; } .dialog input { width: 100%; margin-top: 0.3em; }
 
-.sch { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: calc(100vh - 9.5em); min-height: 28em; gap: 0.4em; }
+.work.schematic-mode { display: flex; flex-direction: column; overflow: hidden; }
+.work.schematic-mode > .view-title { margin: 0 0 0.25em; font-size: 1.05em; }
+.compact .sch-tools kbd { display: none; }
+.tutorial.hint { border-color: var(--rel-line); }
+.work.schematic-mode > .banner { flex: none; max-height: 6em; overflow: auto; }
+.sch { display: grid; grid-template-rows: auto minmax(10em, 1fr) auto; flex: 1 1 auto; min-height: 0; gap: 0.4em; }
 .sch-tools { display: flex; flex-wrap: wrap; gap: 0.3em; align-items: center; }
 .sch-tools kbd { float: none; margin-left: 0.2em; font-size: 0.75em; }
 .sch-tools .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 0.2em; }
@@ -113,7 +118,9 @@ button.big { padding: 0.5em 1em; font-size: 1.05em; }
 .menu-list { position: absolute; z-index: 6; display: flex; flex-direction: column; gap: 0.2em; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em; min-width: 14em; box-shadow: 0 0.4em 1em rgba(0,0,0,0.2); }
 .menu-list button { text-align: left; }
 .sch-body { display: grid; grid-template-columns: 13.5em minmax(0, 1fr) 21em; gap: 0.4em; min-height: 0; }
-.compact .sch-body { grid-template-columns: 11em minmax(0, 1fr) 17em; }
+.compact .sch-body { grid-template-columns: min(10em, 17vw) minmax(0, 1fr) min(16em, 27vw); }
+.compact .lib-grid { grid-template-columns: 1fr; }
+.compact .tutorial { width: min(22em, 80%); }
 .sch-lib, .sch-side { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.4em; overflow: auto; min-height: 0; }
 .sch-lib input { width: 100%; margin-bottom: 0.3em; }
 .sch-lib h3 { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0.5em 0 0.2em; }
@@ -148,6 +155,7 @@ button.big { padding: 0.5em 1em; font-size: 1.05em; }
 .erc-marker.error circle { fill: var(--bad); }
 .erc-marker text { fill: #fff; font: 700 9px system-ui, sans-serif; pointer-events: none; }
 .led-glow { pointer-events: none; filter: blur(3px); }
+.ghost, .kb-cursor, .sel-box, .led-glow, .op-chip, .junction, .pin-open { pointer-events: none; }
 .ghost { opacity: 0.55; }
 .ghost path, .ghost circle { stroke: var(--accent); }
 .wire-ghost { stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 4 3; }
@@ -174,7 +182,8 @@ input[aria-invalid='true'] { border-color: var(--bad); }
 .erc-list, .nets { list-style: none; padding: 0; } .erc-list li, .nets li { margin: 0.25em 0; }
 .erc.error strong { color: var(--bad); } .erc.warning strong { color: var(--warn); } .erc.info strong { color: var(--muted); }
 .spice { font-size: 0.8em; max-height: 20em; overflow: auto; background: var(--bg); border: 1px solid var(--line); padding: 0.4em; white-space: pre; }
-.sch-plot { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em 0.5em; max-height: 42vh; overflow: auto; }
+.sch-plot { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em 0.5em; max-height: 45vh; overflow: auto; }
+.compact .sch-plot { max-height: 38vh; }
 .sch-plot .pane-title { margin: 0; }
 .plot-svg { display: block; touch-action: none; cursor: crosshair; }
 .plot-bg { fill: var(--sch-bg); stroke: var(--line); }
@@ -185,6 +194,7 @@ input[aria-invalid='true'] { border-color: var(--bad); }
 .plot-table { font-size: 0.85em; } .plot-table td, .plot-table th { white-space: nowrap; }
 .plot-bar { margin-bottom: 0.2em; }
 @media print {
+  .work.schematic-mode { display: block; overflow: visible; }
   .toolbar, .status, .nav, .help, .sch-tools, .sch-lib, .sch-side, .sch-plot, .sch-status, .tutorial, .banner, .view-title { display: none !important; }
   .sch, .sch-body { display: block; height: auto; }
   .sch-canvas-wrap { border: none; height: 95vh; }

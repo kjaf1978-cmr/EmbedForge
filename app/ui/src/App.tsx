@@ -61,6 +61,7 @@ export function App({ backend }: { backend: Backend }) {
   const editorApi = useRef<EditorApi | null>(null);
   const [tutorial, setTutorial] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
+  const [hint, setHint] = useState('');
   const [modal, setModal] = useState<null | { kind: 'save-as' } | { kind: 'discard'; then: () => void }>(null);
   const dirty = JSON.stringify(doc.sheet) !== (doc.saved || JSON.stringify(emptySheet()));
   const commitSheet = (next: Sheet, label: string) => {
@@ -71,14 +72,15 @@ export function App({ backend }: { backend: Backend }) {
   };
   const openDoc = (d: Doc, v: View = 'schematic') => { schUndo.current = new UndoStack(500); setDoc(d); setView(v); force((x) => x + 1); };
   const guard = (then: () => void) => { if (dirty) setModal({ kind: 'discard', then }); else then(); };
-  const newSchematic = () => guard(() => { setTutorial(false); setNotes([]); openDoc(fresh('Untitled', emptySheet())); });
-  const startTutorial = () => guard(() => { setNotes([]); openDoc(fresh('My first circuit', emptySheet())); setTutorial(true); });
-  const openExample = (e: Example) => guard(() => { setTutorial(false); setNotes([`Example "${e.title}": ${e.tryThis} Save it (Ctrl+S) to keep your changes as a project.`]); const s = e.build(); openDoc(fresh(e.title, s, null, s)); });
+  const newSchematic = () => guard(() => { setTutorial(false); setNotes([]); setHint(''); openDoc(fresh('Untitled', emptySheet())); });
+  const startTutorial = () => guard(() => { setNotes([]); setHint(''); openDoc(fresh('My first circuit', emptySheet())); setTutorial(true); });
+  const openExample = (e: Example) => guard(() => { setTutorial(false); setNotes([]); setHint(`${e.tryThis} Save (Ctrl+S) to keep your changes as a project.`); const s = e.build(); openDoc(fresh(e.title, s, null, s)); });
   const openProject = (p: ProjectInfo) => guard(async () => {
     try {
       const r = await backend.loadProject(p.id);
       const l = fromFiles(r.files as never);
       setTutorial(false);
+      setHint('');
       setNotes(l.notes);
       openDoc(fresh(r.info.name, l.sheet, r.info.id, l.sheet));
       say(`Opened ${r.info.name}`);
@@ -227,16 +229,20 @@ export function App({ backend }: { backend: Backend }) {
   const [helpRequest, setHelpRequest] = useState(0);
   useEffect(() => { if (helpRequest) { setDocPage(HELP[view]); setShowHelp(true); focusPane('help'); } }, [helpRequest]);
 
+  // read through refs: effects run after paint, and a key pressed in between must already see
+  // the closed palette and the current keymap
+  const paletteRef = useRef(palette); paletteRef.current = palette;
+  const keymapRef = useRef(keymap); keymapRef.current = keymap;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (palette) return;
+      if (paletteRef.current) return;
       const keys = eventKeys(e);
       if (keys === 'Escape' && (document.activeElement as HTMLElement)?.tagName === 'INPUT') return;
-      if (keymap.handle(keys)) e.preventDefault();
+      if (keymapRef.current.handle(keys)) e.preventDefault();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [keymap, palette]);
+  }, []);
 
   // re-select with the configured highlight mode when it changes
   useEffect(() => { bus.defaultMode = settings.highlightMode; if (bus.state.selected) bus.select(bus.state.selected); }, [settings.highlightMode]);
@@ -276,7 +282,7 @@ export function App({ backend }: { backend: Backend }) {
       {!bannerClosed && <StartupBanner startup={startup} host={hostIssues} onOpen={(v) => setView(v)} onClose={() => setBannerClosed(true)} />}
       <div class="body">
         {showNav && navPane}
-        <main id="pane-workspace" class="pane work" aria-label={VIEW_TITLE[view]} tabIndex={-1}>
+        <main id="pane-workspace" class={`pane work${view === 'schematic' ? ' schematic-mode' : ''}`} aria-label={VIEW_TITLE[view]} tabIndex={-1}>
           <h1 class="view-title" tabIndex={0}>{view === 'schematic' ? `Schematic · ${doc.name}${dirty ? ' (unsaved)' : ''}` : VIEW_TITLE[view]}</h1>
           {notes.length > 0 && (view === 'schematic' || view === 'start') && (
             <div class="banner" role="status">{notes.map((n) => <p key={n}>{n}</p>)}<button onClick={() => setNotes([])}>Dismiss</button></div>
@@ -284,7 +290,7 @@ export function App({ backend }: { backend: Backend }) {
           {view === 'start' && <StartScreen backend={backend} version={version} onNew={newSchematic} onTutorial={startTutorial} onExample={openExample} onOpen={openProject} />}
           {view === 'schematic' && (
             <SchematicView sheet={doc.sheet} name={doc.name} commit={commitSheet} sim={sim} apiRef={editorApi} announce={say} docKey={doc.key}
-                           tutorial={tutorial} onTutorialEnd={() => setTutorial(false)}
+                           tutorial={tutorial} onTutorialEnd={() => setTutorial(false)} hint={hint}
                            exportFile={(name, data) => backend.exportFile(doc.id, name, data)} />
           )}
           {view === 'project' && (<div class="split"><ArtefactView bus={bus} graph={graph} /><TraceView bus={bus} graph={graph} ids={artefactIds} /></div>)}

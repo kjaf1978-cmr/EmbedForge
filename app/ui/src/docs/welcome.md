@@ -1,25 +1,30 @@
 # Welcome to EmbedForge
 
-EmbedForge turns a plain-English description and a target board into a verified, documented
-electronics project. Everything runs on this computer; no internet connection or account is
-needed.
+EmbedForge is an offline electronics design tool. Everything runs on this computer; no
+internet connection or account is needed.
 
-## What this build contains (Increment 1)
+## What you can do in this version (Increment 2)
 
-- **Project navigator** with cross-highlighting between related artefacts.
-- **Library browsers** for boards, component models, code libraries and datasheets. In this
-  build they show seed data from Phase 0, marked "not yet qualified".
-- **Offline documentation** with search (this viewer).
-- **Self-diagnosis** and **host check**.
-- **Keyboard access** to every function, light and dark themes, font scaling from 80 % to
-  200 %, and undo/redo.
-
-Requirement drafting, code generation, circuits, emulation and fabrication files arrive in later
-increments. Views that are not available yet say which increment delivers them.
+- **Draw schematics** with a library of generic parts: resistors, capacitors, inductors,
+  potentiometers, sources, diodes, LEDs, Zener diodes, transistors, MOSFETs, op-amps, switches
+  and push-buttons.
+- **Simulate** them: operating point, transient, AC sweep and DC sweep, with voltage and current
+  probes and a waveform viewer. Switches, buttons and potentiometers work while you simulate.
+- **Check** them: the electrical rule check marks problems as you draw.
+- **Save** projects with version history, and **export** SVG, PNG, SPICE netlists and CSV.
 
 ## First steps
 
-1. Press **Ctrl+Shift+P** to open the command palette; every function is listed there.
-2. Open the **ACC-02 sample** in the navigator and select a requirement. Related artefacts light
-   up in every open view.
-3. Press **F1** in any view for its help page.
+1. On the **Start** screen, open the **tutorial** (five minutes), or an **example**.
+2. Press **F5** to simulate. Change a value and watch the result change.
+3. Press **F1** in any view for its help page, and **Ctrl+Shift+P** for the list of every
+   command.
+
+## Coming next
+
+- **Increment 3:** PCB layout and routing.
+- **Then:** boards and flashing, the natural-language design assistant, the parts catalogue,
+  firmware emulation.
+
+The **Traceability** view shows the planned link between requirements, code and circuit on a
+sample project; it becomes live with the design assistant.

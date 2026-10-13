@@ -44,7 +44,7 @@ test('beginner scenario: guided mode, mouse only, 1366×768', async ({ page }) =
   await step(page, S, 'B4', 'Open requirement R3 of the sample and see what it is linked to', async () => {
     await page.getByRole('button', { name: 'Navigator', exact: true }).click();
     await page.getByRole('tree', { name: 'Project navigator' }).getByText(/^R3 /).click();
-    await page.getByRole('button', { name: 'Project', exact: true }).click();
+    await page.getByRole('button', { name: 'Traceability', exact: true }).click();
     await expect(page.getByRole('heading', { level: 2, name: /^R3 / })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Trace view' }).getByRole('button', { name: 'BLK-CMP' })).toHaveClass(/is-related/);
   });
