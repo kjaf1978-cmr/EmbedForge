@@ -1,0 +1,184 @@
+// Reference circuit suite for SIM-04: each case is simulated by the built-in engine and by
+// ngspice (tests/sim.ngspice.test.ts), and the results must agree within 1 % or 1 mV / 1 µA.
+
+import type { BjtModel, Circuit, DiodeModel, MosModel } from './circuit';
+import type { Analysis } from './spice';
+
+export const D1N4148: DiodeModel = { is: 2.52e-9, n: 1.752, rs: 0.568 };
+export const LED_RED: DiodeModel = { is: 1.0e-19, n: 1.9, rs: 5 };
+export const ZENER_5V1: DiodeModel = { is: 1e-14, n: 1, rs: 1, bv: 5.1, ibv: 5e-3 };
+export const Q2N3904: BjtModel = { type: 'npn', is: 6.734e-15, bf: 416.4, br: 0.7371, nf: 1, nr: 1, vaf: 74.03 };
+export const Q2N3906: BjtModel = { type: 'pnp', is: 1.41e-15, bf: 180.7, br: 4.977, nf: 1, nr: 1, vaf: 18.7 };
+export const M2N7000: MosModel = { type: 'nmos', vto: 2.1, kp: 0.1, lambda: 0.01, w: 1, l: 1, is: 1e-14 };
+export const MPMOS: MosModel = { type: 'pmos', vto: -2, kp: 0.05, lambda: 0.01, w: 1, l: 1, is: 1e-14 };
+
+export interface RefCase {
+  id: string;
+  circuit: Circuit;
+  analysis: Analysis;
+  /** Nodes (voltages) compared. */
+  nodes: string[];
+  /** Element branch currents compared: voltage sources and inductors (ngspice i(name)). */
+  currents?: string[];
+}
+
+export const REFERENCE: RefCase[] = [
+  {
+    id: 'divider-op',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 12 },
+      { kind: 'R', name: 'R1', a: 'in', b: 'out', r: 10e3 },
+      { kind: 'R', name: 'R2', a: 'out', b: '0', r: 4.7e3 },
+    ] },
+    analysis: { type: 'op' }, nodes: ['in', 'out'], currents: ['V1'],
+  },
+  {
+    id: 'led-op',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'vcc', n: '0', dc: 5 },
+      { kind: 'R', name: 'R1', a: 'vcc', b: 'a', r: 330 },
+      { kind: 'D', name: 'D1', a: 'a', k: '0', model: LED_RED },
+    ] },
+    analysis: { type: 'op' }, nodes: ['a'], currents: ['V1'],
+  },
+  {
+    id: 'zener-dc',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0 },
+      { kind: 'R', name: 'R1', a: 'in', b: 'z', r: 470 },
+      { kind: 'D', name: 'D1', a: '0', k: 'z', model: ZENER_5V1 },
+    ] },
+    analysis: { type: 'dc', source: 'V1', start: 0, stop: 12, step: 0.5 }, nodes: ['z'], currents: ['V1'],
+  },
+  {
+    id: 'npn-switch-dc',
+    circuit: { elements: [
+      { kind: 'V', name: 'VCC', p: 'vcc', n: '0', dc: 5 },
+      { kind: 'V', name: 'VIN', p: 'in', n: '0', dc: 0 },
+      { kind: 'R', name: 'RB', a: 'in', b: 'b', r: 10e3 },
+      { kind: 'R', name: 'RC', a: 'vcc', b: 'c', r: 1e3 },
+      { kind: 'Q', name: 'Q1', c: 'c', b: 'b', e: '0', model: Q2N3904 },
+    ] },
+    analysis: { type: 'dc', source: 'VIN', start: 0, stop: 5, step: 0.1 }, nodes: ['b', 'c'], currents: ['VCC'],
+  },
+  {
+    id: 'pnp-op',
+    circuit: { elements: [
+      { kind: 'V', name: 'VCC', p: 'vcc', n: '0', dc: 9 },
+      { kind: 'R', name: 'RB', a: 'b', b: '0', r: 47e3 },
+      { kind: 'R', name: 'RC', a: 'c', b: '0', r: 2.2e3 },
+      { kind: 'R', name: 'RE', a: 'vcc', b: 'e', r: 1e3 },
+      { kind: 'Q', name: 'Q1', c: 'c', b: 'b', e: 'e', model: Q2N3906 },
+    ] },
+    analysis: { type: 'op' }, nodes: ['b', 'c', 'e'], currents: ['VCC'],
+  },
+  {
+    id: 'ce-amplifier-ac',
+    circuit: { elements: [
+      { kind: 'V', name: 'VCC', p: 'vcc', n: '0', dc: 12 },
+      { kind: 'V', name: 'VS', p: 'src', n: '0', dc: 0, acMag: 1 },
+      { kind: 'C', name: 'C1', a: 'src', b: 'b', c: 10e-6 },
+      { kind: 'R', name: 'R1', a: 'vcc', b: 'b', r: 47e3 },
+      { kind: 'R', name: 'R2', a: 'b', b: '0', r: 10e3 },
+      { kind: 'R', name: 'RC', a: 'vcc', b: 'c', r: 4.7e3 },
+      { kind: 'R', name: 'RE', a: 'e', b: '0', r: 1e3 },
+      { kind: 'C', name: 'CE', a: 'e', b: '0', c: 100e-6 },
+      { kind: 'C', name: 'C2', a: 'c', b: 'out', c: 10e-6 },
+      { kind: 'R', name: 'RL', a: 'out', b: '0', r: 10e3 },
+      { kind: 'Q', name: 'Q1', c: 'c', b: 'b', e: 'e', model: Q2N3904 },
+    ] },
+    analysis: { type: 'ac', perDecade: 10, fstart: 10, fstop: 1e6 }, nodes: ['out', 'b'],
+  },
+  {
+    id: 'rc-lowpass-ac',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0, acMag: 1 },
+      { kind: 'R', name: 'R1', a: 'in', b: 'out', r: 1e3 },
+      { kind: 'C', name: 'C1', a: 'out', b: '0', c: 100e-9 },
+    ] },
+    analysis: { type: 'ac', perDecade: 20, fstart: 10, fstop: 1e6 }, nodes: ['out'],
+  },
+  {
+    id: 'rc-step-tran',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0, wave: { type: 'pulse', v1: 0, v2: 5, td: 1e-4, tr: 1e-6, tf: 1e-6, pw: 4e-3, per: 1e-2 } },
+      { kind: 'R', name: 'R1', a: 'in', b: 'out', r: 1e3 },
+      { kind: 'C', name: 'C1', a: 'out', b: '0', c: 1e-6 },
+    ] },
+    analysis: { type: 'tran', tstep: 1e-5, tstop: 8e-3 }, nodes: ['out'], currents: ['V1'],
+  },
+  {
+    id: 'rlc-ring-tran',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0, wave: { type: 'pulse', v1: 0, v2: 1, td: 0, tr: 1e-7, tf: 1e-7, pw: 1, per: 2 } },
+      { kind: 'R', name: 'R1', a: 'in', b: 'm', r: 10 },
+      { kind: 'L', name: 'L1', a: 'm', b: 'out', l: 1e-3 },
+      { kind: 'C', name: 'C1', a: 'out', b: '0', c: 1e-6 },
+    ] },
+    analysis: { type: 'tran', tstep: 1e-6, tstop: 1e-3 }, nodes: ['out'], currents: ['L1'],
+  },
+  {
+    id: 'half-wave-rectifier-tran',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0, wave: { type: 'sin', vo: 0, va: 10, freq: 50 } },
+      { kind: 'D', name: 'D1', a: 'in', k: 'out', model: D1N4148 },
+      { kind: 'C', name: 'C1', a: 'out', b: '0', c: 100e-6 },
+      { kind: 'R', name: 'RL', a: 'out', b: '0', r: 1e3 },
+    ] },
+    analysis: { type: 'tran', tstep: 2e-5, tstop: 60e-3 }, nodes: ['out'],
+  },
+  {
+    id: 'nmos-switch-dc',
+    circuit: { elements: [
+      { kind: 'V', name: 'VDD', p: 'vdd', n: '0', dc: 12 },
+      { kind: 'V', name: 'VG', p: 'g', n: '0', dc: 0 },
+      { kind: 'R', name: 'RD', a: 'vdd', b: 'd', r: 100 },
+      { kind: 'M', name: 'M1', d: 'd', g: 'g', s: '0', model: M2N7000 },
+    ] },
+    analysis: { type: 'dc', source: 'VG', start: 0, stop: 5, step: 0.1 }, nodes: ['d'], currents: ['VDD'],
+  },
+  {
+    id: 'pmos-high-side-dc',
+    circuit: { elements: [
+      { kind: 'V', name: 'VDD', p: 'vdd', n: '0', dc: 5 },
+      { kind: 'V', name: 'VG', p: 'g', n: '0', dc: 5 },
+      { kind: 'M', name: 'M1', d: 'out', g: 'g', s: 'vdd', model: MPMOS },
+      { kind: 'R', name: 'RL', a: 'out', b: '0', r: 220 },
+    ] },
+    analysis: { type: 'dc', source: 'VG', start: 0, stop: 5, step: 0.1 }, nodes: ['out'], currents: ['VDD'],
+  },
+  {
+    id: 'opamp-noninverting-tran',
+    circuit: { elements: [
+      { kind: 'V', name: 'VP', p: 'vp', n: '0', dc: 12 },
+      { kind: 'V', name: 'VN', p: 'vn', n: '0', dc: -12 },
+      { kind: 'V', name: 'VIN', p: 'in', n: '0', dc: 0, wave: { type: 'sin', vo: 0, va: 2, freq: 1e3 } },
+      // EF_OPAMP macro model (see eda/models.ts), flattened
+      { kind: 'R', name: 'RIN', a: 'in', b: 'inv', r: 10e6 },
+      { kind: 'G', name: 'G1', p: '0', n: 'n1', cp: 'in', cn: 'inv', gm: 1e-3 },
+      { kind: 'R', name: 'R1', a: 'n1', b: '0', r: 1e8 },
+      { kind: 'C', name: 'C1', a: 'n1', b: '0', c: 1.5915e-10 },
+      { kind: 'V', name: 'VH', p: 'vp', n: 'nh2', dc: 2 },
+      { kind: 'D', name: 'DH', a: 'n1', k: 'nh2', model: { is: 1e-15, n: 1, rs: 0 } },
+      { kind: 'V', name: 'VL', p: 'nl2', n: 'vn', dc: 2 },
+      { kind: 'D', name: 'DL', a: 'nl2', k: 'n1', model: { is: 1e-15, n: 1, rs: 0 } },
+      { kind: 'E', name: 'EO', p: 'oi', n: '0', cp: 'n1', cn: '0', gain: 1 },
+      { kind: 'R', name: 'RO', a: 'oi', b: 'out', r: 50 },
+      // gain 1 + 47k/10k = 5.7 → clips at the rails
+      { kind: 'R', name: 'RF', a: 'out', b: 'inv', r: 47e3 },
+      { kind: 'R', name: 'RG', a: 'inv', b: '0', r: 10e3 },
+      { kind: 'R', name: 'RL', a: 'out', b: '0', r: 10e3 },
+    ] },
+    analysis: { type: 'tran', tstep: 2e-6, tstop: 2e-3 }, nodes: ['out', 'inv'],
+  },
+  {
+    id: 'current-source-op',
+    circuit: { elements: [
+      { kind: 'I', name: 'I1', p: '0', n: 'a', dc: 2e-3 },
+      { kind: 'R', name: 'R1', a: 'a', b: '0', r: 2.2e3 },
+      { kind: 'D', name: 'D1', a: 'a', k: 'b', model: D1N4148 },
+      { kind: 'R', name: 'R2', a: 'b', b: '0', r: 1e3 },
+    ] },
+    analysis: { type: 'op' }, nodes: ['a', 'b'],
+  },
+];

@@ -21,6 +21,7 @@
     "@playwright/test": "1.63.0",
     "@preact/preset-vite": "2.10.6",
     "@tauri-apps/cli": "2.12.1",
+    "@types/node": "22.18.0",
     "axe-core": "4.14.0",
     "jsdom": "30.1.2",
     "typescript": "5.9.3",

@@ -41,6 +41,7 @@ Actions for you:
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
 | D16 | 2026-10-05 | F1-01, option A: privileged-helper function (d) restores signed files of the installed version from the recovery store, so start-up repair works on system-wide installations → v3.8 (section 33). |
+| D17 | 2026-10-13 | Owner feedback on 0.1.0 (U-02): design tools first. Schematic entry and circuit simulation become Increment 2, PCB layout and routing Increment 3; UI-08 detailed, UI-24, ED-08, ED-09, SIM-01..05 added → v3.9 (section 34). |
 | D15 | 2026-10-05 | Q-01 answered: keep GPL-3.0-or-later for non-commercial use, unless the licence limits implementation of the specification (then reported at the next gate) → v3.7 (section 32). |
 | D14 | 2026-10-05 | Accept F0-21, F0-22, F0-24; F0-23 modified by you to 100 parts → v3.6 (section 31). |
 | D13 | 2026-10-05 | Accept F0-12..F0-20 → v3.5 (section 30). |
