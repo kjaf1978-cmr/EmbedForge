@@ -11,8 +11,8 @@
   - **N** = not verified, with the reason.
 - Human review record (DOC-12): pending
 - **Gate:** this report is part of the Increment 1 delivery (section 22 step 5). The
-  increment is **not complete** until the items in section 5 are done, the main one being a
-  signed release, which needs your release keys.
+  increment is **not complete** until the items in section 5 are done. The first signed
+  release exists (13 October 2026, section 1a).
 
 ## 1. Evidence summary
 
@@ -27,6 +27,28 @@
 | Development medium → install → VAPP-03/04/05 → uninstall | builder container (WP 1.3 §1) | PASS |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` workflows | see section 2 |
 
+## 1a. Signed release 0.1.0 (SEC-02, TEST-04)
+
+Signed by the owner on their own PC with the primary release key (39F9D3BC8498721D), 13 October
+2026, from the signing kit of CI run
+[38317588767](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38317588767)
+(commit 45ff930). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `14c70aa6fcd9b34da75f98815d893a9cfb0e5fecf9bdc8bce379dad93fb2b0d7` |
+| ubuntu-x86_64 | 4 | `1907c0b244bd50785a561cc2f4409a368847a72a2dc4f4209d0eaad3bc7886d3` |
+| windows-x86_64 | 1 | `d84366b57a219f4d2d49f0598c431f4549f18ef2b04f4ae6f2aa8862a3b1412c` |
+
+All three: PASS. The signed media stay on the owner's PC; the builder never held the key.
+
+Limits of 0.1.0:
+- **Windows:** no Authenticode signature, so SmartScreen may warn when a program is first
+  started. The WebView2 runtime is not bundled.
+- **Raspberry Pi OS:** some binary packages have no matching source package in the archive.
+  These are listed in the medium's `MISSING-SOURCES.txt` (SS-02 gap, R-16).
+
 ## 2. CI (TEST-01 (a), (b))
 
 The hosted runners first ran these workflows on 5 October; until then they had never run.
@@ -35,7 +57,11 @@ They found three real defects, which are fixed:
 - `minisign` has no Ubuntu 22.04 package;
 - the Windows build needs `icons/icon.ico`.
 
-CI status of the last commit is recorded in the session log; the self-hosted jobs
+Commit 45ff930 passed every hosted job, including the signing-kit jobs (run 38317588767):
+- Ubuntu: install, VAPP-03/04/05, helper refusal, dpkg and per-user uninstall;
+- Windows: install, VAPP-04/05, uninstall.
+
+The the self-hosted jobs
 (installation-medium assembly with signing, VAPP-06, profile gates) wait for your runners
 (F3-06).
 
@@ -58,7 +84,7 @@ CI status of the last commit is recorded in the session log; the self-hosted job
 | SS-05 | P | Rights only in the installer; one helper; closed request set; caller check against the signed app; boot-medium guard; .deb allowlist; log; per-user mode with missing functions; **(d) restore implemented (D16)**. (a)–(c) performed from Increment 2; Windows transport Increment 2 | WP 1.3, findings_for_D16.md |
 | SS-07 | P | 13 offline pages with search (installation page added); library docs, pinouts and tutorials arrive later | WP 1.2 |
 | SS-08 | P | Signed per-component manifests; F3-01 tiers; parallel start-up hashing; background pass; offline repair by the app, or through the helper on system-wide Linux installs; banner, status bar, Repair. **Missing:** Windows system-wide repair by the app (Increment 2); PERF-08 on hosts (U) | WP 1.1, WP 1.3 |
-| SEC-02 | P | Verification everywhere; key rotation; signing scripts for your host; your primary and standby public keys are built in (`built_in_release_keys_are_valid_sec02`). **Missing:** a signed release (U) | WP 1.1, WP 1.3 |
+| SEC-02 | P | Verification everywhere; key rotation; signing scripts for your host; your primary and standby public keys are built in (`built_in_release_keys_are_valid_sec02`); signed release 0.1.0 (section 1a). **Missing:** Authenticode (needs a certificate) | WP 1.1, WP 1.3 |
 | CM-01 | B | Configuration-item kinds | WP 1.1 |
 | CM-02 | B | Semantic versions with changelog; immutable versions | WP 1.1 |
 | CM-03 | B | App baselines restored in one action, exactly; project baselines as Git tags | WP 1.1, WP 1.3 |
@@ -99,9 +125,8 @@ U-1 was fixed. The human run is U.
 
 ## 5. Open before the Increment 1 gate
 
-1. **Signed release.** Your release keys exist (12 October 2026). Their public keys are built in:
-   primary 39F9D3BC8498721D, standby 4D305CEFEB27CFBB. Next: sign the three media on your
-   PC, then tag **v0.1.0**.
+1. ~~Signed release~~ done 13 October 2026 (section 1a). Tag **v0.1.0** points at 45ff930 and
+   needs a session that is allowed to push tags (see item 4).
 2. **Your runs:**
    - VAPP-01 on each host OS;
    - the VAPP test kit;
@@ -109,7 +134,7 @@ U-1 was fixed. The human run is U.
 
    Send me the result files and I will record them here.
 3. **Self-hosted runners**, for signing and medium assembly in CI.
-4. The earlier backup tags (phase0-s1…s9, inc1-wp1.1, inc1-wp1.2) still need a session that is
+4. The tags (v0.1.0 and the earlier phase0-s1…s9, inc1-wp1.1, inc1-wp1.2) still need a session that is
    allowed to push tags.
 
 ## 6. Decisions inside the requirements for your review

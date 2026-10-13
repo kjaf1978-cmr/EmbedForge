@@ -18,13 +18,15 @@ Next:
    - docs/inc1/TEST_REPORT.md;
    - docs/inc1/usability.md (scripted scenarios in app/ui/e2e/usability.spec.ts).
 
-   Still open: record your procedure results and the human usability run; the first signed
-   release; tag v0.1.0. All of these wait for the owner (keys, runs).
+   - the first signed release, 0.1.0: signed by the owner on 13 October 2026 from the kit of
+     CI run 38317588767; hashes in TEST_REPORT.md section 1a.
 
-Pending on your side: the release key pair (docs/inc1/procedures/SEC-02_key_rotation.md
-step 1) and the self-hosted runners.
+   Still open: record your procedure results and the human usability run; push tag v0.1.0
+   (commit 45ff930). These wait for the owner (runs) or a session that may push tags.
 
-Tags: the earlier backup tags (phase0-s1..s9, inc1-wp1.1, inc1-wp1.2) were refused by the
+Pending on your side: the self-hosted runners.
+
+Tags: v0.1.0 (commit 45ff930) and the earlier backup tags (phase0-s1..s9, inc1-wp1.1, inc1-wp1.2) were refused by the
 git proxy of session 3 (HTTP 403). Branches push normally. Try `git push origin --tags` again
 from a session where tag pushes are allowed.
 

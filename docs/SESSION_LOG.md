@@ -148,3 +148,9 @@
     signed medium installed with its executable bits intact.
 - Windows-only CI failures fixed and verified under Wine: a test path, and the carriage
   return in Windows Python output.
+- Kit slimmed from 5.0 GB to 1.8 GB (dependency sets without recommended packages; commit
+  45ff930). Every job of CI run 38317588767 passed, including the hosted install, VAPP and
+  uninstall jobs.
+- First signed release 0.1.0 (13 October 2026): you signed all three media with the primary
+  key; RESULT.txt reported PASS for each, and the hashes are in TEST_REPORT.md section 1a.
+  Tag v0.1.0 on 45ff930.
