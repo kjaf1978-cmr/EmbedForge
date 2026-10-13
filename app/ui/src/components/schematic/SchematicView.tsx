@@ -3,7 +3,7 @@
 // X mirror, Del delete); probing follows LTspice (click a wire for its voltage, a pin for its
 // current); switches, push-buttons and potentiometers work on the sheet as in Falstad.
 
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
 import { GRID, annotate, newId, pinPositions, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
@@ -80,6 +80,8 @@ type Drag =
   | { kind: 'vprobe'; a: Pt; b: Pt };
 
 const PROBE_COLOURS = ['#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e', '#17becf', '#8c564b', '#e377c2'];
+/** Runs fn after the pending render (Preact renders in a microtask), before the next event. */
+const afterRender = (fn: () => void) => queueMicrotask(() => queueMicrotask(fn));
 const isTyping = (t: EventTarget | null) => !!t && ['INPUT', 'SELECT', 'TEXTAREA'].includes((t as HTMLElement).tagName);
 
 export function SchematicView(props: Props) {
@@ -115,6 +117,7 @@ export function SchematicView(props: Props) {
   const [hintOpen, setHintOpen] = useState(true);
   const tutStart = useRef<Sheet>(sheet);
   const clip = useRef<Clip | null>(null);
+  const menuRef = useRef<HTMLDetailsElement>(null);
   const spaceDown = useRef(false);
 
   // the sheet as shown: move preview, held push-buttons, slider previews
@@ -134,10 +137,13 @@ export function SchematicView(props: Props) {
   const nErr = issues.filter((i) => i.severity === 'error').length, nWarn = issues.filter((i) => i.severity === 'warning').length;
 
   // ---- geometry helpers
-  useEffect(() => {
+  // layout effects: the size and the first view are set before the user can act on them
+  useLayoutEffect(() => {
     const el = svgRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth || 900, h: el.clientHeight || 600 }));
+    const read = () => setSize({ w: el.clientWidth || 900, h: el.clientHeight || 600 });
+    read();
+    const ro = new ResizeObserver(read);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -152,9 +158,9 @@ export function SchematicView(props: Props) {
     const z = Math.min(size.w / (b.x1 - b.x0 + 2 * pad), size.h / (b.y1 - b.y0 + 2 * pad), 3);
     setView({ x: (b.x0 + b.x1) / 2 - size.w / z / 2, y: (b.y0 + b.y1) / 2 - size.h / z / 2, z });
   };
-  useEffect(() => { userView.current = false; fit(); setResult(null); setHasRun(false); setSel(noSelection()); setTutStep(0); tutStart.current = sheet; setHintOpen(true); svgRef.current?.focus({ preventScroll: true }); }, [props.docKey]);
-  // until the user zooms or pans, the view follows the canvas size (the results panel takes room)
-  useEffect(() => { if (!userView.current) fit(); }, [size.w, size.h]);
+  useLayoutEffect(() => { userView.current = false; fit(); setResult(null); setHasRun(false); setSel(noSelection()); setTool('select'); setWirePts([]); setTutStep(0); tutStart.current = sheet; setHintOpen(true); svgRef.current?.focus({ preventScroll: true }); }, [props.docKey]);
+  // until the user zooms, pans or edits, the view follows the canvas size (the results panel takes room)
+  useLayoutEffect(() => { if (!userView.current) fit(); }, [size.w, size.h]);
   const zoomBy = (k: number, at?: Pt) => {
     userView.current = true;
     const c = at ?? { x: view.x + size.w / view.z / 2, y: view.y + size.h / view.z / 2 };
@@ -196,7 +202,10 @@ export function SchematicView(props: Props) {
     if (last.x === at.x && last.y === at.y) { setWirePts([]); return; }
     const endsOnSomething = !!connectionAt(sheet, at, 0.01);
     apply(addWire(sheet, [last, at], vFirst), 'Wire');
+    setSel(noSelection()); // arrow keys now move the cursor, not the last placed part
     setWirePts(endsOnSomething ? [] : [at]);
+    // a wire that ends on a pin or wire is done: back to Select (click a pin end to draw the next)
+    if (endsOnSomething) setTool('select');
   };
   const nextLabel = () => { for (let i = 1; ; i++) { const n = `NET${i}`; if (!sheet.labels.some((l) => l.name === n)) return n; } };
   const placeLabel = (at: Pt) => {
@@ -205,7 +214,7 @@ export function SchematicView(props: Props) {
     setSel({ ...noSelection(), labels: [r.id] });
     setTool('select');
     setTab('props');
-    requestAnimationFrame(() => valueRef.current?.focus());
+    afterRender(() => valueRef.current?.focus());
   };
   const colourFor = () => PROBE_COLOURS[sheet.probes.length % PROBE_COLOURS.length];
   const addProbe = (p: Probe) => { apply({ ...sheet, probes: [...sheet.probes, p] }, 'Add probe'); setTab('sim'); setTool('select'); };
@@ -231,8 +240,8 @@ export function SchematicView(props: Props) {
   const run = (cmd: string) => {
     const ss = sel;
     switch (cmd) {
-      case 'add': setTool('select'); requestAnimationFrame(() => { searchRef.current?.focus(); searchRef.current?.select(); }); break;
-      case 'wire': setTool('wire'); setWirePts([]); setPlacing(null); announce('Wire tool: click a start point.'); break;
+      case 'add': setTool('select'); searchRef.current?.focus(); searchRef.current?.select(); break;
+      case 'wire': setTool('wire'); setWirePts([]); setPlacing(null); setSel(noSelection()); announce('Wire tool: click a start point.'); break;
       case 'label': setTool('label'); setPlacing(null); announce('Label tool: click on a wire.'); break;
       case 'power': startPlace('power'); break;
       case 'ground': startPlace('gnd'); break;
@@ -302,7 +311,11 @@ export function SchematicView(props: Props) {
       else if (tool === 'label') { stop(); placeLabel(cursor); }
       else if (tool === 'probe-v') { stop(); probeV(cursor); }
       else if (tool === 'probe-i') { stop(); probeI(cursor); }
-      else if (selectedParts.length === 1) { stop(); setTab('props'); requestAnimationFrame(() => valueRef.current?.focus()); }
+      else {
+        const h = hitTest(sheet, cursor, 1);
+        if (h?.kind === 'pin') { stop(); setTool('wire'); setWirePts([h.at]); announce('Wire started at a pin: move with the arrow keys, Enter for each corner.'); }
+        else if (selectedParts.length === 1) { stop(); setTab('props'); afterRender(() => valueRef.current?.focus()); }
+      }
       return;
     }
     if (k === ' ' && tool === 'select' && selectedParts.length === 1) {
@@ -429,7 +442,7 @@ export function SchematicView(props: Props) {
   const onDblClick = (e: MouseEvent) => {
     if (tool === 'wire') { setWirePts([]); return; }
     const h = hitTest(sheet, toWorldPt(e), 6 / view.z);
-    if (h?.kind === 'part' || h?.kind === 'label') { setTab('props'); requestAnimationFrame(() => valueRef.current?.focus()); }
+    if (h?.kind === 'part' || h?.kind === 'label') { setTab('props'); afterRender(() => valueRef.current?.focus()); }
   };
 
   // ---- simulation
@@ -560,12 +573,12 @@ export function SchematicView(props: Props) {
   const exportPng = async () => {
     const svg = svgString();
     const img = new Image();
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('could not render the SVG')); img.src = url; }).catch((e) => { announce(String(e)); });
+    // a data: URL, which the content security policy allows for images (blob: is not allowed)
+    const loaded = await new Promise<boolean>((res) => { img.onload = () => res(true); img.onerror = () => res(false); img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; });
+    if (!loaded) { announce('PNG export failed: the drawing could not be rendered'); return; }
     const cv = document.createElement('canvas');
-    cv.width = img.width || 1600; cv.height = img.height || 1000;
+    cv.width = img.naturalWidth || 1600; cv.height = img.naturalHeight || 1000;
     cv.getContext('2d')!.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
     const blob: Blob | null = await new Promise((res) => cv.toBlob(res, 'image/png'));
     if (!blob) { announce('PNG export failed'); return; }
     await report(props.exportFile(`${baseName}.png`, new Uint8Array(await blob.arrayBuffer()), 'image/png'));
@@ -633,9 +646,9 @@ export function SchematicView(props: Props) {
         <button title="Zoom to fit (Home)" onClick={() => run('fit')}>Fit</button>
         <button title="Zoom in (+)" aria-label="Zoom in" onClick={() => run('zoom-in')}>+</button>
         <button title="Zoom out (−)" aria-label="Zoom out" onClick={() => run('zoom-out')}>−</button>
-        <details class="menu">
+        <details class="menu" ref={menuRef}>
           <summary>Export</summary>
-          <div class="menu-list">
+          <div class="menu-list" onClick={() => { if (menuRef.current) menuRef.current.open = false; }}>
             <button onClick={() => run('export-svg')}>Schematic as SVG</button>
             <button onClick={() => run('export-png')}>Schematic as PNG</button>
             <button onClick={() => run('export-spice')}>SPICE netlist (.cir)</button>
@@ -650,7 +663,13 @@ export function SchematicView(props: Props) {
           <input ref={searchRef} type="search" placeholder="Search parts (A)…" aria-label="Search parts" value={query}
                  onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
                  onKeyDown={(e) => {
-                   if (e.key === 'Enter' && filtered[0]) { e.preventDefault(); startPlace(filtered[0].id); setCursor({ x: snap(view.x + size.w / view.z / 2), y: snap(view.y + size.h / view.z / 2) }); setKbCursor(true); }
+                   if (e.key === 'Enter' && filtered[0]) {
+                     e.preventDefault();
+                     startPlace(filtered[0].id);
+                     // keyboard placement starts at the origin of an empty sheet, else at the view centre
+                     setCursor(sheet.parts.length ? { x: snap(view.x + size.w / view.z / 2), y: snap(view.y + size.h / view.z / 2) } : { x: 0, y: 0 });
+                     setKbCursor(true);
+                   }
                    if (e.key === 'Escape') { e.stopPropagation(); setQuery(''); svgRef.current?.focus(); }
                  }} />
           {CATEGORIES.map((cat) => {
@@ -691,6 +710,9 @@ export function SchematicView(props: Props) {
             {Math.round(cursor.x)}, {Math.round(cursor.y)} · zoom {Math.round(view.z * 100)} % · {tool === 'wire' ? `wire (${vFirst ? 'vertical' : 'horizontal'} first, / switches)` : tool}
             {hoverText && <> · <strong>{hoverText}</strong></>}
           </div>
+
+        </div>
+        <aside class="sch-side" aria-label="Properties and simulation">
           {props.tutorial && <TutorialCard step={tutStep} onEnd={props.onTutorialEnd} />}
           {!props.tutorial && props.hint && hintOpen && (
             <div class="tutorial hint" role="note" aria-label="Example hint">
@@ -698,8 +720,6 @@ export function SchematicView(props: Props) {
               <button onClick={() => setHintOpen(false)}>Close</button>
             </div>
           )}
-        </div>
-        <aside class="sch-side" aria-label="Properties and simulation">
           <div role="tablist" class="tabs">
             {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist']] as const).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} class={id === 'erc' && nErr ? 'has-err' : ''}>{label}</button>

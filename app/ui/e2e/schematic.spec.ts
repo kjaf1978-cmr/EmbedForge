@@ -147,6 +147,17 @@ test('Projects: save, list on the start screen, open again; SPICE export', async
   await page.getByText('Export', { exact: true }).click();
   await page.getByRole('button', { name: 'SPICE netlist (.cir)' }).click();
   expect((await download).suggestedFilename()).toBe('My_divider.cir');
+  for (const [item, file] of [['Schematic as PNG', 'My_divider.png'], ['Schematic as SVG', 'My_divider.svg']]) {
+    const dl = page.waitForEvent('download');
+    await page.getByText('Export', { exact: true }).click();
+    await page.getByRole('button', { name: item }).click();
+    const d = await dl;
+    expect(d.suggestedFilename()).toBe(file);
+    const path = await d.path();
+    const head = readFileSync(path).subarray(0, 8);
+    if (file.endsWith('.png')) expect([...head]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    else expect(readFileSync(path, 'utf8')).toContain('<svg');
+  }
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: 'My divider' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Schematic · My divider');

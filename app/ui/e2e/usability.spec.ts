@@ -107,3 +107,96 @@ test('expert scenario: keyboard only, 1920×1080', async ({ page }) => {
     await expect(page.getByRole('complementary', { name: 'Context help' })).toContainText('Self-diagnosis and integrity');
   });
 });
+
+// ---- Increment 2 usability scenarios: schematic entry and simulation (section 22 step 4)
+
+async function sheetPoint(page: Page, x: number, y: number) {
+  const cv = page.getByRole('application', { name: /Schematic canvas/ });
+  const b = (await cv.boundingBox())!;
+  const [vx, vy, vw, vh] = (await cv.getAttribute('viewBox'))!.split(' ').map(Number);
+  return { x: b.x + ((x - vx) * b.width) / vw, y: b.y + ((y - vy) * b.height) / vh };
+}
+
+test('Increment 2 beginner scenario: the tutorial circuit with the mouse, 1366×768', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/');
+  const S = 'inc2-beginner';
+  const click = async (x: number, y: number) => { const p = await sheetPoint(page, x, y); await page.mouse.click(p.x, p.y); };
+  const pick = (name: string) => page.getByRole('complementary', { name: 'Part library' }).getByRole('button', { name, exact: true }).click();
+  const tut = page.getByRole('region', { name: 'Tutorial' });
+  await step(page, S, 'S1', 'Start the tutorial from the start screen', async () => {
+    await page.getByRole('button', { name: /Tutorial: your first circuit/ }).click();
+    await expect(tut).toContainText('1 · Add a voltage source');
+  });
+  await step(page, S, 'S2', 'Place a DC source, a resistor, an LED (rotated) and ground', async () => {
+    await pick('DC voltage source'); await click(0, 0);
+    await pick('Resistor'); await click(60, -60);
+    await pick('LED'); await page.keyboard.press('r'); await click(120, -30);
+    await page.getByRole('toolbar', { name: 'Schematic tools' }).getByRole('button', { name: /^Ground/ }).click(); await click(0, 60);
+    await page.getByRole('toolbar', { name: 'Schematic tools' }).getByRole('button', { name: /^Ground/ }).click(); await click(120, 60);
+    await expect(tut).toContainText('4 · Wire it up');
+  });
+  await step(page, S, 'S3', 'Wire the circuit by clicking pin ends', async () => {
+    await click(0, -30); await click(0, -60); await click(30, -60);
+    await click(90, -60); await click(120, -60);
+    await click(120, 0); await click(120, 60);
+    await click(0, 30); await click(0, 60);
+    await expect(tut).toContainText('5 · Simulate');
+  });
+  await step(page, S, 'S4', 'Simulate and see the LED light up', async () => {
+    await page.getByRole('button', { name: /Simulate/ }).first().click();
+    await expect(page.locator('.led-glow')).toHaveCount(1);
+    await expect(tut).toContainText('6 · Change a value');
+  });
+  await step(page, S, 'S5', 'Change the resistor to 330 Ω and watch the result update', async () => {
+    await page.locator('g.part:has(text:text-is("R1")) > g').click();
+    await page.getByLabel('Resistance (Ω)').fill('330');
+    await page.getByLabel('Resistance (Ω)').press('Enter');
+    await expect(page.locator('.op-chip text', { hasText: /^1\.9\d V$/ })).toBeVisible();
+    await expect(tut).toContainText('Well done');
+  });
+});
+
+test('Increment 2 expert scenario: keyboard-only schematic entry and simulation, 1920×1080', async ({ page }) => {
+  await page.goto('/');
+  const S = 'inc2-expert';
+  const kb = page.keyboard;
+  const press = async (key: string, n = 1) => { for (let i = 0; i < n; i++) await kb.press(key); };
+  await step(page, S, 'X1', 'New schematic from the command palette', async () => {
+    await kb.press('Control+Shift+P'); await kb.type('new schematic'); await kb.press('Enter');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Schematic · Untitled/);
+  });
+  await step(page, S, 'X2', 'Place a source and a resistor with A, search, arrows and Enter', async () => {
+    await page.getByRole('application', { name: /Schematic canvas/ }).focus();
+    await kb.press('a'); await kb.type('dc voltage'); await kb.press('Enter'); await kb.press('Enter');
+    await kb.press('a'); await kb.type('resistor'); await kb.press('Enter');
+    await press('ArrowRight', 6); await press('ArrowUp', 6); await kb.press('Enter');
+    await kb.press('g'); await press('ArrowLeft', 6); await press('ArrowDown', 12); await kb.press('Enter');
+    await expect(page.locator('g.part text.ref', { hasText: 'R1' })).toBeVisible();
+  });
+  await step(page, S, 'X3', 'Wire with W, arrow keys and Enter', async () => {
+    await kb.press('w');
+    await press('ArrowUp', 9); await kb.press('Enter');       // V1 + (0,-30)
+    await press('ArrowUp', 3); await kb.press('Enter');       // corner (0,-60)
+    await press('ArrowRight', 3); await kb.press('Enter');    // R1.1 (30,-60): ends
+    await press('ArrowRight', 6); await kb.press('Enter');    // R1.2 (90,-60)
+    await press('ArrowDown', 12); await kb.press('Enter');    // (90,60)
+    await press('ArrowLeft', 9); await kb.press('Enter');     // ground (0,60): ends
+    await press('ArrowUp', 3); await kb.press('Enter');       // V1 − (0,30)
+    await press('ArrowDown', 3); await kb.press('Enter');     // ground: ends
+    await kb.press('Escape');
+    await expect(page.getByRole('tab', { name: 'Checks', exact: true })).toBeVisible();
+  });
+  await step(page, S, 'X4', 'Simulate (F5) and read the current from the hover/inspector', async () => {
+    await kb.press('F5');
+    await expect(page.locator('.op-chip text', { hasText: /^5 V$/ })).toBeVisible();
+    await kb.press('Tab');
+    await expect(page.getByRole('complementary', { name: 'Properties and simulation' })).toContainText(/Current in/);
+  });
+  await step(page, S, 'X5', 'Switch to a DC sweep from the Simulation tab and run it', async () => {
+    await page.getByRole('tab', { name: 'Simulation' }).click();
+    await page.getByLabel(/DC sweep/).check();
+    await kb.press('F5');
+    await expect(page.getByRole('region', { name: 'Waveform viewer' })).toBeVisible();
+  });
+});

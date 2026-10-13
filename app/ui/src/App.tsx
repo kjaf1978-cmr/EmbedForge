@@ -109,6 +109,8 @@ export function App({ backend }: { backend: Backend }) {
 
   const [settings, setSettingsRaw] = useState<UiSettings>(DEFAULTS);
   const [view, setViewRaw] = useState<View>('start');
+  const viewRef = useRef(view);
+  viewRef.current = view;
   // the schematic editor needs the width: side panes close when it opens
   const setView = (v: View) => { setViewRaw(v); if (v === 'schematic') { setShowNav(false); setShowHelp(false); } else if (v === 'start') setShowNav(false); else if (v === 'project' && !compactRef.current) setShowNav(true); };
   const [docPage, setDocPage] = useState('welcome');
@@ -199,7 +201,7 @@ export function App({ backend }: { backend: Backend }) {
     k.register({ id: 'project.open', title: 'Open project or example (start screen)', keys: 'Ctrl+O', category: 'Project', run: open('start') });
     k.register({ id: 'project.tutorial', title: 'Tutorial: your first circuit', category: 'Help', run: () => tutorialRef.current() });
     for (const c of EDITOR_COMMANDS) {
-      k.register({ id: `sch.${c.id}`, title: `${c.title}${c.key ? ` (${c.key})` : ''}`, keys: c.id === 'simulate' ? 'F5' : undefined, category: 'Schematic', run: () => { setView('schematic'); requestAnimationFrame(() => editorApi.current?.run(c.id)); } });
+      k.register({ id: `sch.${c.id}`, title: `${c.title}${c.key ? ` (${c.key})` : ''}`, keys: c.id === 'simulate' ? 'F5' : undefined, category: 'Schematic', run: () => { const was = viewRef.current; setView('schematic'); if (was === 'schematic' && editorApi.current) editorApi.current.run(c.id); else queueMicrotask(() => queueMicrotask(() => editorApi.current?.run(c.id))); } });
     }
     k.register({ id: 'view.project', title: 'Project: artefact and trace views', keys: 'Ctrl+Shift+E', category: 'View', run: open('project') });
     k.register({ id: 'view.library', title: 'Library browsers', keys: 'Ctrl+L', category: 'View', run: open('library') });

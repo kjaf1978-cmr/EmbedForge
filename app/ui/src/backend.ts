@@ -3,6 +3,8 @@
 
 import type { UiSettings } from './core/settings';
 
+declare const __APP_VERSION__: string;
+
 export interface HostFinding {
   check: string;
   requirement: string;
@@ -98,7 +100,7 @@ class TauriBackend implements Backend {
 class PreviewBackend implements Backend {
   kind = 'preview' as const;
   private settings: unknown = null;
-  async appVersion() { return '0.1.0 (browser preview — no back-end)'; }
+  async appVersion() { return `${__APP_VERSION__} (browser preview — no back-end)`; }
   async hostCheck(display: [number, number]) {
     const findings: HostFinding[] = [];
     if (display[0] < 1920 || display[1] < 1080)

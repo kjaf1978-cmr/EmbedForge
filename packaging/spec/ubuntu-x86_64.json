@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.1.0",
+  "app_version": "0.2.0",
   "os": "ubuntu",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "title": "EmbedForge application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.0",
+          "date": "2026-10-13",
+          "text": "Increment 2 (D17): start screen and tutorial, schematic editor, electrical rule check, circuit simulator (operating point, transient, AC, DC sweep; cross-checked against ngspice), probes and waveform viewer, 555 timer and regulators, projects with version history, SVG/PNG/SPICE/CSV export."
+        },
         {
           "version": "0.1.0",
           "date": "2026-10-05",
@@ -72,8 +77,8 @@
   ],
   "files": [
     {
-      "path": "embedforge-setup_0.1.0_amd64.deb",
-      "from": "files/embedforge-setup_0.1.0_amd64.deb",
+      "path": "embedforge-setup_0.2.0_amd64.deb",
+      "from": "files/embedforge-setup_0.2.0_amd64.deb",
       "role": "bootstrap"
     },
     {
@@ -87,8 +92,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.1.0-source.tar.gz",
-      "from": "files/source/embedforge-0.1.0-source.tar.gz",
+      "path": "source/embedforge-0.2.0-source.tar.gz",
+      "from": "files/source/embedforge-0.2.0-source.tar.gz",
       "role": "source"
     },
     {

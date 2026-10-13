@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Keymap } from '../core/keymap';
 
 /** UI-20: every command in one searchable, keyboard-driven list. */
@@ -7,7 +7,8 @@ export function CommandPalette({ keymap, onClose }: { keymap: Keymap; onClose: (
   const [sel, setSel] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const items = keymap.search(q);
-  useEffect(() => input.current?.focus(), []);
+  // layout effect: the input has focus before the next key event, so no typed key is lost
+  useLayoutEffect(() => input.current?.focus(), []);
   useEffect(() => setSel(0), [q]);
   const run = (id: string) => { onClose(); keymap.run(id); };
   return (
