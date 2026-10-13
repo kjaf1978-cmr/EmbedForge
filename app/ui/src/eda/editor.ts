@@ -254,3 +254,77 @@ export function labelPos(p: Part, which: 'ref' | 'val'): { at: Pt; anchor: 'star
   const local = which === 'ref' ? s.refAt : s.valAt;
   return { at: toWorld({ ...p, rot: s.power ? p.rot : 0, mirror: false }, local.x === 0 ? local : { x: p.mirror ? -local.x : local.x, y: local.y }), anchor: local.x > 10 ? 'start' : 'middle' };
 }
+
+// ---- collisions (asked, not merged silently): a new wire that touches something other than
+// at its two ends, or an edit that changes connectivity it was not meant to change
+
+export interface WireCollision {
+  /** Pins, wire ends or labels the new wire would touch along its length (not at its ends). */
+  points: Pt[];
+  /** Stretches where the new wire would run along an existing wire. */
+  overlaps: [Pt, Pt][];
+  /** Nets the new wire would connect to unintentionally. */
+  nets: string[];
+}
+
+export const noCollision = (c: WireCollision) => !c.points.length && !c.overlaps.length;
+
+/** Overlap of two collinear axis-parallel segments with positive length, or null. */
+function overlap(a: Pt, b: Pt, c: Pt, d: Pt): [Pt, Pt] | null {
+  if (a.y === b.y && c.y === d.y && a.y === c.y) {
+    const lo = Math.max(Math.min(a.x, b.x), Math.min(c.x, d.x)), hi = Math.min(Math.max(a.x, b.x), Math.max(c.x, d.x));
+    return hi - lo > 1e-6 ? [{ x: lo, y: a.y }, { x: hi, y: a.y }] : null;
+  }
+  if (a.x === b.x && c.x === d.x && a.x === c.x) {
+    const lo = Math.max(Math.min(a.y, b.y), Math.min(c.y, d.y)), hi = Math.min(Math.max(a.y, b.y), Math.max(c.y, d.y));
+    return hi - lo > 1e-6 ? [{ x: a.x, y: lo }, { x: a.x, y: hi }] : null;
+  }
+  return null;
+}
+
+/** What the wire path `pts` (corners included) would touch besides its first and last point. */
+export function wireCollisions(sheet: Sheet, pts: Pt[], verticalFirst = false, netOf?: (p: Pt) => string | null): WireCollision {
+  const segs: [Pt, Pt][] = [];
+  for (let i = 1; i < pts.length; i++) segs.push(...orthoRoute(pts[i - 1], pts[i], verticalFirst));
+  if (!segs.length) return { points: [], overlaps: [], nets: [] };
+  const start = segs[0][0], end = segs[segs.length - 1][1];
+  const things: Pt[] = [
+    ...sheet.parts.flatMap((p) => pinPositions(p).map((q) => q.at)),
+    ...sheet.wires.flatMap((w) => [w.a, w.b]),
+    ...sheet.labels.map((l) => ({ x: l.x, y: l.y })),
+  ];
+  const seen = new Set<string>();
+  const points: Pt[] = [];
+  for (const [a, b] of segs) for (const t of things) {
+    if (samePt(t, start) || samePt(t, end) || !onSegment(t, a, b)) continue;
+    const k = key(t);
+    if (!seen.has(k)) { seen.add(k); points.push(t); }
+  }
+  // an existing wire end lying on a corner of the new path also connects
+  const overlaps: [Pt, Pt][] = [];
+  for (const [a, b] of segs) for (const w of sheet.wires) { const o = overlap(a, b, w.a, w.b); if (o) overlaps.push(o); }
+  const nets = new Set<string>();
+  if (netOf) for (const p of [...points, ...overlaps.map(([a]) => a)]) { const n = netOf(p); if (n) nets.add(n); }
+  return { points, overlaps, nets: [...nets] };
+}
+
+/** A path from a to b that touches nothing on the way: the other elbow first, then detours of
+ *  one to four grid steps on either side. Null when none is found. */
+export function routeAround(sheet: Sheet, a: Pt, b: Pt, verticalFirst = false): Pt[] | null {
+  const ok = (pts: Pt[], vf: boolean) => noCollision(wireCollisions(sheet, pts, vf));
+  if (a.x !== b.x && a.y !== b.y && ok([a, b], !verticalFirst)) {
+    const m = verticalFirst ? { x: b.x, y: a.y } : { x: a.x, y: b.y };
+    return [a, m, b];
+  }
+  const cands: Pt[][] = [];
+  for (const k of [1, 2, 3, 4]) for (const sgn of [1, -1]) {
+    const d = sgn * k * GRID_STEP;
+    cands.push([a, { x: a.x, y: a.y + d }, { x: b.x, y: a.y + d }, b]);
+    cands.push([a, { x: a.x + d, y: a.y }, { x: a.x + d, y: b.y }, b]);
+  }
+  const len = (p: Pt[]) => p.slice(1).reduce((s, q, i) => s + Math.abs(q.x - p[i].x) + Math.abs(q.y - p[i].y), 0);
+  cands.sort((x, y) => len(x) - len(y));
+  for (const c of cands) if (ok(c, false)) return c.filter((p, i) => i === 0 || !samePt(p, c[i - 1]));
+  return null;
+}
+const GRID_STEP = 10;

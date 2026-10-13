@@ -34,7 +34,7 @@ If something fails
 - Anything else: send Claude the text in the black window. Nothing is released from a
   medium that does not show PASS.
 
-Known limits of the 0.2.0 media
+Known limits of the 0.2.x media
 - The Windows medium does not yet bundle the WebView2 runtime. Windows 11 has it built in,
   and so do most Windows 10 PCs that have received updates. A fresh, never-updated Windows 10
   may lack it; that is checked in VAPP-01 and reported.

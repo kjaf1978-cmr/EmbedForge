@@ -214,6 +214,17 @@ export function SettingsView({ settings, onChange }: { settings: UiSettings; onC
         <label><input type="radio" name="hl" checked={settings.highlightMode === 'direct'} onChange={() => onChange({ ...settings, highlightMode: 'direct' }, 'Highlight: direct')} /> direct links (default)</label>
         <label><input type="radio" name="hl" checked={settings.highlightMode === 'transitive'} onChange={() => onChange({ ...settings, highlightMode: 'transitive' }, 'Highlight: transitive')} /> transitive</label>
       </fieldset>
+      <fieldset><legend>Schematic editor</legend>
+        <p class="small muted">Window layout (also in the editor's Layout menu):</p>
+        <label><input type="radio" name="sch-results" checked={settings.sch.results === 'below'} onChange={() => onChange({ ...settings, sch: { ...settings.sch, results: 'below', maximize: 'none' } }, 'Results below the schematic')} /> results below the schematic (tile horizontally)</label>
+        <label><input type="radio" name="sch-results" checked={settings.sch.results === 'beside'} onChange={() => onChange({ ...settings, sch: { ...settings.sch, results: 'beside', maximize: 'none' } }, 'Results beside the schematic')} /> results beside the schematic (tile vertically)</label>
+        <label><input type="checkbox" checked={settings.sch.showLibrary} onChange={(e) => onChange({ ...settings, sch: { ...settings.sch, showLibrary: (e.target as HTMLInputElement).checked } }, 'Part library panel')} /> part library panel</label>
+        <label><input type="checkbox" checked={settings.sch.showSide} onChange={(e) => onChange({ ...settings, sch: { ...settings.sch, showSide: (e.target as HTMLInputElement).checked } }, 'Properties panel')} /> properties and simulation panel</label>
+        <p class="small muted">When a new wire would touch a pin or run along another wire on its way, or a moved or placed part would connect to something:</p>
+        <label><input type="radio" name="sch-coll" checked={settings.sch.collision === 'ask'} onChange={() => onChange({ ...settings, sch: { ...settings.sch, collision: 'ask' } }, 'Collisions: ask')} /> ask what to do (default)</label>
+        <label><input type="radio" name="sch-coll" checked={settings.sch.collision === 'avoid'} onChange={() => onChange({ ...settings, sch: { ...settings.sch, collision: 'avoid' } }, 'Collisions: route around')} /> route wires around automatically; ask for parts</label>
+        <label><input type="radio" name="sch-coll" checked={settings.sch.collision === 'connect'} onChange={() => onChange({ ...settings, sch: { ...settings.sch, collision: 'connect' } }, 'Collisions: connect')} /> always connect, without asking</label>
+      </fieldset>
       <fieldset><legend>Mode</legend>
         <label><input type="radio" name="mode" checked={settings.mode === 'expert'} onChange={() => onChange({ ...settings, mode: 'expert' }, 'Mode: expert')} /> expert</label>
         <label><input type="radio" name="mode" checked={settings.mode === 'guided'} onChange={() => onChange({ ...settings, mode: 'guided' }, 'Mode: guided')} /> guided (steps arrive in Increment 8)</label>

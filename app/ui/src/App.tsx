@@ -36,6 +36,11 @@ const HELP: Record<View, string> = {
   start: 'welcome', schematic: 'schematic', project: 'navigator', library: 'libraries', docs: 'keyboard', diagnostics: 'diagnostics', host: 'host-check', settings: 'appearance',
 };
 const PANES = ['navigator', 'workspace', 'help'] as const;
+/** Schematic commands with an app-wide shortcut (they work wherever the focus is in the view). */
+const SCH_KEYS: Record<string, string> = {
+  simulate: 'F5', 'layout-below': 'Ctrl+Alt+ArrowDown', 'layout-beside': 'Ctrl+Alt+ArrowRight',
+  'max-schematic': 'Ctrl+Alt+S', 'max-results': 'Ctrl+Alt+W', 'toggle-library': 'Ctrl+Alt+L', 'toggle-side': 'Ctrl+Alt+P',
+};
 
 export function App({ backend }: { backend: Backend }) {
   const { tree, graph } = useMemo(() => buildModel(sample as unknown as ProjectDocs), []);
@@ -104,6 +109,13 @@ export function App({ backend }: { backend: Backend }) {
       setDoc((x) => ({ ...x, saved: JSON.stringify(d.sheet) }));
       say(changed ? `Saved ${d.name}` : `${d.name}: no changes to save`);
     } catch (e) { setNotes([`Saving failed: ${String(e)}`]); say('Saving failed'); }
+  };
+  // layout preferences change often (splitter drags): saved, but not undo commands
+  const setSchPrefs = (p: Partial<UiSettings['sch']>) => {
+    const next = { ...settingsNow.current, sch: { ...settingsNow.current.sch, ...p } };
+    settingsNow.current = next;
+    setSettingsRaw(next);
+    void backend.saveSettings(next);
   };
   const activeUndo = () => (view === 'schematic' ? schUndo.current : undo);
 
@@ -201,7 +213,7 @@ export function App({ backend }: { backend: Backend }) {
     k.register({ id: 'project.open', title: 'Open project or example (start screen)', keys: 'Ctrl+O', category: 'Project', run: open('start') });
     k.register({ id: 'project.tutorial', title: 'Tutorial: your first circuit', category: 'Help', run: () => tutorialRef.current() });
     for (const c of EDITOR_COMMANDS) {
-      k.register({ id: `sch.${c.id}`, title: `${c.title}${c.key ? ` (${c.key})` : ''}`, keys: c.id === 'simulate' ? 'F5' : undefined, category: 'Schematic', run: () => { const was = viewRef.current; setView('schematic'); if (was === 'schematic' && editorApi.current) editorApi.current.run(c.id); else queueMicrotask(() => queueMicrotask(() => editorApi.current?.run(c.id))); } });
+      k.register({ id: `sch.${c.id}`, title: `${c.title}${c.key ? ` (${c.key})` : ''}`, keys: SCH_KEYS[c.id], category: 'Schematic', run: () => { const was = viewRef.current; setView('schematic'); if (was === 'schematic' && editorApi.current) editorApi.current.run(c.id); else queueMicrotask(() => queueMicrotask(() => editorApi.current?.run(c.id))); } });
     }
     k.register({ id: 'view.project', title: 'Project: artefact and trace views', keys: 'Ctrl+Shift+E', category: 'View', run: open('project') });
     k.register({ id: 'view.library', title: 'Library browsers', keys: 'Ctrl+L', category: 'View', run: open('library') });
@@ -293,7 +305,8 @@ export function App({ backend }: { backend: Backend }) {
           {view === 'schematic' && (
             <SchematicView sheet={doc.sheet} name={doc.name} commit={commitSheet} sim={sim} apiRef={editorApi} announce={say} docKey={doc.key}
                            tutorial={tutorial} onTutorialEnd={() => setTutorial(false)} hint={hint}
-                           exportFile={(name, data) => backend.exportFile(doc.id, name, data)} />
+                           exportFile={(name, data) => backend.exportFile(doc.id, name, data)}
+                           prefs={settings.sch} setPrefs={setSchPrefs} />
           )}
           {view === 'project' && (<div class="split"><ArtefactView bus={bus} graph={graph} /><TraceView bus={bus} graph={graph} ids={artefactIds} /></div>)}
           {view === 'library' && <LibraryView seed={seed as unknown as Record<string, LibraryItem[]>} />}

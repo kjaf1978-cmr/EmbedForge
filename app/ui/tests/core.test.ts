@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ArtefactGraph, HighlightBus } from '../src/core/highlightBus';
 import { UndoStack } from '../src/core/undo';
 import { Keymap, eventKeys, normaliseKeys } from '../src/core/keymap';
-import { clampScale, sanitise, resolvedTheme } from '../src/core/settings';
+import { SCH_DEFAULTS, clampScale, sanitise, resolvedTheme } from '../src/core/settings';
 import { filterItems, facetValues, matchesElsewhere } from '../src/core/library';
 import { DocsIndex } from '../src/core/docsIndex';
 import { buildModel, visibleIds } from '../src/core/projectModel';
@@ -83,7 +83,8 @@ describe('settings (UI-21)', () => {
     expect(clampScale(0.5)).toBe(0.8);
     expect(clampScale(2.54)).toBe(2);
     expect(clampScale(1.27)).toBe(1.3);
-    expect(sanitise({ theme: 'neon', fontScale: 'big', mode: 'guided' })).toEqual({ theme: 'system', fontScale: 1, highlightMode: 'direct', mode: 'guided' });
+    expect(sanitise({ theme: 'neon', fontScale: 'big', mode: 'guided' })).toEqual({ theme: 'system', fontScale: 1, highlightMode: 'direct', mode: 'guided', sch: SCH_DEFAULTS });
+    expect(sanitise({ sch: { results: 'beside', split: 5, collision: 'bogus', showLibrary: false } }).sch).toEqual({ ...SCH_DEFAULTS, results: 'beside', split: 0.8, showLibrary: false });
     expect(resolvedTheme('system', true)).toBe('dark');
   });
 });

@@ -64,10 +64,17 @@ export class Keymap {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     return [...this.cmds.values()]
       .filter((c) => words.every((w) => `${c.title} ${c.category} ${c.id}`.toLowerCase().includes(w)))
-      .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title));
+      // titles that start with the query first, then by category and title
+      .sort((a, b) => rank(a, words) - rank(b, words) || a.category.localeCompare(b.category) || a.title.localeCompare(b.title));
   }
 
   all(): AppCommand[] {
     return [...this.cmds.values()];
   }
+}
+
+function rank(c: AppCommand, words: string[]): number {
+  if (!words.length) return 0;
+  const t = c.title.toLowerCase();
+  return t.startsWith(words[0]) ? 0 : t.split(/\W+/).some((w) => w.startsWith(words[0])) ? 1 : 2;
 }

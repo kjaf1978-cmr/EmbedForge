@@ -145,3 +145,33 @@ describe('555 timer and regulators', () => {
     expect(-o.i['BT1.1'][0]).toBeLessThan(0.0575);
   });
 });
+
+describe('wire collisions are found, not merged silently', async () => {
+  const { wireCollisions, routeAround, noCollision } = await import('../src/eda/editor');
+  const base = () => {
+    let s = emptySheet();
+    s = placePart(s, 'resistor', { x: 50, y: 0 }).sheet;          // pins (20,0) and (80,0)
+    s = addWire(s, [{ x: 0, y: 40 }, { x: 100, y: 40 }]);          // a horizontal wire at y = 40
+    return s;
+  };
+  it('a wire passing through a pin or running along a wire collides', () => {
+    const s = base();
+    expect(noCollision(wireCollisions(s, [{ x: 0, y: 0 }, { x: 100, y: 0 }]))).toBe(false);   // through R1's pins
+    const c = wireCollisions(s, [{ x: 20, y: 40 }, { x: 60, y: 40 }]);                           // along the wire
+    expect(c.overlaps.length).toBe(1);
+    expect(noCollision(wireCollisions(s, [{ x: 20, y: 0 }, { x: 20, y: 30 }]))).toBe(true);    // pin to free space
+    expect(noCollision(wireCollisions(s, [{ x: 60, y: -20 }, { x: 60, y: 60 }]))).toBe(true);  // crossing only
+  });
+  it('ending on a pin or wire is intended, not a collision', () => {
+    const s = base();
+    expect(noCollision(wireCollisions(s, [{ x: 20, y: 0 }, { x: 20, y: 40 }]))).toBe(true);
+  });
+  it('route around finds a detour that touches nothing', () => {
+    const s = base();
+    const p = routeAround(s, { x: 0, y: 0 }, { x: 100, y: 0 })!;
+    expect(p).not.toBeNull();
+    expect(noCollision(wireCollisions(s, p))).toBe(true);
+    expect(p[0]).toEqual({ x: 0, y: 0 });
+    expect(p[p.length - 1]).toEqual({ x: 100, y: 0 });
+  });
+});

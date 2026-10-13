@@ -170,3 +170,87 @@ test('UI-20: editor commands are in the command palette', async ({ page }) => {
   await expect(page.getByRole('option', { name: /Rotate \(R\)/ })).toBeVisible();
   await page.keyboard.press('Escape');
 });
+
+test('collisions: a wire through pins asks first — connect, route around or cancel', async ({ page }) => {
+  await page.getByRole('button', { name: /New schematic/ }).click();
+  await pick(page, 'Resistor'); await click(page, 50, 0);           // pins at (20,0) and (80,0)
+  const dlg = page.getByRole('alertdialog');
+  // cancel: nothing is drawn
+  await page.keyboard.press('w'); await click(page, 0, 0); await click(page, 100, 0);
+  await expect(dlg).toContainText('passes through R1.1, R1.2');
+  await expect(dlg).toContainText('short-circuit R1');
+  await dlg.getByRole('button', { name: 'Cancel this segment' }).click();
+  await expect(page.locator('line.wire')).toHaveCount(0);
+  // route around: the wire avoids both pins
+  await click(page, 100, 0);
+  await dlg.getByRole('button', { name: /Route around/ }).click();
+  await expect(dlg).toHaveCount(0);
+  expect(await page.locator('line.wire').count()).toBeGreaterThanOrEqual(3);
+  await page.getByRole('tab', { name: /Checks/ }).click();
+  await expect(page.getByRole('button', { name: /Pin R1\.1 \(1\) is not connected/ })).toBeVisible();
+  // connect, and remember it: the next collision is connected without asking
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('w'); await click(page, 0, 40); await click(page, 30, 40);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('w'); await click(page, 10, 40); await click(page, 60, 40);   // runs along the wire just drawn
+  await expect(dlg).toContainText('runs along');
+  await dlg.getByLabel(/Do the same from now on/).check();
+  await dlg.getByRole('button', { name: 'Connect them' }).click();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('w'); await click(page, 0, 0); await click(page, 100, 0);
+  await expect(dlg).toHaveCount(0);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByLabel(/always connect, without asking/)).toBeChecked();
+});
+
+test('collisions: moving a part onto a wire asks; cancel leaves it where it was', async ({ page }) => {
+  await page.getByRole('button', { name: /New schematic/ }).click();
+  await pick(page, 'Resistor'); await click(page, 50, 0);
+  await page.keyboard.press('w'); await click(page, 0, 60); await click(page, 100, 60);
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape');   // end the wire, leave the wire tool
+  const body = (await page.locator('g.part:has(text:text-is("R1")) > g').boundingBox())!;
+  const to = await at(page, 50, 60);
+  await page.mouse.move(body.x + body.width / 2, body.y + body.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 5 });
+  await page.mouse.up();
+  const dlg = page.getByRole('alertdialog');
+  await expect(dlg).toContainText('Move: this would connect');
+  await expect(dlg).toContainText('R1 pin 1 lands in the middle of a wire');
+  await dlg.getByRole('button', { name: /Cancel/ }).click();
+  await expect(page.locator('g.part:has(text:text-is("R1")) > g')).toHaveAttribute('transform', /translate\(50 0\)/);
+});
+
+test('layout: results beside or below, splitter, maximise, panels (LTspice-style tiling)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: Capacitor charging (time response)' }).click();
+  await page.keyboard.press('F5');
+  const results = page.getByRole('region', { name: 'Waveform viewer' });
+  const cv = canvas(page);
+  await expect(results).toBeVisible();
+  let a = (await cv.boundingBox())!, r = (await results.boundingBox())!;
+  expect(r.y).toBeGreaterThan(a.y + a.height - 2);            // below
+  await page.keyboard.press('Control+Alt+ArrowRight');
+  a = (await cv.boundingBox())!; r = (await results.boundingBox())!;
+  expect(r.x).toBeGreaterThan(a.x + a.width - 2);             // beside
+  expect(Math.abs(r.y - a.y)).toBeLessThan(4);
+  const sep = page.getByRole('separator', { name: /Resize the schematic and the results/ });
+  await expect(sep).toHaveAttribute('aria-valuenow', '60');
+  await sep.focus(); await page.keyboard.press('ArrowRight');
+  await expect(sep).toHaveAttribute('aria-valuenow', '65');
+  await page.keyboard.press('Control+Alt+w');                  // maximise the results
+  await expect(cv).toHaveCount(0);
+  await page.keyboard.press('Control+Alt+w');
+  await expect(cv).toBeVisible();
+  await page.getByText('Layout', { exact: true }).click();
+  await page.getByRole('button', { name: /Part library panel/ }).click();
+  await expect(page.getByRole('complementary', { name: 'Part library' })).toHaveCount(0);
+  // the layout is kept when another document opens
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Open example: LED with series resistor' }).click();
+  await expect(page.getByRole('complementary', { name: 'Part library' })).toHaveCount(0);
+  await expect(results).toBeVisible();                        // beside: shown, waiting for waveforms
+  await page.getByText('Layout', { exact: true }).click();
+  await page.getByRole('button', { name: 'Reset the layout' }).click();
+  await expect(page.getByRole('complementary', { name: 'Part library' })).toBeVisible();
+  await expect(results).toHaveCount(0);                       // below and nothing to show
+});

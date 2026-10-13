@@ -109,7 +109,7 @@ button.big { padding: 0.5em 1em; font-size: 1.05em; }
 .compact .sch-tools kbd { display: none; }
 .tutorial.hint { border-color: var(--rel-line); }
 .work.schematic-mode > .banner { flex: none; max-height: 6em; overflow: auto; }
-.sch { display: grid; grid-template-rows: auto minmax(10em, 1fr) auto; flex: 1 1 auto; min-height: 0; gap: 0.4em; }
+.sch { display: grid; grid-template-rows: auto minmax(10em, 1fr); flex: 1 1 auto; min-height: 0; gap: 0.4em; }
 .sch-tools { display: flex; flex-wrap: wrap; gap: 0.3em; align-items: center; }
 .sch-tools kbd { float: none; margin-left: 0.2em; font-size: 0.75em; }
 .sch-tools .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 0.2em; }
@@ -117,8 +117,8 @@ button.big { padding: 0.5em 1em; font-size: 1.05em; }
 .menu summary { list-style: none; border: 1px solid var(--line); border-radius: 4px; padding: 0.2em 0.6em; cursor: pointer; background: var(--panel); }
 .menu-list { position: absolute; z-index: 6; display: flex; flex-direction: column; gap: 0.2em; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em; min-width: 14em; box-shadow: 0 0.4em 1em rgba(0,0,0,0.2); }
 .menu-list button { text-align: left; }
-.sch-body { display: grid; grid-template-columns: 13.5em minmax(0, 1fr) 21em; gap: 0.4em; min-height: 0; }
-.compact .sch-body { grid-template-columns: min(10em, 17vw) minmax(0, 1fr) min(16em, 27vw); }
+.sch-body { --lib-w: min(13.5em, 18vw); --side-w: min(21em, 26vw); display: grid; grid-template-columns: var(--lib-w) minmax(0, 1fr) var(--side-w); gap: 0.4em; min-height: 0; }
+.compact .sch-body { --lib-w: min(10em, 17vw); --side-w: min(16em, 27vw); }
 .compact .lib-grid { grid-template-columns: 1fr; }
 .sch-lib, .sch-side { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.4em; overflow: auto; min-height: 0; }
 .sch-lib input { width: 100%; margin-bottom: 0.3em; }
@@ -181,8 +181,26 @@ input[aria-invalid='true'] { border-color: var(--bad); }
 .erc-list, .nets { list-style: none; padding: 0; } .erc-list li, .nets li { margin: 0.25em 0; }
 .erc.error strong { color: var(--bad); } .erc.warning strong { color: var(--warn); } .erc.info strong { color: var(--muted); }
 .spice { font-size: 0.8em; max-height: 20em; overflow: auto; background: var(--bg); border: 1px solid var(--line); padding: 0.4em; white-space: pre; }
-.sch-plot { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em 0.5em; max-height: 45vh; overflow: auto; }
-.compact .sch-plot { max-height: 38vh; }
+.sch-center { display: flex; min-height: 0; min-width: 0; }
+.sch-center.below { flex-direction: column; }
+.sch-center.beside { flex-direction: row; }
+.sch-center > .sch-canvas-wrap { min-width: 0; min-height: 0; }
+.sch-plot { flex: 1 1 0; min-width: 0; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.3em 0.5em; overflow: auto; }
+.splitter { flex: none; background: transparent; position: relative; }
+.splitter.h { height: 8px; cursor: row-resize; }
+.splitter.v { width: 8px; cursor: col-resize; }
+.splitter::after { content: ''; position: absolute; background: var(--line); border-radius: 2px; }
+.splitter.h::after { left: 45%; right: 45%; top: 3px; height: 2px; }
+.splitter.v::after { top: 45%; bottom: 45%; left: 3px; width: 2px; }
+.splitter:hover::after, .splitter:focus-visible::after { background: var(--accent); }
+.collision line { stroke: var(--bad); stroke-width: 6; opacity: 0.6; stroke-linecap: round; }
+.collision circle { fill: none; stroke: var(--bad); stroke-width: 2.5; }
+.route-preview { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 5 3; }
+.collide { position: absolute; left: 50%; bottom: 2.2em; transform: translateX(-50%); width: min(34em, 92%); background: var(--panel); border: 2px solid var(--bad); border-radius: 8px; padding: 0.6em 0.8em; box-shadow: 0 0.4em 1.2em rgba(0,0,0,0.25); z-index: 4; }
+.collide p { margin: 0.2em 0; }
+.collide .row { margin: 0.4em 0; }
+.menu-list kbd { float: right; margin-left: 1em; }
+.menu-list button[aria-pressed='true'] { background: var(--sel); color: var(--fg); border-color: var(--accent); }
 .sch-plot .pane-title { margin: 0; }
 .plot-svg { display: block; touch-action: none; cursor: crosshair; }
 .plot-bg { fill: var(--sch-bg); stroke: var(--line); }
@@ -194,7 +212,7 @@ input[aria-invalid='true'] { border-color: var(--bad); }
 .plot-bar { margin-bottom: 0.2em; }
 @media print {
   .work.schematic-mode { display: block; overflow: visible; }
-  .toolbar, .status, .nav, .help, .sch-tools, .sch-lib, .sch-side, .sch-plot, .sch-status, .tutorial, .banner, .view-title { display: none !important; }
+  .toolbar, .status, .nav, .help, .sch-tools, .sch-lib, .sch-side, .sch-plot, .splitter, .collide, .sch-status, .tutorial, .banner, .view-title { display: none !important; }
   .sch, .sch-body { display: block; height: auto; }
   .sch-canvas-wrap { border: none; height: 95vh; }
   .no-export { display: none; }

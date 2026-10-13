@@ -19,9 +19,9 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 9 passed, 0 warnings |
-| UI unit tests: schematic core, editor, examples, simulator | `cd app/ui && npm test` | 79 passed |
+| UI unit tests: schematic core, editor, examples, simulator | `cd app/ui && npm test` | 82 passed (0.2.1) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 25 cases agree (15 reference circuits, 10 example schematics) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 24 passed, 3 consecutive runs |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 27 passed, 3 consecutive runs (0.2.1) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 2. CI (TEST-01)
@@ -77,6 +77,13 @@
 - Regulators have no current limit or thermal model.
 - 555 output levels are NE555 typical.
 
+## 3a. Version 0.2.1: your feedback of 13 October 2026
+
+| Request | Status | Evidence |
+|---|---|---|
+| Collisions between wires: ask and propose options instead of merging automatically | B | A new wire that passes through a pin or wire end, or runs along a wire, is marked and the user chooses: connect, route around (dashed preview) or cancel. Moving, rotating, pasting or placing parts asks when a pin lands mid-wire or on another pin, or a part would be shorted. The default can be changed (ask / route around / always connect). Tests: `editor.test.ts` (detection, detour), browser tests for wire and move collisions. |
+| Design entry next to the results window; layout options as in LTspice | B | Results below (tile horizontally) or beside (tile vertically), resizable splitter (mouse and keyboard), maximise either pane, part library and properties panels on and off, kept between sessions. Layout menu, buttons and Ctrl+Alt keys. Browser test checks the geometry of both tilings, the splitter, maximise and persistence. |
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
@@ -84,7 +91,7 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. **Sign 0.2.0:** a new signing kit (same steps as for 0.1.0).
+1. **Sign 0.2.1:** a new signing kit (same steps as for 0.1.0). It replaces 0.2.0.
 2. **Your look at it:** install 0.2.0 over 0.1.0, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:

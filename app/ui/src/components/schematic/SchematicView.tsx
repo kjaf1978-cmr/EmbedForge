@@ -6,11 +6,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, newId, pinPositions, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
+import { GRID, annotate, key, newId, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
 import {
   addLabel, addWire, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
-  placePart, rotateSelection, setProps, setRef, sheetBounds, type Clip, type Hit, type Selection,
+  placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
 } from '../../eda/editor';
+import type { SchematicPrefs } from '../../core/settings';
 import { connectivity, netAt } from '../../eda/connectivity';
 import { erc, type ErcIssue } from '../../eda/erc';
 import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
@@ -54,7 +55,26 @@ export const EDITOR_COMMANDS: { id: string; title: string; key: string }[] = [
   { id: 'export-spice', title: 'Export SPICE netlist', key: '' },
   { id: 'print', title: 'Print schematic', key: '' },
   { id: 'escape', title: 'Cancel tool / clear selection', key: 'Esc' },
+  { id: 'layout-below', title: 'Layout: results below the schematic (tile horizontally)', key: 'Ctrl+Alt+↓' },
+  { id: 'layout-beside', title: 'Layout: results beside the schematic (tile vertically)', key: 'Ctrl+Alt+→' },
+  { id: 'max-schematic', title: 'Layout: maximise the schematic (toggle)', key: 'Ctrl+Alt+S' },
+  { id: 'max-results', title: 'Layout: maximise the results (toggle)', key: 'Ctrl+Alt+W' },
+  { id: 'toggle-library', title: 'Layout: show or hide the part library', key: 'Ctrl+Alt+L' },
+  { id: 'toggle-side', title: 'Layout: show or hide the properties panel', key: 'Ctrl+Alt+P' },
+  { id: 'layout-reset', title: 'Layout: reset to the default', key: '' },
 ];
+
+/** A wire or edit that would touch something it was not aimed at, waiting for the user's choice. */
+interface Pending {
+  title: string;
+  detail: string[];
+  points: Pt[];
+  overlaps: [Pt, Pt][];
+  connect: { sheet: Sheet; label: string; after?: () => void };
+  around?: { sheet: Sheet; label: string; path: Pt[]; after?: () => void };
+  cancelLabel: string;
+  onCancel?: () => void;
+}
 
 interface Props {
   sheet: Sheet;
@@ -71,6 +91,8 @@ interface Props {
   docKey: string;
   /** Short hint shown on the canvas (examples: what to try). */
   hint?: string;
+  prefs: SchematicPrefs;
+  setPrefs: (p: Partial<SchematicPrefs>) => void;
 }
 
 type Drag =
@@ -111,10 +133,13 @@ export function SchematicView(props: Props) {
   const [held, setHeld] = useState<Set<string>>(new Set());
   const [override, setOverride] = useState<Record<string, Record<string, string>>>({});
   const [selTrace, setSelTrace] = useState<string | null>(null);
-  const [plotOpen, setPlotOpen] = useState(true);
   const [spiceText, setSpiceText] = useState<string | null>(null);
   const [tutStep, setTutStep] = useState(0);
   const [hintOpen, setHintOpen] = useState(true);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [preview, setPreview] = useState<'connect' | 'around' | null>(null);
+  const [remember, setRemember] = useState(false);
+  const prefs = props.prefs;
   const tutStart = useRef<Sheet>(sheet);
   const clip = useRef<Clip | null>(null);
   const menuRef = useRef<HTMLDetailsElement>(null);
@@ -176,6 +201,80 @@ export function SchematicView(props: Props) {
     commit(next, full);
     announce(full);
   };
+  // ---- collisions (the user decides; Settings → Schematic editor sets a default)
+  const netAtPoint = (p: Pt) => netAt(sheet, conn, p);
+  /** Pins of the given parts in `next` that land in the middle of a wire or on another part's
+   *  pin, parts whose pins end up shorted together, and wire overlaps that were not there. */
+  const editCollisions = (next: Sheet, partIds: Set<string>) => {
+    const points: Pt[] = [], detail: string[] = [];
+    const others = next.parts.filter((p) => !partIds.has(p.id));
+    for (const p of next.parts.filter((x) => partIds.has(x.id))) {
+      const pins = pinPositions(p);
+      for (const pp of pins) {
+        const midWire = next.wires.find((w) => onSegment(pp.at, w.a, w.b) && !samePt(pp.at, w.a) && !samePt(pp.at, w.b));
+        const onPin = others.find((o) => pinPositions(o).some((q) => samePt(q.at, pp.at)));
+        if (midWire || onPin) { points.push(pp.at); detail.push(`${p.ref} pin ${pp.pin} lands ${midWire ? 'in the middle of a wire' : `on a pin of ${onPin!.ref}`}`); }
+      }
+    }
+    const nc = connectivity(next);
+    for (const p of next.parts.filter((x) => partIds.has(x.id) && !symbolOf(x.sym).power)) {
+      const nets = symbolOf(p.sym).pins.map((q) => nc.pinNet.get(`${p.ref}.${q.id}`)).filter(Boolean);
+      if (nets.length > 1 && new Set(nets).size < nets.length) detail.push(`${p.ref} would be short-circuited (two pins on net ${nets.find((n, i) => nets.indexOf(n) !== i)})`);
+    }
+    const overlapsOf = (sh: Sheet) => {
+      const out: [Pt, Pt][] = [];
+      for (let i = 0; i < sh.wires.length; i++) for (let j = i + 1; j < sh.wires.length; j++) {
+        const c = wireCollisions({ ...sh, parts: [], labels: [], wires: [sh.wires[j]] }, [sh.wires[i].a, sh.wires[i].b]);
+        out.push(...c.overlaps);
+      }
+      return out;
+    };
+    const before = new Set(overlapsOf(sheet).map(([a, b]) => `${key(a)}|${key(b)}`));
+    const overlaps = overlapsOf(next).filter(([a, b]) => !before.has(`${key(a)}|${key(b)}`));
+    if (overlaps.length) detail.push(`${overlaps.length} wire stretch(es) would run along another wire`);
+    return { points, overlaps, detail };
+  };
+  /** What the touched points are, and whether connecting would short a part. */
+  const describeTouches = (points: Pt[], nets: string[]): string[] => {
+    const names: string[] = [];
+    const byPart = new Map<string, number>();
+    for (const p of points) {
+      const pins = sheet.parts.flatMap((part) => pinPositions(part).filter((q) => samePt(q.at, p)).map((q) => ({ part, pin: q.pin })));
+      if (pins.length) for (const { part, pin } of pins) {
+        names.push(symbolOf(part.sym).power ? String(part.props[symbolOf(part.sym).value.key]) : `${part.ref}.${pin}`);
+        byPart.set(part.ref, (byPart.get(part.ref) ?? 0) + 1);
+      }
+      else if (sheet.labels.some((l) => samePt({ x: l.x, y: l.y }, p))) names.push(`label ${sheet.labels.find((l) => samePt({ x: l.x, y: l.y }, p))!.name}`);
+      else names.push(`a wire end${netAtPoint(p) ? ` (net ${netAtPoint(p)})` : ''}`);
+    }
+    const out: string[] = [];
+    if (names.length) out.push(`It passes through ${names.join(', ')}.`);
+    if (nets.length) out.push(`Connecting joins net${nets.length > 1 ? 's' : ''} ${nets.join(', ')}.`);
+    const shorted = [...byPart].filter(([, n]) => n >= 2).map(([r]) => r);
+    if (shorted.length) out.push(`Connecting would short-circuit ${shorted.join(', ')} (two of its pins on one wire).`);
+    out.push('The places are marked in red on the sheet.');
+    return out;
+  };
+  /** Applies an edit that moves or adds parts; asks first when it collides (unless set to connect). */
+  const applyEdit = (next: Sheet, label: string, partIds: Set<string>, after?: () => void) => {
+    if (prefs.collision === 'connect') { apply(next, label); after?.(); return; }
+    const c = editCollisions(next, partIds);
+    if (!c.detail.length) { apply(next, label); after?.(); return; }
+    setPending({ title: `${label}: this would connect things that were not connected`, detail: c.detail, points: c.points, overlaps: c.overlaps,
+      connect: { sheet: next, label, after }, cancelLabel: 'Cancel (leave it as it was)' });
+  };
+  const choose = (what: 'connect' | 'around' | 'cancel') => {
+    const p = pending;
+    if (!p) return;
+    setPending(null); setPreview(null);
+    if (remember && what !== 'cancel') props.setPrefs({ collision: what === 'around' ? 'avoid' : 'connect' });
+    setRemember(false);
+    if (what === 'connect') { apply(p.connect.sheet, `${p.connect.label} (connected)`); p.connect.after?.(); }
+    else if (what === 'around' && p.around) { apply(p.around.sheet, p.around.label); p.around.after?.(); }
+    else { p.onCancel?.(); announce('Cancelled: nothing changed'); }
+    svgRef.current?.focus({ preventScroll: true });
+  };
+
   const selOf = (s: Selection) => ({ parts: new Set(s.parts), wires: new Set(s.wires), labels: new Set(s.labels) });
   const selectedParts = sheet.parts.filter((p) => sel.parts.includes(p.id));
 
@@ -190,8 +289,7 @@ export function SchematicView(props: Props) {
     if (!placing) return;
     const r = placePart(sheet, placing.sym, at, placing.rot, placing.mirror, placing.props);
     const ref = r.sheet.parts.find((p) => p.id === r.id)!.ref;
-    apply(r.sheet, `Add ${ref}`);
-    setSel({ ...noSelection(), parts: [r.id] });
+    applyEdit(r.sheet, `Add ${ref}`, new Set([r.id]), () => setSel({ ...noSelection(), parts: [r.id] }));
     if (!keep) { setTool('select'); setPlacing(null); setTab('props'); }
   };
   const wireClick = (raw: Pt) => {
@@ -201,11 +299,28 @@ export function SchematicView(props: Props) {
     const last = wirePts[wirePts.length - 1];
     if (last.x === at.x && last.y === at.y) { setWirePts([]); return; }
     const endsOnSomething = !!connectionAt(sheet, at, 0.01);
-    apply(addWire(sheet, [last, at], vFirst), 'Wire');
-    setSel(noSelection()); // arrow keys now move the cursor, not the last placed part
-    setWirePts(endsOnSomething ? [] : [at]);
-    // a wire that ends on a pin or wire is done: back to Select (click a pin end to draw the next)
-    if (endsOnSomething) setTool('select');
+    const done = () => {
+      setSel(noSelection()); // arrow keys now move the cursor, not the last placed part
+      setWirePts(endsOnSomething ? [] : [at]);
+      // a wire that ends on a pin or wire is done: back to Select (click a pin end to draw the next)
+      if (endsOnSomething) setTool('select');
+    };
+    const c = wireCollisions(sheet, [last, at], vFirst, netAtPoint);
+    if (noCollision(c) || prefs.collision === 'connect') { apply(addWire(sheet, [last, at], vFirst), 'Wire'); done(); return; }
+    const path = routeAround(sheet, last, at, vFirst);
+    const around = path ? { sheet: addWire(sheet, path), label: 'Wire (routed around)', path, after: done } : undefined;
+    if (prefs.collision === 'avoid' && around) { apply(around.sheet, around.label); done(); return; }
+    const what = [
+      c.points.length ? `touches ${c.points.length} pin(s) or wire end(s) on its way` : '',
+      c.overlaps.length ? `runs along ${c.overlaps.length} existing wire stretch(es)` : '',
+    ].filter(Boolean).join(' and ');
+    setPending({
+      title: `This wire ${what}`,
+      detail: describeTouches(c.points, c.nets),
+      points: c.points, overlaps: c.overlaps,
+      connect: { sheet: addWire(sheet, [last, at], vFirst), label: 'Wire', after: done },
+      around, cancelLabel: 'Cancel this segment',
+    });
   };
   const nextLabel = () => { for (let i = 1; ; i++) { const n = `NET${i}`; if (!sheet.labels.some((l) => l.name === n)) return n; } };
   const placeLabel = (at: Pt) => {
@@ -249,11 +364,11 @@ export function SchematicView(props: Props) {
       case 'probe-i': setTool('probe-i'); setPlacing(null); announce('Current probe: click a part pin.'); break;
       case 'rotate':
         if (tool === 'place' && placing) setPlacing({ ...placing, rot: ((placing.rot + 1) % 4) as Rot });
-        else if (!isEmpty(ss)) apply(rotateSelection(sheet, ss), 'Rotate');
+        else if (!isEmpty(ss)) applyEdit(rotateSelection(sheet, ss), 'Rotate', new Set(ss.parts));
         break;
       case 'mirror':
         if (tool === 'place' && placing) setPlacing({ ...placing, mirror: !placing.mirror });
-        else if (!isEmpty(ss)) apply(mirrorSelection(sheet, ss), 'Mirror');
+        else if (!isEmpty(ss)) applyEdit(mirrorSelection(sheet, ss), 'Mirror', new Set(ss.parts));
         break;
       case 'delete': if (!isEmpty(ss)) { apply(deleteSelection(sheet, ss), 'Delete'); setSel(noSelection()); } break;
       case 'copy': if (!isEmpty(ss)) { clip.current = copySelection(sheet, ss); announce('Copied'); } break;
@@ -262,8 +377,7 @@ export function SchematicView(props: Props) {
         const c = cmd === 'duplicate' ? (isEmpty(ss) ? null : copySelection(sheet, ss)) : clip.current;
         if (!c) break;
         const r = paste(sheet, c, 4 * GRID, 4 * GRID);
-        apply(r.sheet, cmd === 'duplicate' ? 'Duplicate' : 'Paste');
-        setSel(r.sel);
+        applyEdit(r.sheet, cmd === 'duplicate' ? 'Duplicate' : 'Paste', new Set(r.sel.parts), () => setSel(r.sel));
         break;
       }
       case 'select-all': setSel({ parts: sheet.parts.map((p) => p.id), wires: sheet.wires.map((w) => w.id), labels: sheet.labels.map((l) => l.id) }); break;
@@ -271,6 +385,13 @@ export function SchematicView(props: Props) {
       case 'zoom-in': zoomBy(1.25); break;
       case 'zoom-out': zoomBy(0.8); break;
       case 'annotate': apply(annotate(sheet), 'Annotate'); break;
+      case 'layout-below': props.setPrefs({ results: 'below', maximize: 'none' }); announce('Results below the schematic'); break;
+      case 'layout-beside': props.setPrefs({ results: 'beside', maximize: 'none' }); announce('Results beside the schematic'); break;
+      case 'max-schematic': props.setPrefs({ maximize: prefs.maximize === 'schematic' ? 'none' : 'schematic' }); break;
+      case 'max-results': props.setPrefs({ maximize: prefs.maximize === 'results' ? 'none' : 'results' }); break;
+      case 'toggle-library': props.setPrefs({ showLibrary: !prefs.showLibrary }); break;
+      case 'toggle-side': props.setPrefs({ showSide: !prefs.showSide }); break;
+      case 'layout-reset': props.setPrefs({ results: 'below', split: 0.6, maximize: 'none', showLibrary: true, showSide: true }); announce('Layout reset'); break;
       case 'simulate': void simulateNow(true); break;
       case 'export-svg': void exportSvg(); break;
       case 'export-png': void exportPng(); break;
@@ -290,6 +411,13 @@ export function SchematicView(props: Props) {
     const k = e.key, ctrl = e.ctrlKey || e.metaKey;
     const stop = () => { e.preventDefault(); e.stopPropagation(); };
     const step = (e.shiftKey ? 5 : 1) * GRID;
+    if (pending) { if (k === 'Escape') { stop(); choose('cancel'); } return; }
+    if (ctrl && e.altKey) {
+      const m: Record<string, string> = { ArrowDown: 'layout-below', ArrowRight: 'layout-beside', s: 'max-schematic', w: 'max-results', l: 'toggle-library', p: 'toggle-side' };
+      const c = m[k.length === 1 ? k.toLowerCase() : k];
+      if (c) { stop(); run(c); }
+      return;
+    }
     if (ctrl) {
       const m: Record<string, string> = { c: 'copy', x: 'cut', v: 'paste', d: 'duplicate', a: 'select-all' };
       const c = m[k.toLowerCase()];
@@ -301,7 +429,7 @@ export function SchematicView(props: Props) {
     if (arrows[k]) {
       stop();
       const [dx, dy] = arrows[k];
-      if (tool === 'select' && !isEmpty(sel)) apply(moveSelection(sheet, sel, dx * step, dy * step), 'Move');
+      if (tool === 'select' && !isEmpty(sel)) applyEdit(moveSelection(sheet, sel, dx * step, dy * step), 'Move', new Set(sel.parts));
       else { setKbCursor(true); setCursor((c) => ({ x: snap(c.x) + dx * step, y: snap(c.y) + dy * step })); }
       return;
     }
@@ -349,6 +477,7 @@ export function SchematicView(props: Props) {
 
   // ---- pointer
   const onPointerDown = (e: PointerEvent) => {
+    if (pending) { e.preventDefault(); return; }
     // the element under the pointer may be re-rendered away (the placement ghost): keep the
     // browser from moving focus on the mousedown that follows, and focus the canvas here
     e.preventDefault();
@@ -412,7 +541,7 @@ export function SchematicView(props: Props) {
     if (held.size && !spaceDown.current) setHeld(new Set());
     if (!d) return;
     if (d.kind === 'move') {
-      if (d.dx || d.dy) apply(moveSelection(d.base, d.sel, d.dx, d.dy), 'Move');
+      if (d.dx || d.dy) applyEdit(moveSelection(d.base, d.sel, d.dx, d.dy), 'Move', new Set(d.sel.parts));
       else if (d.hit?.kind === 'part' && hasRun) {
         const part = sheet.parts.find((x) => x.id === (d.hit as { part: string }).part);
         if (part) operate(part);
@@ -625,6 +754,43 @@ export function SchematicView(props: Props) {
   );
   const status = !result ? null : 'error' in result ? <span class="s-fail">{result.error}</span> : <span class="s-pass">Simulated in {result.ms.toFixed(0)} ms</span>;
 
+  // ---- layout (LTspice-style tiling: results below or beside the schematic, splitter, maximise)
+  const centerRef = useRef<HTMLDivElement>(null);
+  const plotRef = useRef<HTMLElement>(null);
+  const firstChoice = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (pending) afterRender(() => firstChoice.current?.focus()); }, [pending]);
+  const beside = prefs.results === 'beside';
+  const plotResult = ok && ok.analysis !== 'op' ? ok : null;
+  // the results pane is shown when there are waveforms, or always when it is placed beside
+  const showResults = !!plotResult || beside || prefs.maximize === 'results';
+  const maximize = showResults ? prefs.maximize : 'none';
+  const canvasStyle = showResults && maximize === 'none' ? { flex: `0 0 ${(prefs.split * 100).toFixed(1)}%` } : { flex: '1 1 auto' };
+  const [plotBox, setPlotBox] = useState({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const el = plotRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPlotBox({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showResults, maximize]);
+  const groups = new Set(traces.map((t) => t.unit)).size || 1;
+  // each plot gets an equal share of the pane, leaving room for the header and the table
+  const plotHeight = Math.round(Math.min(420, Math.max(100, (plotBox.h - 90 - 26 * (traces.length + 1)) / groups)));
+  const onSplitDown = (e: PointerEvent) => {
+    const el = centerRef.current;
+    if (!el) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect();
+    const move = (ev: PointerEvent) => {
+      const f = beside ? (ev.clientX - r.left) / r.width : (ev.clientY - r.top) / r.height;
+      props.setPrefs({ split: Math.min(0.8, Math.max(0.2, f)) });
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const layoutMenu = useRef<HTMLDetailsElement>(null);
+
   return (
     <div class="sch" onKeyDown={onKeyDown as never} onKeyUp={onKeyUp as never}>
       <div class="sch-tools" role="toolbar" aria-label="Schematic tools">
@@ -657,9 +823,21 @@ export function SchematicView(props: Props) {
           </div>
         </details>
         <button onClick={() => run('annotate')} title="Renumber references by position">Annotate</button>
+        <details class="menu" ref={layoutMenu}>
+          <summary>Layout</summary>
+          <div class="menu-list" onClick={() => { if (layoutMenu.current) layoutMenu.current.open = false; }}>
+            <button aria-pressed={!beside && prefs.maximize === 'none'} onClick={() => run('layout-below')}>Results below the schematic <kbd>Ctrl+Alt+↓</kbd></button>
+            <button aria-pressed={beside && prefs.maximize === 'none'} onClick={() => run('layout-beside')}>Results beside the schematic <kbd>Ctrl+Alt+→</kbd></button>
+            <button aria-pressed={prefs.maximize === 'schematic'} onClick={() => run('max-schematic')}>Maximise the schematic <kbd>Ctrl+Alt+S</kbd></button>
+            <button aria-pressed={prefs.maximize === 'results'} onClick={() => run('max-results')}>Maximise the results <kbd>Ctrl+Alt+W</kbd></button>
+            <button aria-pressed={prefs.showLibrary} onClick={() => run('toggle-library')}>Part library panel <kbd>Ctrl+Alt+L</kbd></button>
+            <button aria-pressed={prefs.showSide} onClick={() => run('toggle-side')}>Properties panel <kbd>Ctrl+Alt+P</kbd></button>
+            <button onClick={() => run('layout-reset')}>Reset the layout</button>
+          </div>
+        </details>
       </div>
-      <div class="sch-body">
-        <aside class="sch-lib" aria-label="Part library">
+      <div class="sch-body" style={{ gridTemplateColumns: [prefs.showLibrary && 'var(--lib-w)', 'minmax(0, 1fr)', prefs.showSide && 'var(--side-w)'].filter(Boolean).join(' ') }}>
+        {prefs.showLibrary && <aside class="sch-lib" aria-label="Part library">
           <input ref={searchRef} type="search" placeholder="Search parts (A)…" aria-label="Search parts" value={query}
                  onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
                  onKeyDown={(e) => {
@@ -685,34 +863,86 @@ export function SchematicView(props: Props) {
             );
           })}
           {!filtered.length && <p class="muted small">No part matches "{query}".</p>}
-        </aside>
-        <div class="sch-canvas-wrap">
-          <svg ref={svgRef} class={`sch-canvas tool-${tool}`} viewBox={vb} tabindex={0} role="application"
-               aria-label="Schematic canvas. Tab selects parts; arrow keys move; Enter places or edits; letters choose tools (A, W, L, P, G, V, I, R, X)."
-               onPointerDown={onPointerDown as never} onPointerMove={onPointerMove as never} onPointerUp={onPointerUp as never}
-               onWheel={onWheel as never} onDblClick={onDblClick as never} onContextMenu={(e) => { e.preventDefault(); if (tool === 'wire') setWirePts([]); }}>
-            <defs>
-              <pattern id="sch-grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse"><circle cx={0} cy={0} r={0.7} class="grid-dot" /></pattern>
-            </defs>
-            <rect class="grid-bg" x={view.x} y={view.y} width={size.w / view.z} height={size.h / view.z} fill={view.z > 0.5 ? 'url(#sch-grid)' : 'none'} />
-            <SheetContent sheet={shown} view={{ conn, selected: selOf(sel), highlightNet, op: op && ok?.analysis === 'op' ? op : null, showValues, erc: issues, glow, probeLabels }} />
-            {ghost}
-            {drag?.kind === 'box' && <rect class="sel-box" x={Math.min(drag.a.x, drag.b.x)} y={Math.min(drag.a.y, drag.b.y)} width={Math.abs(drag.b.x - drag.a.x)} height={Math.abs(drag.b.y - drag.a.y)} />}
-            {(kbCursor || tool !== 'select') && <g class="kb-cursor"><line x1={cursor.x - 6} y1={cursor.y} x2={cursor.x + 6} y2={cursor.y} /><line x1={cursor.x} y1={cursor.y - 6} x2={cursor.x} y2={cursor.y + 6} /></g>}
-          </svg>
-          {!sheet.parts.length && !sheet.wires.length && (
-            <div class="sch-empty" role="note">
-              <strong>The sheet is empty.</strong>
-              <span>Pick a part on the left (or press <kbd>A</kbd>), then click here to place it. Draw wires with <kbd>W</kbd>. Add <kbd>G</kbd> ground, then <kbd>F5</kbd> to simulate.</span>
+        </aside>}
+        <div class={`sch-center ${beside ? 'beside' : 'below'}${maximize !== 'none' ? ` max-${maximize}` : ''}`} ref={centerRef}>
+          {maximize !== 'results' && (
+          <div class="sch-canvas-wrap" style={canvasStyle}>
+            <svg ref={svgRef} class={`sch-canvas tool-${tool}`} viewBox={vb} tabindex={0} role="application"
+                 aria-label="Schematic canvas. Tab selects parts; arrow keys move; Enter places or edits; letters choose tools (A, W, L, P, G, V, I, R, X)."
+                 onPointerDown={onPointerDown as never} onPointerMove={onPointerMove as never} onPointerUp={onPointerUp as never}
+                 onWheel={onWheel as never} onDblClick={onDblClick as never} onContextMenu={(e) => { e.preventDefault(); if (tool === 'wire') setWirePts([]); }}>
+              <defs>
+                <pattern id="sch-grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse"><circle cx={0} cy={0} r={0.7} class="grid-dot" /></pattern>
+              </defs>
+              <rect class="grid-bg" x={view.x} y={view.y} width={size.w / view.z} height={size.h / view.z} fill={view.z > 0.5 ? 'url(#sch-grid)' : 'none'} />
+              <SheetContent sheet={shown} view={{ conn, selected: selOf(sel), highlightNet, op: op && ok?.analysis === 'op' ? op : null, showValues, erc: issues, glow, probeLabels }} />
+              {ghost}
+              {drag?.kind === 'box' && <rect class="sel-box" x={Math.min(drag.a.x, drag.b.x)} y={Math.min(drag.a.y, drag.b.y)} width={Math.abs(drag.b.x - drag.a.x)} height={Math.abs(drag.b.y - drag.a.y)} />}
+              {pending && (
+                <g class="collision no-export">
+                  {pending.overlaps.map(([p, q], i) => <line key={`o${i}`} x1={p.x} y1={p.y} x2={q.x} y2={q.y} />)}
+                  {pending.points.map((p, i) => <circle key={`p${i}`} cx={p.x} cy={p.y} r={6} />)}
+                  {preview === 'around' && pending.around && <polyline class="route-preview" points={pending.around.path.map((q) => `${q.x},${q.y}`).join(' ')} fill="none" />}
+                </g>
+              )}
+              {(kbCursor || tool !== 'select') && <g class="kb-cursor"><line x1={cursor.x - 6} y1={cursor.y} x2={cursor.x + 6} y2={cursor.y} /><line x1={cursor.x} y1={cursor.y - 6} x2={cursor.x} y2={cursor.y + 6} /></g>}
+            </svg>
+            {!sheet.parts.length && !sheet.wires.length && (
+              <div class="sch-empty" role="note">
+                <strong>The sheet is empty.</strong>
+                <span>Pick a part on the left (or press <kbd>A</kbd>), then click here to place it. Draw wires with <kbd>W</kbd>. Add <kbd>G</kbd> ground, then <kbd>F5</kbd> to simulate.</span>
+              </div>
+            )}
+            {pending && (
+              <div class="collide" role="alertdialog" aria-modal="false" aria-labelledby="collide-title" aria-describedby="collide-detail">
+                <strong id="collide-title">{pending.title}.</strong>
+                <div id="collide-detail" class="small">{pending.detail.map((d) => <p key={d}>{d}</p>)}<p>What do you want to do?</p></div>
+                <div class="row wrap">
+                  <button ref={firstChoice} onClick={() => choose('connect')} onMouseEnter={() => setPreview('connect')} onFocus={() => setPreview('connect')}>Connect them</button>
+                  {pending.around && <button class="primary" onClick={() => choose('around')} onMouseEnter={() => setPreview('around')} onFocus={() => setPreview('around')}>Route around (dashed preview)</button>}
+                  <button onClick={() => choose('cancel')} onMouseEnter={() => setPreview(null)} onFocus={() => setPreview(null)}>{pending.cancelLabel}</button>
+                </div>
+                <label class="small"><input type="checkbox" checked={remember} onChange={(e) => setRemember((e.target as HTMLInputElement).checked)} /> Do the same from now on without asking (Settings → Schematic editor changes it back)</label>
+              </div>
+            )}
+            <div class="sch-status small" aria-hidden="true">
+              {Math.round(cursor.x)}, {Math.round(cursor.y)} · zoom {Math.round(view.z * 100)} % · {tool === 'wire' ? `wire (${vFirst ? 'vertical' : 'horizontal'} first, / switches)` : tool}
+              {hoverText && <> · <strong>{hoverText}</strong></>}
             </div>
-          )}
-          <div class="sch-status small" aria-hidden="true">
-            {Math.round(cursor.x)}, {Math.round(cursor.y)} · zoom {Math.round(view.z * 100)} % · {tool === 'wire' ? `wire (${vFirst ? 'vertical' : 'horizontal'} first, / switches)` : tool}
-            {hoverText && <> · <strong>{hoverText}</strong></>}
-          </div>
 
+          </div>
+          )}
+          {showResults && maximize !== 'schematic' && (
+            <>
+              {maximize === 'none' && (
+                <div class={`splitter ${beside ? 'v' : 'h'}`} role="separator" tabIndex={0} aria-orientation={beside ? 'vertical' : 'horizontal'}
+                     aria-label="Resize the schematic and the results" aria-valuemin={20} aria-valuemax={80} aria-valuenow={Math.round(prefs.split * 100)}
+                     onPointerDown={onSplitDown as never} onDblClick={() => props.setPrefs({ split: 0.6 })}
+                     onKeyDown={(e) => {
+                       const d = (beside ? { ArrowLeft: -0.05, ArrowRight: 0.05 } : { ArrowUp: -0.05, ArrowDown: 0.05 }) as Record<string, number>;
+                       if (d[e.key] !== undefined) { e.preventDefault(); e.stopPropagation(); props.setPrefs({ split: Math.min(0.8, Math.max(0.2, prefs.split + d[e.key])) }); }
+                       if (e.key === 'Home') { e.preventDefault(); e.stopPropagation(); props.setPrefs({ split: 0.6 }); }
+                     }} />
+              )}
+              <section class="sch-plot" aria-label="Waveform viewer" ref={plotRef}>
+                <div class="row">
+                  <h3 class="pane-title">Results{ok && ok.analysis !== 'op' ? ` · ${ok.analysis === 'tran' ? 'Transient' : ok.analysis === 'ac' ? 'AC sweep' : 'DC sweep'}` : ''}</h3>
+                  <button onClick={() => run('max-results')} aria-pressed={maximize === 'results'} title="Maximise the results (Ctrl+Alt+W)">{maximize === 'results' ? 'Restore' : 'Maximise'}</button>
+                  <button onClick={() => run(beside ? 'layout-below' : 'layout-beside')} title={beside ? 'Results below (Ctrl+Alt+↓)' : 'Results beside (Ctrl+Alt+→)'}>{beside ? 'Move below' : 'Move beside'}</button>
+                  <button onClick={() => run('max-schematic')} title="Hide the results (Ctrl+Alt+S)">Hide</button>
+                  {plotResult && !sheet.probes.length && <span class="small muted">Showing the named nets. Press V and click a wire to choose what to plot.</span>}
+                </div>
+                {plotResult ? (traces.length ? (
+                  <Plot x={plotResult.x} xLabel={plotResult.xLabel} xUnit={plotResult.xUnit} log={plotResult.analysis === 'ac'} traces={traces} selected={selTrace} onSelect={setSelTrace}
+                        onRemove={(id) => { const pid = id.replace(/:ph$/, ''); if (sheet.probes.some((p) => p.id === pid)) apply({ ...sheet, probes: sheet.probes.filter((p) => p.id !== pid) }, 'Remove probe'); }}
+                        onExportCsv={() => void exportCsv()} height={plotHeight} />
+                ) : <p class="muted">Nothing to plot: add a probe (V, then click a wire).</p>)
+                  : <p class="muted small">Waveforms appear here after a transient, AC or DC-sweep simulation (Simulation tab, then F5). The operating point is shown on the schematic.</p>}
+              </section>
+            </>
+          )}
         </div>
-        <aside class="sch-side" aria-label="Properties and simulation">
+        {prefs.showSide && <aside class="sch-side" aria-label="Properties and simulation">
           {props.tutorial && <TutorialCard step={tutStep} onEnd={props.onTutorialEnd} />}
           {!props.tutorial && props.hint && hintOpen && (
             <div class="tutorial hint" role="note" aria-label="Example hint">
@@ -737,22 +967,8 @@ export function SchematicView(props: Props) {
             if (i.at) setView((v) => ({ ...v, x: i.at!.x - size.w / v.z / 2, y: i.at!.y - size.h / v.z / 2 }));
           }} />}
           {tab === 'nets' && <NetsPanel conn={conn} highlight={highlightNet} setHighlight={setHighlightNet} spice={spiceText} onSpice={() => setSpiceText(schematicSpice(sheet, props.name))} />}
-        </aside>
+        </aside>}
       </div>
-      {ok && ok.analysis !== 'op' && (
-        <section class="sch-plot" aria-label="Waveform viewer">
-          <div class="row">
-            <h3 class="pane-title">Results · {ok.analysis === 'tran' ? 'Transient' : ok.analysis === 'ac' ? 'AC sweep' : 'DC sweep'}</h3>
-            <button onClick={() => setPlotOpen((x) => !x)} aria-expanded={plotOpen}>{plotOpen ? 'Hide' : 'Show'}</button>
-            {!sheet.probes.length && <span class="small muted">Showing the named nets. Press V and click a wire to choose what to plot.</span>}
-          </div>
-          {plotOpen && (traces.length ? (
-            <Plot x={ok.x} xLabel={ok.xLabel} xUnit={ok.xUnit} log={ok.analysis === 'ac'} traces={traces} selected={selTrace} onSelect={setSelTrace}
-                  onRemove={(id) => { const pid = id.replace(/:ph$/, ''); if (sheet.probes.some((p) => p.id === pid)) apply({ ...sheet, probes: sheet.probes.filter((p) => p.id !== pid) }, 'Remove probe'); }}
-                  onExportCsv={() => void exportCsv()} height={window.innerHeight < 900 ? 120 : 170} />
-          ) : <p class="muted">Nothing to plot: add a probe (V, then click a wire).</p>)}
-        </section>
-      )}
     </div>
   );
 }

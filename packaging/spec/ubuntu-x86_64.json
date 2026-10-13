@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.0",
+  "app_version": "0.2.1",
   "os": "ubuntu",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "title": "EmbedForge application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.1",
+          "date": "2026-10-13",
+          "text": "Wire and part collisions are asked about (connect, route around, cancel) instead of connected silently; window layout options: results below or beside the schematic, splitter, maximise, panels on and off, kept between sessions."
+        },
         {
           "version": "0.2.0",
           "date": "2026-10-13",
@@ -77,8 +82,8 @@
   ],
   "files": [
     {
-      "path": "embedforge-setup_0.2.0_amd64.deb",
-      "from": "files/embedforge-setup_0.2.0_amd64.deb",
+      "path": "embedforge-setup_0.2.1_amd64.deb",
+      "from": "files/embedforge-setup_0.2.1_amd64.deb",
       "role": "bootstrap"
     },
     {
@@ -92,8 +97,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.0-source.tar.gz",
-      "from": "files/source/embedforge-0.2.0-source.tar.gz",
+      "path": "source/embedforge-0.2.1-source.tar.gz",
+      "from": "files/source/embedforge-0.2.1-source.tar.gz",
       "role": "source"
     },
     {
