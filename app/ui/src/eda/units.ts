@@ -46,6 +46,11 @@ export function formatValue(v: number, unit = '', digits = 3): string {
   return `${n}${unit || p ? ' ' : ''}${p}${unit}`;
 }
 
+/** Short engineering text that parseValue reads back: 50n, 4.7k, 2.2meg, 1.25. */
+export function shortValue(v: number, digits = 4): string {
+  return formatValue(v, '', digits).replace(' ', '').replace('µ', 'u').replace(/M$/, 'meg');
+}
+
 /** SPICE text for a number: plain exponent notation, so no prefix can be misread (m vs M). */
 export function spiceNumber(v: number): string {
   if (v === 0) return '0';

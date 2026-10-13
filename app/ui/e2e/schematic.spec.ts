@@ -317,6 +317,22 @@ test('SIM-01 (d): AC sweep of the RC filter shows −3 dB near 1.59 kHz', async 
   await expect(results.getByRole('img')).toHaveCount(2);
 });
 
+test('parameter sweep (.step): one trace per value of C1, saved with the sheet', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: RC low-pass filter (frequency response)' }).click();
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Simulation' }).click();
+  await side.getByLabel('Run the analysis once per value of a part property').check();
+  await side.getByLabel('Stepped property').selectOption({ label: 'C1 capacitance' });
+  await expect(side.getByLabel('Values (separated by spaces)')).toHaveValue('50n 100n 200n');
+  await expect(side.getByText(/3 runs: 50n, 100n, 200n F/)).toBeVisible();
+  await page.keyboard.press('F5');
+  const results = page.getByRole('region', { name: 'Waveform viewer' });
+  for (const c of ['50n', '100n', '200n']) await expect(results.getByRole('row', { name: new RegExp(`\\|V\\(OUT\\)\\| · C1 = ${c}`) })).toBeVisible();
+  // undo turns the sweep off again, step by step
+  await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z');
+  await expect(side.getByLabel('Run the analysis once per value of a part property')).not.toBeChecked();
+});
+
 test('ED-09: rule check markers and the Checks list', async ({ page }) => {
   await page.getByRole('button', { name: /New schematic/ }).click();
   await pick(page, 'Resistor'); await click(page, 0, 0);

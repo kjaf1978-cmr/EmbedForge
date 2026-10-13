@@ -35,12 +35,28 @@ export type SimSettings =
   | { type: 'ac'; fstart: string; fstop: string; perDecade: string; probeIsDb?: boolean }
   | { type: 'dc'; target: string; param: string; start: string; stop: string; step: string };
 
+/** Parameter sweep (SPICE .step): the analysis runs once per value of one part property. */
+export interface StepSweep {
+  on: boolean;
+  /** Part reference and property key (value, or a parameter such as "lp"). */
+  ref: string;
+  param: string;
+  /** list: values or model names separated by spaces or commas; lin: start, stop, step;
+   *  dec: start, stop and points per decade in `step`. */
+  mode: 'list' | 'lin' | 'dec';
+  list: string;
+  start: string;
+  stop: string;
+  step: string;
+}
+
 export interface Sheet {
   parts: Part[];
   wires: Wire[];
   labels: Label[];
   probes: Probe[];
   sim: SimSettings;
+  step?: StepSweep;
 }
 
 export const GRID = 10;

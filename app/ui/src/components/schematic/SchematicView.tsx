@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, key, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
+import { GRID, annotate, key, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from '../../eda/schematic';
 import {
   addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
   placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
@@ -17,8 +17,8 @@ import { erc, type ErcIssue } from '../../eda/erc';
 import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
 import { sweepTargets } from '../../eda/simnet';
 import { BJTS, DIODES, MOSFETS, OPAMPS, ZENERS } from '../../eda/models';
-import { formatValue, parseValue } from '../../eda/units';
-import { schematicSpice } from '../../sim/run';
+import { formatValue, parseValue, shortValue } from '../../eda/units';
+import { schematicSpice, stepValues } from '../../sim/run';
 import type { SimClient, SimOutcome } from '../../sim/client';
 import { toCsv } from '../../sim/measure';
 import { FIRST_CIRCUIT } from '../../eda/tutorial';
@@ -716,14 +716,15 @@ export function SchematicView(props: Props) {
     if (!ok || ok.analysis === 'op') return [];
     const out: Trace[] = [];
     const ac = ok.analysis === 'ac';
-    const series = (pr: Probe): { re: number[]; im?: number[]; unit: string } | null => {
-      if (pr.kind === 'i') { const p = shown.parts.find((x) => x.id === pr.part); const k = p ? `${p.ref}.${pr.pin}` : ''; return ok.i[k] ? { re: ok.i[k], im: ok.ii?.[k], unit: 'A' } : null; }
+    type Data = { v: Record<string, number[]>; vi?: Record<string, number[]>; i: Record<string, number[]>; ii?: Record<string, number[]> };
+    const series = (pr: Probe, d: Data = ok): { re: number[]; im?: number[]; unit: string } | null => {
+      if (pr.kind === 'i') { const p = shown.parts.find((x) => x.id === pr.part); const k = p ? `${p.ref}.${pr.pin}` : ''; return d.i[k] ? { re: d.i[k], im: d.ii?.[k], unit: 'A' } : null; }
       const a = netAt(shown, conn, pr.at);
-      if (!a || !ok.v[a]) return null;
-      if (pr.kind === 'v') return { re: ok.v[a], im: ok.vi?.[a], unit: 'V' };
+      if (!a || !d.v[a]) return null;
+      if (pr.kind === 'v') return { re: d.v[a], im: d.vi?.[a], unit: 'V' };
       const b = netAt(shown, conn, pr.at2);
-      if (!b || !ok.v[b]) return null;
-      return { re: ok.v[a].map((v, j) => v - ok.v[b][j]), im: ok.vi ? ok.vi[a].map((v, j) => v - ok.vi![b][j]) : undefined, unit: 'V' };
+      if (!b || !d.v[b]) return null;
+      return { re: d.v[a].map((v, j) => v - d.v[b][j]), im: d.vi ? d.vi[a].map((v, j) => v - d.vi![b][j]) : undefined, unit: 'V' };
     };
     let probes = shown.probes;
     if (!probes.length) {
@@ -734,14 +735,18 @@ export function SchematicView(props: Props) {
         return { id: `auto${k}`, kind: 'v', at, colour: PROBE_COLOURS[k % PROBE_COLOURS.length] } as Probe;
       });
     }
-    for (const pr of probes) {
-      const s = series(pr);
+    // a parameter sweep draws one trace per run: colours by run, names with the stepped value
+    const runs: { suffix: string; data: Data; colour: (pr: Probe) => string; key: string }[] = ok.steps
+      ? ok.steps.map((r, k) => ({ suffix: ` · ${r.label}`, data: r, colour: () => PROBE_COLOURS[k % PROBE_COLOURS.length], key: `:s${k}` }))
+      : [{ suffix: '', data: ok, colour: (pr: Probe) => pr.colour, key: '' }];
+    for (const pr of probes) for (const run of runs) {
+      const s = series(pr, run.data);
       if (!s) continue;
-      const name = probeName(pr);
+      const name = probeName(pr) + run.suffix, colour = run.colour(pr), id = pr.id + run.key;
       if (ac && s.im) {
-        out.push({ id: pr.id, name: `|${name}|`, colour: pr.colour, unit: 'dB', y: s.re.map((r, j) => 20 * Math.log10(Math.hypot(r, s.im![j]) || 1e-30)) });
-        out.push({ id: `${pr.id}:ph`, name: `∠${name}`, colour: pr.colour, unit: '°', dashed: true, y: s.re.map((r, j) => (Math.atan2(s.im![j], r) * 180) / Math.PI) });
-      } else out.push({ id: pr.id, name, colour: pr.colour, unit: s.unit, y: s.re });
+        out.push({ id, name: `|${probeName(pr)}|${run.suffix}`, colour, unit: 'dB', y: s.re.map((r, j) => 20 * Math.log10(Math.hypot(r, s.im![j]) || 1e-30)) });
+        out.push({ id: `${id}:ph`, name: `∠${probeName(pr)}${run.suffix}`, colour, unit: '°', dashed: true, y: s.re.map((r, j) => (Math.atan2(s.im![j], r) * 180) / Math.PI) });
+      } else out.push({ id, name, colour, unit: s.unit, y: s.re });
     }
     return out;
   }, [ok, shown, conn]);
@@ -1297,6 +1302,56 @@ function PotSlider({ id, label, value, partId, setOverride, onCommit }: {
   );
 }
 
+/** Parameter sweep (.step): one part property over a list or a range of values. */
+function StepPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: string) => void }) {
+  const st: StepSweep = sheet.step ?? { on: false, ref: '', param: 'value', mode: 'list', list: '', start: '', stop: '', step: '' };
+  const set = (next: StepSweep, label: string) => apply({ ...sheet, step: next }, label);
+  const candidates = sheet.parts.filter((p) => !symbolOf(p.sym).power).flatMap((p) => {
+    const sd = symbolOf(p.sym);
+    return [sd.value, ...sd.params].filter((d) => d.kind === 'value' || d.kind === 'select').map((d) => ({ ref: p.ref, param: d.key, label: `${p.ref} ${d.label.toLowerCase()}`, def: d, now: p.props[d.key] ?? d.default }));
+  });
+  const cur = candidates.find((c) => c.ref === st.ref && c.param === st.param);
+  const vals = st.on ? stepValues(st) : null;
+  const choose = (key: string) => {
+    const c = candidates.find((x) => `${x.ref}|${x.param}` === key);
+    if (!c) return;
+    // a sensible first list: the options of a model choice, or half, the value and double
+    const n = parseValue(c.now);
+    const list = c.def.kind === 'select' ? (c.def.options ?? []).map((o) => o.value).join(' ') : n !== null ? [n / 2, n, n * 2].map((x) => shortValue(x)).join(' ') : c.now;
+    set({ ...st, on: true, ref: c.ref, param: c.param, mode: 'list', list }, `Step ${c.label}`);
+  };
+  const inp = (label: string, value: string, key: 'list' | 'start' | 'stop' | 'step') => (
+    <label class="field">{label}<input value={value} onChange={(e) => set({ ...st, [key]: (e.target as HTMLInputElement).value.trim() }, `Step ${key} ${(e.target as HTMLInputElement).value.trim()}`)} /></label>
+  );
+  return (
+    <fieldset>
+      <legend>Parameter sweep (.step)</legend>
+      <label><input type="checkbox" checked={st.on} onChange={(e) => set({ ...st, on: (e.target as HTMLInputElement).checked }, (e.target as HTMLInputElement).checked ? 'Parameter sweep on' : 'Parameter sweep off')} /> Run the analysis once per value of a part property</label>
+      {st.on && (
+        <>
+          <div class="row wrap">
+            <label class="field">Stepped property
+              <select value={cur ? `${cur.ref}|${cur.param}` : ''} onChange={(e) => choose((e.target as HTMLSelectElement).value)}>
+                {!cur && <option value="">choose…</option>}
+                {candidates.map((c) => <option key={`${c.ref}|${c.param}`} value={`${c.ref}|${c.param}`}>{c.label}</option>)}
+              </select>
+            </label>
+            <label class="field">Values
+              <select value={st.mode} onChange={(e) => set({ ...st, mode: (e.target as HTMLSelectElement).value as StepSweep['mode'] }, 'Step mode')}>
+                <option value="list">a list</option><option value="lin">from, to, step</option><option value="dec">from, to, per decade</option>
+              </select>
+            </label>
+          </div>
+          {st.mode === 'list'
+            ? <div class="row wrap">{inp(cur?.def.kind === 'select' ? 'Models (separated by spaces)' : 'Values (separated by spaces)', st.list, 'list')}</div>
+            : <div class="row wrap">{inp('From', st.start, 'start')}{inp('To', st.stop, 'stop')}{inp(st.mode === 'dec' ? 'Points per decade' : 'Step', st.step, 'step')}</div>}
+          <p class="small muted">{vals && ('error' in vals ? vals.error : `${vals.values.length} runs: ${vals.values.join(', ')}${cur?.def.unit ? ` ${cur.def.unit}` : ''}. Each probe gets one trace per run.`)}</p>
+        </>
+      )}
+    </fieldset>
+  );
+}
+
 interface SimPanelProps {
   sheet: Sheet; apply: (s: Sheet, label: string) => void; running: boolean; status: JSX.Element | null;
   live: boolean; setLive: (b: boolean) => void; showValues: boolean; setShowValues: (b: boolean) => void;
@@ -1380,6 +1435,7 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
           {field('Step', s.step, (v) => set({ ...s, step: v }, `Sweep step ${v}`), targets.find((t) => t.ref === s.target)?.unit ?? '')}
         </div>
       )}
+      <StepPanel sheet={sheet} apply={apply} />
       <div class="row">
         <button class="primary" onClick={run} disabled={running}>{running ? 'Simulating…' : '▶ Simulate (F5)'}</button>
         <label><input type="checkbox" checked={live} onChange={(e) => setLive((e.target as HTMLInputElement).checked)} /> Update live</label>
