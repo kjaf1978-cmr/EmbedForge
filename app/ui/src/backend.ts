@@ -34,6 +34,9 @@ export interface StartupStatus {
   foreground_ms: number;
 }
 
+export interface ProjectInfo { id: string; name: string; modified: string }
+export interface LoadedProject { info: ProjectInfo; files: Record<string, unknown> }
+
 export interface Backend {
   kind: 'tauri' | 'preview';
   appVersion(): Promise<string>;
@@ -43,6 +46,22 @@ export interface Backend {
   saveSettings(s: UiSettings): Promise<void>;
   startupStatus(): Promise<StartupStatus>;
   repair(): Promise<StartupStatus>;
+  /** Projects (DATA-01: one Git repository each). */
+  listProjects(): Promise<ProjectInfo[]>;
+  createProject(name: string): Promise<ProjectInfo>;
+  loadProject(id: string): Promise<LoadedProject>;
+  /** Writes the files and commits them (CM-02); false when nothing changed. */
+  saveProject(id: string, files: Record<string, unknown>, message: string): Promise<boolean>;
+  /** Saves an export (SVG, PNG, SPICE, CSV); returns a message saying where it went. */
+  exportFile(projectId: string | null, name: string, data: string | Uint8Array): Promise<string>;
+  projectsLocation(): string;
+}
+
+function toBase64(data: string | Uint8Array): string {
+  const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 type Invoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -62,6 +81,18 @@ class TauriBackend implements Backend {
   async saveSettings(s: UiSettings) { await this.invoke('settings_save', { settings: s }); }
   startupStatus() { return this.invoke<StartupStatus>('startup_status'); }
   repair() { return this.invoke<StartupStatus>('repair'); }
+  private where = '';
+  listProjects() {
+    return this.invoke<{ root: string; projects: ProjectInfo[] }>('project_list').then((r) => { this.where = r.root; return r.projects; });
+  }
+  createProject(name: string) { return this.invoke<ProjectInfo>('project_create', { name }); }
+  loadProject(id: string) { return this.invoke<LoadedProject>('project_load', { id }); }
+  saveProject(id: string, files: Record<string, unknown>, message: string) { return this.invoke<boolean>('project_save', { id, files, message }); }
+  async exportFile(projectId: string | null, name: string, data: string | Uint8Array) {
+    const path = await this.invoke<string>('export_file', { project: projectId, name, data: toBase64(data) });
+    return `Saved ${path}`;
+  }
+  projectsLocation() { return this.where ? `Projects are saved in ${this.where}, each as a Git repository with one commit per save.` : 'Projects are saved in your Documents folder under "EmbedForge Projects".'; }
 }
 
 class PreviewBackend implements Backend {
@@ -99,6 +130,46 @@ class PreviewBackend implements Backend {
     return base;
   }
   async repair() { return this.startupStatus(); }
+  // Projects live in this browser's local storage; the desktop app keeps them as Git repositories.
+  private store(): Record<string, LoadedProject> {
+    try { return JSON.parse(localStorage.getItem('ef.preview.projects') ?? '{}'); } catch { return {}; }
+  }
+  private put(all: Record<string, LoadedProject>) { try { localStorage.setItem('ef.preview.projects', JSON.stringify(all)); } catch { /* storage full or blocked */ } }
+  async listProjects() { return Object.values(this.store()).map((p) => p.info).sort((a, b) => b.modified.localeCompare(a.modified)); }
+  async createProject(name: string) {
+    const all = this.store();
+    let id = name.replace(/[^\w-]+/g, '_') || 'project';
+    while (all[id]) id += '_';
+    const info = { id, name, modified: new Date().toLocaleString() };
+    all[id] = { info, files: {} };
+    this.put(all);
+    return info;
+  }
+  async loadProject(id: string) {
+    const p = this.store()[id];
+    if (!p) throw new Error(`project ${id} not found`);
+    return p;
+  }
+  async saveProject(id: string, files: Record<string, unknown>, _message: string) {
+    const all = this.store();
+    if (!all[id]) throw new Error(`project ${id} not found`);
+    const same = JSON.stringify(all[id].files) === JSON.stringify(files);
+    all[id] = { info: { ...all[id].info, modified: new Date().toLocaleString() }, files };
+    this.put(all);
+    return !same;
+  }
+  async exportFile(_projectId: string | null, name: string, data: string | Uint8Array) {
+    const blob = new Blob([typeof data === 'string' ? data : new Uint8Array(data)]);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return `Downloaded ${name}`;
+  }
+  projectsLocation() { return 'Browser preview: projects are kept in this browser only. The desktop app saves them as Git repositories in Documents.'; }
 }
 
 export function createBackend(): Backend {
