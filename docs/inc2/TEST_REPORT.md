@@ -18,10 +18,10 @@
 | Check | Where | Result |
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
-| Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 9 passed, 0 warnings |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 146 passed (0.2.2) |
-| — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 25 cases agree (15 reference circuits, 10 example schematics) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 31 passed, 3 consecutive runs (0.2.2) |
+| Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 192 passed (0.2.3) |
+| — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 34 cases agree (18 reference circuits, 12 example schematics, 6 part decks) (0.2.3) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 34 passed, 3 consecutive runs (0.2.3) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 1a. Signed release 0.2.2 (SEC-02, TEST-04)
@@ -127,6 +127,25 @@ Defects the checks found, all fixed:
   - Two parts with one reference (possible from an edited file) now stop the simulation with a
     message, instead of merging their connections.
 
+## 3c. Version 0.2.3: your requests of 13 October 2026 (third round)
+
+| Request | Status | Evidence |
+|---|---|---|
+| Keep improving Increment 2 (gate held) | B | Parameter sweep (.step), FFT view with THD, bill of materials, text notes, single-frequency AC analysis, property limits, and the parts below. |
+| Rename to NETApps Electric Simulation, with a logo | B | Decision D18. Every visible name changes: window, start screen, help, installer file, Start menu, Programs and Features, Linux menu, signing kit. The projects folder becomes Documents/NETApps Projects; an existing EmbedForge Projects folder is moved (Tauri test). Internal names stay, so the update installs over the old version. The logo is original. **Note:** the name is close to NetApp, Inc.'s trademark; check it before a public release. |
+| Transformers, including three-phase | B | Transformer (turns ratio, inductance, coupling, winding resistances). Three-phase transformer Dyn, Yyn, Yd and Dd from line voltages. Three-phase source. Tests: 10:1 ratio, isolated secondary, line voltages 230/400 V and 120°, the 30° shift of Dyn and Yd; ngspice agrees on 2 reference circuits and 2 schematic decks. |
+| Motors: DC, AC single- and three-phase, servo | B | DC motor (dynamic: no-load speed, stall current and start-up time constant tested; ngspice agrees). Single- and three-phase induction motors at a set slip (current against the equivalent circuit; balanced lines, no neutral current; locked rotor). Hobby servo (−90°, −45°, 0°, +90° from the pulse width; 0.1 s per 60°). |
+| Relay (from the improvement plan) | B | Pull-in at 75 %, drop-out at 25 % of the coil current; transient hysteresis tested; ngspice agrees (CSW switch). |
+
+Found and fixed on the way:
+- A shorted ideal tacho output made the circuit unsolvable (found by the every-part browser
+  test): the output now has 100 Ω.
+- A coupling element without terminals broke the island tie of 0.2.2: fixed, with a test.
+- The rule check flagged optional pins (tacho, delta N): they are now marked optional.
+
+Two new examples, DC motor start-up and three-phase supply with a Dyn transformer, are checked
+like the others: rule check clean, simulated, and cross-checked against ngspice.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
@@ -134,9 +153,9 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. ~~Sign 0.2.2~~ done 13 October 2026 (section 1a). Tag **v0.2.2** should point at b035130
-   (see item 3).
-2. **Your look at it:** install 0.2.2 over 0.1.0, open the tutorial and two examples, and tell
+1. **Sign 0.2.3** (signing kit "NETApps-signing-kit"). 0.2.2 is signed (section 1a); tag
+   **v0.2.2** should point at b035130 (see item 3).
+2. **Your look at it:** install 0.2.3 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
    - VAPP-01;

@@ -254,6 +254,43 @@ EXAMPLES.push(
       return b.done();
     },
   },
+  {
+    id: 'dc-motor', title: 'DC motor start-up', level: 'beginner',
+    summary: 'A 12 V supply starts a small DC motor from rest. Its SPD pin gives the speed (1 V per 1000 rpm), shown across a 10 kΩ meter resistor.',
+    tryThis: 'Watch the current spike at the start and the speed settle at about 11 000 rpm (11 V). Select M1 and add a load torque of 2m (2 mN·m): the speed drops and the current rises.',
+    build: () => {
+      const b = new B();
+      b.part('vdc', 0, 0, { value: '12' });
+      const m = b.part('dcmotor', 160, 0, {});
+      b.part('resistor', 230, 30, { value: '10k' }, 1);
+      b.part('gnd', 0, 30); b.part('gnd', 160, 30); b.part('gnd', 230, 60);
+      b.wire([0, -30], [160, -30]); b.wire([190, 0], [230, 0]);
+      b.label('SPEED', 200, 0);
+      b.i(m, '1'); b.v(210, 0);
+      b.sim({ type: 'tran', stop: '1', step: '', start: 'zero' });
+      return b.done();
+    },
+  },
+  {
+    id: 'three-phase', title: 'Three-phase supply and Dyn transformer', level: 'intermediate',
+    summary: 'A 230/400 V three-phase supply feeds a Dyn transformer (delta primary, star secondary with neutral) with three 100 Ω loads.',
+    tryThis: 'Compare L1 with the secondary phase U2: the Dyn connection shifts it by 30°. Select T1 and change the connection to Yyn: the shift disappears. Use the FFT button on the result to see the 50 Hz line.',
+    build: () => {
+      const b = new B();
+      b.part('vsin3', 0, 0, { value: '230', freq: '50' });
+      b.part('transformer3', 120, 0, { value: 'Dyn', vp: '400', vs: '400' });
+      b.part('gnd', 0, 40); b.part('gnd', 160, 30);
+      b.wire([40, -20], [80, -20], [80, -30]); b.wire([40, 0], [80, 0], [80, -10]); b.wire([40, 20], [80, 20], [80, 10]);
+      // three 100 Ω loads in star, their star point on the secondary neutral
+      b.part('resistor', 240, -70, { value: '100' }); b.part('resistor', 240, -10, { value: '100' }); b.part('resistor', 240, 50, { value: '100' });
+      b.wire([160, -30], [180, -30], [180, -70], [210, -70]); b.wire([160, -10], [210, -10]); b.wire([160, 10], [180, 10], [180, 50], [210, 50]);
+      b.wire([270, -70], [300, -70], [300, 50], [270, 50]); b.wire([270, -10], [300, -10]); b.wire([300, 50], [300, 80]); b.part('gnd', 300, 80);
+      b.label('L1', 40, -20); b.label('U2', 190, -70);
+      b.v(40, -20); b.v(200, -70);
+      b.sim({ type: 'tran', stop: '60m', step: '' });
+      return b.done();
+    },
+  },
 );
 
 export function exampleById(id: string): Example | undefined {

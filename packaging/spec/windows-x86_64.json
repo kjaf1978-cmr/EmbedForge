@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.2",
+  "app_version": "0.2.3",
   "os": "windows",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.3",
+          "date": "2026-10-13",
+          "text": "Renamed NETApps Electric Simulation, with its own logo. New parts: transformer, three-phase transformer (Dyn, Yyn, Yd, Dd), three-phase source, relay, DC motor, single- and three-phase AC motors, hobby servo. Parameter sweep (.step), FFT view with THD, bill of materials, text notes, single-frequency AC analysis, property limits."
+        },
         {
           "version": "0.2.2",
           "date": "2026-10-13",
@@ -49,8 +54,8 @@
   ],
   "files": [
     {
-      "path": "NETApps-Setup-0.2.2-x64.exe",
-      "from": "files/NETApps-Setup-0.2.2-x64.exe",
+      "path": "NETApps-Setup-0.2.3-x64.exe",
+      "from": "files/NETApps-Setup-0.2.3-x64.exe",
       "role": "bootstrap"
     },
     {
@@ -64,8 +69,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.2-source.tar.gz",
-      "from": "files/source/embedforge-0.2.2-source.tar.gz",
+      "path": "source/embedforge-0.2.3-source.tar.gz",
+      "from": "files/source/embedforge-0.2.3-source.tar.gz",
       "role": "source"
     },
     {

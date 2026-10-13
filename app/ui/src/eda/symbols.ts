@@ -205,7 +205,7 @@ export const SYMBOLS: SymbolDef[] = [
     description: 'Balanced three-phase supply in star: L1, L2 and L3 lag each other by 120°, measured from N. Set the RMS phase voltage (line to neutral); the line voltage is √3 times larger (230 V → 400 V).',
     pins: [{ id: '1', name: 'L1', x: 40, y: -20, type: 'power_out' }, { id: '2', name: 'L2', x: 40, y: 0, type: 'power_out' },
       { id: '3', name: 'L3', x: 40, y: 20, type: 'power_out' }, { id: '4', name: 'N', x: 0, y: 40, type: 'power_out' }],
-    refAt: { x: -26, y: -16 }, valAt: { x: -28, y: 30 }, simulated: true,
+    refAt: { x: -22, y: -14 }, valAt: { x: -22, y: 26 }, simulated: true,
     gfx: () => [path('M 15 -9 L 26 -20 H 40 M 18 0 H 40 M 15 9 L 26 20 H 40 M 0 18 V 40'), circle(0, 0, 18, 'bg'),
       path('M -9 -2 C -6 -12 -3 -12 0 -2 C 3 8 6 8 9 -2'), text(0, 12, '3~', 8), text(34, -23, 'L1', 6), text(34, -3, 'L2', 6), text(34, 17, 'L3', 6)],
     value: { key: 'value', label: 'Phase voltage (RMS)', kind: 'value', unit: 'V', default: '230' },
@@ -384,7 +384,7 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'dcmotor', name: 'DC motor', category: 'Motors', keywords: ['m', 'motor', 'dc motor', 'brushed', 'fan', 'pump'], prefix: 'M',
     description: 'Brushed DC motor: armature resistance and inductance, back-EMF and torque constant k, rotor inertia, friction and a load torque. Pin 3 (optional) gives the speed: 1 V per 1000 rpm, through 100 Ω. Start-up: run a transient with "discharged capacitors" (the rotor starts at rest).',
     pins: [{ id: '1', name: '+', x: 0, y: -30, type: 'passive' }, { id: '2', name: '−', x: 0, y: 30, type: 'passive' }, { id: '3', name: 'SPD', x: 30, y: 0, type: 'output', optional: true }],
-    refAt: { x: -26, y: -8 }, valAt: { x: -26, y: 6 }, simulated: true,
+    refAt: { x: -20, y: -4 }, valAt: { x: -20, y: 9 }, simulated: true,
     gfx: () => [path('M 0 -30 V -15 M 0 15 V 30 M 15 0 H 30'), circle(0, 0, 15, 'bg'), text(0, 2, 'M', 11), path('M -5 7 H 5 M -5 10 H -3 M -1 10 H 1 M 3 10 H 5'), text(-5, -20, '+', 8)],
     value: { key: 'value', label: 'Back-EMF / torque constant k', kind: 'value', unit: 'V·s/rad', default: '10m', help: 'no-load speed ≈ V / k rad/s (12 V, 10m → 11 500 rpm)', limits: { gt: 0, text: 'must be above 0' } },
     params: [
@@ -399,7 +399,7 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'motor1', name: 'AC motor, single-phase', category: 'Motors', keywords: ['m', 'motor', 'ac motor', 'induction', 'single phase', '1 phase', 'capacitor run', 'fan'], prefix: 'M',
     description: 'Single-phase induction motor while running: the main winding\'s equivalent circuit at the set slip (stator resistance and leakage, magnetising inductance, rotor resistance / slip). It draws the running current and power factor; start-up and speed changes are not modelled.',
     pins: [{ id: '1', name: 'L', x: 0, y: -30, type: 'passive' }, { id: '2', name: 'N', x: 0, y: 30, type: 'passive' }],
-    refAt: { x: -26, y: -8 }, valAt: { x: -26, y: 6 }, simulated: true,
+    refAt: { x: -20, y: -4 }, valAt: { x: -20, y: 9 }, simulated: true,
     gfx: () => [path('M 0 -30 V -15 M 0 15 V 30'), circle(0, 0, 15, 'bg'), text(0, 0, 'M', 11), text(0, 10, '1~', 7)],
     value: { key: 'value', label: 'Slip', kind: 'value', default: '0.05', help: '0.05 = 5 % below synchronous speed (rated load); 1 = locked rotor', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
     params: [
@@ -414,7 +414,7 @@ export const SYMBOLS: SymbolDef[] = [
     description: 'Three-phase induction motor in star while running: per phase the equivalent circuit at the set slip. Pin 4 (optional) is the star point. Start-up and speed changes are not modelled.',
     pins: [{ id: '1', name: 'U', x: -20, y: -30, type: 'passive' }, { id: '2', name: 'V', x: 0, y: -30, type: 'passive' }, { id: '3', name: 'W', x: 20, y: -30, type: 'passive' },
       { id: '4', name: 'N', x: 0, y: 30, type: 'passive', optional: true }],
-    refAt: { x: -30, y: 4 }, valAt: { x: -32, y: 18 }, simulated: true,
+    refAt: { x: -23, y: 4 }, valAt: { x: -23, y: 17 }, simulated: true,
     gfx: () => [path('M -20 -30 V -20 L -10 -13 M 0 -30 V -18 M 20 -30 V -20 L 10 -13 M 0 18 V 30'), circle(0, 0, 18, 'bg'), text(0, 1, 'M', 12), text(0, 12, '3~', 7)],
     value: { key: 'value', label: 'Slip', kind: 'value', default: '0.04', help: '0.04 = 4 % below synchronous speed (rated load); 1 = locked rotor', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
     params: [

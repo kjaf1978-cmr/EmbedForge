@@ -61,7 +61,7 @@ export function StartScreen({ backend, onNew, onTutorial, onExample, onOpen, ver
         <h2 id="h-road">What this version does, and what comes next</h2>
         <p>NETApps Electric Simulation {version || ''} — Increment 2 of the plan (decision D17: design tools first).</p>
         <ul>
-          <li><strong>Now:</strong> schematic editor, electrical rule check, circuit simulator (cross-checked against ngspice), probes and waveform viewer, SPICE/SVG/PNG export, projects under version control.</li>
+          <li><strong>Now:</strong> schematic editor, electrical rule check, circuit simulator (cross-checked against ngspice) with parameter sweeps, probes, waveform viewer with FFT, transformers (single- and three-phase), relays and motors (DC, AC, servo), parts list, SPICE/SVG/PNG/CSV export, projects under version control.</li>
           <li><strong>Next — Increment 3:</strong> PCB layout and routing (footprints, placement, interactive and automatic routing, design rule check, Gerber files).</li>
           <li><strong>Then:</strong> boards and flashing (4), the natural-language design assistant (5), the parts catalogue and generated circuits (6), firmware emulation (7).</li>
         </ul>

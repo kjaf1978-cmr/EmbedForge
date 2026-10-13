@@ -261,14 +261,14 @@ export function sheetBounds(sheet: Sheet): { x0: number; y0: number; x1: number;
 }
 
 /** Pin label text position helper for the renderer: labels stay upright. */
-export function labelPos(p: Part, which: 'ref' | 'val'): { at: Pt; anchor: 'start' | 'middle' } {
+export function labelPos(p: Part, which: 'ref' | 'val'): { at: Pt; anchor: 'start' | 'middle' | 'end' } {
   const s = symbolOf(p.sym);
   if (p.rot % 2 === 1 && !s.power) {
     const b = partBounds(p);
     return { at: { x: Math.max(b.x1 + 4, p.x + 22), y: p.y + (which === 'ref' ? -4 : 9) }, anchor: 'start' };
   }
   const local = which === 'ref' ? s.refAt : s.valAt;
-  return { at: toWorld({ ...p, rot: s.power ? p.rot : 0, mirror: false }, local.x === 0 ? local : { x: p.mirror ? -local.x : local.x, y: local.y }), anchor: local.x > 10 ? 'start' : 'middle' };
+  return { at: toWorld({ ...p, rot: s.power ? p.rot : 0, mirror: false }, local.x === 0 ? local : { x: p.mirror ? -local.x : local.x, y: local.y }), anchor: local.x > 10 ? 'start' : local.x < -10 ? 'end' : 'middle' };
 }
 
 // ---- collisions (asked, not merged silently): a new wire that touches something other than

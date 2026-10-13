@@ -23,6 +23,15 @@ over it, or with its slider. The results follow while you drag, and the new posi
 (one undo step) when you let go. The Controls list in the Simulation tab has the same controls
 for the keyboard: arrow keys, Page Up/Down, Home and End move a slider.
 
+## Parameter sweep
+
+**Parameter sweep (.step)** in the Simulation tab runs the analysis once per value of one part
+property, as LTspice's `.step` does: choose the property (for example C1 capacitance, R2
+resistance or D1 model), then give a list of values or models separated by spaces, or a range
+(from, to, step) or a range per decade. At most 25 runs. Every probe then shows one trace per
+run, named after the value. An operating point with a sweep becomes a plot of the voltages and
+currents against the swept value.
+
 ## Probes and the waveform viewer
 
 - **V** then click a wire or pin: the voltage of that net against ground. Drag from one net to
@@ -34,6 +43,10 @@ for the keyboard: arrow keys, Page Up/Down, Home and End move a slider.
 In the viewer: drag to zoom, the wheel zooms, **Zoom to fit** resets. Click to set cursor A,
 Shift+click for cursor B; the table shows the values at both cursors, their difference, and the
 minimum, maximum, average, RMS, peak-to-peak and frequency over the visible range.
+
+The **FFT** button above a transient plot shows the spectrum of the visible range (zoom in on
+the settled part first): Hann window, amplitudes as peak values in dBV or dBA, and per trace
+the strongest component with its total harmonic distortion (harmonics 2 to 10).
 
 ## Models and accuracy
 
@@ -52,6 +65,15 @@ reference suite of circuits on every build: results agree within 1 % or 1 mV / 1
 - A part, or a group of parts, connected to nothing else is tied to ground at one point. No
   current can flow through that tie, so it changes no result; it only keeps the simulator from
   failing on a part you have not wired yet.
+- Transformers: two coupled windings (mutual inductance), with winding resistances and a
+  coupling below 1 for leakage. Three-phase transformers are three such winding pairs, wired
+  in delta or star as chosen (Dyn and Yd shift the phase by 30°). No core saturation.
+- Relays: coil resistance and inductance; the contact changes over at 75 % of the nominal coil
+  current and back at 25 %. Switch the coil with a flyback diode.
+- DC motor: armature resistance and inductance, back-EMF, torque, inertia, friction and load
+  torque; the SPD pin gives the speed. AC motors: the per-phase equivalent circuit at the slip
+  you set (running state; no start-up). Servo: decodes 1 to 2 ms pulses and turns at the set
+  speed; it has no SPICE equivalent.
 - A power rail with no source on it is driven by an ideal supply at the voltage in its name
   (+5V → 5 V); the Simulation tab says so.
 

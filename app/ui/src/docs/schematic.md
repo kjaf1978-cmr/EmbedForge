@@ -21,6 +21,7 @@ has a simulation model.
 - A dot marks a junction. Wires that only cross are **not** connected.
 - **L** adds a net label: wires with the same label name are connected without a wire between
   them. Name a net after a rail (for example +5V) to make it that rail.
+- **T** adds a text note: free text on the sheet that connects to nothing.
 
 ## When a wire collides
 
@@ -90,6 +91,13 @@ A reference (R1, C2…) that another part already uses is refused, and the field
 
 Values take engineering notation: 330, 1k, 4k7, 2.2M, 100n, 4u7, 10m. "M" is mega and "m" is
 milli; "meg" also means mega.
+
+The **Parts** tab lists the bill of materials: identical parts in one line with their
+quantity and references (click a reference to select the part). **Export → Bill of
+materials** writes it as CSV.
+
+Properties with a range (a coupling, a slip, a duty cycle in %) refuse values outside it and
+say why.
 
 **Annotate** renumbers the references (R1, R2…) from top to bottom and left to right.
 
