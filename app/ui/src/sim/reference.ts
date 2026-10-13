@@ -183,6 +183,46 @@ export const REFERENCE: RefCase[] = [
     analysis: { type: 'tran', tstep: 2e-6, tstop: 2e-3 }, nodes: ['out', 'inv'],
   },
   {
+    id: 'transformer-tran',
+    circuit: { elements: [
+      { kind: 'V', name: 'VIN', p: 'in', n: '0', dc: 0, wave: { type: 'sin', vo: 0, va: 10, freq: 50 } },
+      { kind: 'R', name: 'RP', a: 'in', b: 'p', r: 1 },
+      { kind: 'L', name: 'LP', a: 'p', b: '0', l: 1 },
+      { kind: 'L', name: 'LS', a: 's', b: '0', l: 0.01 },
+      { kind: 'K', name: 'K1', l1: 'LP', l2: 'LS', k: 0.99 },
+      { kind: 'R', name: 'RL', a: 's', b: '0', r: 100 },
+    ] },
+    analysis: { type: 'tran', tstep: 50e-6, tstop: 60e-3 }, nodes: ['s', 'p'], currents: ['VIN'],
+  },
+  {
+    id: 'transformer-ac',
+    circuit: { elements: [
+      { kind: 'V', name: 'VIN', p: 'in', n: '0', dc: 0, acMag: 1 },
+      { kind: 'R', name: 'RP', a: 'in', b: 'p', r: 10 },
+      { kind: 'L', name: 'LP', a: 'p', b: '0', l: 10e-3 },
+      { kind: 'L', name: 'LS', a: 's', b: '0', l: 40e-3 },
+      { kind: 'K', name: 'K1', l1: 'LP', l2: 'LS', k: 0.95 },
+      { kind: 'R', name: 'RL', a: 's', b: '0', r: 1e3 },
+    ] },
+    analysis: { type: 'ac', perDecade: 10, fstart: 10, fstop: 100e3 }, nodes: ['s', 'p'],
+  },
+  {
+    id: 'relay-coil-dc-sweep',
+    circuit: { elements: [
+      { kind: 'V', name: 'VC', p: 'c', n: '0', dc: 0 },
+      { kind: 'V', name: 'VS', p: 'c', n: 'a', dc: 0 },
+      { kind: 'R', name: 'RC', a: 'a', b: 'b', r: 70 },
+      { kind: 'L', name: 'LC', a: 'b', b: '0', l: 0.14 },
+      { kind: 'V', name: 'VCOM', p: 'com', n: '0', dc: 12 },
+      { kind: 'W', name: 'WNO', p: 'com', n: 'no', ctrl: 'VS', it: 0.5 * 5 / 70, ih: 0.25 * 5 / 70, ron: 0.05, roff: 1e9 },
+      { kind: 'W', name: 'WNC', p: 'com', n: 'nc', ctrl: 'VS', it: 0.5 * 5 / 70, ih: 0.25 * 5 / 70, ron: 1e9, roff: 0.05 },
+      { kind: 'R', name: 'RNO', a: 'no', b: '0', r: 1e3 },
+      { kind: 'R', name: 'RNC', a: 'nc', b: '0', r: 1e3 },
+    ] },
+    // pull-in at 3.75 V: the points step past it, never onto it
+    analysis: { type: 'dc', source: 'VC', start: 0, stop: 5, step: 0.2 }, nodes: ['no', 'nc'], currents: ['VS'],
+  },
+  {
     id: 'current-source-op',
     circuit: { elements: [
       { kind: 'I', name: 'I1', p: '0', n: 'a', dc: 2e-3 },

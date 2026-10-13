@@ -4,7 +4,7 @@
 import { terminals, type Circuit, type Element } from '../sim/circuit';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS, findModel, ledModel } from './models';
+import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, RELAYS, ZENERS, findModel, ledModel } from './models';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
 import { pinPositions, type Part, type Sheet, type SimSettings } from './schematic';
@@ -97,7 +97,7 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
 function tieIslands(elements: Element[]) {
   const parent = new Map<string, string>();
   const find = (a: string): string => { let r = a; while (parent.has(r) && parent.get(r) !== r) r = parent.get(r)!; parent.set(a, r); if (!parent.has(r)) parent.set(r, r); return r; };
-  const join = (nodes: string[]) => { const r = find(nodes[0]); for (const n of nodes.slice(1)) { const q = find(n); if (q !== r) parent.set(q, r); } };
+  const join = (nodes: string[]) => { if (!nodes.length) return; const r = find(nodes[0]); for (const n of nodes.slice(1)) { const q = find(n); if (q !== r) parent.set(q, r); } };
   for (const e of elements) {
     if (e.kind === 'E' || e.kind === 'G') { join([e.p, e.n]); find(e.cp); find(e.cn); }
     else join(terminals(e));
@@ -121,6 +121,82 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'resistor': out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: Math.max(v('value', 'resistance'), 1e-6) }); break;
     case 'capacitor': case 'capacitor_pol': out.push({ kind: 'C', name: ref, a: pin['1'], b: pin['2'], c: v('value', 'capacitance') }); break;
     case 'inductor': out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') }); break;
+    case 'transformer': {
+      const ratio = v('value', 'turns ratio'), lp = v('lp', 'primary inductance'), k = v('k', 'coupling');
+      if (!(ratio > 0)) errors.push(`${p.ref}: the turns ratio must be above 0`);
+      if (!(k > 0 && k <= 1)) errors.push(`${p.ref}: the coupling must be above 0 and at most 1`);
+      const a = `${ref}#p`, b = `${ref}#s`;
+      out.push(
+        { kind: 'R', name: `${ref}_RP`, a: pin['1'], b: a, r: Math.max(v('rp', 'primary resistance'), 1e-6) },
+        { kind: 'L', name: `${ref}_LP`, a, b: pin['2'], l: lp },
+        { kind: 'R', name: `${ref}_RS`, a: pin['3'], b, r: Math.max(v('rs', 'secondary resistance'), 1e-6) },
+        { kind: 'L', name: `${ref}_LS`, a: b, b: pin['4'], l: lp * ratio * ratio },
+        { kind: 'K', name: `${ref}_K`, l1: `${ref}_LP`, l2: `${ref}_LS`, k: Math.min(Math.max(k, 1e-6), 1) },
+      );
+      break;
+    }
+    case 'relay': {
+      const m = findModel(RELAYS, p.props.value).model, inom = m.vcoil / m.rcoil;
+      const a = `${ref}#a`, b = `${ref}#b`, sw = { it: 0.5 * inom, ih: 0.25 * inom };
+      out.push(
+        { kind: 'V', name: `${ref}_VS`, p: pin['1'], n: a, dc: 0 },
+        { kind: 'R', name: `${ref}_RC`, a, b, r: m.rcoil },
+        { kind: 'L', name: `${ref}_LC`, a: b, b: pin['2'], l: m.lcoil },
+        { kind: 'W', name: `${ref}_NO`, p: pin['3'], n: pin['5'], ctrl: `${ref}_VS`, ...sw, ron: 0.05, roff: 1e9 },
+        { kind: 'W', name: `${ref}_NC`, p: pin['3'], n: pin['4'], ctrl: `${ref}_VS`, ...sw, ron: 1e9, roff: 0.05 },
+      );
+      break;
+    }
+    case 'dcmotor': {
+      const k = v('value', 'motor constant'), ra = Math.max(v('ra', 'armature resistance'), 1e-6), la = v('la', 'armature inductance');
+      const j = v('j', 'inertia'), b = v('b', 'friction'), tl = v('tl', 'load torque');
+      if (!(k > 0)) errors.push(`${p.ref}: the motor constant must be above 0`);
+      if (!(j > 0)) errors.push(`${p.ref}: the inertia must be above 0`);
+      // mechanical side as a circuit: node w carries the speed in rad/s (1 V = 1 rad/s);
+      // torque k·i is a current into w, inertia a capacitor, friction a conductance, load a sink
+      const a = `${ref}#a`, e = `${ref}#e`, w = `${ref}#w`;
+      out.push(
+        { kind: 'R', name: `${ref}_RA`, a: pin['1'], b: a, r: ra },
+        { kind: 'L', name: `${ref}_LA`, a, b: e, l: Math.max(la, 1e-9) },
+        { kind: 'E', name: `${ref}_EMF`, p: e, n: pin['2'], cp: w, cn: '0', gain: k },
+        { kind: 'G', name: `${ref}_GT`, p: '0', n: w, cp: pin['1'], cn: a, gm: k / ra },
+        { kind: 'C', name: `${ref}_J`, a: w, b: '0', c: j },
+        { kind: 'R', name: `${ref}_B`, a: w, b: '0', r: b > 0 ? 1 / b : 1e12 },
+        // speed output, 1 V per 1000 rpm, through 100 Ω (it may be shorted without harm)
+        { kind: 'E', name: `${ref}_SPD`, p: `${ref}#t`, n: '0', cp: w, cn: '0', gain: 60 / (2 * Math.PI) / 1000 },
+        { kind: 'R', name: `${ref}_RT`, a: `${ref}#t`, b: pin['3'], r: 100 },
+      );
+      if (tl) out.push({ kind: 'I', name: `${ref}_TL`, p: w, n: '0', dc: tl });
+      break;
+    }
+    case 'motor1': case 'motor3': {
+      const slip = v('value', 'slip');
+      if (!(slip > 0 && slip <= 1)) errors.push(`${p.ref}: the slip must be above 0 and at most 1`);
+      const rs = Math.max(v('rs', 'stator resistance'), 1e-6), rr = Math.max(v('rr', 'rotor resistance'), 1e-6);
+      const ls = Math.max(v('ls', 'leakage inductance'), 1e-9), lm = Math.max(v('lm', 'magnetising inductance'), 1e-9);
+      const s3 = s.id === 'motor3';
+      const phases: [string, string][] = s3 ? [['U', pin['1']], ['V', pin['2']], ['W', pin['3']]] : [['', pin['1']]];
+      const star = s3 ? pin['4'] : pin['2'];
+      for (const [ph, line] of phases) {
+        const a = `${ref}#a${ph}`, m = `${ref}#m${ph}`, r = `${ref}#r${ph}`;
+        out.push(
+          { kind: 'R', name: `${ref}_RS${ph}`, a: line, b: a, r: rs },
+          { kind: 'L', name: `${ref}_LS${ph}`, a, b: m, l: ls },
+          { kind: 'L', name: `${ref}_LM${ph}`, a: m, b: star, l: lm },
+          { kind: 'L', name: `${ref}_LR${ph}`, a: m, b: r, l: ls },
+          { kind: 'R', name: `${ref}_RR${ph}`, a: r, b: star, r: rr / Math.min(Math.max(slip, 1e-4), 1) },
+        );
+      }
+      break;
+    }
+    case 'servo': {
+      out.push(
+        { kind: 'P', name: ref, sig: pin['1'], gnd: pin['3'], out: pin['4'], slew: Math.max(v('value', 'speed'), 1) },
+        { kind: 'R', name: `${ref}_RSUP`, a: pin['2'], b: pin['3'], r: 500 },
+        { kind: 'R', name: `${ref}_RIN`, a: pin['1'], b: pin['3'], r: 100e3 },
+      );
+      break;
+    }
     case 'potentiometer': {
       const r = Math.max(v('value', 'resistance'), 1e-3);
       const pos = Math.min(1, Math.max(0, v('position', 'wiper position') / 100));
@@ -137,8 +213,40 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'vsin': {
-      const off = v('offset'), amp = v('value', 'amplitude'), f = v('freq', 'frequency');
-      out.push({ kind: 'V', name: ref, p: pin['1'], n: pin['2'], dc: off, wave: { type: 'sin', vo: off, va: amp, freq: f }, acMag: v('ac', 'AC magnitude') || undefined });
+      const off = v('offset'), amp = v('value', 'amplitude'), f = v('freq', 'frequency'), ph = p.props.phase ? v('phase') : 0;
+      out.push({ kind: 'V', name: ref, p: pin['1'], n: pin['2'], dc: off, wave: { type: 'sin', vo: off, va: amp, freq: f, ...(ph ? { phase: ph } : {}) }, acMag: v('ac', 'AC magnitude') || undefined, ...(ph ? { acPhase: ph } : {}) });
+      break;
+    }
+    case 'vsin3': {
+      const amp = Math.SQRT2 * v('value', 'phase voltage'), f = v('freq', 'frequency'), acm = v('ac', 'AC magnitude');
+      ([['1', 0], ['2', -120], ['3', 120]] as const).forEach(([k, ph], i) => out.push({
+        kind: 'V', name: `${ref}_L${i + 1}`, p: pin[k], n: pin['4'], dc: 0,
+        wave: { type: 'sin', vo: 0, va: amp, freq: f, ...(ph ? { phase: ph } : {}) }, acMag: acm || undefined, ...(acm && ph ? { acPhase: ph } : {}),
+      }));
+      break;
+    }
+    case 'transformer3': {
+      const conn = p.props.value ?? 'Dyn', dp = conn[0] === 'D', ds = conn.slice(1).toLowerCase().startsWith('d');
+      const vp = v('vp', 'primary line voltage'), vs = v('vs', 'secondary line voltage'), lp = v('lp', 'winding inductance'), k = v('k', 'coupling');
+      if (!(vp > 0 && vs > 0)) errors.push(`${p.ref}: the line voltages must be above 0`);
+      if (!(k > 0 && k <= 1)) errors.push(`${p.ref}: the coupling must be above 0 and at most 1`);
+      // winding voltage: the line voltage across a delta winding, line / √3 across a star winding
+      const wp = dp ? vp : vp / Math.sqrt(3), ws = ds ? vs : vs / Math.sqrt(3), n = ws / wp;
+      const rp = Math.max(v('rp', 'primary resistance'), 1e-6), rs = Math.max(v('rs', 'secondary resistance'), 1e-6);
+      const P = [pin['1'], pin['2'], pin['3']], S = [pin['5'], pin['6'], pin['7']];
+      for (let i = 0; i < 3; i++) {
+        // delta: winding i between line i and line i+1; star: between line i and the neutral
+        const pa = P[i], pb = dp ? P[(i + 1) % 3] : pin['4'];
+        const sa = S[i], sb = ds ? S[(i + 1) % 3] : pin['8'];
+        const ph = 'UVW'[i], mp = `${ref}#p${ph}`, ms = `${ref}#s${ph}`;
+        out.push(
+          { kind: 'R', name: `${ref}_RP${ph}`, a: pa, b: mp, r: rp },
+          { kind: 'L', name: `${ref}_LP${ph}`, a: mp, b: pb, l: lp },
+          { kind: 'R', name: `${ref}_RS${ph}`, a: sa, b: ms, r: rs },
+          { kind: 'L', name: `${ref}_LS${ph}`, a: ms, b: sb, l: lp * n * n },
+          { kind: 'K', name: `${ref}_K${ph}`, l1: `${ref}_LP${ph}`, l2: `${ref}_LS${ph}`, k: Math.min(Math.max(k, 1e-6), 1) },
+        );
+      }
       break;
     }
     case 'vpulse': {
@@ -251,9 +359,9 @@ export function planAnalysis(sim: SimSettings, sheet: Sheet, errors: string[]): 
     }
     case 'ac': {
       const f0 = val(sim.fstart, 'Start frequency'), f1 = val(sim.fstop, 'Stop frequency'), pd = val(sim.perDecade, 'Points per decade');
-      if (!(f0 > 0 && f1 > f0)) errors.push('AC: the stop frequency must be above the start frequency, both > 0');
+      if (!(f0 > 0 && f1 >= f0)) errors.push('AC: the stop frequency must not be below the start frequency, both > 0 (equal gives a single frequency)');
       const ppd = Math.max(1, Math.round(pd || 20));
-      return { analysis: { type: 'ac', fstart: f0, fstop: f1, perDecade: ppd }, points: f0 > 0 && f1 > f0 ? decadePoints(f0, f1, ppd) : [], xLabel: 'Frequency', xUnit: 'Hz' };
+      return { analysis: { type: 'ac', fstart: f0, fstop: f1, perDecade: ppd }, points: f0 > 0 && f1 > f0 ? decadePoints(f0, f1, ppd) : f0 > 0 && f1 === f0 ? [f0] : [], xLabel: 'Frequency', xUnit: 'Hz' };
     }
     case 'dc': {
       const part = sheet.parts.find((p) => p.ref === sim.target);

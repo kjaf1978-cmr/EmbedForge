@@ -80,3 +80,13 @@ export const REGULATORS: NamedModel<RegulatorModel>[] = [
 export const ADJ_REGULATORS: NamedModel<RegulatorModel>[] = [
   { name: 'LM317', note: 'adjustable, 1.25 V between OUT and ADJ, 1.5 A, dropout about 2 V; Vout = 1.25 V × (1 + R2/R1)', model: { vout: 1.25, dropout: 2, iq: 50e-6, adjustable: true } },
 ];
+
+/** Relays: coil as resistance and inductance; the contact pulls in at 75 % and drops out at
+ *  25 % of the nominal coil current (typical small signal and power relays). */
+export interface RelayModel { vcoil: number; rcoil: number; lcoil: number }
+
+export const RELAYS: NamedModel<RelayModel>[] = [
+  { name: '5 V', note: '5 V coil, 70 Ω (about 70 mA), changeover contact', model: { vcoil: 5, rcoil: 70, lcoil: 0.14 } },
+  { name: '12 V', note: '12 V coil, 400 Ω (30 mA), changeover contact', model: { vcoil: 12, rcoil: 400, lcoil: 0.8 } },
+  { name: '24 V', note: '24 V coil, 1.6 kΩ (15 mA), changeover contact', model: { vcoil: 24, rcoil: 1600, lcoil: 3.2 } },
+];

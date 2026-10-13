@@ -5,7 +5,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
-import { CATEGORIES, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
+import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
 import { GRID, annotate, key, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
 import {
   addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
@@ -1252,7 +1252,8 @@ function ValueField({ id, def, value, onSet, inputRef }: { id: string; def: Symb
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
   const parsed = def.kind === 'value' ? parseValue(text) : null;
-  const bad = def.kind === 'value' && text.trim() !== '' && parsed === null;
+  const range = parsed !== null ? outOfLimits(def, parsed) : null;
+  const bad = def.kind === 'value' && text.trim() !== '' && (parsed === null || range !== null);
   return (
     <div class="field">
       <label for={id}>{def.label}{def.unit ? ` (${def.unit})` : ''}</label>
@@ -1261,7 +1262,7 @@ function ValueField({ id, def, value, onSet, inputRef }: { id: string; def: Symb
              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setText(value); (e.target as HTMLInputElement).blur(); } }}
              onChange={() => { if (!bad && text.trim()) onSet(text.trim()); else setText(value); }} />
       <span id={`${id}-h`} class={`small ${bad ? 's-fail' : 'muted'}`}>
-        {bad ? 'Not a value: use 10k, 4k7, 100n, 2.2M…' : parsed !== null && def.unit ? `= ${formatValue(parsed, def.unit)}` : def.help ?? ''}
+        {bad ? (range ? `Not allowed: ${range}` : 'Not a value: use 10k, 4k7, 100n, 2.2M…') : parsed !== null && def.unit ? `= ${formatValue(parsed, def.unit)}` : def.help ?? ''}
       </span>
     </div>
   );

@@ -2,12 +2,16 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS } from './models';
+import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, RELAYS, ZENERS } from './models';
 
 export interface Pt { x: number; y: number }
 
 export type PinType = 'passive' | 'input' | 'output' | 'power_in' | 'power_out';
-export interface PinDef { id: string; name: string; x: number; y: number; type: PinType }
+export interface PinDef {
+  id: string; name: string; x: number; y: number; type: PinType;
+  /** May be left unconnected without a rule-check warning (a tacho output, a delta winding's N). */
+  optional?: boolean;
+}
 
 export type Gfx =
   | { t: 'path'; d: string; fill?: 'none' | 'fg' | 'bg' | string; w?: number }
@@ -22,9 +26,19 @@ export interface ParamDef {
   options?: { value: string; label: string }[];
   default: string;
   help?: string;
+  /** Allowed range of a value: above gt (or from ge) and up to le; `text` says it in words. */
+  limits?: { gt?: number; ge?: number; le?: number; text: string };
 }
 
-export type Category = 'Passive' | 'Sources' | 'Semiconductors' | 'Integrated circuits' | 'Switches' | 'Power';
+/** Why a value is outside a parameter's limits, or null when it is allowed. */
+export function outOfLimits(def: ParamDef, v: number): string | null {
+  const l = def.limits;
+  if (!l) return null;
+  if ((l.gt !== undefined && !(v > l.gt)) || (l.ge !== undefined && !(v >= l.ge)) || (l.le !== undefined && !(v <= l.le))) return l.text;
+  return null;
+}
+
+export type Category = 'Passive' | 'Sources' | 'Semiconductors' | 'Integrated circuits' | 'Switches' | 'Motors' | 'Power';
 
 export interface SymbolDef {
   id: string;
@@ -98,6 +112,55 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'value', label: 'Inductance', kind: 'value', unit: 'H', default: '10m' }, params: [],
   },
   {
+    id: 'transformer', name: 'Transformer', category: 'Passive', keywords: ['t', 'transformer', 'mains', 'isolation', 'coupled inductors', 'tr'], prefix: 'T',
+    description: 'Two coupled windings (dots mark pins 1 and 3). The secondary inductance is the primary inductance times the turns ratio squared; winding resistances included.',
+    pins: [{ id: '1', name: 'P1', x: -30, y: -20, type: 'passive' }, { id: '2', name: 'P2', x: -30, y: 20, type: 'passive' },
+      { id: '3', name: 'S1', x: 30, y: -20, type: 'passive' }, { id: '4', name: 'S2', x: 30, y: 20, type: 'passive' }],
+    refAt: { x: 0, y: -30 }, valAt: { x: 0, y: 34 }, simulated: true,
+    gfx: () => [
+      path('M -30 -20 H -10 A 5 5 0 0 0 -10 -10 A 5 5 0 0 0 -10 0 A 5 5 0 0 0 -10 10 A 5 5 0 0 0 -10 20 H -30'),
+      path('M 30 -20 H 10 A 5 5 0 0 1 10 -10 A 5 5 0 0 1 10 0 A 5 5 0 0 1 10 10 A 5 5 0 0 1 10 20 H 30'),
+      path('M -2 -22 V 22 M 2 -22 V 22'), circle(-18, -14, 1.8, fg), circle(18, -14, 1.8, fg),
+    ],
+    value: { key: 'value', label: 'Turns ratio (secondary : primary)', kind: 'value', default: '0.1', help: '0.1 = 10:1 step-down; 2 = 1:2 step-up', limits: { gt: 0, text: 'must be above 0' } },
+    params: [
+      { key: 'lp', label: 'Primary inductance', kind: 'value', unit: 'H', default: '1' },
+      { key: 'k', label: 'Coupling', kind: 'value', default: '0.999', help: 'from above 0 to 1; 1 = no leakage', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
+      { key: 'rp', label: 'Primary resistance', kind: 'value', unit: 'Ω', default: '1' },
+      { key: 'rs', label: 'Secondary resistance', kind: 'value', unit: 'Ω', default: '0.1' },
+    ],
+  },
+  {
+    id: 'transformer3', name: 'Three-phase transformer', category: 'Passive', keywords: ['3 phase', 'three phase', 'three-phase', 'transformer', 'dyn', 'yyn', 'distribution', 'delta', 'star', 'wye'], prefix: 'T',
+    description: 'Three-phase transformer, modelled as three coupled single-phase windings. Connection: D = delta, Y = star, n = secondary neutral brought out (Dyn and Yd shift the phase by 30°). Pins 1U 1V 1W 1N primary, 2U 2V 2W 2N secondary; N pins of delta windings are not used.',
+    pins: [
+      { id: '1', name: '1U', x: -40, y: -30, type: 'passive' }, { id: '2', name: '1V', x: -40, y: -10, type: 'passive' },
+      { id: '3', name: '1W', x: -40, y: 10, type: 'passive' }, { id: '4', name: '1N', x: -40, y: 30, type: 'passive', optional: true },
+      { id: '5', name: '2U', x: 40, y: -30, type: 'passive' }, { id: '6', name: '2V', x: 40, y: -10, type: 'passive' },
+      { id: '7', name: '2W', x: 40, y: 10, type: 'passive' }, { id: '8', name: '2N', x: 40, y: 30, type: 'passive', optional: true },
+    ],
+    refAt: { x: 0, y: -48 }, valAt: { x: 0, y: 52 }, simulated: true,
+    gfx: (p) => {
+      const c = p.value ?? 'Dyn', pri = c[0] === 'D' ? 'Δ' : 'Y', sec = c.slice(1).toLowerCase().startsWith('d') ? 'Δ' : 'Y';
+      return [
+        path('M -40 -30 H -25 M -40 -10 H -25 M -40 10 H -25 M -40 30 H -25 M 25 -30 H 40 M 25 -10 H 40 M 25 10 H 40 M 25 30 H 40'),
+        path('M -25 -40 H 25 V 40 H -25 Z', 'bg'), circle(-6, 0, 14), circle(6, 0, 14),
+        text(-10, 4, pri, 10), text(10, 4, sec, 10), text(0, -26, '3~', 7),
+        text(-19, -28, 'U', 5), text(-19, -8, 'V', 5), text(-19, 12, 'W', 5), text(-19, 32, 'N', 5),
+        text(19, -28, 'u', 5), text(19, -8, 'v', 5), text(19, 12, 'w', 5), text(19, 32, 'n', 5),
+      ];
+    },
+    value: { key: 'value', label: 'Connection', kind: 'select', options: opts(['Dyn', 'Yyn', 'Yd', 'Dd']), default: 'Dyn' },
+    params: [
+      { key: 'vp', label: 'Primary line voltage', kind: 'value', unit: 'V', default: '400', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'vs', label: 'Secondary line voltage', kind: 'value', unit: 'V', default: '400', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'lp', label: 'Primary winding inductance', kind: 'value', unit: 'H', default: '10', help: 'magnetising inductance of each primary winding' },
+      { key: 'k', label: 'Coupling', kind: 'value', default: '0.999', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
+      { key: 'rp', label: 'Primary winding resistance', kind: 'value', unit: 'Ω', default: '0.5' },
+      { key: 'rs', label: 'Secondary winding resistance', kind: 'value', unit: 'Ω', default: '0.5' },
+    ],
+  },
+  {
     id: 'potentiometer', name: 'Potentiometer', category: 'Passive', keywords: ['pot', 'trimmer', 'variable resistor', 'rv'], prefix: 'RV',
     description: 'Potentiometer; pin 2 is the wiper. Drag the wiper arrow on the sheet, turn the mouse wheel over it, or use the slider in Properties.',
     pins: [{ id: '1', name: '1', x: -30, y: 0, type: 'passive' }, { id: '2', name: 'W', x: 0, y: -30, type: 'passive' }, { id: '3', name: '3', x: 30, y: 0, type: 'passive' }],
@@ -109,7 +172,7 @@ export const SYMBOLS: SymbolDef[] = [
       return [path('M -30 0 H -15 M 15 0 H 30'), path(`M 0 -30 V -20 H ${ax} V -13`), path('M -15 -6 H 15 V 6 H -15 Z', 'bg'), arrowHead(ax, -14, ax, -7)];
     },
     value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '10k' },
-    params: [{ key: 'position', label: 'Wiper position', kind: 'value', unit: '%', default: '50', help: '0 % = at pin 1, 100 % = at pin 3' }],
+    params: [{ key: 'position', label: 'Wiper position', kind: 'value', unit: '%', default: '50', help: '0 % = at pin 1, 100 % = at pin 3', limits: { ge: 0, le: 100, text: 'must be from 0 to 100 %' } }],
   },
   {
     id: 'vdc', name: 'DC voltage source', category: 'Sources', keywords: ['v', 'supply', 'dc', 'power supply', 'voltage'], prefix: 'V',
@@ -131,9 +194,24 @@ export const SYMBOLS: SymbolDef[] = [
     gfx: () => [path('M 0 -30 V -15 M 0 15 V 30'), circle(0, 0, 15, 'bg'), path('M -9 0 C -6 -10 -3 -10 0 0 C 3 10 6 10 9 0')],
     value: { key: 'value', label: 'Amplitude', kind: 'value', unit: 'V', default: '1' },
     params: [
-      { key: 'freq', label: 'Frequency', kind: 'value', unit: 'Hz', default: '1k' },
+      { key: 'freq', label: 'Frequency', kind: 'value', unit: 'Hz', default: '1k', limits: { gt: 0, text: 'must be above 0' } },
       { key: 'offset', label: 'Offset', kind: 'value', unit: 'V', default: '0' },
+      { key: 'phase', label: 'Phase', kind: 'value', unit: '°', default: '0' },
       { key: 'ac', label: 'AC magnitude', kind: 'value', unit: 'V', default: '1', help: 'Amplitude used by the AC analysis' },
+    ],
+  },
+  {
+    id: 'vsin3', name: 'Three-phase source', category: 'Sources', keywords: ['3 phase', 'three phase', 'three-phase', 'mains', 'grid', '400v', 'l1 l2 l3', '3~'], prefix: 'V',
+    description: 'Balanced three-phase supply in star: L1, L2 and L3 lag each other by 120°, measured from N. Set the RMS phase voltage (line to neutral); the line voltage is √3 times larger (230 V → 400 V).',
+    pins: [{ id: '1', name: 'L1', x: 40, y: -20, type: 'power_out' }, { id: '2', name: 'L2', x: 40, y: 0, type: 'power_out' },
+      { id: '3', name: 'L3', x: 40, y: 20, type: 'power_out' }, { id: '4', name: 'N', x: 0, y: 40, type: 'power_out' }],
+    refAt: { x: -26, y: -16 }, valAt: { x: -28, y: 30 }, simulated: true,
+    gfx: () => [path('M 15 -9 L 26 -20 H 40 M 18 0 H 40 M 15 9 L 26 20 H 40 M 0 18 V 40'), circle(0, 0, 18, 'bg'),
+      path('M -9 -2 C -6 -12 -3 -12 0 -2 C 3 8 6 8 9 -2'), text(0, 12, '3~', 8), text(34, -23, 'L1', 6), text(34, -3, 'L2', 6), text(34, 17, 'L3', 6)],
+    value: { key: 'value', label: 'Phase voltage (RMS)', kind: 'value', unit: 'V', default: '230' },
+    params: [
+      { key: 'freq', label: 'Frequency', kind: 'value', unit: 'Hz', default: '50', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'ac', label: 'AC magnitude', kind: 'value', unit: 'V', default: '0', help: 'Per phase, for the AC analysis (phases 0°, −120°, +120°)' },
     ],
   },
   {
@@ -143,8 +221,8 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'value', label: 'High level', kind: 'value', unit: 'V', default: '5' },
     params: [
       { key: 'low', label: 'Low level', kind: 'value', unit: 'V', default: '0' },
-      { key: 'freq', label: 'Frequency', kind: 'value', unit: 'Hz', default: '1k' },
-      { key: 'duty', label: 'Duty cycle', kind: 'value', unit: '%', default: '50' },
+      { key: 'freq', label: 'Frequency', kind: 'value', unit: 'Hz', default: '1k', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'duty', label: 'Duty cycle', kind: 'value', unit: '%', default: '50', limits: { ge: 0, le: 100, text: 'must be from 0 to 100 %' } },
       { key: 'delay', label: 'Delay', kind: 'value', unit: 's', default: '0' },
       { key: 'edge', label: 'Rise/fall time', kind: 'value', unit: 's', default: '1u' },
     ],
@@ -289,6 +367,75 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'position', label: 'Position', kind: 'select', options: opts(['A', 'B']), default: 'A' }, params: [],
   },
   {
+    id: 'relay', name: 'Relay', category: 'Switches', keywords: ['k', 'relay', 'coil', 'contactor', 'changeover'], prefix: 'K',
+    description: 'Relay with a changeover contact: COM connects to NC at rest and to NO while the coil is energised (pull-in at 75 %, drop-out at 25 % of the nominal coil current). The coil is inductive: switch it with a flyback diode.',
+    pins: [{ id: '1', name: 'A1', x: -20, y: -30, type: 'passive' }, { id: '2', name: 'A2', x: -20, y: 30, type: 'passive' },
+      { id: '3', name: 'COM', x: 10, y: 30, type: 'passive' }, { id: '4', name: 'NC', x: 40, y: -10, type: 'passive' }, { id: '5', name: 'NO', x: 40, y: 10, type: 'passive' }],
+    refAt: { x: 10, y: -24 }, valAt: { x: 10, y: 44 }, simulated: true,
+    gfx: () => [
+      path('M -20 -30 V -10 M -20 10 V 30'), path('M -28 -10 H -12 V 10 H -28 Z', 'bg'), path('M -28 10 L -12 -10'),
+      path('M 10 30 V 10 M 30 -10 H 40 M 30 10 H 40'), circle(10, 10, 2, 'bg'), path('M 10 10 L 29 -8', 'none', 2),
+      path('M 26 -10 H 30 M 26 10 H 30', 'none', 2), path('M -10 0 H -6 M -2 0 H 2 M 6 0 H 10'),
+      text(36, -13, 'NC', 6), text(36, 18, 'NO', 6),
+    ],
+    value: { key: 'value', label: 'Coil', kind: 'select', options: opts(RELAYS.map((m) => m.name)), default: '5 V' }, params: [],
+  },
+  {
+    id: 'dcmotor', name: 'DC motor', category: 'Motors', keywords: ['m', 'motor', 'dc motor', 'brushed', 'fan', 'pump'], prefix: 'M',
+    description: 'Brushed DC motor: armature resistance and inductance, back-EMF and torque constant k, rotor inertia, friction and a load torque. Pin 3 (optional) gives the speed: 1 V per 1000 rpm, through 100 Ω. Start-up: run a transient with "discharged capacitors" (the rotor starts at rest).',
+    pins: [{ id: '1', name: '+', x: 0, y: -30, type: 'passive' }, { id: '2', name: '−', x: 0, y: 30, type: 'passive' }, { id: '3', name: 'SPD', x: 30, y: 0, type: 'output', optional: true }],
+    refAt: { x: -26, y: -8 }, valAt: { x: -26, y: 6 }, simulated: true,
+    gfx: () => [path('M 0 -30 V -15 M 0 15 V 30 M 15 0 H 30'), circle(0, 0, 15, 'bg'), text(0, 2, 'M', 11), path('M -5 7 H 5 M -5 10 H -3 M -1 10 H 1 M 3 10 H 5'), text(-5, -20, '+', 8)],
+    value: { key: 'value', label: 'Back-EMF / torque constant k', kind: 'value', unit: 'V·s/rad', default: '10m', help: 'no-load speed ≈ V / k rad/s (12 V, 10m → 11 500 rpm)', limits: { gt: 0, text: 'must be above 0' } },
+    params: [
+      { key: 'ra', label: 'Armature resistance', kind: 'value', unit: 'Ω', default: '2' },
+      { key: 'la', label: 'Armature inductance', kind: 'value', unit: 'H', default: '1m' },
+      { key: 'j', label: 'Rotor inertia', kind: 'value', unit: 'kg·m²', default: '10u', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'b', label: 'Friction', kind: 'value', unit: 'N·m·s/rad', default: '1u' },
+      { key: 'tl', label: 'Load torque', kind: 'value', unit: 'N·m', default: '0' },
+    ],
+  },
+  {
+    id: 'motor1', name: 'AC motor, single-phase', category: 'Motors', keywords: ['m', 'motor', 'ac motor', 'induction', 'single phase', '1 phase', 'capacitor run', 'fan'], prefix: 'M',
+    description: 'Single-phase induction motor while running: the main winding\'s equivalent circuit at the set slip (stator resistance and leakage, magnetising inductance, rotor resistance / slip). It draws the running current and power factor; start-up and speed changes are not modelled.',
+    pins: [{ id: '1', name: 'L', x: 0, y: -30, type: 'passive' }, { id: '2', name: 'N', x: 0, y: 30, type: 'passive' }],
+    refAt: { x: -26, y: -8 }, valAt: { x: -26, y: 6 }, simulated: true,
+    gfx: () => [path('M 0 -30 V -15 M 0 15 V 30'), circle(0, 0, 15, 'bg'), text(0, 0, 'M', 11), text(0, 10, '1~', 7)],
+    value: { key: 'value', label: 'Slip', kind: 'value', default: '0.05', help: '0.05 = 5 % below synchronous speed (rated load); 1 = locked rotor', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
+    params: [
+      { key: 'rs', label: 'Stator resistance', kind: 'value', unit: 'Ω', default: '3' },
+      { key: 'rr', label: 'Rotor resistance (referred)', kind: 'value', unit: 'Ω', default: '3' },
+      { key: 'ls', label: 'Leakage inductance (each side)', kind: 'value', unit: 'H', default: '20m' },
+      { key: 'lm', label: 'Magnetising inductance', kind: 'value', unit: 'H', default: '0.5' },
+    ],
+  },
+  {
+    id: 'motor3', name: 'AC motor, three-phase', category: 'Motors', keywords: ['m', 'motor', 'ac motor', 'induction', 'three phase', '3 phase', 'asynchronous', 'squirrel cage'], prefix: 'M',
+    description: 'Three-phase induction motor in star while running: per phase the equivalent circuit at the set slip. Pin 4 (optional) is the star point. Start-up and speed changes are not modelled.',
+    pins: [{ id: '1', name: 'U', x: -20, y: -30, type: 'passive' }, { id: '2', name: 'V', x: 0, y: -30, type: 'passive' }, { id: '3', name: 'W', x: 20, y: -30, type: 'passive' },
+      { id: '4', name: 'N', x: 0, y: 30, type: 'passive', optional: true }],
+    refAt: { x: -30, y: 4 }, valAt: { x: -32, y: 18 }, simulated: true,
+    gfx: () => [path('M -20 -30 V -20 L -10 -13 M 0 -30 V -18 M 20 -30 V -20 L 10 -13 M 0 18 V 30'), circle(0, 0, 18, 'bg'), text(0, 1, 'M', 12), text(0, 12, '3~', 7)],
+    value: { key: 'value', label: 'Slip', kind: 'value', default: '0.04', help: '0.04 = 4 % below synchronous speed (rated load); 1 = locked rotor', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
+    params: [
+      { key: 'rs', label: 'Stator resistance', kind: 'value', unit: 'Ω', default: '1.5' },
+      { key: 'rr', label: 'Rotor resistance (referred)', kind: 'value', unit: 'Ω', default: '1.2' },
+      { key: 'ls', label: 'Leakage inductance (each side)', kind: 'value', unit: 'H', default: '6m' },
+      { key: 'lm', label: 'Magnetising inductance', kind: 'value', unit: 'H', default: '0.2' },
+    ],
+  },
+  {
+    id: 'servo', name: 'Servo (hobby, PWM)', category: 'Motors', keywords: ['servo', 'rc servo', 'sg90', 'mg996', 'pwm', 'actuator', 'positioner'], prefix: 'M',
+    description: 'Hobby RC servo: pulses of 1.0 to 2.0 ms on PWM (above 1.5 V, typically every 20 ms) set the angle from −90° to +90°; 1.5 ms is the centre. The horn turns at the set speed. Pin 4 (optional) gives the angle: 1 V per 100°, through 100 Ω. The supply draws a steady 10 mA at 5 V. Not exported to SPICE.',
+    pins: [{ id: '1', name: 'PWM', x: -30, y: -20, type: 'input' }, { id: '2', name: '+', x: -30, y: 0, type: 'power_in' }, { id: '3', name: '−', x: -30, y: 20, type: 'power_in' },
+      { id: '4', name: 'POS', x: 30, y: 0, type: 'output', optional: true }],
+    refAt: { x: 0, y: -36 }, valAt: { x: 0, y: 40 }, simulated: true,
+    gfx: () => [path('M -30 -20 H -20 M -30 0 H -20 M -30 20 H -20 M 20 0 H 30'), path('M -20 -28 H 20 V 28 H -20 Z', 'bg'), circle(4, -8, 7), path('M 4 -8 L 14 -18', 'none', 2),
+      text(-14, -17, 'PWM', 5), text(-16, 3, '+', 7), text(-16, 23, '−', 7), text(2, 18, 'SERVO', 6)],
+    value: { key: 'value', label: 'Speed', kind: 'value', unit: '°/s', default: '600', help: '600 °/s = 0.1 s per 60° (SG90)' },
+    params: [],
+  },
+  {
     id: 'gnd', name: 'Ground', category: 'Power', keywords: ['gnd', 'ground', '0v', 'earth', 'common'], prefix: '#PWR',
     description: 'Ground (0 V). Every circuit needs one; all ground symbols are connected.',
     pins: [{ id: '1', name: 'GND', x: 0, y: 0, type: 'power_in' }], refAt: { x: 0, y: 40 }, valAt: { x: 0, y: 32 }, power: true, simulated: true,
@@ -312,7 +459,7 @@ export function symbolOf(id: string): SymbolDef {
   return s;
 }
 
-export const CATEGORIES: Category[] = ['Passive', 'Sources', 'Semiconductors', 'Integrated circuits', 'Switches', 'Power'];
+export const CATEGORIES: Category[] = ['Passive', 'Sources', 'Semiconductors', 'Integrated circuits', 'Switches', 'Motors', 'Power'];
 
 /** Part picker search (UI-08 (a)): every word must match name, keywords, category or a model. */
 export function searchSymbols(q: string): SymbolDef[] {

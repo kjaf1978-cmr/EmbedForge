@@ -22,7 +22,7 @@ export function spiceNode(name: string): string {
 function wave(dc: number, w: Wave | undefined): string {
   const base = `DC ${n(opValue(dc, w))}`;
   if (!w || w.type === 'dc') return base;
-  if (w.type === 'sin') return `${base} SIN(${[w.vo, w.va, w.freq, w.td ?? 0, w.theta ?? 0].map(n).join(' ')})`;
+  if (w.type === 'sin') return `${base} SIN(${[w.vo, w.va, w.freq, w.td ?? 0, w.theta ?? 0, ...(w.phase ? [w.phase] : [])].map(n).join(' ')})`;
   if (w.type === 'pulse') return `${base} PULSE(${[w.v1, w.v2, w.td, w.tr, w.tf, w.pw, w.per].map(n).join(' ')})`;
   return `${base} PWL(${w.pts.map(([t, v]) => `${n(t)} ${n(v)}`).join(' ')})`;
 }
@@ -62,6 +62,13 @@ export function elementLine(e: Element, models: Map<string, string>): string {
       const card = `${m.type.toUpperCase()}(LEVEL=1 VTO=${n(m.vto)} KP=${n(m.kp)} LAMBDA=${n(m.lambda)} IS=${n(m.is)})`;
       return `${nm} ${N(e.d)} ${N(e.g)} ${N(e.s)} ${N(e.s)} ${model(models, 'M', card)} W=${n(m.w)} L=${n(m.l)}`;
     }
+    case 'K': return `${nm} ${spiceName({ kind: 'L', name: e.l1 } as Element)} ${spiceName({ kind: 'L', name: e.l2 } as Element)} ${n(e.k)}`;
+    case 'W': {
+      const card = `CSW(IT=${n(e.it)} IH=${n(e.ih)} RON=${n(e.ron)} ROFF=${n(e.roff)})`;
+      return `${nm} ${N(e.p)} ${N(e.n)} ${spiceName({ kind: 'V', name: e.ctrl } as Element)} ${model(models, 'W', card)}`;
+    }
+    case 'P':
+      return `* ${e.name}: hobby servo (PWM ${N(e.sig)} GND ${N(e.gnd)} POS ${N(e.out)}). EmbedForge simulates it with a behavioural model that has no SPICE primitive.`;
     case 'T':
       return `* ${e.name}: 555 timer (GND ${N(e.gnd)} TRIG ${N(e.trig)} OUT ${N(e.out)} RESET ${N(e.rst)} CTRL ${N(e.ctrl)} THR ${N(e.thr)} DIS ${N(e.dis)} VCC ${N(e.vcc)}). ` +
         'EmbedForge simulates it with a behavioural model that has no SPICE primitive: insert a 555 subcircuit here.';
@@ -79,7 +86,7 @@ export function analysisLine(a: Analysis): string {
     case 'op': return '.op';
     case 'dc': return `.dc ${a.source} ${n(a.start)} ${n(a.stop)} ${n(a.step)}`;
     case 'tran': return `.tran ${n(a.tstep)} ${n(a.tstop)} 0 ${n(a.tmax ?? a.tstep)}${a.uic ? ' uic' : ''}`;
-    case 'ac': return `.ac dec ${a.perDecade} ${n(a.fstart)} ${n(a.fstop)}`;
+    case 'ac': return a.fstop === a.fstart ? `.ac lin 1 ${n(a.fstart)} ${n(a.fstop)}` : `.ac dec ${a.perDecade} ${n(a.fstart)} ${n(a.fstop)}`;
   }
 }
 

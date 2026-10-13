@@ -170,6 +170,7 @@ class Capacitor implements Device {
 abstract class Branch implements Device {
   abstract el: Element;
   constructor(protected p: number, protected q: number, protected k: number) {}
+  get branch() { return this.k; }
   protected stampBranch(c: { A: Float64Array; n: number }) {
     add(c, this.p, this.k, 1); add(c, this.q, this.k, -1);
     add(c, this.k, this.p, 1); add(c, this.k, this.q, -1);
@@ -220,6 +221,48 @@ class Inductor extends Branch {
   loadAC(c: AcCtx) {
     addc(c, this.p, this.k, 1, 0); addc(c, this.q, this.k, -1, 0); addc(c, this.k, this.p, 1, 0); addc(c, this.k, this.q, -1, 0);
     addc(c, this.k, this.k, 0, -c.w * this.el.l);
+  }
+}
+
+/** Mutual inductance between two inductors. Their branch rows get the coupled flux term
+ *  M·di/dt with the same integration method as the inductors themselves (BE or trapezoidal). */
+class Mutual implements Device {
+  constructor(public el: Element & { kind: 'K' }, private a: Inductor, private b: Inductor) {}
+  get m() { return this.el.k * Math.sqrt(this.a.el.l * this.b.el.l); }
+  load(c: Ctx) {
+    if (c.mode === 'dc') return;
+    const r = (c.method === 'be' ? 1 : 2) * this.m / c.h;
+    add(c, this.a.branch, this.b.branch, -r); rhs(c, this.a.branch, -r * this.b.iprev);
+    add(c, this.b.branch, this.a.branch, -r); rhs(c, this.b.branch, -r * this.a.iprev);
+  }
+  loadAC(c: AcCtx) {
+    addc(c, this.a.branch, this.b.branch, 0, -c.w * this.m);
+    addc(c, this.b.branch, this.a.branch, 0, -c.w * this.m);
+  }
+  currents() { return []; }
+  acCurrents() { return []; }
+}
+
+/** Current-controlled switch with hysteresis (relay contact): a discrete state, settled at the
+ *  operating point and located in time like the 555 latch. */
+class CSwitch implements Device {
+  on = false;
+  constructor(public el: Element & { kind: 'W' }, private a: number, private b: number, private sense: VSource) {}
+  private next(x: Float64Array) {
+    const i = Math.abs(x[this.sense.branch]);
+    if (i > this.el.it + this.el.ih) return true;
+    if (i < this.el.it - this.el.ih) return false;
+    return this.on;
+  }
+  pending(x: Float64Array) { return this.next(x) !== this.on; }
+  commitState(x: Float64Array) { this.on = this.next(x); }
+  get g() { return 1 / (this.on ? this.el.ron : this.el.roff); }
+  load(c: Ctx) { stampG(c, this.a, this.b, this.g); }
+  loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.g, 0); }
+  currents(x: Float64Array) { const i = (V(x, this.a) - V(x, this.b)) * this.g; return [i, -i]; }
+  acCurrents(re: Float64Array, im: Float64Array) {
+    const [ar, ai] = Vc(re, im, this.a), [br, bi] = Vc(re, im, this.b);
+    return [[(ar - br) * this.g, (ai - bi) * this.g], [-(ar - br) * this.g, -(ai - bi) * this.g]] as [number, number][];
   }
 }
 
@@ -559,6 +602,37 @@ class Timer555 implements Device {
   }
 }
 
+class Servo implements Device {
+  angle = 0; target = 0; private high = false; private tRise = 0; private tLast = 0;
+  private static readonly G = 1 / 100;
+  constructor(public el: Element & { kind: 'P' }, private sig: number, private gnd: number, private out: number) {}
+  private stamp(c: { A: Float64Array; n: number }, z: ((i: number, v: number) => void) | null) {
+    stampG(c, this.out, this.gnd, Servo.G);
+    if (z) { z(this.out, Servo.G * this.angle / 100); z(this.gnd, -Servo.G * this.angle / 100); }
+  }
+  load(c: Ctx) { this.stamp(c, (i, v) => rhs(c, i, v)); }
+  loadAC(c: AcCtx) { this.stamp({ A: c.Ar, n: c.n }, null); }
+  initTran() { this.high = false; this.tLast = 0; }
+  accept(c: Ctx, x: Float64Array) {
+    if (c.mode !== 'tran') return;
+    const t = c.t, v = V(x, this.sig) - V(x, this.gnd);
+    if (!this.high && v > 1.5) { this.high = true; this.tRise = t; }
+    else if (this.high && v < 1.5) {
+      this.high = false;
+      const w = t - this.tRise;
+      // pulses outside 0.5 – 2.5 ms are not servo commands
+      if (w > 0.5e-3 && w < 2.5e-3) this.target = Math.min(90, Math.max(-90, (w - 1.5e-3) / 0.5e-3 * 90));
+    }
+    const step = this.el.slew * Math.max(0, t - this.tLast);
+    this.angle += Math.max(-step, Math.min(step, this.target - this.angle));
+    this.tLast = t;
+  }
+  currents(x: Float64Array) {
+    const i = Servo.G * (V(x, this.out) - V(x, this.gnd) - this.angle / 100);
+    return [0, -i, i];
+  }
+}
+
 export interface Waveforms {
   /** Sweep variable: time (s), frequency (Hz) or the swept value. */
   x: number[];
@@ -622,7 +696,22 @@ export class Engine {
         }
         case 'Q': this.devices.push(new Bjt(e, ix(e.c), ix(e.b), ix(e.e))); break;
         case 'M': this.devices.push(new Mosfet(e, ix(e.d), ix(e.g), ix(e.s))); break;
+        case 'K': case 'W': break; // after the elements they refer to
+        case 'P': this.devices.push(new Servo(e, ix(e.sig), ix(e.gnd), ix(e.out))); break;
         case 'T': this.devices.push(new Timer555(e, { gnd: ix(e.gnd), trig: ix(e.trig), out: ix(e.out), rst: ix(e.rst), ctrl: ix(e.ctrl), thr: ix(e.thr), dis: ix(e.dis), vcc: ix(e.vcc), n13: timerNode.get(e.name)! })); break;
+      }
+    }
+    const byName = (name: string) => this.devices.find((d) => d.el.name === name);
+    for (const e of circuit.elements) {
+      if (e.kind === 'K') {
+        const a = byName(e.l1), b = byName(e.l2);
+        if (!(a instanceof Inductor) || !(b instanceof Inductor)) throw new SimError(`${e.name}: ${e.l1} and ${e.l2} must be inductors`);
+        if (!(e.k > 0 && e.k <= 1)) throw new SimError(`${e.name}: coupling must be above 0 and at most 1`);
+        this.devices.push(new Mutual(e, a, b));
+      } else if (e.kind === 'W') {
+        const v = byName(e.ctrl);
+        if (!(v instanceof VSource)) throw new SimError(`${e.name}: controlling source ${e.ctrl} is not a voltage source`);
+        this.devices.push(new CSwitch(e, node(e.p), node(e.n), v));
       }
     }
     this.n = k;

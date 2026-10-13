@@ -13,6 +13,8 @@ import { Engine, decadePoints, linearPoints, type Waveforms } from '../src/sim/e
 import type { Element } from '../src/sim/circuit';
 import { EXAMPLES } from '../src/eda/examples';
 import { buildSimNet, planAnalysis } from '../src/eda/simnet';
+import type { SimSettings } from '../src/eda/schematic';
+import { deck, type Spec } from './deck';
 
 function haveNgspice(): boolean {
   try { execFileSync('ngspice', ['-v'], { stdio: 'ignore' }); return true; } catch { return false; }
@@ -114,11 +116,26 @@ describe.skipIf(!ok)('SIM-04 reference suite against ngspice', () => {
   }
 });
 
+// the newer parts at schematic level: the same flattening as in the app, then both simulators
+const V = (v: number, pos: string): Spec => ['vdc', { value: String(v) }, { '1': pos, '2': 'GND' }];
+const R = (r: string, a: string, b: string): Spec => ['resistor', { value: r }, { '1': a, '2': b }];
+const partDecks: [string, Spec[], SimSettings][] = [
+  ['DC motor start-up', [V(12, 'A'), ['dcmotor', {}, { '1': 'A', '2': 'GND', '3': 'SPD' }]], { type: 'tran', stop: '500m', step: '1m', start: 'zero' }],
+  ['transformer 10:1 with load', [['vsin', { value: '10', freq: '50' }, { '1': 'IN', '2': 'GND' }], ['transformer', { value: '0.1' }, { '1': 'IN', '2': 'GND', '3': 'S', '4': 'GND' }], R('100', 'S', 'GND')], { type: 'tran', stop: '60m', step: '50u' }],
+  ['three-phase Dyn transformer', [['vsin3', { value: '230', freq: '50' }, { '1': 'PU', '2': 'PV', '3': 'PW', '4': 'GND' }],
+    ['transformer3', { value: 'Dyn', vs: '230' }, { '1': 'PU', '2': 'PV', '3': 'PW', '5': 'SU', '6': 'SV', '7': 'SW', '8': 'GND' }],
+    R('100', 'SU', 'GND'), R('100', 'SV', 'GND'), R('100', 'SW', 'GND')], { type: 'tran', stop: '60m', step: '50u' }],
+  ['three-phase induction motor at 50 Hz', [['vsin3', { value: '230', ac: '1' }, { '1': 'U', '2': 'V', '3': 'W', '4': 'GND' }], R('0.5', 'U', 'MU'),
+    ['motor3', {}, { '1': 'MU', '2': 'V', '3': 'W', '4': 'N' }]], { type: 'ac', fstart: '1', fstop: '1k', perDecade: '10' }],
+  ['single-phase motor', [['vsin', { value: '325', freq: '50' }, { '1': 'L', '2': 'GND' }], R('1', 'L', 'ML'), ['motor1', {}, { '1': 'ML', '2': 'GND' }]], { type: 'tran', stop: '60m', step: '50u' }],
+  ['relay with flyback diode', [['vpulse', { value: '5', freq: '20', edge: '1m' }, { '1': 'C', '2': 'GND' }], ['diode', {}, { '1': 'C', '2': 'GND' }], V(12, 'COM'),
+    R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND'), ['relay', {}, { '1': 'C', '2': 'GND', '3': 'COM', '4': 'NC', '5': 'NO' }]], { type: 'tran', stop: '100m', step: '20u' }],
+];
+
 // every example schematic that has SPICE primitives only (not the 555) is a reference case too
-const exampleCases: RefCase[] = EXAMPLES.flatMap((ex) => {
-  const sheet = ex.build();
+const exampleCases: RefCase[] = [...EXAMPLES.map((ex) => [`example ${ex.id}`, ex.build()] as const), ...partDecks.map(([id, parts, sim]) => [`part ${id}`, deck(parts, sim).sheet] as const)].flatMap(([id, sheet]) => {
   const net = buildSimNet(sheet);
-  if (net.circuit.elements.some((e) => e.kind === 'T')) return [];
+  if (net.circuit.elements.some((e) => e.kind === 'T' || e.kind === 'P')) return [];
   const errors: string[] = [];
   const plan = planAnalysis(sheet.sim, sheet, errors);
   let analysis = plan.analysis;
@@ -127,7 +144,7 @@ const exampleCases: RefCase[] = EXAMPLES.flatMap((ex) => {
     analysis = { ...analysis, source: spiceName(el) };
   }
   const nodes = [...net.netNode.values()].filter((n) => n !== '0');
-  return [{ id: `example ${ex.id}`, circuit: net.circuit, analysis, nodes }];
+  return [{ id, circuit: net.circuit, analysis, nodes }];
 });
 
 describe.skipIf(!ok)('SIM-04 example schematics against ngspice', () => {

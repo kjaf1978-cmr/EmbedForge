@@ -5,7 +5,8 @@
 
 export type Wave =
   | { type: 'dc' }
-  | { type: 'sin'; vo: number; va: number; freq: number; td?: number; theta?: number }
+  /** phase in degrees (SPICE SIN 6th parameter): before td the value is vo + va·sin(phase). */
+  | { type: 'sin'; vo: number; va: number; freq: number; td?: number; theta?: number; phase?: number }
   | { type: 'pulse'; v1: number; v2: number; td: number; tr: number; tf: number; pw: number; per: number }
   | { type: 'pwl'; pts: [number, number][] };
 
@@ -28,6 +29,16 @@ export type Element =
   | { kind: 'D'; name: string; a: string; k: string; model: DiodeModel }
   | { kind: 'Q'; name: string; c: string; b: string; e: string; model: BjtModel }
   | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel }
+  /** Coupling of two inductors (by element name): M = k·√(L1·L2), dots at each inductor's first node. */
+  | { kind: 'K'; name: string; l1: string; l2: string; k: number }
+  /** Current-controlled switch (SPICE W): on above it + ih, off below it − ih, where the control
+   *  current is the branch current of voltage source `ctrl` (its magnitude: relay coils have no
+   *  polarity). `ron` may exceed `roff` for a normally-closed contact. */
+  | { kind: 'W'; name: string; p: string; n: string; ctrl: string; it: number; ih: number; ron: number; roff: number }
+  /** Hobby RC servo, behavioural: reads the high-pulse width on sig (above 1.5 V against gnd;
+   *  1.0 ms → −90°, 1.5 ms → 0°, 2.0 ms → +90°), turns toward it at `slew` degrees per second,
+   *  and drives out with angle/100 V through 100 Ω. No SPICE primitive; the export says so. */
+  | { kind: 'P'; name: string; sig: string; gnd: string; out: string; slew: number }
   /** 555 timer, behavioural (comparators at 2/3 and 1/3 of CTRL, latch, output and discharge
    *  stages). It has no SPICE primitive; the export says so. */
   | { kind: 'T'; name: string; gnd: string; trig: string; out: string; rst: string; ctrl: string; thr: string; dis: string; vcc: string };
@@ -46,6 +57,9 @@ export function terminals(e: Element): string[] {
     case 'D': return [e.a, e.k];
     case 'Q': return [e.c, e.b, e.e];
     case 'M': return [e.d, e.g, e.s];
+    case 'K': return [];
+    case 'W': return [e.p, e.n];
+    case 'P': return [e.sig, e.gnd, e.out];
     case 'T': return [e.gnd, e.trig, e.out, e.rst, e.ctrl, e.thr, e.dis, e.vcc];
   }
 }
@@ -54,10 +68,10 @@ export function terminals(e: Element): string[] {
 export function waveAt(dc: number, w: Wave | undefined, t: number): number {
   if (!w || w.type === 'dc') return dc;
   if (w.type === 'sin') {
-    const td = w.td ?? 0;
-    if (t < td) return w.vo;
+    const td = w.td ?? 0, ph = ((w.phase ?? 0) * Math.PI) / 180;
+    if (t < td) return w.vo + w.va * Math.sin(ph);
     const th = w.theta ?? 0;
-    return w.vo + w.va * Math.exp(-(t - td) * th) * Math.sin(2 * Math.PI * w.freq * (t - td));
+    return w.vo + w.va * Math.exp(-(t - td) * th) * Math.sin(2 * Math.PI * w.freq * (t - td) + ph);
   }
   if (w.type === 'pulse') {
     const { v1, v2, td, tr, tf, pw, per } = w;

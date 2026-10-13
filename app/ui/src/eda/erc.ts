@@ -20,6 +20,9 @@ export interface ErcIssue {
 /** Element kinds that conduct at DC (for the floating-net rule). */
 const DC_PATH: Record<string, string[][]> = {
   resistor: [['1', '2']], inductor: [['1', '2']], potentiometer: [['1', '2', '3']],
+  transformer: [['1', '2'], ['3', '4']], relay: [['1', '2']],
+  transformer3: [['1', '2', '3', '4'], ['5', '6', '7', '8']], vsin3: [['1', '2', '3', '4']],
+  dcmotor: [['1', '2']], motor1: [['1', '2']], motor3: [['1', '2', '3', '4']], servo: [['2', '3']],
   vdc: [['1', '2']], battery: [['1', '2']], vsin: [['1', '2']], vpulse: [['1', '2']],
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],
@@ -48,7 +51,7 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
     if (s.power) continue;
     for (const pp of pinPositions(p)) {
       const id = `${p.ref}.${pp.pin}`;
-      if (!conn.pinNet.has(id)) add({ severity: 'warning', rule: 'ED-09.a', message: `Pin ${id} (${pp.name}) is not connected.`, at: pp.at, refs: [p.ref] });
+      if (!conn.pinNet.has(id) && !s.pins.find((d) => d.id === pp.pin)?.optional) add({ severity: 'warning', rule: 'ED-09.a', message: `Pin ${id} (${pp.name}) is not connected.`, at: pp.at, refs: [p.ref] });
     }
   }
   for (const n of conn.nets) {
@@ -107,7 +110,7 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
   }
 
   // ED-03 (f) inductive load switched by a transistor without a flyback diode
-  for (const l of sheet.parts.filter((p) => p.sym === 'inductor')) {
+  for (const l of sheet.parts.filter((p) => ['inductor', 'relay', 'dcmotor'].includes(p.sym))) {
     const a = conn.pinNet.get(`${l.ref}.1`), b = conn.pinNet.get(`${l.ref}.2`);
     if (!a || !b) continue;
     const switched = sheet.parts.some((q) => ((q.sym === 'npn' || q.sym === 'pnp') && [a, b].includes(conn.pinNet.get(`${q.ref}.2`) ?? '')) ||
@@ -116,7 +119,7 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
     const flyback = sheet.parts.some((d) => ['diode', 'zener'].includes(d.sym) &&
       new Set([conn.pinNet.get(`${d.ref}.1`), conn.pinNet.get(`${d.ref}.2`)]).size === 2 &&
       [a, b].includes(conn.pinNet.get(`${d.ref}.1`) ?? '') && [a, b].includes(conn.pinNet.get(`${d.ref}.2`) ?? ''));
-    if (!flyback) add({ severity: 'warning', rule: 'ED-03.f', message: `Inductive load ${l.ref} is switched by a transistor without a flyback diode across it: switching off causes a high voltage spike.`, at: { x: l.x, y: l.y }, refs: [l.ref] });
+    if (!flyback) add({ severity: 'warning', rule: 'ED-03.f', message: `${l.sym === 'relay' ? 'Relay coil' : l.sym === 'dcmotor' ? 'Motor' : 'Inductive load'} ${l.ref} is switched by a transistor without a flyback diode across it: switching off causes a high voltage spike.`, at: { x: l.x, y: l.y }, refs: [l.ref] });
   }
 
   // ED-08 and SIM-05

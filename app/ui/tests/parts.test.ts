@@ -2,36 +2,12 @@
 // minimal circuit with a known answer. The circuits are written as netlists: every pin gets a
 // net label (or a ground symbol), so a test reads like a SPICE deck.
 import { describe, expect, it } from 'vitest';
-import { addLabel, placePart } from '../src/eda/editor';
-import { annotate, emptySheet, pinPositions, type SimSettings, type Sheet } from '../src/eda/schematic';
+import { placePart } from '../src/eda/editor';
+import { deck, tested, type Spec } from './deck';
+import { annotate, emptySheet, type SimSettings } from '../src/eda/schematic';
 import { SYMBOLS } from '../src/eda/symbols';
 import { BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS } from '../src/eda/models';
 import { simulate, schematicSpice, type SimResult } from '../src/sim/run';
-
-type Spec = [sym: string, props: Record<string, string>, nets: Record<string, string>];
-
-const tested = new Set<string>();
-
-/** Builds a sheet from a part list; pin → net name, "GND" places a ground symbol on the pin. */
-function deck(parts: Spec[], sim: SimSettings = { type: 'op' }): { sheet: Sheet; refs: string[] } {
-  let s = emptySheet();
-  const ids: string[] = [];
-  parts.forEach(([sym, props, nets], k) => {
-    tested.add(sym);
-    const r = placePart(s, sym, { x: (k % 6) * 200, y: Math.floor(k / 6) * 200 }, 0, false, props);
-    s = r.sheet; ids.push(r.id);
-    const part = s.parts.find((p) => p.id === r.id)!;
-    for (const pin of pinPositions(part)) {
-      const net = nets[pin.pin];
-      if (!net) continue;
-      if (net === 'GND') { s = placePart(s, 'gnd', pin.at).sheet; tested.add('gnd'); }
-      else s = addLabel(s, net, pin.at).sheet;
-    }
-  });
-  s = annotate(s);
-  s.sim = sim;
-  return { sheet: s, refs: ids.map((id) => s.parts.find((p) => p.id === id)!.ref) };
-}
 
 function run(parts: Spec[], sim?: SimSettings) {
   const { sheet, refs } = deck(parts, sim);
@@ -192,6 +168,121 @@ describe('integrated circuits, every model', () => {
   });
 });
 
+describe('transformer and relay', () => {
+  it('transformer 10:1: a 10 V sine on the primary gives about 1 V on the secondary', () => {
+    const { r } = run([['vsin', { value: '10', freq: '50' }, { '1': 'IN', '2': 'GND' }],
+      ['transformer', { value: '0.1', lp: '1', k: '0.999', rp: '0.1', rs: '0.01' }, { '1': 'IN', '2': 'GND', '3': 'S', '4': 'GND' }], R('100', 'S', 'GND')],
+    { type: 'tran', stop: '100m', step: '50u' });
+    const late = r.v['S'].filter((_, k) => r.x[k] > 0.06);
+    near(Math.max(...late), 1, 0.03);
+  });
+  it('transformer: the secondary is isolated, and a floating secondary still simulates', () => {
+    const { r } = run([['vsin', { value: '10', freq: '50' }, { '1': 'IN', '2': 'GND' }],
+      ['transformer', { value: '2' }, { '1': 'IN', '2': 'GND', '3': 'SA', '4': 'SB' }], R('1k', 'SA', 'SB')],
+    { type: 'tran', stop: '60m', step: '50u' });
+    const diff = r.v['SA'].map((v, k) => v - r.v['SB'][k]).filter((_, k) => r.x[k] > 0.04);
+    near(Math.max(...diff), 20, 0.6);
+  });
+  for (const coil of ['5 V', '12 V', '24 V']) it(`relay ${coil}: COM to NO when energised, to NC at rest`, () => {
+    const vc = Number.parseFloat(coil);
+    const deckFor = (on: boolean): Spec[] => [V(on ? vc : 0, 'C'), V(12, 'COM'), R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND'),
+      ['relay', { value: coil }, { '1': 'C', '2': 'GND', '3': 'COM', '4': 'NC', '5': 'NO' }]];
+    const on = run(deckFor(true)), off = run(deckFor(false));
+    near(on.v('NO'), 12, 0.01); near(on.v('NC'), 0, 1e-3);
+    near(off.v('NO'), 0, 1e-3); near(off.v('NC'), 12, 0.01);
+  });
+  it('relay: pulls in and drops out in a transient, with hysteresis', () => {
+    const { r } = run([['vpulse', { value: '5', low: '0', freq: '20', duty: '50', edge: '1m' }, { '1': 'C', '2': 'GND' }],
+      ['diode', { value: '1N4148' }, { '1': 'C', '2': 'GND' }], V(12, 'COM'), R('1k', 'NO', 'GND'),
+      ['relay', { value: '5 V' }, { '1': 'C', '2': 'GND', '3': 'COM', '5': 'NO' }]], { type: 'tran', stop: '100m', step: '20u' });
+    const no = r.v['NO'];
+    let edges = 0;
+    for (let k = 1; k < no.length; k++) if ((no[k - 1] < 6) !== (no[k] < 6)) edges++;
+    expect(edges).toBe(4); // two pull-ins and two drop-outs in two periods
+  });
+});
+
+describe('three-phase parts', () => {
+  const ac50 = { type: 'ac', fstart: '50', fstop: '50', perDecade: '1' } as SimSettings;
+  const ph = (r: SimResult, a: string, b: string) => {
+    const re = r.v[a][0] - (b === 'GND' ? 0 : r.v[b][0]), im = r.vi![a][0] - (b === 'GND' ? 0 : r.vi![b][0]);
+    return { mag: Math.hypot(re, im), deg: (Math.atan2(im, re) * 180) / Math.PI };
+  };
+  it('three-phase source: 230 V phase, 400 V line, 120° apart', () => {
+    const { r } = run([['vsin3', { value: '230', freq: '50' }, { '1': 'L1', '2': 'L2', '3': 'L3', '4': 'GND' }],
+      R('1k', 'L1', 'GND'), R('1k', 'L2', 'GND'), R('1k', 'L3', 'GND')], { type: 'tran', stop: '40m', step: '20u' });
+    near(Math.max(...r.v['L1']), 230 * Math.SQRT2, 0.5);
+    near(Math.max(...r.v['L1'].map((v, k) => v - r.v['L2'][k])), 400 * Math.SQRT2 * (230 * Math.sqrt(3) / 400), 1);
+    const a = run([['vsin3', { value: '230', ac: '1' }, { '1': 'L1', '2': 'L2', '3': 'L3', '4': 'GND' }], R('1k', 'L1', 'GND'), R('1k', 'L2', 'GND'), R('1k', 'L3', 'GND')], ac50).r;
+    near(ph(a, 'L2', 'GND').deg, -120, 0.1); near(ph(a, 'L3', 'GND').deg, 120, 0.1);
+  });
+  for (const [conn, shift] of [['Yyn', 0], ['Dyn', 30], ['Yd', 30], ['Dd', 0]] as const) it(`three-phase transformer ${conn}: 400 V to 230 V line, phase shift ${shift}°`, () => {
+    const sec: Spec[] = [R('1k', 'SU', 'SV'), R('1k', 'SV', 'SW'), R('1k', 'SW', 'SU')];
+    const nets: Record<string, string> = { '1': 'PU', '2': 'PV', '3': 'PW', '5': 'SU', '6': 'SV', '7': 'SW' };
+    if (conn[0] === 'Y') nets['4'] = 'GND';
+    if (conn === 'Yyn' || conn === 'Dyn') nets['8'] = 'GND';
+    const { r } = run([['vsin3', { value: '230', ac: '1' }, { '1': 'PU', '2': 'PV', '3': 'PW', '4': 'GND' }],
+      ['transformer3', { value: conn, vp: '400', vs: '230', lp: '10', k: '0.9999', rp: '0.01', rs: '0.01' }, nets], ...sec], ac50);
+    const p = ph(r, 'PU', 'PV'), q = ph(r, 'SU', 'SV');
+    near(q.mag / p.mag, 230 / 400, 0.01 * 230 / 400);
+    const d = (((q.deg - p.deg) % 360) + 540) % 360 - 180;
+    near(Math.abs(d), shift, 0.5);
+  });
+});
+
+describe('motors', () => {
+  it('DC motor: no-load speed V/(k + Ra·B/k), stall current V/Ra, start-up time constant J·Ra/k²', () => {
+    const m: Spec = ['dcmotor', { value: '10m', ra: '2', la: '1m', j: '10u', b: '1u', tl: '0' }, { '1': 'A', '2': 'GND', '3': 'SPD' }];
+    const w = 12 / (0.01 + 2 * 1e-6 / 0.01);
+    const op = run([V(12, 'A'), m]);
+    near(op.v('SPD'), (w * 60) / (2 * Math.PI) / 1000, 0.01);
+    const stall = run([V(12, 'A'), ['dcmotor', { value: '10m', ra: '2', j: '10u', tl: '1' }, { '1': 'A', '2': 'GND', '3': 'SPD' }]]);
+    // a 1 N·m load stalls it: it turns backwards; the current exceeds the stall current V/Ra = 6 A
+    expect(-stall.i(`${stall.refs[1]}.2`)).toBeGreaterThan(6);
+    const t = run([V(12, 'A'), m], { type: 'tran', stop: '1', step: '1m', start: 'zero' }).r;
+    const tau = (10e-6 * 2) / (0.01 * 0.01);
+    const k = t.x.findIndex((x) => x >= tau);
+    near(t.v['SPD'][k] / t.v['SPD'][t.x.length - 1], 1 - Math.exp(-1), 0.03);
+  });
+  const zMotor = (rs: number, rr: number, ls: number, lm: number, s: number, f = 50) => {
+    const w = 2 * Math.PI * f;
+    // rotor branch rr/s + jωls in parallel with jωlm, plus rs + jωls
+    const [ar, ai] = [rr / s, w * ls], [br, bi] = [0, w * lm];
+    const nr = ar * br - ai * bi, ni = ar * bi + ai * br, dr = ar + br, di = ai + bi;
+    const den = dr * dr + di * di;
+    return Math.hypot(rs + (nr * dr + ni * di) / den, w * ls + (ni * dr - nr * di) / den);
+  };
+  it('AC motor, single-phase: current from the equivalent circuit at the slip', () => {
+    const { r, refs } = run([['vsin', { value: '0', ac: '1', freq: '50' }, { '1': 'L', '2': 'GND' }],
+      ['motor1', { value: '0.05' }, { '1': 'L', '2': 'GND' }]], { type: 'ac', fstart: '50', fstop: '50', perDecade: '1' });
+    const i = Math.hypot(r.i[`${refs[1]}.1`][0], r.ii![`${refs[1]}.1`][0]);
+    near(i, 1 / zMotor(3, 3, 20e-3, 0.5, 0.05), 1e-3 / zMotor(3, 3, 20e-3, 0.5, 0.05));
+  });
+  it('AC motor, three-phase: balanced line currents, no neutral current, locked rotor draws more', () => {
+    const deckFor = (slip: string): Spec[] => [['vsin3', { value: '230', ac: '1' }, { '1': 'U', '2': 'V', '3': 'W', '4': 'GND' }],
+      ['motor3', { value: slip }, { '1': 'U', '2': 'V', '3': 'W', '4': 'GND' }]];
+    const run1 = run(deckFor('0.04'), { type: 'ac', fstart: '50', fstop: '50', perDecade: '1' });
+    const ref = run1.refs[1], I = (pin: string) => Math.hypot(run1.r.i[`${ref}.${pin}`][0], run1.r.ii![`${ref}.${pin}`][0]);
+    const z = zMotor(1.5, 1.2, 6e-3, 0.2, 0.04);
+    for (const pin of ['1', '2', '3']) near(I(pin), 1 / z, 1e-3 / z);
+    near(I('4'), 0, 1e-6);
+    const locked = run(deckFor('1'), { type: 'ac', fstart: '50', fstop: '50', perDecade: '1' });
+    expect(Math.hypot(locked.r.i[`${locked.refs[1]}.1`][0], locked.r.ii![`${locked.refs[1]}.1`][0])).toBeGreaterThan(4 / z);
+  });
+  for (const [ms, deg] of [[1.0, -90], [1.5, 0], [2.0, 90], [1.25, -45]] as const) it(`servo: ${ms} ms pulses turn it to ${deg}°`, () => {
+    const { r } = run([V(5, 'VP'), ['vpulse', { value: '5', low: '0', freq: '50', duty: String(ms / 20 * 100), edge: '1u' }, { '1': 'PWM', '2': 'GND' }],
+      ['servo', { value: '600' }, { '1': 'PWM', '2': 'VP', '3': 'GND', '4': 'POS' }]], { type: 'tran', stop: '400m', step: '100u' });
+    near(r.v['POS'][r.x.length - 1], deg / 100, 0.02);
+  });
+  it('servo: it turns at the set speed (0.1 s per 60° at 600 °/s)', () => {
+    const { r } = run([V(5, 'VP'), ['vpulse', { value: '5', low: '0', freq: '50', duty: '10', edge: '1u' }, { '1': 'PWM', '2': 'GND' }],
+      ['servo', { value: '600' }, { '1': 'PWM', '2': 'VP', '3': 'GND', '4': 'POS' }]], { type: 'tran', stop: '200m', step: '100u' });
+    const k = r.x.findIndex((x) => x >= 0.1);
+    // the first pulse ends at 2 ms; 98 ms later the horn has turned about 59°
+    near(r.v['POS'][k], 0.588, 0.03);
+  });
+});
+
 describe('switches and power symbols', () => {
   for (const closed of [true, false]) it(`switch ${closed ? 'closed' : 'open'}`, () => {
     const { i, refs } = run([V(5, 'A'), R('1k', 'A', 'B'), ['switch', { closed: String(closed) }, { '1': 'B', '2': 'GND' }]]);
@@ -250,6 +341,16 @@ describe('parts left on their own', () => {
 });
 
 describe('coverage', () => {
+  it('every default value is allowed by its limits, and a value outside them is refused', async () => {
+    const { outOfLimits } = await import('../src/eda/symbols');
+    const { parseValue } = await import('../src/eda/units');
+    for (const sd of SYMBOLS) for (const d of [sd.value, ...sd.params]) {
+      if (d.kind === 'value') expect(outOfLimits(d, parseValue(d.default)!), `${sd.id}.${d.key}`).toBeNull();
+    }
+    const k = SYMBOLS.find((x) => x.id === 'transformer')!.params.find((d) => d.key === 'k')!;
+    expect(outOfLimits(k, 2)).toMatch(/at most 1/);
+    expect(outOfLimits(k, 0)).toMatch(/above 0/);
+  });
   it('every symbol in the library was exercised above', () => {
     expect(SYMBOLS.map((s) => s.id).filter((id) => !tested.has(id))).toEqual([]);
   });
