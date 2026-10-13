@@ -175,3 +175,25 @@ describe('wire collisions are found, not merged silently', async () => {
     expect(p[p.length - 1]).toEqual({ x: 100, y: 0 });
   });
 });
+
+describe('rotate both ways and mirror both ways', async () => {
+  const { rotateSelectionCcw, mirrorSelectionV } = await import('../src/eda/editor');
+  const { toLocal, toWorld } = await import('../src/eda/schematic');
+  it('counter-clockwise undoes clockwise; vertical mirror flips pins top–bottom', () => {
+    let s = emptySheet();
+    const a = placePart(s, 'npn', { x: 0, y: 0 }); s = a.sheet;
+    const sel = { ...noSelection(), parts: [a.id] };
+    const pins0 = pinPositions(s.parts[0]).map((p) => p.at);
+    const back = rotateSelectionCcw(rotateSelection(s, sel), sel);
+    expect(pinPositions(back.parts[0]).map((p) => p.at)).toEqual(pins0);
+    const v = mirrorSelectionV(s, sel);
+    // C at top (10,-30) and E at bottom (10,30) swap places; B stays on the left
+    expect(pinPositions(v.parts[0]).map((p) => p.at)).toEqual([{ x: -30, y: 0 }, { x: 10, y: 30 }, { x: 10, y: -30 }]);
+  });
+  it('toLocal inverts toWorld for every orientation', () => {
+    for (const rot of [0, 1, 2, 3] as const) for (const mirror of [false, true]) {
+      const p = { x: 40, y: -20, rot, mirror };
+      expect(toLocal(p, toWorld(p, { x: 7, y: -13 }))).toEqual({ x: 7, y: -13 });
+    }
+  });
+});

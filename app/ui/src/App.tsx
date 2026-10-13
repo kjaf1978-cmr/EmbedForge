@@ -40,6 +40,7 @@ const PANES = ['navigator', 'workspace', 'help'] as const;
 const SCH_KEYS: Record<string, string> = {
   simulate: 'F5', 'layout-below': 'Ctrl+Alt+ArrowDown', 'layout-beside': 'Ctrl+Alt+ArrowRight',
   'max-schematic': 'Ctrl+Alt+S', 'max-results': 'Ctrl+Alt+W', 'toggle-library': 'Ctrl+Alt+L', 'toggle-side': 'Ctrl+Alt+P',
+  rotate: 'Ctrl+R', 'rotate-ccw': 'Ctrl+Shift+R',
 };
 
 export function App({ backend }: { backend: Backend }) {

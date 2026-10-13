@@ -92,6 +92,205 @@ test('SIM-03: holding the push-button switches the transistor and lights the LED
   await expect(page.locator('.led-glow')).toHaveCount(0);
 });
 
+async function chips(page: Page) { return (await page.locator('.op-chip text').allTextContents()).join(' '); }
+async function dragRange(page: Page, input: ReturnType<Page['getByLabel']>, to: number, check?: () => Promise<void>) {
+  const b = (await input.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * to, b.y + b.height / 2, { steps: 8 });
+  if (check) await check();
+  await page.mouse.up();
+}
+
+test('SIM-03: the potentiometer sliders follow the drag and keep the value (properties and Controls)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: LED dimmer with a potentiometer' }).click();
+  await page.keyboard.press('F5');
+  await expect(page.locator('.op-chip').first()).toBeVisible();
+  const before = await chips(page);
+  await page.locator('g.part:has(text:text-is("RV1")) > g').first().click();
+  const slider = page.getByLabel(/^Wiper position/);
+  await expect(slider).toHaveValue('50');
+  // while dragging, the thumb stays where the mouse is (the live preview must not pull it back)
+  await dragRange(page, slider, 0.98, async () => { expect(Number(await slider.inputValue())).toBeGreaterThan(90); });
+  await expect(slider).not.toHaveValue('50');
+  const high = Number(await slider.inputValue());
+  expect(high).toBeGreaterThan(90);
+  await expect(page.locator('g.part:has(text:text-is("RV1"))')).toBeVisible();
+  await expect.poll(() => chips(page)).not.toBe(before);
+  // undo restores 50 %
+  await page.keyboard.press('Control+z');
+  await expect(slider).toHaveValue('50');
+  // keyboard: End goes to 100 %
+  await slider.focus();
+  await page.keyboard.press('End');
+  await expect(slider).toHaveValue('100');
+  await expect(page.getByText('Wiper position: 100 %')).toBeVisible();
+  // the Controls slider in the Simulation tab
+  await page.getByRole('tab', { name: 'Simulation' }).click();
+  const ctl = page.getByLabel(/^RV1 wiper/);
+  await expect(ctl).toHaveValue('100');
+  await dragRange(page, ctl, 0.02, async () => { expect(Number(await ctl.inputValue())).toBeLessThan(10); });
+  expect(Number(await ctl.inputValue())).toBeLessThan(10);
+  await page.getByRole('tab', { name: /Properties/ }).click();
+  expect(Number(await page.getByLabel(/^Wiper position/).inputValue())).toBeLessThan(10);
+});
+
+test('rotate with Ctrl+R and Shift+R; the view toolkit pans, zooms and fits', async ({ page }) => {
+  await page.getByRole('button', { name: /New schematic/ }).click();
+  await pick(page, 'Resistor'); await click(page, 0, 0);
+  await page.keyboard.press('Escape');
+  await page.locator('g.part:has(text:text-is("R1")) > g').first().click();
+  const tf = () => page.locator('g.part:has(text:text-is("R1")) > g[transform]').first().getAttribute('transform');
+  const t0 = await tf();
+  await page.keyboard.press('Control+r');
+  await expect.poll(tf).not.toBe(t0);
+  expect(await page.title()).toBeTruthy(); // the page did not reload
+  await expect(page.locator('g.part:has(text:text-is("R1"))')).toBeVisible();
+  await page.keyboard.press('Shift+R');
+  await expect.poll(tf).toBe(t0);
+  // Ctrl+R also works with the focus in the properties panel
+  await page.getByLabel('Resistance (Ω)').focus();
+  await page.keyboard.press('Control+r');
+  await expect.poll(tf).not.toBe(t0);
+  await page.getByRole('button', { name: 'Rotate left ⇧R', exact: true }).click();
+  await expect.poll(tf).toBe(t0);
+  await page.getByRole('button', { name: 'Flip Y', exact: true }).click();
+  await expect.poll(tf).not.toBe(t0);
+  await page.getByRole('button', { name: 'Flip Y', exact: true }).click();
+  await expect.poll(tf).toBe(t0);
+
+  const kit = page.getByRole('toolbar', { name: 'View' });
+  const vb = () => canvas(page).getAttribute('viewBox');
+  let v = await vb();
+  await kit.getByRole('button', { name: 'Zoom in' }).click();
+  await expect.poll(vb).not.toBe(v); v = await vb();
+  await kit.getByRole('button', { name: 'Zoom out' }).click();
+  await expect.poll(vb).not.toBe(v); v = await vb();
+  // pan tool: a left drag moves the view and does not move the part
+  await kit.getByRole('button', { name: 'Pan tool' }).click();
+  await expect(kit.getByRole('button', { name: 'Pan tool' })).toHaveAttribute('aria-pressed', 'true');
+  const b = (await canvas(page).boundingBox())!;
+  await page.mouse.move(b.x + 200, b.y + 200); await page.mouse.down(); await page.mouse.move(b.x + 300, b.y + 260, { steps: 4 }); await page.mouse.up();
+  await expect.poll(vb).not.toBe(v); v = await vb();
+  expect(await tf()).toBe(t0);
+  // Shift+wheel pans sideways
+  await page.mouse.move(b.x + 300, b.y + 300);
+  await page.keyboard.down('Shift'); await page.mouse.wheel(0, 120); await page.keyboard.up('Shift');
+  await expect.poll(vb).not.toBe(v); v = await vb();
+  // zoom area: Z, then drag a box
+  await canvas(page).focus();
+  await page.keyboard.press('z');
+  const p1 = await at(page, -40, -20), p2 = await at(page, 40, 20);
+  await page.mouse.move(p1.x, p1.y); await page.mouse.down(); await page.mouse.move(p2.x, p2.y, { steps: 4 }); await page.mouse.up();
+  await expect.poll(vb).not.toBe(v);
+  const [, , w] = (await vb())!.split(' ').map(Number);
+  expect(w).toBeLessThan(200);
+  await kit.getByRole('button', { name: 'Zoom to fit' }).click();
+  await page.keyboard.press('1');
+  await expect(page.locator('.sch-status')).toContainText('zoom 100 %');
+});
+
+test('every part: place it, change every property, simulate; every analysis and every menu item', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.getByRole('button', { name: /New schematic/ }).click();
+  const lib = page.getByRole('complementary', { name: 'Part library' });
+  const names = (await lib.locator('button.lib-item span').allTextContents()).map((t) => t.trim());
+  expect(names.length).toBeGreaterThanOrEqual(26);
+  const kit = page.getByRole('toolbar', { name: 'View' });
+  for (let z = 0; z < 5; z++) await kit.getByRole('button', { name: 'Zoom out' }).click();
+  for (const [k, name] of names.entries()) {
+    await pick(page, name);
+    await click(page, (k % 7 - 3) * 160, (Math.floor(k / 7) - 1.5) * 160);
+    await page.keyboard.press('Escape');
+  }
+  await expect(page.locator('g.part')).toHaveCount(names.length);
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  for (let k = 0; k < names.length; k++) {
+    await canvas(page).focus();
+    await page.keyboard.press('Tab');
+    const insp = side.locator('.inspector');
+    await expect(insp.locator('h3')).toBeVisible();
+    const fields = insp.locator('.field input, .field select');
+    const n = await fields.count();
+
+    for (let f = 0; f < n; f++) {
+      const el = fields.nth(f);
+      const tag = await el.evaluate((e) => e.tagName.toLowerCase());
+      const type = (await el.getAttribute('type')) ?? '';
+      if ((await el.getAttribute('id'))?.startsWith('ref-')) {
+        // a reference already in use is refused, and the field says so
+        await el.fill('R1'); await el.press('Enter');
+        if (!(await insp.locator('h3').innerText()).startsWith('Resistor')) await expect(insp.getByText('R1 is already used')).toBeVisible();
+        continue;
+      }
+      if (tag === 'select') {
+        const opts = await el.locator('option').allTextContents();
+        await el.selectOption({ index: opts.length - 1 });
+      } else if (type === 'checkbox') await el.click();
+      else if (type === 'range') { await el.focus(); await page.keyboard.press('End'); await expect(el).toHaveValue('100'); }
+      else {
+        const v = await el.inputValue();
+        // net and rail names stay names; every other field takes a value
+        const next = /^(GND|[+-]\d)/i.test(v) ? (v === 'GND' ? 'GND' : '+12V') : '2';
+        await el.fill(next); await el.press('Enter');
+        await expect(insp.getByText('Not a value')).toHaveCount(0);
+      }
+    }
+  }
+  // the ground is still unconnected: the message says so; then wire it to V1−
+  await page.keyboard.press('F5');
+  await expect(side.getByText(/ground symbol is not connected/).first()).toBeVisible();
+  const gi = names.indexOf('Ground'), vi = names.indexOf('DC voltage source');
+  const pos = (k: number) => ({ x: (k % 7 - 3) * 160, y: (Math.floor(k / 7) - 1.5) * 160 });
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  await canvas(page).focus(); await page.keyboard.press('w');
+  await click(page, pos(gi).x, pos(gi).y);
+  await click(page, pos(vi).x, pos(vi).y + 30);
+  const ask = page.getByRole('alertdialog');
+  if (await ask.isVisible()) await ask.getByRole('button', { name: /Route around|Connect them/ }).first().click();
+  await page.keyboard.press('Escape');
+  // every analysis on the full sheet: each one finishes without an error
+  await side.getByRole('tab', { name: 'Simulation' }).click();
+  for (const a of ['Operating point', 'Transient', 'AC sweep', 'DC sweep']) {
+    await side.getByRole('radio', { name: new RegExp(a) }).check();
+    await page.keyboard.press('F5');
+    await expect(page.getByRole('button', { name: /Simulat/ }).first()).not.toHaveText(/…/, { timeout: 20_000 });
+    await expect(side.locator('.sim-panel')).toContainText(/Simulated in/);
+  }
+  for (const tab of [/Checks/, 'Netlist', /Properties/]) await side.getByRole('tab', { name: tab }).click();
+  // toolbar items that act on the selection, then on the whole sheet
+  await canvas(page).focus(); await page.keyboard.press('Tab');
+  for (const b of ['Rotate R', 'Rotate left ⇧R', 'Mirror X', 'Flip Y', 'Rotate selection clockwise', 'Rotate selection counter-clockwise']) await page.getByRole('button', { name: b, exact: true }).click();
+  await page.getByRole('button', { name: 'Fit selection' }).click();
+  await page.getByRole('button', { name: 'Annotate' }).click();
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  // every Layout menu item
+  const layout = page.locator('details.menu', { hasText: 'Layout' });
+  const items = await layout.locator('.menu-list button').count();
+  for (let k = 0; k < items; k++) {
+    await layout.locator('summary').click();
+    await layout.locator('.menu-list button').nth(k).click();
+  }
+  await page.getByRole('button', { name: 'Delete' }).click();
+  await expect(page.locator('g.part')).toHaveCount(names.length - 1);
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('g.part')).toHaveCount(names.length);
+});
+
+test('SIM-03: dragging the wiper on the sheet moves it and re-simulates', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: LED dimmer with a potentiometer' }).click();
+  await page.keyboard.press('F5');
+  await expect(page.locator('.op-chip').first()).toBeVisible();
+  const before = await chips(page);
+  // RV1 sits at (0, -30), turned once: its track runs from (0, -60) (0 %) to (0, 0) (100 %)
+  const a = await at(page, 14, -30), b = await at(page, 14, -6);
+  await page.mouse.move(a.x, a.y); await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 6 }); await page.mouse.up();
+  await expect.poll(() => chips(page)).not.toBe(before);
+  await click(page, 0, -30); // the body of RV1
+  expect(Number(await page.getByLabel(/^Wiper position/).inputValue())).toBeGreaterThan(70);
+});
+
 test.describe(() => { test.use({ bypassCSP: true });
 test('SIM-02: transient with probes, cursors and measurements; axe on the editor with results', async ({ page }) => {
   await page.getByRole('button', { name: 'Open example: Capacitor charging (time response)' }).click();
@@ -167,7 +366,7 @@ test('Projects: save, list on the start screen, open again; SPICE export', async
 test('UI-20: editor commands are in the command palette', async ({ page }) => {
   await page.keyboard.press('Control+Shift+P');
   await page.keyboard.type('schematic rotate');
-  await expect(page.getByRole('option', { name: /Rotate \(R\)/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Rotate clockwise \(R \/ Ctrl\+R\)/ })).toBeVisible();
   await page.keyboard.press('Escape');
 });
 

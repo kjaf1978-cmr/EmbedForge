@@ -60,6 +60,13 @@ export function toWorld(p: Pick<Part, 'x' | 'y' | 'rot' | 'mirror'>, l: Pt): Pt 
   return { x: p.x + x + 0, y: p.y + y + 0 };
 }
 
+/** Sheet coordinates → local symbol coordinates (inverse of toWorld). */
+export function toLocal(p: Pick<Part, 'x' | 'y' | 'rot' | 'mirror'>, w: Pt): Pt {
+  let x = w.x - p.x, y = w.y - p.y;
+  for (let i = 0; i < p.rot; i++) [x, y] = [y, -x];
+  return { x: (p.mirror ? -x : x) + 0, y: y + 0 };
+}
+
 export function pinPositions(p: Part): { pin: string; name: string; at: Pt }[] {
   const s = symbolOf(p.sym);
   return s.pins.map((pd) => ({ pin: pd.id, name: pd.name, at: toWorld(p, pd) }));

@@ -1,7 +1,7 @@
 // Schematic → simulation circuit (SIM-01, SIM-05). Each part becomes one or more primitive
 // elements; the SPICE export (SIM-04) writes exactly these elements.
 
-import type { Circuit, Element } from '../sim/circuit';
+import { terminals, type Circuit, type Element } from '../sim/circuit';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
 import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS, findModel, ledModel } from './models';
@@ -45,7 +45,16 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
   const parts = new Map<string, PartSim>();
   const notSimulated: string[] = [];
   const hasGround = conn.nets.some((n) => n.name === GND_NET);
-  if (!hasGround) errors.push('There is no ground symbol. Add GND: every voltage is measured against it.');
+  if (!hasGround) {
+    const placed = sheet.parts.some((p) => p.sym === 'gnd' && (p.props.value ?? 'GND').trim() === GND_NET);
+    errors.push(placed
+      ? 'The ground symbol is not connected to anything. Wire it to the circuit: every voltage is measured against it.'
+      : 'There is no ground symbol. Add GND: every voltage is measured against it.');
+  }
+  // nets are keyed by REF.PIN: two parts with one reference would merge their pins
+  const refCount = new Map<string, number>();
+  for (const p of sheet.parts) if (!symbolOf(p.sym).power) refCount.set(p.ref, (refCount.get(p.ref) ?? 0) + 1);
+  for (const [r, n] of refCount) if (n > 1) errors.push(`Reference ${r} is used ${n} times. Use Annotate to renumber, then simulate.`);
 
   for (const p of sheet.parts) {
     const s = symbolOf(p.sym);
@@ -74,7 +83,34 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
     elements.push({ kind: 'V', name: `RAIL_${n.name}`, p: node, n: '0', dc: v });
     rails.push({ net: n.name, volts: v });
   }
+  tieIslands(elements);
   return { circuit: { title: 'EmbedForge schematic', elements }, netNode, parts, notSimulated, rails, errors, warnings };
+}
+
+/**
+ * A group of nodes with no element connecting it to ground (a part left on its own, say) is
+ * held only by the tiny shunt conductances, which next to an ordinary conductance is below
+ * float64 precision: the matrix is singular in practice. One resistor from one node of each such
+ * island to ground fixes that exactly — with a single connection no current can flow through it.
+ * Control inputs of controlled sources carry no current and do not join their nodes.
+ */
+function tieIslands(elements: Element[]) {
+  const parent = new Map<string, string>();
+  const find = (a: string): string => { let r = a; while (parent.has(r) && parent.get(r) !== r) r = parent.get(r)!; parent.set(a, r); if (!parent.has(r)) parent.set(r, r); return r; };
+  const join = (nodes: string[]) => { const r = find(nodes[0]); for (const n of nodes.slice(1)) { const q = find(n); if (q !== r) parent.set(q, r); } };
+  for (const e of elements) {
+    if (e.kind === 'E' || e.kind === 'G') { join([e.p, e.n]); find(e.cp); find(e.cn); }
+    else join(terminals(e));
+  }
+  const ground = find('0');
+  const tied = new Set<string>();
+  let k = 0;
+  for (const node of [...parent.keys()]) {
+    const r = find(node);
+    if (r === find(ground) || tied.has(r)) continue;
+    tied.add(r);
+    elements.push({ kind: 'R', name: `RTIE${++k}`, a: node, b: '0', r: 1e3 });
+  }
 }
 
 function partElements(p: Part, pin: Record<string, string>, out: Element[], errors: string[]) {
@@ -129,8 +165,10 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       const inp = pin['3'], inn = pin['2'], o = pin['6'], vp = pin['7'], vn = pin['4'];
       const n1 = `${ref}#n1`, nh = `${ref}#nh`, nl = `${ref}#nl`, oi = `${ref}#oi`;
       const gm = 1e-3, r1 = m.gain / gm, fp = m.gbw / m.gain;
-      const clamp = Math.max(m.railDrop + 0.55, 0);
-      const dm = { is: 1e-15, n: 1, rs: 0 };
+      // sharp clamp diodes (N = 0.1): their drop stays between 50 and 90 mV from 1 µA to 1 A
+      // of overdrive, so the output stops railDrop from each rail and never beyond a rail
+      const dm = { is: 1e-15, n: 0.1, rs: 0 };
+      const clamp = Math.max(m.railDrop + 0.07, 0), clampLow = Math.max((m.railDropLow ?? m.railDrop) + 0.07, 0);
       out.push(
         { kind: 'R', name: `${ref}_RIN`, a: inp, b: inn, r: m.rin },
         { kind: 'G', name: `${ref}_G1`, p: '0', n: n1, cp: inp, cn: inn, gm },
@@ -138,7 +176,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'C', name: `${ref}_C1`, a: n1, b: '0', c: 1 / (2 * Math.PI * r1 * fp) },
         { kind: 'V', name: `${ref}_VH`, p: vp, n: nh, dc: clamp },
         { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm },
-        { kind: 'V', name: `${ref}_VL`, p: nl, n: vn, dc: clamp },
+        { kind: 'V', name: `${ref}_VL`, p: nl, n: vn, dc: clampLow },
         { kind: 'D', name: `${ref}_DL`, a: nl, k: n1, model: dm },
         { kind: 'E', name: `${ref}_EO`, p: oi, n: '0', cp: n1, cn: '0', gain: 1 },
         { kind: 'R', name: `${ref}_RO`, a: oi, b: o, r: m.rout },

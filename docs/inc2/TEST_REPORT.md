@@ -19,9 +19,9 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 9 passed, 0 warnings |
-| UI unit tests: schematic core, editor, examples, simulator | `cd app/ui && npm test` | 82 passed (0.2.1) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 146 passed (0.2.2) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 25 cases agree (15 reference circuits, 10 example schematics) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 27 passed, 3 consecutive runs (0.2.1) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 31 passed, 3 consecutive runs (0.2.2) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 2. CI (TEST-01)
@@ -84,6 +84,33 @@
 | Collisions between wires: ask and propose options instead of merging automatically | B | A new wire that passes through a pin or wire end, or runs along a wire, is marked and the user chooses: connect, route around (dashed preview) or cancel. Moving, rotating, pasting or placing parts asks when a pin lands mid-wire or on another pin, or a part would be shorted. The default can be changed (ask / route around / always connect). Tests: `editor.test.ts` (detection, detour), browser tests for wire and move collisions. |
 | Design entry next to the results window; layout options as in LTspice | B | Results below (tile horizontally) or beside (tile vertically), resizable splitter (mouse and keyboard), maximise either pane, part library and properties panels on and off, kept between sessions. Layout menu, buttons and Ctrl+Alt keys. Browser test checks the geometry of both tilings, the splitter, maximise and persistence. |
 
+## 3b. Version 0.2.2: your feedback of 13 October 2026 (second round)
+
+| Request | Status | Evidence |
+|---|---|---|
+| The potentiometer slider does not work | B | Cause: the slider took its position from the stored value, and the live preview re-drew it at the old position during the drag; on release the old value was stored again. The slider now keeps its own position while dragged, previews live, and stores the value once on release (one undo step). Same fix in the Simulation tab's Controls. The wiper can also be dragged on the sheet. Browser tests drag both sliders and the wiper, and use the keyboard. |
+| Check all parts and items | B | `tests/parts.test.ts`: every one of the 26 parts, and every model each offers (3 diodes, 5 Zeners, 5 LED colours, 5 BJTs, 5 MOSFETs, 4 op-amps, 6 regulators, 555), in a test circuit with a known answer; a check fails if a library part is not exercised. Browser test: places every part, changes every property, runs all four analyses on the full sheet, and uses every toolbar, Layout and view-toolbar item. |
+| Rotate with Ctrl+R | B | Ctrl+R rotates clockwise, Ctrl+Shift+R and Shift+R counter-clockwise, anywhere in the view (the page is not reloaded). Browser test. |
+| Standard pan, zoom and rotate tools | B | Pan tool (H), zoom-area tool (Z), zoom to the selection (Shift+Home), zoom 100 % (1), Shift+wheel pans; a view toolbar on the canvas (pan, zoom in, zoom out, fit, rotate either way); toolbar buttons for rotate both ways, mirror and flip (Y). Browser test. |
+
+Defects the checks found, all fixed:
+
+- **Op-amp output limits.** The clamp assumed a fixed diode drop, so the output went past the
+  stated swing as the overdrive grew; the "ideal" model went 0.11 V beyond its supply rail.
+  The clamp is now sharp: within 0.1 V of the stated limit.
+- **LM358 low-side swing.** Its description says the output reaches V− + 0.1 V, but the model
+  stopped 1.5 V above V−. It now follows the description.
+- **A part left on its own stopped the simulation.** A capacitor or resistor connected to
+  nothing made the matrix singular in practice ("time step too small", "no DC operating point").
+  Such islands are now tied to ground at one point, which carries no current and so changes no
+  result. A test checks that the rest of the circuit gives the same answer with and without them.
+- **Misleading messages.**
+  - A ground symbol that is not connected was reported as "no ground symbol"; the message now
+    says it is not connected.
+  - A reference already in use was refused without a word; the field now says so.
+  - Two parts with one reference (possible from an edited file) now stop the simulation with a
+    message, instead of merging their connections.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
@@ -91,7 +118,7 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. **Sign 0.2.1:** a new signing kit (same steps as for 0.1.0). It replaces 0.2.0.
+1. **Sign 0.2.2:** a new signing kit (same steps as for 0.1.0). It replaces 0.2.0 and 0.2.1.
 2. **Your look at it:** install 0.2.0 over 0.1.0, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
@@ -99,4 +126,4 @@ The run with a person is yours (U).
    - the VAPP test kit;
    - the human usability run;
    - the self-hosted runners;
-   - tags v0.1.0 (and v0.2.0) need a session that may push tags.
+   - tags v0.1.0 (and v0.2.x) need a session that may push tags.

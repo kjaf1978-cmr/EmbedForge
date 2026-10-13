@@ -153,6 +153,22 @@ export function rotateSelection(sheet: Sheet, sel: Selection): Sheet {
   return transformSelection(sheet, sel, (p, c) => ({ x: c.x - (p.y - c.y), y: c.y + (p.x - c.x) }), (p) => ({ ...p, rot: ((p.rot + 1) % 4) as Rot }));
 }
 
+/** Rotates the selection a quarter turn counter-clockwise. */
+export function rotateSelectionCcw(sheet: Sheet, sel: Selection): Sheet {
+  return transformSelection(sheet, sel, (p, c) => ({ x: c.x + (p.y - c.y), y: c.y - (p.x - c.x) }), (p) => ({ ...p, rot: ((p.rot + 3) % 4) as Rot }));
+}
+
+/** Mirrors the selection top–bottom about its centre (a left–right mirror turned by 180°). */
+export function mirrorSelectionV(sheet: Sheet, sel: Selection): Sheet {
+  return transformSelection(sheet, sel, (p, c) => ({ x: p.x, y: 2 * c.y - p.y }), (p) => ({ ...p, mirror: !p.mirror, rot: ((6 - p.rot) % 4) as Rot }));
+}
+
+/** Bounds of the selected items, for zoom to selection. */
+export function selectionBounds(sheet: Sheet, sel: Selection): { x0: number; y0: number; x1: number; y1: number } | null {
+  const sub: Sheet = { ...sheet, parts: sheet.parts.filter((p) => sel.parts.includes(p.id)), wires: sheet.wires.filter((w) => sel.wires.includes(w.id)), labels: sheet.labels.filter((l) => sel.labels.includes(l.id)) };
+  return sheetBounds(sub);
+}
+
 /** Mirrors the selection left–right about its centre. */
 export function mirrorSelection(sheet: Sheet, sel: Selection): Sheet {
   return transformSelection(sheet, sel, (p, c) => ({ x: 2 * c.x - p.x, y: p.y }), (p) => ({ ...p, mirror: !p.mirror, rot: ((4 - p.rot) % 4) as Rot }));

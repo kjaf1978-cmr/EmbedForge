@@ -18,8 +18,10 @@ Press **F5** (or **Simulate**) to simulate the schematic. Choose the analysis in
 
 With **Update live** on, the simulation runs again after every change. Click a switch on the
 schematic to toggle it, hold a push-button down with the mouse (or select it and hold Space),
-and turn a potentiometer with the mouse wheel or its slider. The Controls list in the
-Simulation tab has the same controls for the keyboard.
+and set a potentiometer by dragging the arrow of its wiper on the sheet, with the mouse wheel
+over it, or with its slider. The results follow while you drag, and the new position is kept
+(one undo step) when you let go. The Controls list in the Simulation tab has the same controls
+for the keyboard: arrow keys, Page Up/Down, Home and End move a slider.
 
 ## Probes and the waveform viewer
 
@@ -45,7 +47,11 @@ reference suite of circuits on every build: results agree within 1 % or 1 mV / 1
 - MOSFETs: level-1 model with body diode. Power MOSFET models are approximations fitted to the
   threshold voltage and the on-resistance.
 - Op-amps: macro model with gain, one pole (gain–bandwidth), input and output resistance, and
-  an output that stops short of the supply rails. Supply current is not modelled.
+  an output that stops short of the supply rails by the amount the model states (LM358: 1.5 V
+  below V+, 0.1 V above V−). Supply current is not modelled.
+- A part, or a group of parts, connected to nothing else is tied to ground at one point. No
+  current can flow through that tie, so it changes no result; it only keeps the simulator from
+  failing on a part you have not wired yet.
 - A power rail with no source on it is driven by an ideal supply at the voltage in its name
   (+5V → 5 V); the Simulation tab says so.
 

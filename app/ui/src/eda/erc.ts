@@ -65,7 +65,10 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
   // (c) DC path to ground
   const hasGnd = conn.nets.some((n) => n.name === GND_NET);
   if (!hasGnd && sheet.parts.some((p) => !symbolOf(p.sym).power)) {
-    add({ severity: 'error', rule: 'ED-09.c', message: 'There is no ground symbol (GND). Add one: the simulator measures every voltage against it.', at: null, refs: [] });
+    const g = sheet.parts.find((p) => p.sym === 'gnd' && (p.props.value ?? 'GND').trim() === GND_NET);
+    add(g
+      ? { severity: 'error', rule: 'ED-09.c', message: 'The ground symbol is not connected to anything. Wire it to the circuit: the simulator measures every voltage against it.', at: { x: g.x, y: g.y }, refs: [g.ref] }
+      : { severity: 'error', rule: 'ED-09.c', message: 'There is no ground symbol (GND). Add one: the simulator measures every voltage against it.', at: null, refs: [] });
   } else if (hasGnd) {
     const parent = new Map<string, string>();
     const find = (a: string): string => { while (parent.has(a) && parent.get(a) !== a) a = parent.get(a)!; return a; };

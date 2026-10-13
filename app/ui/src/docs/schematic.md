@@ -7,8 +7,8 @@ has a simulation model.
 
 - Pick a part in the **library** on the left, or press **A** and type to search (for example
   "led", "2n3904", "lm358"). Press **Enter** to take the first match.
-- Click on the sheet to place it. Before clicking, **R** rotates and **X** mirrors it. Hold
-  **Shift** to place several copies.
+- Click on the sheet to place it. Before clicking, **R** (or **Ctrl+R**) rotates and **X**
+  mirrors it. Hold **Shift** to place several copies.
 - **P** adds a power rail (+5V, +3V3, +12V, -12V…), **G** a ground. All rails with the same
   name are connected, and so are all grounds.
 
@@ -70,13 +70,23 @@ back to the default.
 | Click, Shift+click, drag on empty space | select, add to selection, select an area |
 | Drag | move; attached wires follow |
 | Arrow keys (Shift: ×5) | move the selection by one grid step |
-| R, X | rotate, mirror |
+| R or Ctrl+R; Shift+R or Ctrl+Shift+R | rotate clockwise; counter-clockwise |
+| X, Y | mirror left–right; flip top–bottom |
 | Del | delete |
 | Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D | copy, cut, paste, duplicate |
 | Ctrl+Z, Ctrl+Y | undo, redo |
-| Wheel; right or middle drag; Home | zoom; pan; zoom to fit |
+| Wheel, Ctrl+wheel; + and − | zoom at the pointer |
+| Shift+wheel, sideways wheel; right or middle drag; H (pan tool) | pan |
+| Z (zoom area tool), then drag a box | zoom to the box |
+| Home; Shift+Home; 1 | zoom to fit; zoom to the selection; zoom 100 % |
 | Tab | select the next part (keyboard use) |
 | Enter | edit the value of the selected part |
+
+The **view toolbar** in the lower right corner of the sheet has the same tools for the mouse:
+pan, zoom in, zoom out, zoom to fit, and rotate the selection either way. Press **Esc** to
+leave the pan or zoom-area tool.
+
+A reference (R1, C2…) that another part already uses is refused, and the field says so.
 
 Values take engineering notation: 330, 1k, 4k7, 2.2M, 100n, 4u7, 10m. "M" is mega and "m" is
 milli; "meg" also means mega.

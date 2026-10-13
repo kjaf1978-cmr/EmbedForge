@@ -48,11 +48,15 @@ export const MOSFETS: NamedModel<MosModel>[] = [
 ];
 
 /** Op-amp macro model: single pole, rail clamps, output resistance. */
-export interface OpampModel { gain: number; gbw: number; rin: number; rout: number; railDrop: number }
+export interface OpampModel {
+  gain: number; gbw: number; rin: number; rout: number;
+  /** output swing limit from V+ (and from V− unless railDropLow is given) */
+  railDrop: number; railDropLow?: number;
+}
 
 export const OPAMPS: NamedModel<OpampModel>[] = [
   { name: 'generic', note: 'general-purpose op-amp: 100 dB, 1 MHz, output 1.5 V from each rail', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5 } },
-  { name: 'LM358', note: 'LM358-like: 100 dB, 1 MHz, output from V− + 0.1 V to V+ − 1.5 V (single supply)', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5 } },
+  { name: 'LM358', note: 'LM358-like: 100 dB, 1 MHz, output from V− + 0.1 V to V+ − 1.5 V (single supply)', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5, railDropLow: 0.1 } },
   { name: 'TL072', note: 'TL072-like JFET input: 106 dB, 3 MHz, output 1.5 V from each rail', model: { gain: 2e5, gbw: 3e6, rin: 1e12, rout: 50, railDrop: 1.5 } },
   { name: 'ideal', note: 'near-ideal: 120 dB, 100 MHz, rail-to-rail output', model: { gain: 1e6, gbw: 100e6, rin: 1e12, rout: 1, railDrop: 0.05 } },
 ];

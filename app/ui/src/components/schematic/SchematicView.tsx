@@ -6,9 +6,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, key, newId, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
+import { GRID, annotate, key, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings } from '../../eda/schematic';
 import {
-  addLabel, addWire, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
+  addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
   placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
 } from '../../eda/editor';
 import type { SchematicPrefs } from '../../core/settings';
@@ -25,7 +25,7 @@ import { FIRST_CIRCUIT } from '../../eda/tutorial';
 import { GfxEl, SheetContent, partTransform } from './SheetSvg';
 import { Plot, type Trace } from './Plot';
 
-export type Tool = 'select' | 'place' | 'wire' | 'label' | 'probe-v' | 'probe-i';
+export type Tool = 'select' | 'place' | 'wire' | 'label' | 'probe-v' | 'probe-i' | 'pan' | 'zoom';
 
 export interface EditorApi { run(cmd: string): void }
 
@@ -37,8 +37,14 @@ export const EDITOR_COMMANDS: { id: string; title: string; key: string }[] = [
   { id: 'ground', title: 'Add ground', key: 'G' },
   { id: 'probe-v', title: 'Voltage probe', key: 'V' },
   { id: 'probe-i', title: 'Current probe', key: 'I' },
-  { id: 'rotate', title: 'Rotate', key: 'R' },
-  { id: 'mirror', title: 'Mirror', key: 'X' },
+  { id: 'rotate', title: 'Rotate clockwise', key: 'R / Ctrl+R' },
+  { id: 'rotate-ccw', title: 'Rotate counter-clockwise', key: 'Shift+R / Ctrl+Shift+R' },
+  { id: 'mirror', title: 'Mirror left–right', key: 'X' },
+  { id: 'mirror-v', title: 'Mirror top–bottom', key: 'Y' },
+  { id: 'pan', title: 'Pan tool (drag to move the view)', key: 'H' },
+  { id: 'zoom-box', title: 'Zoom to an area (drag a rectangle)', key: 'Z' },
+  { id: 'zoom-sel', title: 'Zoom to the selection', key: 'Shift+Home' },
+  { id: 'zoom-100', title: 'Zoom to 100 %', key: '1' },
   { id: 'delete', title: 'Delete selection', key: 'Del' },
   { id: 'copy', title: 'Copy', key: 'Ctrl+C' },
   { id: 'cut', title: 'Cut', key: 'Ctrl+X' },
@@ -99,7 +105,9 @@ type Drag =
   | { kind: 'move'; start: Pt; sel: Selection; base: Sheet; dx: number; dy: number; hit: Hit | null }
   | { kind: 'box'; a: Pt; b: Pt; add: boolean }
   | { kind: 'pan'; sx: number; sy: number; vx: number; vy: number }
-  | { kind: 'vprobe'; a: Pt; b: Pt };
+  | { kind: 'vprobe'; a: Pt; b: Pt }
+  | { kind: 'wiper'; part: string; pos: number }
+  | { kind: 'zoombox'; a: Pt; b: Pt };
 
 const PROBE_COLOURS = ['#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e', '#17becf', '#8c564b', '#e377c2'];
 /** Runs fn after the pending render (Preact renders in a microtask), before the next event. */
@@ -186,6 +194,12 @@ export function SchematicView(props: Props) {
   useLayoutEffect(() => { userView.current = false; fit(); setResult(null); setHasRun(false); setSel(noSelection()); setTool('select'); setWirePts([]); setTutStep(0); tutStart.current = sheet; setHintOpen(true); svgRef.current?.focus({ preventScroll: true }); }, [props.docKey]);
   // until the user zooms, pans or edits, the view follows the canvas size (the results panel takes room)
   useLayoutEffect(() => { if (!userView.current) fit(); }, [size.w, size.h]);
+  const zoomTo = (b: { x0: number; y0: number; x1: number; y1: number }) => {
+    userView.current = true;
+    const pad = 40;
+    const z = Math.min(8, Math.max(0.2, Math.min(size.w / (b.x1 - b.x0 + 2 * pad), size.h / (b.y1 - b.y0 + 2 * pad))));
+    setView({ x: (b.x0 + b.x1) / 2 - size.w / z / 2, y: (b.y0 + b.y1) / 2 - size.h / z / 2, z });
+  };
   const zoomBy = (k: number, at?: Pt) => {
     userView.current = true;
     const c = at ?? { x: view.x + size.w / view.z / 2, y: view.y + size.h / view.z / 2 };
@@ -365,11 +379,31 @@ export function SchematicView(props: Props) {
       case 'rotate':
         if (tool === 'place' && placing) setPlacing({ ...placing, rot: ((placing.rot + 1) % 4) as Rot });
         else if (!isEmpty(ss)) applyEdit(rotateSelection(sheet, ss), 'Rotate', new Set(ss.parts));
+        else announce('Select something to rotate first');
         break;
       case 'mirror':
         if (tool === 'place' && placing) setPlacing({ ...placing, mirror: !placing.mirror });
         else if (!isEmpty(ss)) applyEdit(mirrorSelection(sheet, ss), 'Mirror', new Set(ss.parts));
+        else announce('Select something to mirror first');
         break;
+      case 'rotate-ccw':
+        if (tool === 'place' && placing) setPlacing({ ...placing, rot: ((placing.rot + 3) % 4) as Rot });
+        else if (!isEmpty(ss)) applyEdit(rotateSelectionCcw(sheet, ss), 'Rotate counter-clockwise', new Set(ss.parts));
+        else announce('Select something to rotate first');
+        break;
+      case 'mirror-v':
+        if (tool === 'place' && placing) setPlacing({ ...placing, mirror: !placing.mirror, rot: ((6 - placing.rot) % 4) as Rot });
+        else if (!isEmpty(ss)) applyEdit(mirrorSelectionV(sheet, ss), 'Mirror top–bottom', new Set(ss.parts));
+        else announce('Select something to mirror first');
+        break;
+      case 'pan': setTool(tool === 'pan' ? 'select' : 'pan'); setPlacing(null); setWirePts([]); announce('Pan tool: drag to move the view; Esc returns to Select.'); break;
+      case 'zoom-box': setTool(tool === 'zoom' ? 'select' : 'zoom'); setPlacing(null); setWirePts([]); announce('Zoom tool: drag a rectangle to zoom into it; a click zooms in; Esc returns to Select.'); break;
+      case 'zoom-sel': {
+        const b = selectionBounds(sheet, ss);
+        if (b) zoomTo(b); else { userView.current = false; fit(); }
+        break;
+      }
+      case 'zoom-100': { userView.current = true; const c = { x: view.x + size.w / view.z / 2, y: view.y + size.h / view.z / 2 }; setView({ z: 1, x: c.x - size.w / 2, y: c.y - size.h / 2 }); break; }
       case 'delete': if (!isEmpty(ss)) { apply(deleteSelection(sheet, ss), 'Delete'); setSel(noSelection()); } break;
       case 'copy': if (!isEmpty(ss)) { clip.current = copySelection(sheet, ss); announce('Copied'); } break;
       case 'cut': if (!isEmpty(ss)) { clip.current = copySelection(sheet, ss); apply(deleteSelection(sheet, ss), 'Cut'); setSel(noSelection()); } break;
@@ -419,11 +453,15 @@ export function SchematicView(props: Props) {
       return;
     }
     if (ctrl) {
+      // Ctrl+R rotates (and never reloads the page); Ctrl+Shift+R rotates the other way
+      if (k.toLowerCase() === 'r') { stop(); run(e.shiftKey ? 'rotate-ccw' : 'rotate'); return; }
       const m: Record<string, string> = { c: 'copy', x: 'cut', v: 'paste', d: 'duplicate', a: 'select-all' };
       const c = m[k.toLowerCase()];
       if (c && !e.shiftKey) { stop(); run(c); }
       return;
     }
+    if (e.shiftKey && k === 'Home') { stop(); run('zoom-sel'); return; }
+    if (e.shiftKey && k.toLowerCase() === 'r') { stop(); run('rotate-ccw'); return; }
     if (e.altKey) return;
     const arrows: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (arrows[k]) {
@@ -464,7 +502,8 @@ export function SchematicView(props: Props) {
       return;
     }
     const keys: Record<string, string> = {
-      a: 'add', w: 'wire', l: 'label', p: 'power', g: 'ground', v: 'probe-v', i: 'probe-i', r: 'rotate', x: 'mirror',
+      a: 'add', w: 'wire', l: 'label', p: 'power', g: 'ground', v: 'probe-v', i: 'probe-i', r: 'rotate', x: 'mirror', y: 'mirror-v',
+      h: 'pan', z: 'zoom-box', '1': 'zoom-100',
       Delete: 'delete', Backspace: 'delete', Home: 'fit', f: 'fit', '+': 'zoom-in', '=': 'zoom-in', '-': 'zoom-out', F5: 'simulate', Escape: 'escape',
     };
     const c = keys[k.length === 1 ? k.toLowerCase() : k];
@@ -493,6 +532,22 @@ export function SchematicView(props: Props) {
     }
     if (e.button !== 0) return;
     svgRef.current?.setPointerCapture?.(e.pointerId);
+    if (tool === 'pan') { userView.current = true; setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }); return; }
+    if (tool === 'zoom') { setDrag({ kind: 'zoombox', a: p, b: p }); return; }
+    if (tool === 'select') {
+      // the wiper arrow of a potentiometer is a handle: drag it along the track
+      for (const part of [...sheet.parts].reverse()) {
+        if (symbolOf(part.sym).interactive !== 'pot') continue;
+        const l = toLocal(part, p);
+        if (l.x >= -17 && l.x <= 17 && l.y >= -24 && l.y <= -7) {
+          setSel({ ...noSelection(), parts: [part.id] }); setTab('props');
+          const pos = Math.round(Math.min(1, Math.max(0, (l.x + 13) / 26)) * 100);
+          setOverride((o) => ({ ...o, [part.id]: { position: String(pos) } }));
+          setDrag({ kind: 'wiper', part: part.id, pos });
+          return;
+        }
+      }
+    }
     if (tool === 'place') { doPlace(p, e.shiftKey); return; }
     if (tool === 'wire') { wireClick(p); return; }
     if (tool === 'label') { placeLabel(connectionAt(sheet, p, 8 / view.z) ?? p); return; }
@@ -533,7 +588,13 @@ export function SchematicView(props: Props) {
     if (drag.kind === 'pan') setView((v) => ({ ...v, x: drag.vx - (e.clientX - drag.sx) / v.z, y: drag.vy - (e.clientY - drag.sy) / v.z }));
     else if (drag.kind === 'move') { const s = snapPt(p); setDrag({ ...drag, dx: s.x - drag.start.x, dy: s.y - drag.start.y }); }
     else if (drag.kind === 'box') setDrag({ ...drag, b: p });
-    else if (drag.kind === 'vprobe') setDrag({ ...drag, b: p });
+    else if (drag.kind === 'vprobe' || drag.kind === 'zoombox') setDrag({ ...drag, b: p });
+    else if (drag.kind === 'wiper') {
+      const part = sheet.parts.find((x) => x.id === drag.part);
+      if (!part) return;
+      const pos = Math.round(Math.min(1, Math.max(0, (toLocal(part, p).x + 13) / 26)) * 100);
+      if (pos !== drag.pos) { setDrag({ ...drag, pos }); setOverride((o) => ({ ...o, [part.id]: { position: String(pos) } })); }
+    }
   };
   const onPointerUp = () => {
     const d = drag;
@@ -552,12 +613,28 @@ export function SchematicView(props: Props) {
     } else if (d.kind === 'vprobe') {
       const moved = Math.hypot(d.b.x - d.a.x, d.b.y - d.a.y) > 10 / view.z;
       probeV(d.a, moved ? d.b : undefined);
+    } else if (d.kind === 'zoombox') {
+      const w = Math.abs(d.b.x - d.a.x), h = Math.abs(d.b.y - d.a.y);
+      if (w > 8 / view.z && h > 8 / view.z) zoomTo({ x0: Math.min(d.a.x, d.b.x) + 40, y0: Math.min(d.a.y, d.b.y) + 40, x1: Math.max(d.a.x, d.b.x) - 40, y1: Math.max(d.a.y, d.b.y) - 40 });
+      else zoomBy(1.5, d.a);
+    } else if (d.kind === 'wiper') {
+      const part = sheet.parts.find((x) => x.id === d.part);
+      setOverride((o) => { const n = { ...o }; delete n[d.part]; return n; });
+      if (part && String(d.pos) !== part.props.position) apply(setProps(sheet, part.id, { position: String(d.pos) }), `${part.ref} wiper ${d.pos} %`);
     }
   };
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
     const p = toWorldPt(e);
-    if (hasRun) {
+    if (e.shiftKey && !e.ctrlKey) {
+      // Shift+wheel pans sideways; a touchpad's horizontal scroll pans too
+      userView.current = true;
+      const d = (e.deltaY || e.deltaX) / view.z;
+      setView((v) => ({ ...v, x: v.x + d }));
+      return;
+    }
+    if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) { userView.current = true; setView((v) => ({ ...v, x: v.x + e.deltaX / v.z })); return; }
+    if (hasRun && !e.ctrlKey) {
       const h = hitTest(sheet, p, 4 / view.z);
       const part = h?.kind === 'part' ? sheet.parts.find((x) => x.id === h.part) : null;
       if (part && symbolOf(part.sym).interactive === 'pot') {
@@ -744,6 +821,7 @@ export function SchematicView(props: Props) {
       const m = vFirst ? { x: last.x, y: at.y } : { x: at.x, y: last.y };
       return <polyline class="ghost wire-ghost" points={`${last.x},${last.y} ${m.x},${m.y} ${at.x},${at.y}`} fill="none" />;
     }
+    if (drag?.kind === 'zoombox') return <rect class="sel-box ghost" x={Math.min(drag.a.x, drag.b.x)} y={Math.min(drag.a.y, drag.b.y)} width={Math.abs(drag.b.x - drag.a.x)} height={Math.abs(drag.b.y - drag.a.y)} />;
     if (drag?.kind === 'vprobe') return <line class="ghost" x1={drag.a.x} y1={drag.a.y} x2={drag.b.x} y2={drag.b.y} stroke-dasharray="4 3" />;
     return null;
   })();
@@ -801,17 +879,20 @@ export function SchematicView(props: Props) {
         {toolBtn('power', 'Power', 'P', () => run('power'))}
         {toolBtn('ground', 'Ground', 'G', () => run('ground'))}
         <span class="sep" />
-        <button title="Rotate (R)" onClick={() => run('rotate')}>⟳ Rotate <kbd>R</kbd></button>
-        <button title="Mirror (X)" onClick={() => run('mirror')}>⇋ Mirror <kbd>X</kbd></button>
+        <button title="Rotate clockwise (R or Ctrl+R)" onClick={() => run('rotate')}><span aria-hidden="true">⟳</span> Rotate <kbd>R</kbd></button>
+        <button title="Rotate counter-clockwise (Shift+R or Ctrl+Shift+R)" onClick={() => run('rotate-ccw')}><span aria-hidden="true">⟲</span> Rotate left <kbd>⇧R</kbd></button>
+        <button title="Mirror left–right (X)" onClick={() => run('mirror')}><span aria-hidden="true">⇋</span> Mirror <kbd>X</kbd></button>
+        <button title="Flip top–bottom (Y)" onClick={() => run('mirror-v')}><span aria-hidden="true">⇵</span> Flip <kbd>Y</kbd></button>
         <button title="Delete (Del)" onClick={() => run('delete')} disabled={isEmpty(sel)}>Delete</button>
         <span class="sep" />
         {toolBtn('probe-v', 'V probe', 'V', () => run('probe-v'))}
         {toolBtn('probe-i', 'I probe', 'I', () => run('probe-i'))}
         <button class="primary" title="Simulate (F5)" onClick={() => run('simulate')} disabled={running}>{running ? '… Simulating' : '▶ Simulate'} <kbd>F5</kbd></button>
         <span class="sep" />
+        {toolBtn('pan', '✋ Pan', 'H', () => run('pan'))}
+        {toolBtn('zoom', '⌕ Zoom area', 'Z', () => run('zoom-box'))}
         <button title="Zoom to fit (Home)" onClick={() => run('fit')}>Fit</button>
-        <button title="Zoom in (+)" aria-label="Zoom in" onClick={() => run('zoom-in')}>+</button>
-        <button title="Zoom out (−)" aria-label="Zoom out" onClick={() => run('zoom-out')}>−</button>
+        <button title="Zoom to the selection (Shift+Home)" onClick={() => run('zoom-sel')} disabled={isEmpty(sel)}>Fit selection</button>
         <details class="menu" ref={menuRef}>
           <summary>Export</summary>
           <div class="menu-list" onClick={() => { if (menuRef.current) menuRef.current.open = false; }}>
@@ -905,6 +986,14 @@ export function SchematicView(props: Props) {
                 <label class="small"><input type="checkbox" checked={remember} onChange={(e) => setRemember((e.target as HTMLInputElement).checked)} /> Do the same from now on without asking (Settings → Schematic editor changes it back)</label>
               </div>
             )}
+            <div class="nav-kit" role="toolbar" aria-label="View">
+              <button aria-label="Pan tool" title="Pan (H; or drag with the right or middle button, or hold Space)" aria-pressed={tool === 'pan'} onClick={() => run('pan')}>✋</button>
+              <button aria-label="Zoom in" title="Zoom in (+, wheel)" onClick={() => run('zoom-in')}>+</button>
+              <button aria-label="Zoom out" title="Zoom out (−, wheel)" onClick={() => run('zoom-out')}>−</button>
+              <button aria-label="Zoom to fit" title="Zoom to fit (Home)" onClick={() => run('fit')}>⤢</button>
+              <button aria-label="Rotate selection clockwise" title="Rotate clockwise (R, Ctrl+R)" onClick={() => run('rotate')}>⟳</button>
+              <button aria-label="Rotate selection counter-clockwise" title="Rotate counter-clockwise (Shift+R)" onClick={() => run('rotate-ccw')}>⟲</button>
+            </div>
             <div class="sch-status small" aria-hidden="true">
               {Math.round(cursor.x)}, {Math.round(cursor.y)} · zoom {Math.round(view.z * 100)} % · {tool === 'wire' ? `wire (${vFirst ? 'vertical' : 'horizontal'} first, / switches)` : tool}
               {hoverText && <> · <strong>{hoverText}</strong></>}
@@ -958,7 +1047,7 @@ export function SchematicView(props: Props) {
           {tab === 'props' && <Inspector sheet={sheet} sel={sel} conn={conn} op={op} apply={apply} valueRef={valueRef} setOverride={setOverride} onProbe={(p) => addProbe(p)} colour={colourFor()} />}
           {tab === 'sim' && (
             <SimPanel sheet={sheet} apply={apply} running={running} status={status} live={live} setLive={setLive} showValues={showValues} setShowValues={setShowValues}
-                      run={() => run('simulate')} result={result} op={op} conn={conn} probeLabels={probeLabels} setTool={setTool} held={held} setHeld={setHeld}
+                      run={() => run('simulate')} result={result} op={op} conn={conn} probeLabels={probeLabels} setTool={setTool} held={held} setHeld={setHeld} setOverride={setOverride}
                       onRemoveProbe={(id) => apply({ ...sheet, probes: sheet.probes.filter((p) => p.id !== id) }, 'Remove probe')} />
           )}
           {tab === 'erc' && <ErcPanel issues={issues} onPick={(i) => {
@@ -1074,6 +1163,7 @@ function Inspector({ sheet, sel, conn, op, apply, valueRef, setOverride, onProbe
 function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, onProbe, colour }: Omit<InspectorProps, 'sel'> & { part: Part }) {
   const s = symbolOf(part.sym);
   const [refText, setRefText] = useState(part.ref);
+  const [refNote, setRefNote] = useState('');
   useEffect(() => setRefText(part.ref), [part.ref]);
   const field = (d: SymbolDef['value'], main: boolean): JSX.Element => {
     const v = part.props[d.key] ?? '';
@@ -1101,10 +1191,7 @@ function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, on
     if (d.key === 'position' && s.interactive === 'pot') {
       return (
         <div class="field" key={d.key}>
-          <label for={id}>{d.label}: {v} %</label>
-          <input id={id} type="range" min={0} max={100} step={1} value={parseValue(v) ?? 50}
-                 onInput={(e) => { const nv = (e.target as HTMLInputElement).value; setOverride((o) => ({ ...o, [part.id]: { position: nv } })); }}
-                 onChange={(e) => { const nv = (e.target as HTMLInputElement).value; setOverride((o) => { const n = { ...o }; delete n[part.id]; return n; }); set(nv); }} />
+          <PotSlider id={id} label={d.label} value={v} setOverride={setOverride} partId={part.id} onCommit={set} />
           {d.help && <span class="small muted">{d.help}</span>}
         </div>
       );
@@ -1120,13 +1207,15 @@ function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, on
       {!s.power && (
         <div class="field">
           <label for={`ref-${part.id}`}>Reference</label>
-          <input id={`ref-${part.id}`} value={refText} onInput={(e) => setRefText((e.target as HTMLInputElement).value)}
+          <input id={`ref-${part.id}`} value={refText} aria-describedby={`ref-${part.id}-h`} onInput={(e) => { setRefText((e.target as HTMLInputElement).value); setRefNote(''); }}
                  onChange={() => {
                    const r = refText.trim();
                    if (!r || r === part.ref) { setRefText(part.ref); return; }
-                   if (sheet.parts.some((p) => p.ref === r && p.id !== part.id)) { setRefText(part.ref); return; }
+                   if (sheet.parts.some((p) => p.ref === r && p.id !== part.id)) { setRefNote(`${r} is already used; ${part.ref} kept.`); setRefText(part.ref); return; }
+                   setRefNote('');
                    apply(setRef(sheet, part.id, r), `Rename ${part.ref} to ${r}`);
                  }} />
+          <span id={`ref-${part.id}-h`} class={`small ${refNote ? 's-warn' : 'muted'}`} role={refNote ? 'status' : undefined}>{refNote}</span>
         </div>
       )}
       {field(s.value, true)}
@@ -1178,6 +1267,35 @@ function ValueField({ id, def, value, onSet, inputRef }: { id: string; def: Symb
   );
 }
 
+/**
+ * Potentiometer wiper slider (SIM-03). It keeps its own value while it is dragged: the
+ * committed property only changes on release, and the re-renders of the live preview must not
+ * pull the thumb back. Each input step previews through the override; release commits once.
+ */
+function PotSlider({ id, label, value, partId, setOverride, onCommit }: {
+  id: string; label: string; value: string; partId: string;
+  setOverride: InspectorProps['setOverride']; onCommit: (v: string) => void;
+}) {
+  const committed = Math.min(100, Math.max(0, Math.round(parseValue(value) ?? 50)));
+  const [local, setLocal] = useState<number | null>(null);
+  const shown = local ?? committed;
+  const clear = () => setOverride((o) => { if (!(partId in o)) return o; const n = { ...o }; delete n[partId]; return n; });
+  const commit = (nv: number) => {
+    setLocal(null);
+    clear();
+    if (nv !== committed) onCommit(String(nv));
+  };
+  return (
+    <>
+      <label for={id}>{label}: <output for={id}>{shown}</output> %</label>
+      <input id={id} type="range" min={0} max={100} step={1} value={shown} aria-valuetext={`${shown} %`}
+             onInput={(e) => { const nv = Number((e.target as HTMLInputElement).value); setLocal(nv); setOverride((o) => ({ ...o, [partId]: { position: String(nv) } })); }}
+             onChange={(e) => commit(Number((e.target as HTMLInputElement).value))}
+             onBlur={() => { if (local !== null) commit(local); }} />
+    </>
+  );
+}
+
 interface SimPanelProps {
   sheet: Sheet; apply: (s: Sheet, label: string) => void; running: boolean; status: JSX.Element | null;
   live: boolean; setLive: (b: boolean) => void; showValues: boolean; setShowValues: (b: boolean) => void;
@@ -1186,9 +1304,10 @@ interface SimPanelProps {
   conn: ReturnType<typeof connectivity>; probeLabels: Map<string, string>;
   setTool: (t: Tool) => void; held: Set<string>; setHeld: (s: Set<string>) => void;
   onRemoveProbe: (id: string) => void;
+  setOverride: InspectorProps['setOverride'];
 }
 
-function SimPanel({ sheet, apply, running, status, live, setLive, showValues, setShowValues, run, result, op, conn, probeLabels, setTool, held, setHeld, onRemoveProbe }: SimPanelProps) {
+function SimPanel({ sheet, apply, running, status, live, setLive, showValues, setShowValues, run, result, op, conn, probeLabels, setTool, held, setHeld, onRemoveProbe, setOverride }: SimPanelProps) {
   const s = sheet.sim;
   const set = (next: SimSettings, label: string) => apply({ ...sheet, sim: next }, label);
   const field = (label: string, value: string, onChange: (v: string) => void, unit: string, help?: string) => {
@@ -1285,9 +1404,10 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
             if (sd.interactive === 'toggle') return <label key={p.id}><input type="checkbox" checked={p.props.closed === 'true'} onChange={() => apply(setProps(sheet, p.id, { closed: p.props.closed === 'true' ? 'false' : 'true' }), `Toggle ${p.ref}`)} /> {p.ref} closed</label>;
             if (sd.interactive === 'throw') return <label key={p.id}>{p.ref} <select value={p.props.position} onChange={(e) => apply(setProps(sheet, p.id, { position: (e.target as HTMLSelectElement).value }), `Switch ${p.ref}`)}><option>A</option><option>B</option></select></label>;
             return (
-              <label key={p.id} class="field">{p.ref} wiper {p.props.position} %
-                <input type="range" min={0} max={100} value={parseValue(p.props.position) ?? 50} onChange={(e) => apply(setProps(sheet, p.id, { position: (e.target as HTMLInputElement).value }), `${p.ref} wiper`)} />
-              </label>
+              <div key={p.id} class="field">
+                <PotSlider id={`ctl-${p.id}`} label={`${p.ref} wiper`} value={p.props.position ?? '50'} setOverride={setOverride} partId={p.id}
+                           onCommit={(nv) => apply(setProps(sheet, p.id, { position: nv }), `${p.ref} wiper ${nv} %`)} />
+              </div>
             );
           })}
         </fieldset>

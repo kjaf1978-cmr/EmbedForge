@@ -99,10 +99,15 @@ export const SYMBOLS: SymbolDef[] = [
   },
   {
     id: 'potentiometer', name: 'Potentiometer', category: 'Passive', keywords: ['pot', 'trimmer', 'variable resistor', 'rv'], prefix: 'RV',
-    description: 'Potentiometer; pin 2 is the wiper. Drag its position while simulating.',
+    description: 'Potentiometer; pin 2 is the wiper. Drag the wiper arrow on the sheet, turn the mouse wheel over it, or use the slider in Properties.',
     pins: [{ id: '1', name: '1', x: -30, y: 0, type: 'passive' }, { id: '2', name: 'W', x: 0, y: -30, type: 'passive' }, { id: '3', name: '3', x: 30, y: 0, type: 'passive' }],
     refAt: { x: 16, y: -20 }, valAt: { x: 0, y: 18 }, simulated: true, interactive: 'pot',
-    gfx: () => [path('M -30 0 H -15 M 15 0 H 30 M 0 -30 V -13'), path('M -15 -6 H 15 V 6 H -15 Z', 'bg'), arrowHead(0, -14, 0, -7)],
+    // the wiper arrow sits at its position along the track (0 % at pin 1, 100 % at pin 3)
+    gfx: (p) => {
+      const pos = Math.min(100, Math.max(0, Number.parseFloat(p.position ?? '50') || 0)) / 100;
+      const ax = Math.round((-13 + 26 * pos) * 10) / 10;
+      return [path('M -30 0 H -15 M 15 0 H 30'), path(`M 0 -30 V -20 H ${ax} V -13`), path('M -15 -6 H 15 V 6 H -15 Z', 'bg'), arrowHead(ax, -14, ax, -7)];
+    },
     value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '10k' },
     params: [{ key: 'position', label: 'Wiper position', kind: 'value', unit: '%', default: '50', help: '0 % = at pin 1, 100 % = at pin 3' }],
   },

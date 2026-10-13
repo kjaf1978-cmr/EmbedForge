@@ -131,6 +131,13 @@ button.big { padding: 0.5em 1em; font-size: 1.05em; }
 .sch-canvas:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .sch-canvas.tool-wire, .sch-canvas.tool-place, .sch-canvas.tool-label { cursor: crosshair; }
 .sch-canvas.tool-probe-v, .sch-canvas.tool-probe-i { cursor: cell; }
+.sch-canvas.tool-pan { cursor: grab; }
+.sch-canvas.tool-pan:active { cursor: grabbing; }
+.sch-canvas.tool-zoom { cursor: zoom-in; }
+.zoom-box { fill: none; stroke: var(--accent); stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.nav-kit { position: absolute; right: 0.4em; bottom: 0.4em; display: flex; flex-direction: column; gap: 2px; background: var(--sch-bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px; }
+.nav-kit button { min-width: 2em; min-height: 2em; padding: 0.1em 0.3em; line-height: 1; }
+.nav-kit button[aria-pressed="true"] { outline: 2px solid var(--accent); }
 .grid-dot { fill: var(--sch-grid); }
 .sym { stroke: var(--sch-part); stroke-linecap: round; stroke-linejoin: round; }
 .sym-text { fill: var(--sch-part); font-family: system-ui, sans-serif; }
@@ -212,7 +219,7 @@ input[aria-invalid='true'] { border-color: var(--bad); }
 .plot-bar { margin-bottom: 0.2em; }
 @media print {
   .work.schematic-mode { display: block; overflow: visible; }
-  .toolbar, .status, .nav, .help, .sch-tools, .sch-lib, .sch-side, .sch-plot, .splitter, .collide, .sch-status, .tutorial, .banner, .view-title { display: none !important; }
+  .toolbar, .status, .nav, .help, .sch-tools, .sch-lib, .sch-side, .sch-plot, .splitter, .collide, .sch-status, .nav-kit, .tutorial, .banner, .view-title { display: none !important; }
   .sch, .sch-body { display: block; height: auto; }
   .sch-canvas-wrap { border: none; height: 95vh; }
   .no-export { display: none; }
