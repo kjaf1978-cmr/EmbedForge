@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - signed the 0.2.0 media (signing kit);
+  - ~~signed the media~~ (0.2.2, done 13 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - approved the gate.
 
@@ -23,6 +23,22 @@
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 25 cases agree (15 reference circuits, 10 example schematics) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 31 passed, 3 consecutive runs (0.2.2) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
+
+## 1a. Signed release 0.2.2 (SEC-02, TEST-04)
+
+Signed by the owner on their own PC, 13 October 2026, from the signing kit of CI run
+[38454327509](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38454327509)
+(commit b035130). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `102474b514665d86b8a336683278544341fa3963865d6828afe156f4531366c6` |
+| ubuntu-x86_64 | 4 | `faced4fb8d337a02b7dc335349fe36b9d7ca6463cd44ac5d01113ddba0f3fc6e` |
+| windows-x86_64 | 1 | `1a01e6c4250140b6f64ab122b58daae9c9a0809e82938c5d257dfe2ab10ddeac` |
+
+All three: PASS. 0.2.2 replaces 0.2.0 and 0.2.1, which were not signed. The signed media stay on
+the owner's PC; the builder never held the key.
 
 ## 2. CI (TEST-01)
 
@@ -118,8 +134,9 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. **Sign 0.2.2:** a new signing kit (same steps as for 0.1.0). It replaces 0.2.0 and 0.2.1.
-2. **Your look at it:** install 0.2.0 over 0.1.0, open the tutorial and two examples, and tell
+1. ~~Sign 0.2.2~~ done 13 October 2026 (section 1a). Tag **v0.2.2** should point at b035130
+   (see item 3).
+2. **Your look at it:** install 0.2.2 over 0.1.0, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
    - VAPP-01;
