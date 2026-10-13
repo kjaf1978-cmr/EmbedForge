@@ -43,6 +43,13 @@
 | 2.3 | Schematic editor, simulation panel and waveform viewer, start screen, examples, tutorial | Playwright tests including axe; scripted usability scenarios |
 | 2.4 | Project save, open and list in the desktop app (Git commit per save); documentation; test report; release 0.2.0 | Rust tests; CI; signing kit |
 
+## Status on 13 October 2026
+
+- WP 2.1–2.4 are done; see TEST_REPORT.md and usability.md. Version 0.2.0.
+- Added on the way: 555 timer, linear regulators, transient start from discharged
+  capacitors, hover readout.
+- Open for the gate: your signature of the 0.2.0 media, and your look at it.
+
 ## Out of scope for Increment 2
 
 - PCB layout, footprints, routing and fabrication output: Increment 3.

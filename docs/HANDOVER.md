@@ -1,33 +1,48 @@
 # Handover for a new session
 
-State on 5 October 2026: Phase 0 is approved; Increment 1 work packages 1.1, 1.2 and 1.3 are
-done. Decision D16 (finding F1-01) chose option A: applied in prompt v3.8 and implemented
-(helper function (d), `restore_files`).
-Read in this order:
+State on 13 October 2026:
+- Increment 1 is delivered: 0.1.0, signed by the owner.
+- Decision D17 (prompt v3.9) reordered the plan: design tools first.
+- Increment 2 (schematic entry and circuit simulation) is implemented as version 0.2.0. It
+  waits for the owner to sign it and look at it (the gate).
 
-1. docs/requirements/EmbedForge_prompt_v3.8.md: the baseline (sections 25–33 are the decision
-   change logs).
-2. docs/phase0/STATUS.md: decisions D9–D15, open actions.
-3. docs/inc1/SCOPE.md, WP1.1_report.md, WP1.2_report.md, WP1.3_report.md, findings_for_D16.md,
-   procedures/: the current increment.
-4. packaging/README.md: media, packs, signing pipeline.
+Read in this order:
+1. docs/requirements/EmbedForge_prompt_v3.9.md: the baseline. Section 22 has the new order of
+   increments; sections 25–34 are the decision change logs.
+2. docs/phase0/STATUS.md: the decision list (D9–D17).
+3. docs/inc2/SCOPE.md, TEST_REPORT.md, usability.md: the current increment.
+4. docs/inc1/: Increment 1 (shell, packaging, signing); packaging/README.md for media and the
+   signing kit.
 5. docs/SESSION_LOG.md: history.
 
+Code map for Increment 2 (all in app/ui/src unless noted):
+- eda/: units, symbols (generic library with pins and graphics), models (SPICE parameters),
+  schematic (document), editor (pure edit operations), connectivity, netlist, erc, simnet
+  (schematic → circuit), project (files), examples, tutorial.
+- sim/: engine (MNA solver), circuit, spice (export), run (schematic simulation), measure,
+  reference (SIM-04 suite), client/worker (Web Worker).
+- components/schematic/: SchematicView (editor, panels), SheetSvg (rendering), Plot (waveform
+  viewer); components/StartScreen.
+- app/src-tauri/src/projects.rs: projects as Git repositories under Documents/EmbedForge
+  Projects.
+
 Next:
-1. WP 1.4. Done so far:
-   - docs/inc1/TEST_REPORT.md;
-   - docs/inc1/usability.md (scripted scenarios in app/ui/e2e/usability.spec.ts).
+1. Owner:
+   - sign 0.2.0 with the signing kit;
+   - install it;
+   - give feedback, then approve the Increment 2 gate.
+2. Then Increment 3: PCB layout and routing. Footprints for the symbol library, placement,
+   interactive and automatic routing (Freerouting), DRC, Gerber. Scope it first (section 22
+   step 1).
+3. Still open from Increment 1:
+   - VAPP-01;
+   - the VAPP test kit;
+   - the human usability run;
+   - the self-hosted runners;
+   - tags v0.1.0 (commit 45ff930) and v0.2.0.
 
-   - the first signed release, 0.1.0: signed by the owner on 13 October 2026 from the kit of
-     CI run 38317588767; hashes in TEST_REPORT.md section 1a.
-
-   Still open: record your procedure results and the human usability run; push tag v0.1.0
-   (commit 45ff930). These wait for the owner (runs) or a session that may push tags.
-
-Pending on your side: the self-hosted runners.
-
-Tags: v0.1.0 (commit 45ff930) and the earlier backup tags (phase0-s1..s9, inc1-wp1.1, inc1-wp1.2) were refused by the
-git proxy of session 3 (HTTP 403). Branches push normally. Try `git push origin --tags` again
+Tags: v0.1.0 (commit 45ff930) and the earlier backup tags (phase0-s1..s9, inc1-wp1.1,
+inc1-wp1.2) were refused by the git proxy (HTTP 403); branches push normally. Push the tags
 from a session where tag pushes are allowed.
 
 Working rules agreed with the owner (Jules):
@@ -37,7 +52,8 @@ Working rules agreed with the owner (Jules):
 
 Build and test:
 - `cd core && cargo test && cargo clippy --all-targets -- -D warnings`
-- `cd app/ui && npm ci && npm test && npm run build && npx playwright test`
+- `cd app/ui && npm ci && npm test && npm run build && npx playwright test` (install ngspice so
+  that the SIM-04 suite runs instead of being skipped)
 - `cd app/src-tauri && cargo test`
 - Windows target check: `cd core && cargo clippy --target x86_64-pc-windows-gnu --workspace --all-targets -- -D warnings`
   (needs `gcc-mingw-w64-x86-64`)

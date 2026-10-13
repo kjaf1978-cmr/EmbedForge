@@ -154,3 +154,25 @@
 - First signed release 0.1.0 (13 October 2026): you signed all three media with the primary
   key; RESULT.txt reported PASS for each, and the hashes are in TEST_REPORT.md section 1a.
   Tag v0.1.0 on 45ff930.
+
+## Session 4 (continued), 13 October 2026: Increment 2 after D17
+
+- You installed 0.1.0 and found no design entry, routing or simulation, and no clear first
+  step. You chose "design tools first".
+- D17 is recorded as prompt v3.9 (tools/apply_d17.py):
+  - schematic entry and circuit simulation become Increment 2, PCB layout and routing
+    Increment 3; the rest follows in its old order;
+  - new requirements UI-08 (a)–(h), UI-24, ED-08, ED-09 and SIM-01..05.
+- Built in app/ui:
+  - schematic core;
+  - simulation engine (MNA with SPICE device equations), cross-checked against ngspice on
+    25 cases;
+  - schematic editor with KiCad-style tools;
+  - simulation panel, probes and waveform viewer;
+  - start screen, 11 examples and a tutorial;
+  - 555 timer and regulators;
+  - SVG, PNG, SPICE and CSV export.
+- The desktop app saves projects as Git repositories.
+- Version 0.2.0. Results are in docs/inc2/TEST_REPORT.md and usability.md. Waiting for your
+  signature and your look at it.
+
