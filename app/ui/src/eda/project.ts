@@ -32,7 +32,7 @@ export function toFiles(name: string, sheet: Sheet): ProjectFiles {
         schematic: {
           parts,
           wires: sheet.wires.map((w) => ({ a: w.a, b: w.b })),
-          labels: sheet.labels.map((l) => ({ name: l.name, x: l.x, y: l.y })),
+          labels: sheet.labels.map((l) => ({ name: l.name, x: l.x, y: l.y, ...(l.note ? { note: true } : {}) })),
           probes: sheet.probes.map((p) => (p.kind === 'i' ? { ...p, part: sheet.parts.find((q) => q.id === p.part)?.ref ?? p.part, id: undefined } : { ...p, id: undefined })),
           sim: sheet.sim,
           ...(sheet.step ? { step: sheet.step } : {}),
@@ -65,7 +65,7 @@ export function fromFiles(files: Partial<ProjectFiles>): Loaded {
     sheet.parts.push(part);
   }
   sheet.wires = ((geo.wires as { a: { x: number; y: number }; b: { x: number; y: number } }[]) ?? []).map((w, k) => ({ id: `w${k}`, a: w.a, b: w.b }));
-  sheet.labels = ((geo.labels as { name: string; x: number; y: number }[]) ?? []).map((l, k) => ({ id: `l${k}`, ...l }));
+  sheet.labels = ((geo.labels as { name: string; x: number; y: number; note?: boolean }[]) ?? []).map((l, k) => ({ id: `l${k}`, ...l }));
   sheet.probes = ((geo.probes as Record<string, unknown>[]) ?? []).flatMap((p, k) => {
     const id = `pr${k}`;
     if (p.kind === 'i') { const part = idOf.get(String(p.part)); return part ? [{ ...(p as object), id, part } as Sheet['probes'][number]] : []; }

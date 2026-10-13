@@ -3,7 +3,7 @@
 // that only cross do not connect. Labels and power symbols with the same name are one net.
 
 import { symbolOf, type Pt } from './symbols';
-import { key, onSegment, pinPositions, samePt, type Sheet } from './schematic';
+import { key, netLabels, onSegment, pinPositions, samePt, type Sheet } from './schematic';
 
 export interface Net {
   name: string;
@@ -61,7 +61,7 @@ export function connectivity(sheet: Sheet): Connectivity {
     }
   }
   const labelName = new Map<string, string>();
-  for (const l of sheet.labels) {
+  for (const l of netLabels(sheet)) {
     const node = `lbl:${l.id}`;
     points.push({ at: { x: l.x, y: l.y }, node });
     labelName.set(node, l.name.trim());

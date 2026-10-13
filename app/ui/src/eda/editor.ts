@@ -3,7 +3,7 @@
 
 import { symbolOf, type Pt } from './symbols';
 import {
-  cleanWires, defaultProps, key, newId, nextRef, onSegment, orthoRoute, partBounds, pinPositions, samePt, segDist, snap, toWorld,
+  cleanWires, defaultProps, key, netLabels, newId, nextRef, onSegment, orthoRoute, partBounds, pinPositions, samePt, segDist, snap, toWorld,
   type Label, type Part, type Rot, type Sheet, type Wire,
 } from './schematic';
 
@@ -72,7 +72,7 @@ export function addWire(sheet: Sheet, pts: Pt[], verticalFirst = false): Sheet {
 /** Joins wire segments that continue each other in a straight line with nothing else at the joint. */
 function mergeCollinear(wires: Wire[], sheet: Sheet): Wire[] {
   const pinKeys = new Set(sheet.parts.flatMap((p) => pinPositions(p).map((pp) => key(pp.at))));
-  const labelKeys = new Set(sheet.labels.map((l) => key({ x: l.x, y: l.y })));
+  const labelKeys = new Set(netLabels(sheet).map((l) => key({ x: l.x, y: l.y })));
   let changed = true;
   let ws = [...wires];
   while (changed) {
@@ -98,9 +98,9 @@ function mergeCollinear(wires: Wire[], sheet: Sheet): Wire[] {
 
 function parseKey(k: string): Pt { const [x, y] = k.split(',').map(Number); return { x, y }; }
 
-export function addLabel(sheet: Sheet, name: string, at: Pt): { sheet: Sheet; id: string } {
+export function addLabel(sheet: Sheet, name: string, at: Pt, note = false): { sheet: Sheet; id: string } {
   const id = newId('l');
-  const l: Label = { id, name, x: snap(at.x), y: snap(at.y) };
+  const l: Label = { id, name, x: snap(at.x), y: snap(at.y), ...(note ? { note: true } : {}) };
   return { sheet: { ...sheet, labels: [...sheet.labels, l] }, id };
 }
 
@@ -122,7 +122,7 @@ export function moveSelection(sheet: Sheet, sel: Selection, dx: number, dy: numb
   const moving = new Set<string>();
   for (const p of sheet.parts) if (ps.has(p.id)) for (const pp of pinPositions(p)) moving.add(key(pp.at));
   for (const w of sheet.wires) if (ws.has(w.id)) { moving.add(key(w.a)); moving.add(key(w.b)); }
-  for (const l of sheet.labels) if (ls.has(l.id)) moving.add(key({ x: l.x, y: l.y }));
+  for (const l of netLabels(sheet)) if (ls.has(l.id)) moving.add(key({ x: l.x, y: l.y }));
   const mv = (p: Pt): Pt => ({ x: p.x + dx, y: p.y + dy });
   const wires: Wire[] = [];
   for (const w of sheet.wires) {
@@ -242,7 +242,7 @@ export function setRef(sheet: Sheet, partId: string, ref: string): Sheet {
 export function connectionAt(sheet: Sheet, p: Pt, tol: number): Pt | null {
   for (const part of sheet.parts) for (const pp of pinPositions(part)) if (Math.hypot(pp.at.x - p.x, pp.at.y - p.y) <= tol) return pp.at;
   for (const w of sheet.wires) for (const e of [w.a, w.b]) if (Math.hypot(e.x - p.x, e.y - p.y) <= tol) return e;
-  for (const l of sheet.labels) if (Math.hypot(l.x - p.x, l.y - p.y) <= tol) return { x: l.x, y: l.y };
+  for (const l of netLabels(sheet)) if (Math.hypot(l.x - p.x, l.y - p.y) <= tol) return { x: l.x, y: l.y };
   for (const w of sheet.wires) if (segDist(p, w.a, w.b) <= tol) {
     const q = { x: snap(p.x), y: snap(p.y) };
     if (onSegment(q, w.a, w.b)) return q;
@@ -307,7 +307,7 @@ export function wireCollisions(sheet: Sheet, pts: Pt[], verticalFirst = false, n
   const things: Pt[] = [
     ...sheet.parts.flatMap((p) => pinPositions(p).map((q) => q.at)),
     ...sheet.wires.flatMap((w) => [w.a, w.b]),
-    ...sheet.labels.map((l) => ({ x: l.x, y: l.y })),
+    ...netLabels(sheet).map((l) => ({ x: l.x, y: l.y })),
   ];
   const seen = new Set<string>();
   const points: Pt[] = [];

@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, key, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from '../../eda/schematic';
+import { GRID, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from '../../eda/schematic';
 import {
   addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
   placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
@@ -16,6 +16,7 @@ import { connectivity, netAt } from '../../eda/connectivity';
 import { erc, type ErcIssue } from '../../eda/erc';
 import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
 import { sweepTargets } from '../../eda/simnet';
+import { bomCsv, buildBom } from '../../eda/bom';
 import { BJTS, DIODES, MOSFETS, OPAMPS, ZENERS } from '../../eda/models';
 import { formatValue, parseValue, shortValue } from '../../eda/units';
 import { schematicSpice, stepValues } from '../../sim/run';
@@ -25,7 +26,7 @@ import { FIRST_CIRCUIT } from '../../eda/tutorial';
 import { GfxEl, SheetContent, partTransform } from './SheetSvg';
 import { Plot, type Trace } from './Plot';
 
-export type Tool = 'select' | 'place' | 'wire' | 'label' | 'probe-v' | 'probe-i' | 'pan' | 'zoom';
+export type Tool = 'select' | 'place' | 'wire' | 'label' | 'note' | 'probe-v' | 'probe-i' | 'pan' | 'zoom';
 
 export interface EditorApi { run(cmd: string): void }
 
@@ -33,6 +34,7 @@ export const EDITOR_COMMANDS: { id: string; title: string; key: string }[] = [
   { id: 'add', title: 'Add part', key: 'A' },
   { id: 'wire', title: 'Draw wire', key: 'W' },
   { id: 'label', title: 'Add net label', key: 'L' },
+  { id: 'note', title: 'Add a text note', key: 'T' },
   { id: 'power', title: 'Add power rail', key: 'P' },
   { id: 'ground', title: 'Add ground', key: 'G' },
   { id: 'probe-v', title: 'Voltage probe', key: 'V' },
@@ -59,6 +61,7 @@ export const EDITOR_COMMANDS: { id: string; title: string; key: string }[] = [
   { id: 'export-svg', title: 'Export schematic as SVG', key: '' },
   { id: 'export-png', title: 'Export schematic as PNG', key: '' },
   { id: 'export-spice', title: 'Export SPICE netlist', key: '' },
+  { id: 'export-bom', title: 'Export bill of materials (CSV)', key: '' },
   { id: 'print', title: 'Print schematic', key: '' },
   { id: 'escape', title: 'Cancel tool / clear selection', key: 'Esc' },
   { id: 'layout-below', title: 'Layout: results below the schematic (tile horizontally)', key: 'Ctrl+Alt+↓' },
@@ -131,7 +134,7 @@ export function SchematicView(props: Props) {
   const [kbCursor, setKbCursor] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'props' | 'sim' | 'erc' | 'nets'>('props');
+  const [tab, setTab] = useState<'props' | 'sim' | 'erc' | 'nets' | 'bom'>('props');
   const [result, setResult] = useState<SimOutcome | null>(null);
   const [running, setRunning] = useState(false);
   const [live, setLive] = useState(true);
@@ -258,7 +261,7 @@ export function SchematicView(props: Props) {
         names.push(symbolOf(part.sym).power ? String(part.props[symbolOf(part.sym).value.key]) : `${part.ref}.${pin}`);
         byPart.set(part.ref, (byPart.get(part.ref) ?? 0) + 1);
       }
-      else if (sheet.labels.some((l) => samePt({ x: l.x, y: l.y }, p))) names.push(`label ${sheet.labels.find((l) => samePt({ x: l.x, y: l.y }, p))!.name}`);
+      else if (netLabels(sheet).some((l) => samePt({ x: l.x, y: l.y }, p))) names.push(`label ${netLabels(sheet).find((l) => samePt({ x: l.x, y: l.y }, p))!.name}`);
       else names.push(`a wire end${netAtPoint(p) ? ` (net ${netAtPoint(p)})` : ''}`);
     }
     const out: string[] = [];
@@ -336,7 +339,15 @@ export function SchematicView(props: Props) {
       around, cancelLabel: 'Cancel this segment',
     });
   };
-  const nextLabel = () => { for (let i = 1; ; i++) { const n = `NET${i}`; if (!sheet.labels.some((l) => l.name === n)) return n; } };
+  const nextLabel = () => { for (let i = 1; ; i++) { const n = `NET${i}`; if (!netLabels(sheet).some((l) => l.name === n)) return n; } };
+  const placeNote = (at: Pt) => {
+    const r = addLabel(sheet, 'Note', at, true);
+    apply(r.sheet, 'Add note');
+    setSel({ ...noSelection(), labels: [r.id] });
+    setTool('select');
+    setTab('props');
+    afterRender(() => { valueRef.current?.focus(); (valueRef.current as HTMLInputElement | null)?.select?.(); });
+  };
   const placeLabel = (at: Pt) => {
     const r = addLabel(sheet, nextLabel(), at);
     apply(r.sheet, 'Add label');
@@ -372,6 +383,7 @@ export function SchematicView(props: Props) {
       case 'add': setTool('select'); searchRef.current?.focus(); searchRef.current?.select(); break;
       case 'wire': setTool('wire'); setWirePts([]); setPlacing(null); setSel(noSelection()); announce('Wire tool: click a start point.'); break;
       case 'label': setTool('label'); setPlacing(null); announce('Label tool: click on a wire.'); break;
+      case 'note': setTool('note'); setPlacing(null); announce('Note tool: click where the text goes.'); break;
       case 'power': startPlace('power'); break;
       case 'ground': startPlace('gnd'); break;
       case 'probe-v': setTool('probe-v'); setPlacing(null); announce('Voltage probe: click a wire or pin; drag from one net to another for the difference.'); break;
@@ -430,6 +442,7 @@ export function SchematicView(props: Props) {
       case 'export-svg': void exportSvg(); break;
       case 'export-png': void exportPng(); break;
       case 'export-spice': void exportSpice(); break;
+      case 'export-bom': void exportBom(); break;
       case 'print': window.print(); break;
       case 'escape':
         if (wirePts.length) setWirePts([]);
@@ -475,6 +488,7 @@ export function SchematicView(props: Props) {
       if (tool === 'place') { stop(); doPlace(cursor, e.shiftKey); }
       else if (tool === 'wire') { stop(); wireClick(cursor); }
       else if (tool === 'label') { stop(); placeLabel(cursor); }
+      else if (tool === 'note') { stop(); placeNote(cursor); }
       else if (tool === 'probe-v') { stop(); probeV(cursor); }
       else if (tool === 'probe-i') { stop(); probeI(cursor); }
       else {
@@ -502,7 +516,7 @@ export function SchematicView(props: Props) {
       return;
     }
     const keys: Record<string, string> = {
-      a: 'add', w: 'wire', l: 'label', p: 'power', g: 'ground', v: 'probe-v', i: 'probe-i', r: 'rotate', x: 'mirror', y: 'mirror-v',
+      a: 'add', w: 'wire', l: 'label', t: 'note', p: 'power', g: 'ground', v: 'probe-v', i: 'probe-i', r: 'rotate', x: 'mirror', y: 'mirror-v',
       h: 'pan', z: 'zoom-box', '1': 'zoom-100',
       Delete: 'delete', Backspace: 'delete', Home: 'fit', f: 'fit', '+': 'zoom-in', '=': 'zoom-in', '-': 'zoom-out', F5: 'simulate', Escape: 'escape',
     };
@@ -551,6 +565,7 @@ export function SchematicView(props: Props) {
     if (tool === 'place') { doPlace(p, e.shiftKey); return; }
     if (tool === 'wire') { wireClick(p); return; }
     if (tool === 'label') { placeLabel(connectionAt(sheet, p, 8 / view.z) ?? p); return; }
+    if (tool === 'note') { placeNote(p); return; }
     if (tool === 'probe-v') { setDrag({ kind: 'vprobe', a: p, b: p }); return; }
     if (tool === 'probe-i') { probeI(p); return; }
     const h = hitTest(sheet, p, 6 / view.z);
@@ -700,7 +715,7 @@ export function SchematicView(props: Props) {
       return `${p.ref} pin ${h.pin} (${s.pins.find((q) => q.id === h.pin)?.name}) · ${n ?? 'not connected'}${vOf(n)}${i !== undefined ? ` · I in ${formatValue(i, 'A')}` : ''}`;
     }
     if (h.kind === 'part') { const p = shown.parts.find((x) => x.id === h.part)!; const s = symbolOf(p.sym); return s.power ? `${s.name} ${p.props[s.value.key]}` : `${p.ref} · ${s.name} ${p.props[s.value.key] ?? ''}${s.interactive && hasRun ? ' · click to operate' : ''}`; }
-    if (h.kind === 'label') { const l = shown.labels.find((x) => x.id === h.label)!; return `label ${l.name}${vOf(l.name)}`; }
+    if (h.kind === 'label') { const l = shown.labels.find((x) => x.id === h.label)!; return l.note ? 'text note' : `label ${l.name}${vOf(l.name)}`; }
     return '';
   }, [cursor, shown, conn, op, ok, tool, drag, view.z, hasRun]);
 
@@ -794,6 +809,10 @@ export function SchematicView(props: Props) {
     if (!blob) { announce('PNG export failed'); return; }
     await report(props.exportFile(`${baseName}.png`, new Uint8Array(await blob.arrayBuffer()), 'image/png'));
   };
+  const exportBom = async () => {
+    setTab('bom');
+    await report(props.exportFile(`${baseName}-bom.csv`, bomCsv(buildBom(sheet)), 'text/csv'));
+  };
   const exportSpice = async () => {
     const t = schematicSpice(sheet, props.name || 'NETApps schematic');
     setSpiceText(t);
@@ -881,6 +900,7 @@ export function SchematicView(props: Props) {
         {toolBtn('place', 'Add part', 'A', () => run('add'))}
         {toolBtn('wire', 'Wire', 'W', () => run('wire'))}
         {toolBtn('label', 'Label', 'L', () => run('label'))}
+        {toolBtn('note', 'Text', 'T', () => run('note'))}
         {toolBtn('power', 'Power', 'P', () => run('power'))}
         {toolBtn('ground', 'Ground', 'G', () => run('ground'))}
         <span class="sep" />
@@ -904,6 +924,7 @@ export function SchematicView(props: Props) {
             <button onClick={() => run('export-svg')}>Schematic as SVG</button>
             <button onClick={() => run('export-png')}>Schematic as PNG</button>
             <button onClick={() => run('export-spice')}>SPICE netlist (.cir)</button>
+            <button onClick={() => run('export-bom')}>Bill of materials (.csv)</button>
             <button onClick={() => void exportCsv()} disabled={!ok || ok.analysis === 'op'}>Waveforms as CSV</button>
             <button onClick={() => run('print')}>Print…</button>
           </div>
@@ -1045,7 +1066,7 @@ export function SchematicView(props: Props) {
             </div>
           )}
           <div role="tablist" class="tabs">
-            {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist']] as const).map(([id, label]) => (
+            {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist'], ['bom', 'Parts']] as const).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} class={id === 'erc' && nErr ? 'has-err' : ''}>{label}</button>
             ))}
           </div>
@@ -1060,6 +1081,7 @@ export function SchematicView(props: Props) {
             setSel({ ...noSelection(), parts: ids });
             if (i.at) setView((v) => ({ ...v, x: i.at!.x - size.w / v.z / 2, y: i.at!.y - size.h / v.z / 2 }));
           }} />}
+          {tab === 'bom' && <BomPanel sheet={sheet} onExport={() => run('export-bom')} onPick={(ref) => { const p = sheet.parts.find((x) => x.ref === ref); if (p) { setSel({ ...noSelection(), parts: [p.id] }); setTab('props'); } }} />}
           {tab === 'nets' && <NetsPanel conn={conn} highlight={highlightNet} setHighlight={setHighlightNet} spice={spiceText} onSpice={() => setSpiceText(schematicSpice(sheet, props.name))} />}
         </aside>}
       </div>
@@ -1125,6 +1147,16 @@ function Inspector({ sheet, sel, conn, op, apply, valueRef, setOverride, onProbe
   if (parts.length === 1) return <PartInspector key={parts[0].id} part={parts[0]} sheet={sheet} conn={conn} op={op} apply={apply} valueRef={valueRef} setOverride={setOverride} onProbe={onProbe} colour={colour} />;
   if (sel.labels.length === 1 && !parts.length && !sel.wires.length) {
     const l = sheet.labels.find((x) => x.id === sel.labels[0])!;
+    if (l.note) return (
+      <div class="inspector">
+        <h3>Text note</h3>
+        <label>Text <input ref={valueRef as never} value={l.name} size={40} onChange={(e) => {
+          const v = (e.target as HTMLInputElement).value.trim();
+          if (v && v !== l.name) apply({ ...sheet, labels: sheet.labels.map((x) => (x.id === l.id ? { ...x, name: v } : x)) }, `Edit note`);
+        }} /></label>
+        <p class="small muted">A note is text on the sheet only: it connects to nothing. Move it like a part; Del removes it.</p>
+      </div>
+    );
     return (
       <div class="inspector">
         <h3>Net label</h3>
@@ -1485,6 +1517,30 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
           </table>
         </details>
       )}
+    </div>
+  );
+}
+
+function BomPanel({ sheet, onExport, onPick }: { sheet: Sheet; onExport: () => void; onPick: (ref: string) => void }) {
+  const lines = useMemo(() => buildBom(sheet), [sheet]);
+  if (!lines.length) return <p class="small muted">No parts yet.</p>;
+  const total = lines.reduce((a, l) => a + l.qty, 0);
+  return (
+    <div class="bom">
+      <div class="row"><strong>{total} parts, {lines.length} lines</strong><button onClick={onExport}>Export CSV</button></div>
+      <table class="plot-table">
+        <thead><tr><th>Qty</th><th>References</th><th>Part</th><th>Value</th><th>Details</th></tr></thead>
+        <tbody>
+          {lines.map((l) => (
+            <tr key={l.refs.join(' ')}>
+              <td>{l.qty}</td>
+              <td>{l.refs.map((r, k) => <span key={r}>{k ? ', ' : ''}<button class="link" onClick={() => onPick(r)}>{r}</button></span>)}</td>
+              <td>{l.part}</td><td>{l.value}</td><td class="small">{l.details}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="small muted">Generic library parts: the parts catalogue with manufacturer part numbers arrives in Increment 6.</p>
     </div>
   );
 }

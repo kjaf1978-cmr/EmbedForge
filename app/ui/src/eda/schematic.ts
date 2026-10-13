@@ -22,7 +22,11 @@ export interface Part {
 }
 
 export interface Wire { id: string; a: Pt; b: Pt }
-export interface Label { id: string; name: string; x: number; y: number }
+/** A net label; with `note` set, a free text note that connects to nothing. */
+export interface Label { id: string; name: string; x: number; y: number; note?: boolean }
+
+/** Net labels only (text notes are not connections). */
+export const netLabels = (s: { labels: Label[] }): Label[] => s.labels.filter((l) => !l.note);
 
 export type Probe =
   | { id: string; kind: 'v'; at: Pt; colour: string }

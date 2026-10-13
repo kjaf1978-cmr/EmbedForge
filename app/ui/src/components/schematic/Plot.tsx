@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { formatValue } from '../../eda/units';
 import { interpAt, logTicks, measure, niceTicks } from '../../sim/measure';
+import { spectrum, thd } from '../../sim/fft';
 
 export interface Trace { id: string; name: string; colour: string; unit: string; y: number[]; dashed?: boolean }
 
@@ -113,6 +114,20 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
 
   const readout = (t: Trace, at: number | null) => (at === null ? '—' : formatValue(interpAt(x, t.y, at), t.unit));
 
+  // FFT view of a transient over the visible range
+  const canFft = !log && xUnit === 's' && x.length > 8;
+  const [showFft, setShowFft] = useState(false);
+  const fftData = useMemo(() => {
+    if (!showFft || !canFft) return null;
+    const specs = traces.filter((t) => t.unit === 'V' || t.unit === 'A').map((t) => ({ t, s: spectrum(x, t.y, r0, r1) }));
+    if (!specs.length || !specs[0].s.f.length) return null;
+    return {
+      f: specs[0].s.f,
+      traces: specs.map(({ t, s }) => ({ id: `fft:${t.id}`, name: `FFT ${t.name}`, colour: t.colour, unit: `dB${t.unit}`, dashed: t.dashed, y: s.amp.map((a) => 20 * Math.log10(a || 1e-30)) })),
+      thd: specs.map(({ t, s }) => ({ name: t.name, unit: t.unit, r: thd(s) })),
+    };
+  }, [showFft, canFft, traces, x, r0, r1]);
+
   return (
     <div class="plot" ref={box}>
       <div class="plot-bar row">
@@ -120,6 +135,7 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
         <button onClick={() => { setRange(full); }}>Zoom to fit</button>
         <button onClick={() => setCur({ a: null, b: null })} disabled={cur.a === null && cur.b === null}>Clear cursors</button>
         {onExportCsv && <button onClick={onExportCsv}>Export CSV</button>}
+        {canFft && <button aria-pressed={showFft} title="Spectrum of the visible range (Hann window)" onClick={() => setShowFft((v) => !v)}>FFT</button>}
       </div>
       {groups.map(([unit, ts], gi) => {
         let lo = Infinity, hi = -Infinity;
@@ -170,6 +186,15 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
           </tbody>
         </table>
       </div>
+      {fftData && (
+        <section class="fft" aria-label="Spectrum">
+          <h4 class="small">Spectrum of {formatValue(r0, 's')} to {formatValue(r1, 's')} (Hann window; amplitudes are peak values, 0 dBV = 1 V)</h4>
+          <Plot x={fftData.f} xLabel="Frequency" xUnit="Hz" log traces={fftData.traces} height={H} />
+          <ul class="small">
+            {fftData.thd.map(({ name, unit, r }) => r && <li key={name}>{name}: strongest component {formatValue(r.amp, unit)} at {formatValue(r.f0, 'Hz')}, THD {r.thd < 0.01 ? '< 0.01' : r.thd.toPrecision(3)} % (harmonics 2 to 10)</li>)}
+          </ul>
+        </section>
+      )}
       {cur.a !== null && cur.b !== null && (
         <p class="small">ΔX = {formatValue(cur.b - cur.a, xUnit)}{!log && xUnit === 's' && cur.b !== cur.a ? ` · 1/ΔX = ${formatValue(1 / Math.abs(cur.b - cur.a), 'Hz')}` : ''}</p>
       )}

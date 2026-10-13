@@ -83,12 +83,16 @@ export function SheetContent({ sheet, view }: { sheet: Sheet; view: SheetView })
           </g>
         );
       })}
-      {sheet.labels.map((l) => (
+      {sheet.labels.map((l) => (l.note ? (
+        <g key={l.id} class={`note${selected?.labels.has(l.id) ? ' is-sel' : ''}`} data-label={l.id}>
+          <text x={l.x} y={l.y - 2} class="note-text">{l.name}</text>
+        </g>
+      ) : (
         <g key={l.id} class={`label${selected?.labels.has(l.id) ? ' is-sel' : ''}`} data-label={l.id}>
           <rect x={l.x - 1.5} y={l.y - 1.5} width={3} height={3} class="label-dot" />
           <text x={l.x + 3} y={l.y - 4} class="label-text">{l.name}</text>
         </g>
-      ))}
+      )))}
       {showValues && op && conn.nets.map((n) => {
         if (n.name === 'GND') return null;
         const v = op.v[n.name];

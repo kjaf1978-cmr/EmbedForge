@@ -333,6 +333,38 @@ test('parameter sweep (.step): one trace per value of C1, saved with the sheet',
   await expect(side.getByLabel('Run the analysis once per value of a part property')).not.toBeChecked();
 });
 
+test('FFT view: the spectrum of the amplifier output, with its THD', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: Non-inverting op-amp amplifier' }).click();
+  await page.keyboard.press('F5');
+  const results = page.getByRole('region', { name: 'Waveform viewer' });
+  await results.getByRole('button', { name: 'FFT', exact: true }).click();
+  const spec = results.getByRole('region', { name: 'Spectrum' });
+  await expect(spec.getByRole('img').first()).toBeVisible();
+  await expect(spec.getByText(/V\(OUT\): strongest component .* at 1 kHz, THD/)).toBeVisible();
+  await results.getByRole('button', { name: 'FFT', exact: true }).click();
+  await expect(spec).toHaveCount(0);
+});
+
+test('text notes (T) and the parts list (BOM)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: LED with series resistor' }).click();
+  await canvas(page).focus();
+  await page.keyboard.press('t');
+  await click(page, 0, -80);
+  const text = page.getByLabel('Text', { exact: true });
+  await expect(text).toBeFocused();
+  await text.fill('Use a 0.25 W resistor'); await text.press('Enter');
+  await expect(page.locator('text.note-text', { hasText: 'Use a 0.25 W resistor' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Checks', exact: true })).toBeVisible(); // still no rule-check findings
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Parts' }).click();
+  await expect(side.getByRole('row', { name: /1 R1 Resistor 330 Ω/ })).toBeVisible();
+  const dl = page.waitForEvent('download');
+  await side.getByRole('button', { name: 'Export CSV' }).click();
+  expect((await dl).suggestedFilename()).toMatch(/-bom\.csv$/);
+  await side.getByRole('button', { name: 'R1', exact: true }).click();
+  await expect(side.getByRole('heading', { name: 'Resistor' })).toBeVisible();
+});
+
 test('ED-09: rule check markers and the Checks list', async ({ page }) => {
   await page.getByRole('button', { name: /New schematic/ }).click();
   await pick(page, 'Resistor'); await click(page, 0, 0);
