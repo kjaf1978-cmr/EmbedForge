@@ -1,6 +1,6 @@
-# Welcome to EmbedForge
+# Welcome to NETApps Electric Simulation
 
-EmbedForge is an offline electronics design tool. Everything runs on this computer; no
+NETApps Electric Simulation (NETApps for short) is an offline electronics design and simulation tool. Everything runs on this computer; no
 internet connection or account is needed.
 
 ## What you can do in this version (Increment 2)

@@ -18,7 +18,7 @@ medium.json  medium.json.minisig     signed index: every pack part and file with
 packs/<item>-<version>.efpack.NNN    zstd tar stream of one component, split into ≤ 1.9 GiB parts
 install.sh                           Linux: sh install.sh  (or --per-user)
 embedforge-setup_<v>_<arch>.deb      Linux bootstrap (the installer only, no dependencies)
-EmbedForge-Setup-<v>-x64.exe         Windows bootstrap (Authenticode-signed on your host)
+NETApps-Setup-<v>-x64.exe         Windows bootstrap (Authenticode-signed on your host)
 licences/  README.txt                licence texts; WebView2 terms on Windows (SS-02)
 source/                              corresponding source of the copyleft parts (SS-02)
 ```

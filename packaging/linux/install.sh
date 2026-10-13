@@ -1,5 +1,5 @@
 #!/bin/sh
-# EmbedForge offline installer for Ubuntu and Raspberry Pi OS (SS-01).
+# NETApps Electric Simulation offline installer for Ubuntu and Raspberry Pi OS (SS-01).
 #
 #   sh install.sh              system-wide installation (asks for your password)
 #   sh install.sh --per-user   installation for you only, no administrator rights (SS-05)
@@ -11,7 +11,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 arch=$(dpkg --print-architecture)
 deb=$(ls "$here"/embedforge-setup_*_"$arch".deb 2>/dev/null | head -n 1 || true)
 if [ -z "$deb" ]; then
-    echo "This medium has no EmbedForge installer for $arch." >&2
+    echo "This medium has no NETApps Electric Simulation installer for $arch." >&2
     exit 1
 fi
 case " $* " in

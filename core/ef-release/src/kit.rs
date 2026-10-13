@@ -133,13 +133,13 @@ pub fn sign_medium(
         signer.sign(
             &f,
             &format!(
-                "EmbedForge {} {} {}/{}",
+                "NETApps Electric Simulation {} {} {}/{}",
                 spec.app_version, m.name, c.ci, COMPONENT_FILE
             ),
         )?;
         if i == 0 {
             verify_signed_file(&f, &staging.join(&c.ci).join(COMPONENT_SIG), &keys).map_err(|_| {
-                "this key is not one of the EmbedForge release keys built into this program; use embedforge-primary.key".to_string()
+                "this key is not one of the NETApps Electric Simulation release keys built into this program; use embedforge-primary.key".to_string()
             })?;
         }
     }
@@ -151,7 +151,7 @@ pub fn sign_medium(
     let index = dst.join(MEDIUM_INDEX);
     signer.sign(
         &index,
-        &format!("EmbedForge {} {} {MEDIUM_INDEX}", spec.app_version, m.name),
+        &format!("NETApps Electric Simulation {} {} {MEDIUM_INDEX}", spec.app_version, m.name),
     )?;
     verify(&dst, trusted, MEDIUM_INDEX)?;
     let (index_sha256, _) = ef_cm::objects::sha256_file(&index).map_err(|e| e.to_string())?;

@@ -7,6 +7,7 @@ import { connectivity } from '../eda/connectivity';
 import { sheetBounds } from '../eda/editor';
 import { SheetContent } from './schematic/SheetSvg';
 import type { Backend, ProjectInfo } from '../backend';
+import { Logo } from './Logo';
 
 interface Props {
   backend: Backend;
@@ -26,7 +27,7 @@ export function StartScreen({ backend, onNew, onTutorial, onExample, onOpen, ver
   return (
     <div class="start">
       <section class="start-hero">
-        <h2>Design and simulate circuits — offline</h2>
+        <div class="start-brand"><Logo size={56} title="NETApps logo" /><div><p class="start-name">NETApps Electric Simulation</p><h2>Design and simulate circuits — offline</h2></div></div>
         <p>Draw a schematic, simulate it (operating point, transient, AC, DC sweep), probe voltages and currents, and export SPICE, SVG or PNG. Everything runs on this computer.</p>
         <div class="row">
           <button class="primary big" onClick={onNew}>New schematic <kbd>Ctrl+N</kbd></button>
@@ -58,7 +59,7 @@ export function StartScreen({ backend, onNew, onTutorial, onExample, onOpen, ver
 
       <section class="roadmap" aria-labelledby="h-road">
         <h2 id="h-road">What this version does, and what comes next</h2>
-        <p>EmbedForge {version || ''} — Increment 2 of the plan (decision D17: design tools first).</p>
+        <p>NETApps Electric Simulation {version || ''} — Increment 2 of the plan (decision D17: design tools first).</p>
         <ul>
           <li><strong>Now:</strong> schematic editor, electrical rule check, circuit simulator (cross-checked against ngspice), probes and waveform viewer, SPICE/SVG/PNG export, projects under version control.</li>
           <li><strong>Next — Increment 3:</strong> PCB layout and routing (footprints, placement, interactive and automatic routing, design rule check, Gerber files).</li>

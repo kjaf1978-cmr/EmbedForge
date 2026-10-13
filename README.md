@@ -1,4 +1,6 @@
-# EmbedForge
+# NETApps Electric Simulation
+
+(Formerly EmbedForge; renamed by decision D18. The repository keeps its name.)
 
 An offline-first desktop application that turns a plain-English description and a target
 board into a verified, documented Arduino / Raspberry Pi / Pico project: firmware, pin map,

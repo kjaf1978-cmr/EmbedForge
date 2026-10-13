@@ -16,13 +16,13 @@ cat > "$root/DEBIAN/control" <<CTRL
 Package: embedforge-setup
 Version: $version
 Architecture: $arch
-Maintainer: EmbedForge project <embedforge@localhost>
+Maintainer: NETApps <embedforge@localhost>
 Section: devel
 Priority: optional
 Installed-Size: $size
 Homepage: https://github.com/kjaf1978-cmr/EmbedForge
-Description: EmbedForge offline installer (bootstrap)
- Installs EmbedForge and its component packs from the offline installation
+Description: NETApps Electric Simulation offline installer (bootstrap)
+ Installs NETApps Electric Simulation and its component packs from the offline installation
  medium. Run install.sh on the medium rather than installing this package alone.
 CTRL
 mkdir -p "$out"

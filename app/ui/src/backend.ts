@@ -94,7 +94,7 @@ class TauriBackend implements Backend {
     const path = await this.invoke<string>('export_file', { project: projectId, name, data: toBase64(data) });
     return `Saved ${path}`;
   }
-  projectsLocation() { return this.where ? `Projects are saved in ${this.where}, each as a Git repository with one commit per save.` : 'Projects are saved in your Documents folder under "EmbedForge Projects".'; }
+  projectsLocation() { return this.where ? `Projects are saved in ${this.where}, each as a Git repository with one commit per save.` : 'Projects are saved in your Documents folder under "NETApps Projects".'; }
 }
 
 class PreviewBackend implements Backend {

@@ -1,11 +1,11 @@
 # Installation, updates and repair
 
-EmbedForge installs from one offline medium per host OS (SS-01). No network is needed at any
+NETApps installs from one offline medium per host OS (SS-01). No network is needed at any
 step.
 
 ## Installing
 
-- **Windows:** double-click `EmbedForge-Setup-<version>-x64.exe` on the medium. The installer
+- **Windows:** double-click `NETApps-Setup-<version>-x64.exe` on the medium. The installer
   asks whether to install for all users (administrator rights; includes the privileged helper)
   or just for you.
 - **Ubuntu and Raspberry Pi OS:** open a terminal on the medium and run `sh install.sh`. It

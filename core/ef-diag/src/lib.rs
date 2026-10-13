@@ -45,7 +45,7 @@ impl Report {
 
     pub fn to_text(&self) -> String {
         let mut out = format!(
-            "EmbedForge {} — self-diagnosis (DIAG-01)\nOverall: {:?}\n",
+            "NETApps Electric Simulation {} — self-diagnosis (DIAG-01)\nOverall: {:?}\n",
             self.app_version,
             self.overall()
         );

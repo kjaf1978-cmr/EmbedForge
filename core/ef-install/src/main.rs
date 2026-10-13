@@ -6,7 +6,7 @@ use ef_install::{platform::Sys, Event, HostId, Mode, Options};
 use std::io::{BufRead, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
-const HELP: &str = "embedforge-setup — install, update, repair or remove EmbedForge (offline)
+const HELP: &str = "embedforge-setup — install, update, repair or remove NETApps Electric Simulation (offline)
 
 USAGE
   embedforge-setup [install] [options]     install from the medium (interactive by default)
@@ -224,7 +224,7 @@ fn is_admin() -> bool {
 
 fn print_plan(p: &ef_install::Plan) {
     println!(
-        "EmbedForge {} for {} {} — {} installation into {}",
+        "NETApps Electric Simulation {} for {} {} — {} installation into {}",
         p.index.app_version,
         p.index.os,
         p.index.arch,
@@ -354,7 +354,7 @@ fn run() -> Result<i32, String> {
         "install" | "plan" => {
             let mut mode = mode;
             if a.cmd == "install" && interactive && !a.per_user && !is_admin() {
-                println!("EmbedForge can be installed for all users (needs administrator rights; includes the");
+                println!("NETApps Electric Simulation can be installed for all users (needs administrator rights; includes the");
                 println!("USB serial setup and the privileged helper) or just for you (no administrator rights).");
                 if yes_no("Install for all users?", true) {
                     #[cfg(windows)]
@@ -461,7 +461,7 @@ fn run() -> Result<i32, String> {
                 emit(&report);
             } else {
                 println!(
-                    "\nEmbedForge {} is installed in {} ({:.0} s).",
+                    "\nNETApps Electric Simulation {} is installed in {} ({:.0} s).",
                     plan.index.app_version,
                     plan.target.display(),
                     report.seconds
@@ -619,7 +619,7 @@ fn run() -> Result<i32, String> {
             if interactive
                 && !yes_no(
                     &format!(
-                        "Remove EmbedForge from {}? Your projects are not touched.",
+                        "Remove NETApps Electric Simulation from {}? Your projects are not touched.",
                         target.display()
                     ),
                     false,
@@ -631,7 +631,7 @@ fn run() -> Result<i32, String> {
             for x in w {
                 println!("note: {x}");
             }
-            println!("EmbedForge was removed from {}", target.display());
+            println!("NETApps Electric Simulation was removed from {}", target.display());
         }
         "audit" => {
             let pid = a.pid.ok_or("audit needs --pid PID")?;

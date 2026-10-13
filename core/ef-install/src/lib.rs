@@ -697,7 +697,7 @@ pub fn update(package: &Path, target: &Path, keys: &[&str]) -> Result<UpdateRepo
     if let Some(req) = &index.requires_app {
         if !req.matches(&app_now) {
             return Err(InstallError::Rule(format!(
-                "this package needs EmbedForge {req}; this installation is {app_now}"
+                "this package needs NETApps Electric Simulation {req}; this installation is {app_now}"
             )));
         }
     }
@@ -857,7 +857,7 @@ pub fn versions(target: &Path) -> Result<Vec<ItemVersions>, InstallError> {
 pub fn uninstall(target: &Path, sys: &mut platform::Sys) -> Result<Vec<String>, InstallError> {
     let rec = read_record(target).map_err(|_| {
         InstallError::Rule(format!(
-            "{} is not an EmbedForge installation (no {RECORD})",
+            "{} is not a NETApps Electric Simulation installation (no {RECORD})",
             target.display()
         ))
     })?;

@@ -13,6 +13,6 @@ set -euo pipefail
 : "${EF_TIMESTAMP_URL:?set EF_TIMESTAMP_URL to your CA's RFC 3161 time-stamp URL}"
 tool=${EF_SIGNTOOL:-signtool.exe}
 for f in "$@"; do
-    "$tool" sign /sha1 "$EF_CERT_SHA1" /fd SHA256 /tr "$EF_TIMESTAMP_URL" /td SHA256 /d "EmbedForge" "$f"
+    "$tool" sign /sha1 "$EF_CERT_SHA1" /fd SHA256 /tr "$EF_TIMESTAMP_URL" /td SHA256 /d "NETApps Electric Simulation" "$f"
     "$tool" verify /pa "$f"
 done

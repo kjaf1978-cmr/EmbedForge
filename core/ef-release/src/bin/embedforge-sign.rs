@@ -32,7 +32,7 @@ fn signtool(f: &Path) -> Result<(), String> {
             "/td",
             "SHA256",
             "/d",
-            "EmbedForge",
+            "NETApps Electric Simulation",
         ])
         .arg(f)
         .status()
@@ -72,7 +72,7 @@ fn run() -> Result<(), String> {
     if media.is_empty() {
         return Err(format!("no media found in {}", kit.display()));
     }
-    println!("EmbedForge release signing\n");
+    println!("NETApps Electric Simulation release signing\n");
     println!("Media in this kit:");
     for m in &media {
         println!("  - {}", m.name);
@@ -121,7 +121,7 @@ fn run() -> Result<(), String> {
                 println!("{line}");
                 report.push_str(&line);
                 report.push('\n');
-                if e.contains("not one of the EmbedForge release keys") {
+                if e.contains("release keys built into this program") {
                     break;
                 }
             }

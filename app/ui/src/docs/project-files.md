@@ -14,7 +14,7 @@ A project is a folder under version control (Git), made of text files:
 | migrations.json | Record of automatic format upgrades |
 
 **Rules:**
-- Every file carries a `schema` tag. Files made by older versions of EmbedForge are upgraded
+- Every file carries a `schema` tag. Files made by older versions of NETApps are upgraded
   automatically, and each upgrade is recorded. Files made by a newer version are refused, so
   nothing is silently lost.
 - Project files never contain absolute paths, user names or serial-port names, so a project

@@ -84,7 +84,7 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
     rails.push({ net: n.name, volts: v });
   }
   tieIslands(elements);
-  return { circuit: { title: 'EmbedForge schematic', elements }, netNode, parts, notSimulated, rails, errors, warnings };
+  return { circuit: { title: 'NETApps schematic', elements }, netNode, parts, notSimulated, rails, errors, warnings };
 }
 
 /**

@@ -68,10 +68,10 @@ export function elementLine(e: Element, models: Map<string, string>): string {
       return `${nm} ${N(e.p)} ${N(e.n)} ${spiceName({ kind: 'V', name: e.ctrl } as Element)} ${model(models, 'W', card)}`;
     }
     case 'P':
-      return `* ${e.name}: hobby servo (PWM ${N(e.sig)} GND ${N(e.gnd)} POS ${N(e.out)}). EmbedForge simulates it with a behavioural model that has no SPICE primitive.`;
+      return `* ${e.name}: hobby servo (PWM ${N(e.sig)} GND ${N(e.gnd)} POS ${N(e.out)}). NETApps simulates it with a behavioural model that has no SPICE primitive.`;
     case 'T':
       return `* ${e.name}: 555 timer (GND ${N(e.gnd)} TRIG ${N(e.trig)} OUT ${N(e.out)} RESET ${N(e.rst)} CTRL ${N(e.ctrl)} THR ${N(e.thr)} DIS ${N(e.dis)} VCC ${N(e.vcc)}). ` +
-        'EmbedForge simulates it with a behavioural model that has no SPICE primitive: insert a 555 subcircuit here.';
+        'NETApps simulates it with a behavioural model that has no SPICE primitive: insert a 555 subcircuit here.';
   }
 }
 
@@ -94,7 +94,7 @@ export function analysisLine(a: Analysis): string {
 export function toSpice(c: Circuit, analysis?: Analysis, extra: string[] = []): string {
   const models = new Map<string, string>();
   const lines = c.elements.map((e) => elementLine(e, models));
-  const out = [`* ${c.title ?? 'EmbedForge circuit'}`, `.option rshunt=${n(1 / GSHUNT)}`];
+  const out = [`* ${c.title ?? 'NETApps circuit'}`, `.option rshunt=${n(1 / GSHUNT)}`];
   for (const [card, name] of models) out.push(`.model ${name} ${card}`);
   out.push(...lines);
   if (analysis) out.push(analysisLine(analysis));

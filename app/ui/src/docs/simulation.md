@@ -37,7 +37,7 @@ minimum, maximum, average, RMS, peak-to-peak and frequency over the visible rang
 
 ## Models and accuracy
 
-The simulator is a SPICE-style engine built into EmbedForge (modified nodal analysis, the
+The simulator is a SPICE-style engine built into NETApps (modified nodal analysis, the
 SPICE diode, bipolar and level-1 MOSFET equations). It is checked against ngspice on a
 reference suite of circuits on every build: results agree within 1 % or 1 mV / 1 µA (SIM-04).
 

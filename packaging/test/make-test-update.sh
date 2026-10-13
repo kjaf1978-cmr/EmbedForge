@@ -17,12 +17,12 @@ st="$out.staging"
 rm -rf "$st" && mkdir -p "$st"
 cp -r "$work/staging/embedforge-app" "$st/"
 rm -f "$st/embedforge-app/.ef-component.json" "$st/embedforge-app/.ef-component.json.minisig"
-echo "EmbedForge $next: VAPP-05 test update (same binaries as $version)" > "$st/embedforge-app/licences/CHANGES.txt"
+echo "NETApps Electric Simulation $next: VAPP-05 test update (same binaries as $version)" > "$st/embedforge-app/licences/CHANGES.txt"
 mkdir -p "$st/vapp05-test-item" && echo '{"purpose": "VAPP-05 test item"}' > "$st/vapp05-test-item/item.json"
 cat > "$st/spec.json" <<SPEC
 {"kind": "update", "app_version": "$next", "os": "$os", "arch": "$arch", "requires_app": "=$version",
  "components": [
-  {"ci": "embedforge-app", "kind": "app_back_end_module", "version": "$next", "title": "EmbedForge application, installer and privileged helper",
+  {"ci": "embedforge-app", "kind": "app_back_end_module", "version": "$next", "title": "NETApps Electric Simulation application, installer and privileged helper",
    "changelog": [{"version": "$next", "date": "$(date -u +%F)", "text": "VAPP-05 test update"}]},
   {"ci": "vapp05-test-item", "kind": "fabrication_profile", "version": "1.0.0", "title": "VAPP-05 test item",
    "depends": {"embedforge-app": ">=$next"}, "changelog": [{"version": "1.0.0", "date": "$(date -u +%F)", "text": "test"}]}]}

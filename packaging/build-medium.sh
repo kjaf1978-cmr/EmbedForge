@@ -58,9 +58,9 @@ files="$staging/files"
 mkdir -p "$files/licences" "$files/source"
 cp "$repo/LICENSE" "$files/licences/LICENSE"
 cat > "$files/README.txt" <<TXT
-EmbedForge $version — offline installation medium for $os $arch (SS-01)
+NETApps Electric Simulation $version — offline installation medium for $os $arch (SS-01)
 
-$( [ "$os" = windows ] && echo "Install: double-click EmbedForge-Setup-$version-x64.exe." || echo "Install: open a terminal here and run:  sh install.sh   (or: sh install.sh --per-user)" )
+$( [ "$os" = windows ] && echo "Install: double-click NETApps-Setup-$version-x64.exe." || echo "Install: open a terminal here and run:  sh install.sh   (or: sh install.sh --per-user)" )
 Everything needed is on this medium; no network connection is used.
 Corresponding source of the copyleft components on this medium: folder "source".
 TXT
@@ -71,7 +71,7 @@ case "$os" in
         "$here/linux/build-deb.sh" "$staging/embedforge-app/bin/embedforge-setup" "$debarch" "$version" "$files" >/dev/null
         install -m 0644 "$here/linux/install.sh" "$files/install.sh" ;;
     windows)
-        cp "$staging/embedforge-app/bin/embedforge-setup.exe" "$files/EmbedForge-Setup-$version-x64.exe"
+        cp "$staging/embedforge-app/bin/embedforge-setup.exe" "$files/NETApps-Setup-$version-x64.exe"
         # the WebView2 terms belong on the medium only together with the runtime (SS-02)
         if [ -d "$staging/webview2-runtime" ]; then
             [ -f "$files/licences/webview2-runtime.txt" ] || cp "$here/windows/webview2-runtime-terms.txt" "$files/licences/webview2-runtime.txt"
@@ -119,10 +119,10 @@ exe=""; case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) exe=.exe ;; esac
 release="$repo/core/target/release/ef-release$exe"
 [ -x "$release" ] || (cd "$repo/core" && cargo build --locked --release -p ef-release)
 "$release" components --spec "$eff" --staging "$staging"
-EF_SIGN_COMMENT="EmbedForge $version" "$here/sign/sign-release.sh" components "$staging" "$key"
+EF_SIGN_COMMENT="NETApps Electric Simulation $version" "$here/sign/sign-release.sh" components "$staging" "$key"
 rm -rf "$out"
 "$release" medium --spec "$eff" --staging "$staging" --out "$out"
-EF_SIGN_COMMENT="EmbedForge $version" "$here/sign/sign-release.sh" index "$out" "$key"
+EF_SIGN_COMMENT="NETApps Electric Simulation $version" "$here/sign/sign-release.sh" index "$out" "$key"
 if [ -n "$pub" ]; then
     "$release" verify --medium "$out" --key "$(tail -n 1 "$pub")"
 fi

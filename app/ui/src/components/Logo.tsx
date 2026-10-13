@@ -1,0 +1,24 @@
+// NETApps Electric Simulation mark: an "N" drawn as a circuit trace between two net nodes.
+// The same drawing as app/src-tauri/icons/src/logo.svg (the window and installer icons).
+
+let next = 0;
+
+export function Logo({ size = 24, title }: { size?: number; title?: string }) {
+  // gradient ids must be unique when the mark appears more than once on a page
+  const id = `lg${next++}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" class="logo" role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : 'true'}>
+      <defs>
+        <linearGradient id={`${id}b`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#12305A" /><stop offset="1" stop-color="#081A33" /></linearGradient>
+        <linearGradient id={`${id}t`} x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#22D3EE" /><stop offset="1" stop-color="#60A5FA" /></linearGradient>
+      </defs>
+      <rect x="2" y="2" width="60" height="60" rx="14" fill={`url(#${id}b)`} />
+      <path d="M19 45 V19 L45 45 V19" fill="none" stroke={`url(#${id}t)`} stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="19" cy="45" r="5.5" fill="#F59E0B" stroke="#081A33" stroke-width="2" />
+      <circle cx="45" cy="19" r="5.5" fill="#F59E0B" stroke="#081A33" stroke-width="2" />
+    </svg>
+  );
+}
+
+export const PRODUCT = 'NETApps Electric Simulation';
+export const PRODUCT_SHORT = 'NETApps';

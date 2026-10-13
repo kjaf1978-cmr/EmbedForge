@@ -1,5 +1,5 @@
 //! Schematic projects in the desktop app (Increment 2): each project is a folder under
-//! `Documents/EmbedForge Projects` holding a Git repository (DATA-01, CM-02). Saving writes the
+//! `Documents/NETApps Projects` holding a Git repository (DATA-01, CM-02). Saving writes the
 //! project files with sorted keys and commits them; the files are validated first
 //! (ef_schema::validate_project via ProjectRepo::commit_all). Exports go to `exports/`, which
 //! is not committed.
@@ -8,6 +8,22 @@ use base64::Engine as _;
 use serde::Serialize;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+
+/// Folder name under Documents. Before the rename to NETApps Electric Simulation (0.2.3) it
+/// was "EmbedForge Projects"; that folder is moved on first use so no project is lost.
+pub const ROOT_NAME: &str = "NETApps Projects";
+pub const OLD_ROOT_NAME: &str = "EmbedForge Projects";
+
+/// The projects folder in `docs`, moving the folder of earlier versions to the new name when
+/// only the old one exists. If the move fails (a file in use), the old folder is used as is.
+pub fn root_in(docs: &Path) -> PathBuf {
+    let new = docs.join(ROOT_NAME);
+    let old = docs.join(OLD_ROOT_NAME);
+    if !new.exists() && old.is_dir() && std::fs::rename(&old, &new).is_err() {
+        return old;
+    }
+    new
+}
 
 /// Files the UI may write; anything else is refused.
 pub const WRITABLE: [&str; 3] = ["project.json", "netlist.json", "geometry.json"];
@@ -255,9 +271,25 @@ mod tests {
     }
 
     #[test]
+    fn projects_of_earlier_versions_move_to_the_new_folder() {
+        let t = tempfile::tempdir().unwrap();
+        let old = t.path().join(OLD_ROOT_NAME);
+        let p = create(&old, "Kept").unwrap();
+        assert!(save(&old, &p.id, &files("Kept"), "Save").unwrap());
+        let root = root_in(t.path());
+        assert_eq!(root, t.path().join(ROOT_NAME));
+        assert!(!old.exists());
+        assert_eq!(load(&root, &p.id).unwrap().info.name, "Kept");
+        // with both folders present nothing is moved or merged
+        std::fs::create_dir_all(&old).unwrap();
+        assert_eq!(root_in(t.path()), t.path().join(ROOT_NAME));
+        assert!(old.exists());
+    }
+
+    #[test]
     fn create_save_load_list_and_history() {
         let t = tempfile::tempdir().unwrap();
-        let root = t.path().join("EmbedForge Projects");
+        let root = t.path().join(ROOT_NAME);
         let p = create(&root, "LED test").unwrap();
         assert_eq!(p.id, "LED test");
         assert_eq!(create(&root, "LED test").unwrap().id, "LED test 2");

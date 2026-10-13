@@ -22,7 +22,7 @@ changed only through those views.
 **HIL (hardware-in-the-loop):** a check you perform on the physical build. Until you record a
 result, the requirement shows "HIL-pending".
 
-**Host:** the computer running EmbedForge.
+**Host:** the computer running NETApps.
 
 **Kit part:** a part supplied in an ELEGOO or SunFounder kit. If it is not a standard part it
 can be emulated for learning, but a design uses an active equivalent.

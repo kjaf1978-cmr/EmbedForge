@@ -180,7 +180,7 @@ fn service_unit(target: &Path) -> String {
 
 fn desktop_entry(target: &Path) -> String {
     format!(
-        "[Desktop Entry]\nType=Application\nName=EmbedForge\nComment=Design, build and verify embedded projects offline\n\
+        "[Desktop Entry]\nType=Application\nName=NETApps Electric Simulation\nComment=Design and simulate electronic circuits offline\n\
          Exec=\"{}\"\nIcon={}\nCategories=Development;Electronics;\nTerminal=false\n",
         app_binary(target).display(),
         target.join(APP_CI).join("share").join("embedforge.png").display()
@@ -330,7 +330,12 @@ fn integrate_windows(
         ),
     };
     if !menu.is_empty() {
-        let link = format!("{menu}\\EmbedForge.url");
+        // the Start-menu entry of versions before the rename (0.2.2 and earlier) goes
+        let legacy = sys.path(&format!("{menu}\\EmbedForge.url"));
+        if legacy.exists() {
+            let _ = fs::remove_file(&legacy);
+        }
+        let link = format!("{menu}\\NETApps Electric Simulation.url");
         let app = app_binary(target).display().to_string();
         let text = format!(
             "[InternetShortcut]\r\nURL=file:///{}\r\nIconFile={app}\r\nIconIndex=0\r\n",
@@ -348,9 +353,9 @@ fn integrate_windows(
     let ver = plan.index.app_version.to_string();
     let loc = target.display().to_string();
     for (name, val) in [
-        ("DisplayName", "EmbedForge"),
+        ("DisplayName", "NETApps Electric Simulation"),
         ("DisplayVersion", ver.as_str()),
-        ("Publisher", "EmbedForge project"),
+        ("Publisher", "NETApps"),
         ("InstallLocation", loc.as_str()),
         ("UninstallString", uninst.as_str()),
     ] {
@@ -406,7 +411,7 @@ pub fn remove(
                 warnings.push(e);
             }
         }
-        warnings.push("Dependency packages installed for EmbedForge and the dialout/plugdev group memberships are kept, because other software may use them.".into());
+        warnings.push("Dependency packages installed for NETApps Electric Simulation and the dialout/plugdev group memberships are kept, because other software may use them.".into());
         // the bootstrap package goes too, unless dpkg itself is removing it right now
         if std::env::var_os("EMBEDFORGE_FROM_DPKG").is_none()
             && sys

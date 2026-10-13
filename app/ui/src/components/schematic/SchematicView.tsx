@@ -790,7 +790,7 @@ export function SchematicView(props: Props) {
     await report(props.exportFile(`${baseName}.png`, new Uint8Array(await blob.arrayBuffer()), 'image/png'));
   };
   const exportSpice = async () => {
-    const t = schematicSpice(sheet, props.name || 'EmbedForge schematic');
+    const t = schematicSpice(sheet, props.name || 'NETApps schematic');
     setSpiceText(t);
     setTab('nets');
     await report(props.exportFile(`${baseName}.cir`, t, 'text/plain'));

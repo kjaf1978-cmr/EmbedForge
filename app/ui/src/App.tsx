@@ -1,3 +1,4 @@
+import { Logo, PRODUCT } from './components/Logo';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { HighlightBus } from './core/highlightBus';
 import { Keymap, eventKeys } from './core/keymap';
@@ -281,7 +282,7 @@ export function App({ backend }: { backend: Backend }) {
   return (
     <div class={`app ${compact ? 'compact' : ''}`}>
       <header class="toolbar" role="toolbar" aria-label="Main toolbar">
-        <strong class="brand">EmbedForge</strong>
+        <span class="brand" title={PRODUCT}><Logo size={22} /><strong>NETApps</strong><span class="brand-sub">Electric Simulation</span></span>
         <button onClick={() => keymap.run('edit.undo')} disabled={!activeUndo().canUndo} title={`Undo ${activeUndo().undoLabel ?? ''} (Ctrl+Z)`}>↶ Undo</button>
         <button onClick={() => keymap.run('edit.redo')} disabled={!activeUndo().canRedo} title={`Redo ${activeUndo().redoLabel ?? ''} (Ctrl+Y)`}>↷ Redo</button>
         <button onClick={() => void save()} title="Save project (Ctrl+S)">Save{dirty ? ' •' : ''}</button>

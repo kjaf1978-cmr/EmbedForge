@@ -25,13 +25,13 @@ has a simulation model.
 ## When a wire collides
 
 A wire may touch things other than the two points you clicked: it may pass through a pin or a
-wire end, or run along an existing wire. EmbedForge does not connect these silently. It marks
+wire end, or run along an existing wire. NETApps does not connect these silently. It marks
 the places in red and asks what to do:
 
 - **Connect them.** The wire is drawn as you aimed it, and joins whatever it touches. The
   dialog warns when this would short a part.
 - **Route around.** The wire takes a detour that touches nothing, shown dashed while you point
-  at the button. EmbedForge tries the other elbow first, then detours of up to four grid steps.
+  at the button. NETApps tries the other elbow first, then detours of up to four grid steps.
 - **Cancel this segment.** Nothing is drawn; you go on wiring from the last point.
 
 Moving, rotating, pasting or placing a part asks the same question when a pin would land in the

@@ -1,6 +1,6 @@
 # Writing good requirements
 
-EmbedForge drafts requirements from your description and checks them before any design starts.
+NETApps drafts requirements from your description and checks them before any design starts.
 These rules are an original summary. The source is the INCOSE *Guide to Writing
 Requirements*, which is not reproduced here.
 
@@ -13,7 +13,7 @@ A good requirement is:
 - **Verifiable**: it can be shown to pass by test, emulation, analysis or inspection.
 - **Traceable**: it links back to your description and forward to blocks, code and tests.
 
-## Words EmbedForge flags
+## Words NETApps flags
 
 These words make a requirement vague. Replace each one with a number or a precise condition:
 

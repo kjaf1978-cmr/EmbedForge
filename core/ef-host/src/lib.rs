@@ -134,7 +134,7 @@ fn check_os(f: &HostFacts, v: &mut Vec<Finding>) {
         .and_then(|b| b.trim_end_matches(')').trim().parse::<u32>().ok());
     if f.os_family == "windows" && win_build.is_some_and(|b| b < 22000) {
         push(v, "Windows 10", "HOST-01 note", "—".into(), os_short(f), Severity::Advice,
-             "Windows 10 is past Microsoft's end of support (14 October 2025); EmbedForge support does not extend to OS security updates.");
+             "Windows 10 is past Microsoft's end of support (14 October 2025); NETApps Electric Simulation support does not extend to OS security updates.");
     }
 }
 

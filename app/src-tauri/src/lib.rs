@@ -247,7 +247,7 @@ fn settings_save(app: tauri::AppHandle, settings: serde_json::Value) -> Result<(
 fn projects_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     use tauri::Manager;
     let docs = app.path().document_dir().or_else(|_| app.path().home_dir()).map_err(|e| e.to_string())?;
-    Ok(docs.join("EmbedForge Projects"))
+    Ok(projects::root_in(&docs))
 }
 
 #[tauri::command]
@@ -298,7 +298,7 @@ pub fn run() {
             project_list, project_create, project_load, project_save, export_file
         ])
         .run(tauri::generate_context!())
-        .expect("error while running EmbedForge");
+        .expect("error while running NETApps Electric Simulation");
 }
 
 #[cfg(test)]

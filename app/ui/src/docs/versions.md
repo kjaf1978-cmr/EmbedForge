@@ -1,6 +1,6 @@
 # Versions, baselines and the recovery store
 
-Everything EmbedForge uses is a **configuration item** with a version and a changelog:
+Everything NETApps uses is a **configuration item** with a version and a changelog:
 - the application;
 - runtimes, toolchains and models;
 - libraries, board definitions and component models;
@@ -16,4 +16,4 @@ Everything EmbedForge uses is a **configuration item** with a version and a chan
   Identical files are stored once.
   - You can set a retention limit.
   - Versions used by your projects are never removed.
-  - Before baselines are deleted, EmbedForge lists them and asks you to confirm.
+  - Before baselines are deleted, NETApps lists them and asks you to confirm.

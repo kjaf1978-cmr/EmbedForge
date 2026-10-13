@@ -8,7 +8,7 @@
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
       "version": "0.2.2",
-      "title": "EmbedForge application, installer and privileged helper",
+      "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
         {
@@ -49,8 +49,8 @@
   ],
   "files": [
     {
-      "path": "EmbedForge-Setup-0.2.2-x64.exe",
-      "from": "files/EmbedForge-Setup-0.2.2-x64.exe",
+      "path": "NETApps-Setup-0.2.2-x64.exe",
+      "from": "files/NETApps-Setup-0.2.2-x64.exe",
       "role": "bootstrap"
     },
     {

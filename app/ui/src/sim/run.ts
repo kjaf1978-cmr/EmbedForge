@@ -89,7 +89,7 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
 }
 
 /** SPICE netlist of the schematic with its analysis (SIM-04 export). */
-export function schematicSpice(sheet: Sheet, title = 'EmbedForge schematic'): string {
+export function schematicSpice(sheet: Sheet, title = 'NETApps schematic'): string {
   const conn = connectivity(sheet);
   const net = buildSimNet(sheet, conn);
   const errors: string[] = [];
@@ -100,7 +100,7 @@ export function schematicSpice(sheet: Sheet, title = 'EmbedForge schematic'): st
     analysis = el ? { ...analysis, source: spiceName(el) } : undefined;
   }
   const head = [
-    `* Exported by EmbedForge. Ground is node 0.`,
+    `* Exported by NETApps Electric Simulation. Ground is node 0.`,
     ...net.rails.map((r) => `* Rail ${r.net} is driven by an ideal ${r.volts} V supply (RAIL_${r.net}).`),
     ...[...net.parts.values()].filter((p) => p.elements.length > 1).map((p) => `* ${p.ref} is modelled by ${p.elements.join(', ')}.`),
   ];

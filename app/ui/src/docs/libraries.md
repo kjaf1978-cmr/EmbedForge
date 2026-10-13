@@ -18,7 +18,7 @@ component models in Increment 5.
 
 ## Datasheets
 
-Most manufacturers do not allow their datasheets to be redistributed. EmbedForge therefore
+Most manufacturers do not allow their datasheets to be redistributed. NETApps therefore
 ships a reviewed **parameter sheet** with the datasheet's address. Raspberry Pi Ltd documents
 are the exception and are bundled unchanged. You can import datasheet files you downloaded
 yourself; they stay on this computer and are never copied into projects or shared packages.

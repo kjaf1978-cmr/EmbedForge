@@ -1,6 +1,6 @@
 [package]
 name = "embedforge"
-description = "EmbedForge desktop application shell (Tauri 2)"
+description = "NETApps Electric Simulation desktop application shell (Tauri 2)"
 version = "0.2.2"
 edition = "2021"
 license = "GPL-3.0-or-later"

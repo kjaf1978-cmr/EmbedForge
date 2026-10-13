@@ -28,7 +28,13 @@ input[type='text'], input:not([type]), select { background: var(--panel); border
 .app { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; padding: 0.4em 0.6em; border-bottom: 1px solid var(--line); background: var(--panel); }
 .toolbar .views { display: flex; flex-wrap: wrap; gap: 0.3em; margin: 0 0.6em; }
-.brand { margin-right: 0.6em; }
+.brand { margin-right: 0.6em; display: inline-flex; align-items: center; gap: 0.35em; white-space: nowrap; }
+.brand .logo { flex: none; }
+.brand-sub { font-size: 0.78em; color: var(--muted); }
+.compact .brand-sub { display: none; }
+.start-brand { display: flex; align-items: center; gap: 0.8em; }
+.start-brand h2 { margin: 0; }
+.start-name { margin: 0; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
 .body { display: flex; min-height: 0; position: relative; }
 .pane { overflow: auto; padding: 0.6em 0.8em; background: var(--panel); }
 .nav { width: 22em; border-right: 1px solid var(--line); flex: none; }

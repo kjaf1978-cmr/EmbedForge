@@ -1,6 +1,6 @@
 # Host check
 
-At installation and at every start-up, EmbedForge compares this computer with its profile.
+At installation and at every start-up, NETApps compares this computer with its profile.
 
 | Profile | Requirements |
 |---|---|

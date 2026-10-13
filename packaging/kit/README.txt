@@ -1,7 +1,7 @@
-EmbedForge release signing kit
-==============================
+NETApps Electric Simulation release signing kit
+===============================================
 
-This kit holds everything for the EmbedForge installation media except the signatures.
+This kit holds everything for the NETApps Electric Simulation installation media except the signatures.
 Only you can add those, with your release key. Nothing in this kit sends anything anywhere,
 and your key never leaves your USB stick.
 
@@ -24,11 +24,11 @@ Steps
 What you get
 - signed\ubuntu-x86_64, signed\raspios-aarch64 and signed\windows-x86_64: one finished
   installation medium each. Copy one folder's contents onto an exFAT USB stick to install
-  EmbedForge on that kind of computer (docs/inc1/procedures/VAPP-01.md).
+  NETApps Electric Simulation on that kind of computer (docs/inc1/procedures/VAPP-01.md).
 - signed\RESULT.txt: one PASS line per medium, with the SHA-256 of its signed index.
 
 If something fails
-- "this key is not one of the EmbedForge release keys": you chose another file. Use
+- "this key is not one of the NETApps Electric Simulation release keys": you chose another file. Use
   embedforge-primary.key.
 - A wrong password: the program says it cannot decrypt the key. Start again.
 - Anything else: send Claude the text in the black window. Nothing is released from a

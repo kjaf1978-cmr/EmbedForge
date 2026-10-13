@@ -13,7 +13,7 @@ set -euo pipefail
 what=$1 dir=$2 key=$3
 command -v minisign >/dev/null || { echo "minisign is not installed (apt install minisign / scoop install minisign)" >&2; exit 1; }
 sign() {
-    minisign -S -s "$key" -m "$1" -t "${EF_SIGN_COMMENT:-EmbedForge release} $(basename "$(dirname "$1")")/$(basename "$1")" >/dev/null
+    minisign -S -s "$key" -m "$1" -t "${EF_SIGN_COMMENT:-NETApps Electric Simulation release} $(basename "$(dirname "$1")")/$(basename "$1")" >/dev/null
     echo "signed $1"
 }
 case "$what" in
