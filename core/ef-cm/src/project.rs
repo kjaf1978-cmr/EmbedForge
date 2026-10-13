@@ -43,7 +43,10 @@ impl ProjectRepo {
 
     fn sig(&self) -> Result<Signature<'static>, CmError> {
         // Projects carry no host-specific data (DATA-03): a fixed author identity is used.
-        Ok(Signature::now("NETApps Electric Simulation", "embedforge@localhost")?)
+        Ok(Signature::now(
+            "NETApps Electric Simulation",
+            "embedforge@localhost",
+        )?)
     }
 
     /// Commits every change in the working tree (validated first). Returns None when there

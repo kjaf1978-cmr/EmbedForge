@@ -6,7 +6,8 @@ use ef_install::{platform::Sys, Event, HostId, Mode, Options};
 use std::io::{BufRead, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
-const HELP: &str = "embedforge-setup — install, update, repair or remove NETApps Electric Simulation (offline)
+const HELP: &str =
+    "embedforge-setup — install, update, repair or remove NETApps Electric Simulation (offline)
 
 USAGE
   embedforge-setup [install] [options]     install from the medium (interactive by default)
@@ -631,7 +632,10 @@ fn run() -> Result<i32, String> {
             for x in w {
                 println!("note: {x}");
             }
-            println!("NETApps Electric Simulation was removed from {}", target.display());
+            println!(
+                "NETApps Electric Simulation was removed from {}",
+                target.display()
+            );
         }
         "audit" => {
             let pid = a.pid.ok_or("audit needs --pid PID")?;

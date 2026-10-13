@@ -151,7 +151,10 @@ pub fn sign_medium(
     let index = dst.join(MEDIUM_INDEX);
     signer.sign(
         &index,
-        &format!("NETApps Electric Simulation {} {} {MEDIUM_INDEX}", spec.app_version, m.name),
+        &format!(
+            "NETApps Electric Simulation {} {} {MEDIUM_INDEX}",
+            spec.app_version, m.name
+        ),
     )?;
     verify(&dst, trusted, MEDIUM_INDEX)?;
     let (index_sha256, _) = ef_cm::objects::sha256_file(&index).map_err(|e| e.to_string())?;

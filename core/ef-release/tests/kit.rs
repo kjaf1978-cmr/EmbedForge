@@ -79,7 +79,10 @@ fn a_key_that_is_not_a_release_key_is_refused_at_once() {
         &mut |_| {},
     )
     .unwrap_err();
-    assert!(e.contains("not one of the NETApps Electric Simulation release keys"), "{e}");
+    assert!(
+        e.contains("not one of the NETApps Electric Simulation release keys"),
+        "{e}"
+    );
     assert!(
         !t.path().join("signed/ubuntu-x86_64").exists(),
         "nothing is assembled"
