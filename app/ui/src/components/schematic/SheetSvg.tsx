@@ -1,6 +1,8 @@
 // Renders a schematic sheet as SVG elements (the live canvas and the SVG/PNG export use it).
 
 import type { JSX } from 'preact';
+import { useEffect, useRef } from 'preact/hooks';
+import type { Motion } from '../../sim/motion';
 import { symbolOf, type Gfx, type Pt } from '../../eda/symbols';
 import { pinPositions, valueText, type Part, type Sheet } from '../../eda/schematic';
 import { labelPos } from '../../eda/editor';
@@ -35,7 +37,47 @@ export interface SheetView {
   erc?: ErcIssue[];
   /** LED brightness 0..1 by part id. */
   glow?: Map<string, number>;
+  /** Motors and servos after a simulation, by part id. */
+  motion?: Map<string, Motion>;
   probeLabels?: Map<string, string>;
+}
+
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Rotor marks that turn at `rate` degrees per second (still when motion is reduced), and an arc
+ *  around the motor whose length shows the torque as a share of the run's largest. */
+function Rotor({ r, rate, share }: { r: number; rate: number; share: number }) {
+  const g = useRef<SVGGElement>(null);
+  const rateRef = useRef(rate);
+  rateRef.current = rate;
+  useEffect(() => {
+    if (reducedMotion()) return;
+    let a = 0, last = performance.now(), raf = 0;
+    const tick = (now: number) => {
+      a = (a + (rateRef.current * (now - last)) / 1000) % 360; last = now;
+      g.current?.setAttribute('transform', `rotate(${a.toFixed(1)})`);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const ticks = [0, 90, 180, 270].map((d) => {
+    const c = Math.cos((d * Math.PI) / 180), s = Math.sin((d * Math.PI) / 180);
+    return `M ${(c * (r - 5)).toFixed(1)} ${(s * (r - 5)).toFixed(1)} L ${(c * (r - 1.5)).toFixed(1)} ${(s * (r - 1.5)).toFixed(1)}`;
+  }).join(' ');
+  // the torque arc from the top, clockwise for a positive torque
+  const R = r + 4, sweep = Math.min(share, 0.999) * 2 * Math.PI, dir = rate < 0 ? -1 : 1;
+  const ex = Math.sin(sweep) * R * dir, ey = -Math.cos(sweep) * R;
+  return (
+    <g class="motion no-export">
+      <g ref={g}><path d={ticks} class="rotor-mark" /></g>
+      {share > 0.01 && <path d={`M 0 ${-R} A ${R} ${R} 0 ${sweep > Math.PI ? 1 : 0} ${dir > 0 ? 1 : 0} ${ex.toFixed(1)} ${ey.toFixed(1)}`} class="torque-arc" />}
+    </g>
+  );
+}
+
+function torqueText(m: Motion): string {
+  return `${formatValue(m.torque ?? 0, 'N·m', 3)}${m.rpm !== undefined ? ` · ${Math.round(m.rpm)} rpm` : ''}`;
 }
 
 /** Position for a net's voltage chip: the middle of its longest wire, else its first pin. */
@@ -69,14 +111,19 @@ export function SheetContent({ sheet, view }: { sheet: Sheet; view: SheetView })
         const s = symbolOf(p.sym);
         const sel = selected?.parts.has(p.id);
         const g = glow?.get(p.id) ?? 0;
+        const mo = view.motion?.get(p.id);
         const ref = labelPos(p, 'ref'), val = labelPos(p, 'val');
         const vt = valueText(p);
         return (
           <g key={p.id} class={`part${sel ? ' is-sel' : ''}`} data-part={p.id}>
             {g > 0.01 && <circle cx={p.x} cy={p.y} r={10 + 14 * g} class="led-glow no-export" style={{ opacity: Math.min(0.9, 0.25 + g * 0.65), fill: ledCss(p) }} />}
             <g transform={partTransform(p)}>
-              {s.gfx(p.props).map((x, i) => <GfxEl key={i} g={x} />)}
+              {s.gfx(mo?.kind === 'servo' ? { ...p.props, __angle: String(mo.angle ?? 0) } : p.props).map((x, i) => <GfxEl key={i} g={x} />)}
+              {mo?.kind === 'rotor' && <Rotor r={p.sym === 'motor3' ? 18 : 15} rate={mo.rate ?? 0} share={mo.share ?? 0} />}
             </g>
+            {mo && (mo.kind === 'servo'
+              ? <text x={p.x + 24} y={p.y - 30} class="motion-text no-export">{`${Math.round(mo.angle ?? 0)}°`}</text>
+              : <text x={p.x - 20} y={p.y + 24} text-anchor="end" class="motion-text no-export">{torqueText(mo)}</text>)}
             {pinPositions(p).map((pp) => (!s.power && !connected.has(`${p.ref}.${pp.pin}`) ? <circle key={pp.pin} cx={pp.at.x} cy={pp.at.y} r={2} class="pin-open" /> : null))}
             {!s.power && <text x={ref.at.x} y={ref.at.y} text-anchor={ref.anchor} class="ref">{p.ref}</text>}
             {vt && <text x={val.at.x} y={val.at.y} text-anchor={val.anchor} class={s.power ? 'pwr-name' : 'val'}>{vt}</text>}

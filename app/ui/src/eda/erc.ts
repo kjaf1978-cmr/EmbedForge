@@ -18,11 +18,16 @@ export interface ErcIssue {
 }
 
 /** Element kinds that conduct at DC (for the floating-net rule). */
-const DC_PATH: Record<string, string[][]> = {
+export const DC_PATH: Record<string, string[][]> = {
   resistor: [['1', '2']], inductor: [['1', '2']], potentiometer: [['1', '2', '3']],
   transformer: [['1', '2'], ['3', '4']], relay: [['1', '2']],
   transformer3: [['1', '2', '3', '4'], ['5', '6', '7', '8']], vsin3: [['1', '2', '3', '4']],
-  dcmotor: [['1', '2']], motor1: [['1', '2']], motor3: [['1', '2', '3', '4']], servo: [['2', '3']],
+  // the servo's PWM input (100 kΩ) and angle output (100 Ω) are referred to its − pin
+  dcmotor: [['1', '2']], motor1: [['1', '2']], motor3: [['1', '2', '3', '4']], servo: [['1', '2', '3', '4']],
+  ntc: [['1', '2']], fuse: [['1', '2']], tvs: [['1', '2']], bridge: [['1', '2', '3', '4']],
+  // IGBT: collector–emitter (the gate is insulated); optocoupler: LED and transistor sides
+  // separately; TL431: cathode–anode (REF is an input only)
+  igbt: [['2', '3']], opto: [['1', '2'], ['3', '4']], tl431: [['2', '3']],
   vdc: [['1', '2']], battery: [['1', '2']], vsin: [['1', '2']], vpulse: [['1', '2']],
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],
@@ -83,6 +88,8 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
         const nets = g.map((pin) => conn.pinNet.get(`${p.ref}.${pin}`)).filter(Boolean) as string[];
         for (let i = 1; i < nets.length; i++) union(nets[0], nets[i]);
       }
+      // the DC motor's speed output is driven against ground through 100 Ω
+      if (s.id === 'dcmotor') { const n = conn.pinNet.get(`${p.ref}.3`); if (n) union(n, GND_NET); }
       // logic parts: inputs have a resistance to ground and outputs drive the rail or ground
       if (s.logic) for (const pp of s.pins) { const n = conn.pinNet.get(`${p.ref}.${pp.id}`); if (n) union(n, GND_NET); }
       if (s.id === 'switch' && p.props.closed === 'true') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.2`); if (a && b) union(a, b); }

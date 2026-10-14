@@ -272,6 +272,25 @@ EXAMPLES.push(
     },
   },
   {
+    id: 'servo', title: 'Hobby servo driven by PWM', level: 'beginner',
+    summary: 'A 50 Hz pulse train with 1.75 ms pulses turns a hobby servo from its centre to +45°. ANGLE gives the angle (1 V per 100°).',
+    tryThis: 'Simulate, then press Play in the Simulation tab: the horn on the schematic turns as in the simulation. Set the pulse duty cycle to 5 % (1 ms) for −90° or 10 % (2 ms) for +90°.',
+    build: () => {
+      const b = new B();
+      b.part('vpulse', 0, 0, { value: '5', low: '0', freq: '50', duty: '8.75', edge: '1u' });
+      b.part('vdc', 120, 0, { value: '5' });
+      b.part('servo', 300, 0, { value: '600' });
+      b.part('gnd', 0, 30); b.part('gnd', 120, 30); b.part('gnd', 250, 40);
+      b.label('PWM', 0, -30); b.label('PWM', 270, -20);
+      b.label('VS', 120, -30); b.label('VS', 270, 0);
+      b.wire([270, 20], [250, 20], [250, 40]);
+      b.label('ANGLE', 330, 0);
+      b.v(330, 0);
+      b.sim({ type: 'tran', stop: '300m', step: '50u' });
+      return b.done();
+    },
+  },
+  {
     id: 'three-phase', title: 'Three-phase supply and Dyn transformer', level: 'intermediate',
     summary: 'A 230/400 V three-phase supply feeds a Dyn transformer (delta primary, star secondary with neutral) with three 100 Ω loads.',
     tryThis: 'Compare L1 with the secondary phase U2: the Dyn connection shifts it by 30°. Select T1 and change the connection to Yyn: the shift disappears. Use the FFT button on the result to see the 50 Hz line.',

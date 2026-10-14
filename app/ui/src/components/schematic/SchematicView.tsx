@@ -24,9 +24,13 @@ import { formatValue, parseValue, shortValue } from '../../eda/units';
 import { MAX_RUNS, schematicSpice, stepValues } from '../../sim/run';
 import type { SimClient, SimOutcome } from '../../sim/client';
 import { toCsv } from '../../sim/measure';
+import { motionAt, shownTorque, type Motion } from '../../sim/motion';
 import { FIRST_CIRCUIT } from '../../eda/tutorial';
 import { GfxEl, SheetContent, partTransform } from './SheetSvg';
 import { Plot, type Trace } from './Plot';
+
+/** A transient plays on the schematic in this many seconds. */
+const PLAY_SECONDS = 8;
 
 export type Tool = 'select' | 'place' | 'wire' | 'label' | 'note' | 'probe-v' | 'probe-i' | 'pan' | 'zoom';
 
@@ -697,12 +701,45 @@ export function SchematicView(props: Props) {
   }, [shown, live]);
 
   const ok = result && !('error' in result) ? result : null;
+  // playback of a transient on the schematic: the time shown (null: the end of the run)
+  const [playT, setPlayT] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => { setPlaying(false); setPlayT(null); }, [result]);
+  const tEnd = ok?.analysis === 'tran' ? ok.x[ok.x.length - 1] : 0;
+  useEffect(() => {
+    if (!playing || !(tEnd > 0)) return;
+    // the whole run plays in PLAY_SECONDS; it stops at the end
+    let last = performance.now(), raf = 0;
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000; last = now;
+      let stop = false;
+      setPlayT((t) => { const n = (t ?? 0) + (dt * tEnd) / PLAY_SECONDS; if (n >= tEnd) { stop = true; return tEnd; } return n; });
+      if (stop) setPlaying(false); else raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, tEnd]);
+  const shownK = useMemo(() => {
+    if (!ok) return 0;
+    if (ok.analysis === 'op') return 0;
+    if (playT === null || ok.analysis !== 'tran') return ok.x.length - 1;
+    let lo = 0, hi = ok.x.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (ok.x[m] <= playT) lo = m; else hi = m; }
+    return lo;
+  }, [ok, playT]);
   const op = useMemo(() => {
     if (!ok) return null;
     const pick = (o: Record<string, number[]>, k: number) => Object.fromEntries(Object.entries(o).map(([n, v]) => [n, v[k]]));
-    const k = ok.analysis === 'op' ? 0 : ok.x.length - 1;
-    return { v: pick(ok.v, k), i: pick(ok.i, k), final: ok.analysis !== 'op' };
-  }, [ok]);
+    return { v: pick(ok.v, shownK), i: pick(ok.i, shownK), final: ok.analysis !== 'op' };
+  }, [ok, shownK]);
+  const torques = useMemo(() => (ok ? shownTorque(ok) : {}), [ok]);
+  const motion = useMemo(() => {
+    const m = new Map<string, Motion>();
+    if (!ok?.mech) return m;
+    const byRef = motionAt(ok, torques, shownK);
+    for (const p of shown.parts) { const x = byRef.get(p.ref); if (x) m.set(p.id, x); }
+    return m;
+  }, [ok, torques, shownK, shown]);
   const glow = useMemo(() => {
     const m = new Map<string, number>();
     if (!op || ok?.analysis === 'ac') return m;
@@ -993,7 +1030,7 @@ export function SchematicView(props: Props) {
                 <pattern id="sch-grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse"><circle cx={0} cy={0} r={0.7} class="grid-dot" /></pattern>
               </defs>
               <rect class="grid-bg" x={view.x} y={view.y} width={size.w / view.z} height={size.h / view.z} fill={view.z > 0.5 ? 'url(#sch-grid)' : 'none'} />
-              <SheetContent sheet={shown} view={{ conn, selected: selOf(sel), highlightNet, op: op && ok?.analysis === 'op' ? op : null, showValues, erc: issues, glow, probeLabels }} />
+              <SheetContent sheet={shown} view={{ conn, selected: selOf(sel), highlightNet, op: op && ok?.analysis === 'op' ? op : null, showValues, erc: issues, glow, motion, probeLabels }} />
               {ghost}
               {drag?.kind === 'box' && <rect class="sel-box" x={Math.min(drag.a.x, drag.b.x)} y={Math.min(drag.a.y, drag.b.y)} width={Math.abs(drag.b.x - drag.a.x)} height={Math.abs(drag.b.y - drag.a.y)} />}
               {pending && (
@@ -1085,6 +1122,7 @@ export function SchematicView(props: Props) {
           {tab === 'sim' && (
             <SimPanel sheet={sheet} apply={apply} running={running} status={status} live={live} setLive={setLive} showValues={showValues} setShowValues={setShowValues}
                       run={() => run('simulate')} result={result} op={op} conn={conn} probeLabels={probeLabels} setTool={setTool} held={held} setHeld={setHeld} setOverride={setOverride}
+                      playback={tEnd > 0 ? { t: playT ?? tEnd, end: tEnd, playing, setT: (t) => { setPlaying(false); setPlayT(t); }, toggle: () => { if (!playing && (playT === null || playT >= tEnd)) setPlayT(0); setPlaying(!playing); } } : null}
                       onRemoveProbe={(id) => apply({ ...sheet, probes: sheet.probes.filter((p) => p.id !== id) }, 'Remove probe')} />
           )}
           {tab === 'erc' && <ErcPanel issues={issues} onPick={(i) => {
@@ -1472,9 +1510,11 @@ interface SimPanelProps {
   setTool: (t: Tool) => void; held: Set<string>; setHeld: (s: Set<string>) => void;
   onRemoveProbe: (id: string) => void;
   setOverride: InspectorProps['setOverride'];
+  /** Playback of a transient on the schematic (LEDs, motors, servos follow the time shown). */
+  playback: { t: number; end: number; playing: boolean; setT: (t: number) => void; toggle: () => void } | null;
 }
 
-function SimPanel({ sheet, apply, running, status, live, setLive, showValues, setShowValues, run, result, op, conn, probeLabels, setTool, held, setHeld, onRemoveProbe, setOverride }: SimPanelProps) {
+function SimPanel({ sheet, apply, running, status, live, setLive, showValues, setShowValues, run, result, op, conn, probeLabels, setTool, held, setHeld, onRemoveProbe, setOverride, playback }: SimPanelProps) {
   const s = sheet.sim;
   const set = (next: SimSettings, label: string) => apply({ ...sheet, sim: next }, label);
   const field = (label: string, value: string, onChange: (v: string) => void, unit: string, help?: string) => {
@@ -1561,6 +1601,18 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
         <p class="small banner">{result.rails.map((r) => `${r.net} is driven by an ideal ${r.volts} V supply`).join('; ')} (no source on the rail).</p>
       )}
       {result && !('error' in result) && result.warnings.map((w) => <p key={w} class="small s-warn">{w}</p>)}
+      {playback && (
+        <fieldset>
+          <legend>Playback on the schematic</legend>
+          <p class="small muted">LEDs, motors and servos on the schematic show the time below; a motor's rotor turns at a rate proportional to its torque.</p>
+          <div class="row wrap">
+            <button aria-pressed={playback.playing} onClick={playback.toggle}>{playback.playing ? '⏸ Pause' : '▶ Play'}</button>
+            <input type="range" min={0} max={1000} step={1} value={Math.round((1000 * playback.t) / playback.end)} aria-label="Time shown on the schematic"
+                   aria-valuetext={formatValue(playback.t, 's')} onInput={(e) => playback.setT((Number((e.target as HTMLInputElement).value) / 1000) * playback.end)} />
+            <span class="small" aria-live="off">t = {formatValue(playback.t, 's')} of {formatValue(playback.end, 's')}</span>
+          </div>
+        </fieldset>
+      )}
       {interactive.length > 0 && (
         <fieldset>
           <legend>Controls (SIM-03)</legend>

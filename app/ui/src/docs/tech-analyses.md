@@ -2,8 +2,9 @@
 
 The four basic analyses (operating point, DC sweep, transient, AC) are described on the
 [engine page](#doc:tech-engine). This page covers what is built on them: the DC sweep, the
-parameter sweep (with the temperature sweep), the tolerance analysis, the stress check and the
-waveform measurements (with the pulse measurements).
+parameter sweep (with the temperature sweep), the tolerance analysis, the stress check, the
+motion of motors and servos on the schematic and the waveform measurements (with the pulse
+measurements).
 Source: `sim/run.ts`, `eda/smoke.ts`, `sim/measure.ts`.
 
 ## DC sweep
@@ -91,6 +92,27 @@ air); resistors, capacitors, inductors and switches carry their rating as a prop
 above the warning level (default 80 % of its rating) is a warning, above 100 % an error.
 
 @code eda/smoke.ts smoke
+
+## Motion on the schematic
+
+The torque, speed and angle come from the parts' models after the run:
+
+- **DC motor:** T = k·i_a with the armature current i_a; speed from the mechanical node ω.
+- **Induction motor:** T = P_ag/ω_s, with the air-gap power P_ag = Σ i_r²·R_r/s over the
+  phases (the power into the rotor resistances R_r/s) and the synchronous speed
+  ω_s = 2π·f/(poles/2); f is the frequency of the sheet's sine source. The speed is (1 − s)·ω_s.
+  The torque is averaged over the supply period before each point.
+- **Servo:** the angle behind its 100 Ω output, θ = 100·(v_out − v_gnd) − 10⁴·i_out, which is
+  the angle also when the output is loaded.
+
+@code sim/run.ts mechanics
+
+A rotor turns at 720°/s × T/T_max (T_max the largest |T| of the run), so its rate is
+proportional to the torque.
+
+@code sim/motion.ts meanTorque
+
+@code sim/motion.ts motionAt
 
 ## Waveform measurements
 

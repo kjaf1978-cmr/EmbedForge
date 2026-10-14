@@ -37,7 +37,9 @@ regulator output voltages; transformer ratios and the 30° phase shift of Dyn; D
 speed V/(k + R_a·B/k) and start-up time constant J·R_a/k²; induction-motor current from the
 equivalent circuit; logic truth tables; FFT amplitudes of sines and of the harmonics 4/(π·n) of a
 square wave; Monte Carlo values staying inside their tolerances; parameter-sweep results
-against the divider formula; stress values against P = V²/R; pulse measurements against a trapezoidal pulse train,
+against the divider formula; stress values against P = V²/R; motor torque against the motors' equations (DC stall torque k·V/R_a, no-load speed,
+three-phase torque from an independent phasor solution of the equivalent circuit within 1 %),
+the servo angle with a loaded output; pulse measurements against a trapezoidal pulse train,
 RC rise time RC·ln 9, the overshoot of a series RLC circuit and the 555's period and duty
 cycle; a diode's forward voltage at
 another temperature against the SPICE temperature formula, resistors against R·(1 + TC·ΔT).

@@ -376,6 +376,28 @@ test('pulse measurements: period and duty cycle of the 555 blinker', async ({ pa
 });
 });
 
+test('playback: the DC motor turns with its torque, the servo horn with its angle', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: DC motor start-up' }).click();
+  await page.keyboard.press('F5');
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Simulation' }).click();
+  const canvas = page.getByRole('application', { name: /Schematic canvas/ });
+  const slider = side.getByRole('slider', { name: 'Time shown on the schematic' });
+  // at the end the motor runs at no load: little torque, about 11 000 rpm
+  await expect(canvas.getByText(/mN·m · 111\d\d rpm/)).toBeVisible();
+  // early in the start-up it delivers tens of mN·m
+  await slider.fill('20');
+  await expect(canvas.getByText(/[1-6]\d(\.\d+)? mN·m · \d+ rpm/)).toBeVisible();
+  await side.getByRole('button', { name: '▶ Play' }).click();
+  await expect(side.getByRole('button', { name: '⏸ Pause' })).toBeVisible();
+  await side.getByRole('button', { name: '⏸ Pause' }).click();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Open example: Hobby servo driven by PWM' }).click();
+  await page.keyboard.press('F5');
+  await side.getByRole('tab', { name: 'Simulation' }).click();
+  await expect(canvas.getByText('45°')).toBeVisible();
+});
+
 test('FFT view: the spectrum of the amplifier output, with its THD', async ({ page }) => {
   await page.getByRole('button', { name: 'Open example: Non-inverting op-amp amplifier' }).click();
   await page.keyboard.press('F5');

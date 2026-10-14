@@ -69,6 +69,24 @@ warning level (default 80 % of the rating) are warnings, parts above the rating 
 also appear in the Checks list. The ratings of resistors, capacitors, inductors and switches
 are properties of the part (for example a 0.25 W resistor).
 
+## Motion on the schematic
+
+After a simulation, motors and servos show what they do:
+
+- A **motor's rotor** (the marks inside its circle) turns at a rate proportional to the torque
+  it produces: the largest torque of the run turns it at two revolutions per second, no torque
+  leaves it still, and a braking (negative) torque turns it the other way. The arc around the
+  motor shows the same torque as a share of the run's largest, and the text next to it gives
+  the torque and the speed in rpm. Induction motors show their torque averaged over one supply
+  period (a single-phase motor's torque pulsates at twice the supply frequency); set their
+  **Poles** property for the right synchronous speed (4 poles at 50 Hz: 1500 rpm).
+- A **servo's horn** points at its simulated angle (straight up is the centre, 0°).
+
+**Playback** (Simulation tab, after a transient): **▶ Play** replays the run on the schematic in
+8 seconds, and the slider shows any moment of it. LEDs, motors and servos follow the time
+shown, so you can watch a motor start up or a servo turn. With reduced motion set in the
+operating system, the rotors stay still and the arc shows the torque.
+
 ## Probes and the waveform viewer
 
 - **V** then click a wire or pin: the voltage of that net against ground. Drag from one net to

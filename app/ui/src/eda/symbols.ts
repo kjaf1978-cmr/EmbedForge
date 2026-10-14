@@ -85,6 +85,11 @@ const vert = (type: PinType = 'power_out'): PinDef[] => [
 ];
 
 const opts = (names: string[]) => names.map((n) => ({ value: n, label: n }));
+/** Servo horn from the hub (4, −8), 14 long, at `deg` degrees from straight up (clockwise). */
+function servoHorn(deg: number): Gfx {
+  const a = (Math.max(-90, Math.min(90, deg)) * Math.PI) / 180, x = 4 + 14 * Math.sin(a), y = -8 - 14 * Math.cos(a);
+  return path(`M 4 -8 L ${x.toFixed(1)} ${y.toFixed(1)}`, 'none', 2);
+}
 const H = { refAt: { x: 0, y: -14 }, valAt: { x: 0, y: 18 } };
 const VV = { refAt: { x: 22, y: -6 }, valAt: { x: 22, y: 8 } };
 
@@ -524,6 +529,7 @@ export const SYMBOLS: SymbolDef[] = [
       { key: 'rr', label: 'Rotor resistance (referred)', kind: 'value', unit: 'Ω', default: '3' },
       { key: 'ls', label: 'Leakage inductance (each side)', kind: 'value', unit: 'H', default: '20m' },
       { key: 'lm', label: 'Magnetising inductance', kind: 'value', unit: 'H', default: '0.5' },
+      { key: 'poles', label: 'Poles', kind: 'value', default: '4', help: 'sets the synchronous speed 120·f/poles rpm (4 poles at 50 Hz: 1500 rpm) and with it the torque shown', limits: { ge: 2, le: 48, text: 'must be from 2 to 48' } },
     ],
   },
   {
@@ -539,6 +545,7 @@ export const SYMBOLS: SymbolDef[] = [
       { key: 'rr', label: 'Rotor resistance (referred)', kind: 'value', unit: 'Ω', default: '1.2' },
       { key: 'ls', label: 'Leakage inductance (each side)', kind: 'value', unit: 'H', default: '6m' },
       { key: 'lm', label: 'Magnetising inductance', kind: 'value', unit: 'H', default: '0.2' },
+      { key: 'poles', label: 'Poles', kind: 'value', default: '4', help: 'sets the synchronous speed 120·f/poles rpm (4 poles at 50 Hz: 1500 rpm) and with it the torque shown', limits: { ge: 2, le: 48, text: 'must be from 2 to 48' } },
     ],
   },
   {
@@ -547,7 +554,8 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '1', name: 'PWM', x: -30, y: -20, type: 'input' }, { id: '2', name: '+', x: -30, y: 0, type: 'power_in' }, { id: '3', name: '−', x: -30, y: 20, type: 'power_in' },
       { id: '4', name: 'POS', x: 30, y: 0, type: 'output', optional: true }],
     refAt: { x: 0, y: -36 }, valAt: { x: 0, y: 40 }, simulated: true,
-    gfx: () => [path('M -30 -20 H -20 M -30 0 H -20 M -30 20 H -20 M 20 0 H 30'), path('M -20 -28 H 20 V 28 H -20 Z', 'bg'), circle(4, -8, 7), path('M 4 -8 L 14 -18', 'none', 2),
+    // the horn points at the angle (0° up, +90° right); after a simulation at the simulated one
+    gfx: (p) => [path('M -30 -20 H -20 M -30 0 H -20 M -30 20 H -20 M 20 0 H 30'), path('M -20 -28 H 20 V 28 H -20 Z', 'bg'), circle(4, -8, 7), servoHorn(Number(p.__angle ?? 45)),
       text(-14, -17, 'PWM', 5), text(-16, 3, '+', 7), text(-16, 23, '−', 7), text(2, 18, 'SERVO', 6)],
     value: { key: 'value', label: 'Speed', kind: 'value', unit: '°/s', default: '600', help: '600 °/s = 0.1 s per 60° (SG90)' },
     params: [],

@@ -244,3 +244,7 @@ input[aria-invalid='true'] { border-color: var(--bad); }
   .no-export { display: none; }
 }
 .timing caption { text-align: left; padding: 4px 0; }
+.motion { pointer-events: none; }
+.rotor-mark { stroke: var(--accent, #0a7); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.torque-arc { stroke: var(--accent, #0a7); stroke-width: 2; fill: none; stroke-linecap: round; opacity: 0.8; }
+.motion-text { font-size: 8px; fill: var(--accent, #0a7); pointer-events: none; }

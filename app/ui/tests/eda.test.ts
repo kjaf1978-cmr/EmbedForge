@@ -205,3 +205,12 @@ describe('schematic simulation (SIM-01)', () => {
     expect(sp).toMatch(/^R1 /m);
   });
 });
+
+describe('ERC knows every part', () => {
+  it('every simulated symbol says which of its pins conduct at DC (only capacitors and current sources do not)', async () => {
+    const { DC_PATH } = await import('../src/eda/erc');
+    const { SYMBOLS } = await import('../src/eda/symbols');
+    const missing = SYMBOLS.filter((s) => s.simulated && !s.power && !s.logic && !(s.id in DC_PATH)).map((s) => s.id);
+    expect(missing.sort()).toEqual(['capacitor', 'capacitor_pol', 'idc']);
+  });
+});

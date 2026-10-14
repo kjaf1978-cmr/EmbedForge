@@ -25,6 +25,19 @@ export interface SimResult {
   ms: number;
   /** Parameter sweep: one entry per run (v, i… above are the first run). */
   steps?: StepRun[];
+  /** Mechanical output of motors and servos by part reference (operating point and transient). */
+  mech?: Record<string, Mech>;
+}
+
+/** Mechanical quantities of a motor or servo, one value per x point. */
+export interface Mech {
+  /** rotor: a motor (torque in N·m, speed in rpm); servo: the horn angle in degrees. */
+  kind: 'rotor' | 'servo';
+  torque?: number[];
+  rpm?: number[];
+  angle?: number[];
+  /** Induction motors: the supply period; their torque is shown averaged over it. */
+  period?: number;
 }
 
 export interface SimFailure { error: string; errors: string[] }
@@ -222,6 +235,41 @@ export function simulateMonteCarlo(sheet: Sheet): SimResult | SimFailure {
   return overlayRuns(runs, t0);
 }
 
+/** Torque and speed of the motors and the angle of the servos, from their models' internals:
+ *  - DC motor: T = k·i_a (armature current), speed from the speed node ω (1 V = 1 rad/s);
+ *  - induction motor: T = P_ag / ω_s with the air-gap power P_ag = Σ i_r²·R_r/s over the
+ *    phases and the synchronous speed ω_s = 2π·f/(poles/2); speed (1 − s)·ω_s. f is the
+ *    frequency of the sheet's sine source (50 Hz without one);
+ *  - servo: the angle behind its 100 Ω output, θ = 100·(v_out − v_gnd) − 10⁴·i_out. */
+function mechanics(sheet: Sheet, net: SimNet, w: Waveforms): Record<string, Mech> {
+  const out: Record<string, Mech> = {};
+  const zero = w.x.map(() => 0);
+  const volts = (node: string) => (node === '0' ? zero : w.v[node] ?? zero);
+  const cur = (el: string, k = 0) => w.i[el]?.[k] ?? zero;
+  const src = sheet.parts.find((p) => p.sym === 'vsin' || p.sym === 'vsin3');
+  const f = (src && parseValue(src.props.freq ?? '')) || 50;
+  for (const p of sheet.parts) {
+    const ps = net.parts.get(p.ref);
+    if (!ps) continue;
+    const num = (k: string, d: number) => parseValue(p.props[k] ?? '') ?? d;
+    if (p.sym === 'dcmotor') {
+      const k = num('value', 0), wn = volts(`${p.ref}#w`);
+      out[p.ref] = { kind: 'rotor', torque: cur(`${p.ref}_RA`).map((i) => k * i), rpm: wn.map((x) => (x * 60) / (2 * Math.PI)) };
+    } else if (p.sym === 'motor1' || p.sym === 'motor3') {
+      const slip = Math.min(Math.max(num('value', 0.05), 1e-4), 1), poles = Math.max(2, Math.round(num('poles', 4) / 2) * 2);
+      const ws = (2 * Math.PI * f) / (poles / 2);
+      const rotor = ps.elements.filter((e) => e.startsWith(`${p.ref}_RR`));
+      const rOf = new Map(net.circuit.elements.filter((e) => e.kind === 'R').map((e) => [e.name, (e as { r: number }).r]));
+      const pag = w.x.map((_, j) => rotor.reduce((a, e) => a + cur(e)[j] ** 2 * rOf.get(e)!, 0));
+      out[p.ref] = { kind: 'rotor', torque: pag.map((x) => x / ws), rpm: w.x.map(() => ((1 - slip) * ws * 60) / (2 * Math.PI)), period: 1 / f };
+    } else if (p.sym === 'servo') {
+      const vo = volts(ps.pinNode['4']), vg = volts(ps.pinNode['3']), io = cur(p.ref, 2);
+      out[p.ref] = { kind: 'servo', angle: w.x.map((_, j) => 100 * (vo[j] - vg[j]) - 1e4 * io[j]) };
+    }
+  }
+  return out;
+}
+
 /** Pin currents of a part: the currents into its elements at terminals on that pin's node. */
 function pinCurrents(net: SimNet, w: Waveforms, imag: boolean): Record<string, number[]> {
   const out: Record<string, number[]> = {};
@@ -283,7 +331,9 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
       v[netName] = node === '0' ? w.x.map(() => 0) : w.v[node] ?? w.x.map(() => 0);
       if (w.vi) vi[netName] = node === '0' ? w.x.map(() => 0) : w.vi[node] ?? w.x.map(() => 0);
     }
+    const mech = plan.analysis.type === 'op' || plan.analysis.type === 'tran' ? mechanics(sheet, net, w) : undefined;
     return {
+      ...(mech && Object.keys(mech).length ? { mech } : {}),
       analysis: plan.analysis.type, xLabel: plan.xLabel, xUnit: plan.xUnit, x: w.x, v, vi: w.vi ? vi : undefined,
       i: pinCurrents(net, w, false), ii: w.ii ? pinCurrents(net, w, true) : undefined,
       rails: net.rails, notSimulated: net.notSimulated, warnings: [...net.warnings, ...w.warnings, ...switchOnHint(sheet, plan.analysis)], ms: performance.now() - t0,
