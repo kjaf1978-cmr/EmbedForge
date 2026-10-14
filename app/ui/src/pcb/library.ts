@@ -100,7 +100,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'breaker2': return [map('TerminalBlock_1x4', { 1: '1', 2: '2', N1: '3', N2: '4' }, { note: 'DIN-rail device: L in, L out, N in, N out' })];
     case 'breaker3': return [same('TerminalBlock_1x6', pins, 'DIN-rail device: L1 in/out, L2 in/out, L3 in/out')];
     case 'breaker4': return [map('TerminalBlock_1x8', { 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', N1: '7', N2: '8' }, { note: 'DIN-rail device: L1, L2, L3, N in/out' })];
-    case 'contactor': return [map('TerminalBlock_1x12', Object.fromEntries(['A1', 'A2', '1', '2', '3', '4', '5', '6', '13', '14', '21', '22'].map((x, k) => [x, String(k + 1)])), { note: 'DIN-rail contactor: A1 A2 1 2 3 4 5 6 13 14 21 22' })];
+    case 'contactor': return [map('TerminalBlock_1x14', Object.fromEntries(['A1', 'A2', '1', '2', '3', '4', '5', '6', '7', '8', '13', '14', '21', '22'].map((x, k) => [x, String(k + 1)])), { note: 'DIN-rail contactor: A1 A2 1 2 3 4 5 6 7 8 13 14 21 22' })];
     case 'pv': return [same('TerminalBlock_1x2', pins, 'PV cable (via MC4 connectors): + and −')];
     case 'autotransformer': return [map('TerminalBlock_1x8', { N: '1', T1: '2', T2: '3', T3: '4', T4: '5', T5: '6', T6: '7', T7: '8' }, { note: 'off-board autotransformer: N, T1 … T7' })];
     case 'comparator': return v === 'LM339' ? [map('DIP-14', { 3: '5', 2: '4', 1: '2', 8: '3', 4: '12' }, { note: 'comparator 1 of the LM339; tie the inputs of the unused ones to GND' })] : [same('DIP-8', pins, 'comparator A of the LM393'), same('SOIC-8', pins)];

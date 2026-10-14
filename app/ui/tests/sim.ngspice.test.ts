@@ -144,10 +144,11 @@ const partDecks: [string, Spec[], SimSettings][] = [
     R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND'), ['relay', {}, { '1': 'C', '2': 'GND', '3': 'COM', '4': 'NC', '5': 'NO' }]], { type: 'tran', stop: '100m', step: '20u' }],
 ];
 
-// every example schematic that has SPICE primitives only (not the 555) is a reference case too
+// every example schematic that has SPICE primitives only (not the 555, logic, servos,
+// breakers or spark gaps, whose behaviour ngspice lacks) is a reference case too
 const exampleCases: RefCase[] = [...EXAMPLES.map((ex) => [`example ${ex.id}`, ex.build()] as const), ...partDecks.map(([id, parts, sim]) => [`part ${id}`, deck(parts, sim).sheet] as const)].flatMap(([id, sheet]) => {
   const net = buildSimNet(sheet);
-  if (net.circuit.elements.some((e) => e.kind === 'T' || e.kind === 'P' || e.kind === 'X')) return [];
+  if (net.circuit.elements.some((e) => ['T', 'P', 'X', 'Y', 'N'].includes(e.kind))) return [];
   const errors: string[] = [];
   const plan = planAnalysis(sheet.sim, sheet, errors);
   let analysis = plan.analysis;

@@ -285,7 +285,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       );
       // pull-in at 8.5 V (85 %), drop-out at 4 V (40 %)
       const sw = (name: string, a: string, b: string, nc = false) => out.push({ kind: 'S', name: `${ref}_${name}`, p: a, n: b, cp: arm, cn: '0', vt: 6.25, vh: 2.25, ron: nc ? 1e9 : 0.002, roff: nc ? 0.002 : 1e9 });
-      sw('K1', pin['1'], pin['2']); sw('K2', pin['3'], pin['4']); sw('K3', pin['5'], pin['6']); sw('NO', pin['13'], pin['14']); sw('NC', pin['21'], pin['22'], true);
+      sw('K1', pin['1'], pin['2']); sw('K2', pin['3'], pin['4']); sw('K3', pin['5'], pin['6']); sw('K4', pin['7'], pin['8']); sw('NO', pin['13'], pin['14']); sw('NC', pin['21'], pin['22'], true);
       break;
     }
     case 'comparator': {

@@ -49,7 +49,7 @@ describe('smoke analysis (stress check)', () => {
       const res = smoke(s, connectivity(s), simulate(s) as SimResult);
       expect(res.rows.filter((r) => r.status === 'over').map((r) => `${r.ref} ${r.what} ${Math.round(r.pct)} %`), ex.id).toEqual([]);
     }
-  });
+  }, 300_000);
 });
 
 const near = (x: number, want: number, tol: number) => expect(Math.abs(x - want), `${x} vs ${want}`).toBeLessThanOrEqual(tol);

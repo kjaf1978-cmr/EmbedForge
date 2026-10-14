@@ -9,7 +9,7 @@ import type { Pt } from './symbols';
 export interface Example {
   id: string;
   title: string;
-  level: 'beginner' | 'intermediate';
+  level: 'beginner' | 'intermediate' | 'advanced';
   summary: string;
   tryThis: string;
   build: () => Sheet;
@@ -32,6 +32,8 @@ class B {
   sim(s: SimSettings) { this.s.sim = s; }
   done(): Sheet { return annotate(this.s); }
 }
+
+import { POWER_EXAMPLES } from './powerExamples';
 
 export const EXAMPLES: Example[] = [
   {
@@ -204,6 +206,7 @@ export const EXAMPLES: Example[] = [
       return b.done();
     },
   },
+  ...POWER_EXAMPLES,
 ];
 
 EXAMPLES.push(

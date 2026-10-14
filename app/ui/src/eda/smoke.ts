@@ -149,7 +149,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       } break;
       case 'mov': { const m = VARISTORS.find((x) => x.name === p.props.value)?.model; if (m) { add('Ipk', peak(iPin('1')), m.imax); add('E', energy(['1', '2']), m.energy); } break; }
       case 'gdt': { const m = GDTS.find((x) => x.name === p.props.value)?.model; if (m) add('Ipk', peak(iPin('1')), m.imax); break; }
-      case 'contactor': { const m = CONTACTORS.find((x) => x.name === p.props.value)?.model; if (m) add('Irms', Math.max(...['1', '3', '5'].map((k) => Math.sqrt(mean(r.x, iPin(k).map((v) => v * v), tran)))), m.ac3); break; }
+      case 'contactor': { const m = CONTACTORS.find((x) => x.name === p.props.value)?.model; if (m) add('Irms', Math.max(...['1', '3', '5', '7'].map((k) => Math.sqrt(mean(r.x, iPin(k).map((v) => v * v), tran)))), m.ac3); break; }
       case 'comparator': if (model) { add('Vs', peak(vAcross('8', '4')), model.Vs); add('Iout', maxOf(iPin('1')), model.Iout); } break;
       case 'hbdriver': if (model) { add('Vs', peak(vAcross('8', '3')), model.Vs); add('Vb', peak(vAcross('7', '3')), model.Vb); } break;
       case 'tl431': if (model) { add('Vka', peak(vAcross('3', '2')), model.Vka); add('Ik', peak(iPin('3')), model.Ik); add('P', P(['1', '2', '3']), model.P); } break;
