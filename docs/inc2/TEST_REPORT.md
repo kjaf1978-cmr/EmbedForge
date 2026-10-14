@@ -11,7 +11,7 @@
 - **Gate:** the increment is complete when you have:
   - signed the media (0.2.6: kit pending; 0.2.5 signed 14 October 2026, section 1a);
   - installed the result and looked at it (section 4);
-  - approved the gate.
+  - ~~approved the gate~~ (decision D19, 14 October 2026: approved; Increment 3 started).
 
 ## 1. Evidence summary
 
