@@ -3,7 +3,7 @@
 The four basic analyses (operating point, DC sweep, transient, AC) are described on the
 [engine page](#doc:tech-engine). This page covers what is built on them: the DC sweep, the
 parameter sweep (with the temperature sweep), the tolerance analysis, the stress check and the
-waveform measurements.
+waveform measurements (with the pulse measurements).
 Source: `sim/run.ts`, `eda/smoke.ts`, `sim/measure.ts`.
 
 ## DC sweep
@@ -108,3 +108,32 @@ maximum) with a hysteresis of 10 % of the peak-to-peak value, so noise near the 
 does not count twice; the crossing time is interpolated between points.
 
 @code sim/measure.ts measure
+
+### Pulse measurements
+
+The **Pulse** table measures a transient as an oscilloscope does.
+
+**Levels.** The base and top are the levels the waveform spends most time at: a time-weighted
+histogram of 100 bins between the minimum and maximum, where each segment's time is spread over
+the bins it passes; the fullest bin in the lower and in the upper half gives the base and the
+top, refined to the time-weighted mean of the points in that bin and its neighbours. When the
+fullest bin holds less than 5 % of the time (no flat level), or it is the outermost bin, the
+minimum or maximum is used instead. A square wave with ringing then has its settled levels as
+base and top; a sine has its peaks.
+
+@code sim/measure.ts levels
+
+**Edges.** With A = top − base, a rise runs from the last upward crossing of base + 0.1·A to the
+next upward crossing of base + 0.9·A; a fall from the last downward crossing of 90 % to the next
+of 10 %. Crossing times are interpolated on the segment. An exponential edge (RC) gives
+t_r = RC·ln 9 ≈ 2.2·RC.
+
+**Period and duty cycle** come from crossings of the 50 % level, each armed by a visit to the
+10 % (rising) or 90 % (falling) level, so noise and ringing near the middle do not count twice:
+the period is the mean time between rising crossings, and the duty cycle the mean time from a
+rising crossing to the next falling one, divided by the period.
+
+**Overshoot and undershoot** are (max − top)/A and (base − min)/A in %. For a second-order step
+response with damping ratio ζ the overshoot is e^(−ζπ/√(1−ζ²)).
+
+@code sim/measure.ts timing

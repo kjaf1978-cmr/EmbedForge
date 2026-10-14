@@ -243,3 +243,4 @@ input[aria-invalid='true'] { border-color: var(--bad); }
   .sch-canvas-wrap { border: none; height: 95vh; }
   .no-export { display: none; }
 }
+.timing caption { text-align: left; padding: 4px 0; }

@@ -81,6 +81,14 @@ In the viewer: drag to zoom, the wheel zooms, **Zoom to fit** resets. Click to s
 Shift+click for cursor B; the table shows the values at both cursors, their difference, and the
 minimum, maximum, average, RMS, peak-to-peak and frequency over the visible range.
 
+The **Pulse** button above a transient plot adds the pulse measurements of the visible range,
+as an oscilloscope makes them: the base and top levels (the waveform's flat parts, or its
+minimum and maximum when it has none), the 10–90 % rise time and 90–10 % fall time, the period
+and the duty cycle (time above 50 % per period), and the overshoot above the top and undershoot
+below the base in % of top − base. Edge times and cycles are averaged over the complete ones in
+view; zoom to one edge to measure only that edge. An edge can only be as short as the
+simulation's time steps around it.
+
 The **FFT** button above a transient plot shows the spectrum of the visible range (zoom in on
 the settled part first): Hann window, amplitudes as peak values in dBV or dBA, and per trace
 the strongest component with its total harmonic distortion (harmonics 2 to 10).

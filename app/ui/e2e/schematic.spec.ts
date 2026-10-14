@@ -359,6 +359,23 @@ test('temperature: the circuit at 85 °C and the temperature as a stepped proper
   await expect(page.getByRole('region', { name: 'Waveform viewer' }).getByText(/Temperature/).first()).toBeVisible();
 });
 
+test.describe(() => { test.use({ bypassCSP: true });
+test('pulse measurements: period and duty cycle of the 555 blinker', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: 555 LED blinker' }).click();
+  await page.keyboard.press('F5');
+  const results = page.getByRole('region', { name: 'Waveform viewer' });
+  await results.getByRole('button', { name: 'Pulse', exact: true }).click();
+  const table = results.getByRole('region', { name: 'Pulse measurements' });
+  const row = table.getByRole('row', { name: /V\(OUT\)/ });
+  // f = 1.44 / ((R1 + 2·R2)·C1) ≈ 1 Hz; duty (R1 + R2)/(R1 + 2·R2) ≈ 53 %
+  await expect(row).toContainText(/(9\d\d(\.\d+)? ms|1(\.0\d*)? s)/);
+  await expect(row).toContainText(/5\d\.\d %/);
+  expect(await axe(page)).toEqual([]);
+  await results.getByRole('button', { name: 'Pulse', exact: true }).click();
+  await expect(table).toHaveCount(0);
+});
+});
+
 test('FFT view: the spectrum of the amplifier output, with its THD', async ({ page }) => {
   await page.getByRole('button', { name: 'Open example: Non-inverting op-amp amplifier' }).click();
   await page.keyboard.press('F5');

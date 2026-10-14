@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { formatValue } from '../../eda/units';
-import { interpAt, logTicks, measure, niceTicks } from '../../sim/measure';
+import { interpAt, logTicks, measure, niceTicks, timing } from '../../sim/measure';
 import { spectrum, thd } from '../../sim/fft';
 
 export interface Trace { id: string; name: string; colour: string; unit: string; y: number[]; dashed?: boolean }
@@ -117,6 +117,9 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
   // FFT view of a transient over the visible range
   const canFft = !log && xUnit === 's' && x.length > 8;
   const [showFft, setShowFft] = useState(false);
+  const [showTiming, setShowTiming] = useState(false);
+  const pct = (v: number | null) => (v === null ? '—' : `${v < 0.05 ? '0' : v.toFixed(1)} %`);
+  const time = (v: number | null) => (v === null ? '—' : formatValue(v, 's'));
   const fftData = useMemo(() => {
     if (!showFft || !canFft) return null;
     const specs = traces.filter((t) => t.unit === 'V' || t.unit === 'A').map((t) => ({ t, s: spectrum(x, t.y, r0, r1) }));
@@ -137,6 +140,7 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
         <button onClick={() => setCur({ a: null, b: null })} disabled={cur.a === null && cur.b === null}>Clear cursors</button>
         {onExportCsv && <button onClick={onExportCsv}>Export CSV</button>}
         {canFft && <button aria-pressed={showFft} title="Spectrum of the visible range (Hann window)" onClick={() => setShowFft((v) => !v)}>FFT</button>}
+        {canFft && <button aria-pressed={showTiming} title="Rise and fall time, period, duty cycle and overshoot of the visible range" onClick={() => setShowTiming((v) => !v)}>Pulse</button>}
       </div>
       {groups.map(([unit, ts], gi) => {
         let lo = Infinity, hi = -Infinity;
@@ -187,6 +191,29 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
           </tbody>
         </table>
       </div>
+      {showTiming && canFft && (
+        <section class="timing" aria-label="Pulse measurements">
+          <div class="table-wrap">
+            <table class="plot-table">
+              <caption class="small">Pulse measurements of {formatValue(r0, 's')} to {formatValue(r1, 's')}: edges from 10 % to 90 % of base to top, period and duty cycle at 50 %, averaged over the complete edges and cycles in view</caption>
+              <thead><tr><th>Trace</th><th>Base</th><th>Top</th><th>Rise 10–90 %</th><th>Fall 90–10 %</th><th>Period</th><th>Duty cycle</th><th>Overshoot</th><th>Undershoot</th></tr></thead>
+              <tbody>
+                {traces.map((t) => {
+                  const m = timing(x, t.y, r0, r1);
+                  if (!m) return <tr key={t.id}><td>{t.name}</td><td colSpan={8} class="muted">flat: no pulse</td></tr>;
+                  return (
+                    <tr key={t.id}>
+                      <td>{t.name}</td><td>{formatValue(m.base, t.unit)}</td><td>{formatValue(m.top, t.unit)}</td>
+                      <td>{time(m.rise)}</td><td>{time(m.fall)}</td><td>{time(m.period)}</td><td>{pct(m.duty)}</td>
+                      <td>{pct(m.overshoot)}</td><td>{pct(m.undershoot)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       {fftData && (
         <section class="fft" aria-label="Spectrum">
           <h4 class="small">Spectrum of {formatValue(r0, 's')} to {formatValue(r1, 's')} (Hann window; amplitudes are peak values, 0 dBV = 1 V)</h4>
