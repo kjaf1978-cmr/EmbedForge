@@ -137,7 +137,7 @@ const partDecks: [string, Spec[], SimSettings][] = [
 // every example schematic that has SPICE primitives only (not the 555) is a reference case too
 const exampleCases: RefCase[] = [...EXAMPLES.map((ex) => [`example ${ex.id}`, ex.build()] as const), ...partDecks.map(([id, parts, sim]) => [`part ${id}`, deck(parts, sim).sheet] as const)].flatMap(([id, sheet]) => {
   const net = buildSimNet(sheet);
-  if (net.circuit.elements.some((e) => e.kind === 'T' || e.kind === 'P')) return [];
+  if (net.circuit.elements.some((e) => e.kind === 'T' || e.kind === 'P' || e.kind === 'X')) return [];
   const errors: string[] = [];
   const plan = planAnalysis(sheet.sim, sheet, errors);
   let analysis = plan.analysis;

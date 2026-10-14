@@ -283,6 +283,44 @@ describe('motors', () => {
   });
 });
 
+describe('logic', () => {
+  const lv = (b: boolean) => (b ? 5 : 0);
+  const table: [string, (a: boolean, b: boolean) => boolean][] = [
+    ['and2', (a, b) => a && b], ['nand2', (a, b) => !(a && b)], ['or2', (a, b) => a || b], ['nor2', (a, b) => !(a || b)], ['xor2', (a, b) => a !== b],
+  ];
+  for (const [sym, f] of table) it(`${sym}: truth table, output at the rail or ground`, () => {
+    for (const a of [false, true]) for (const b of [false, true]) {
+      const { v } = run([V(lv(a), 'A'), V(lv(b), 'B'), R('10k', 'Y', 'GND'), [sym, {}, { '1': 'A', '2': 'B', '3': 'Y' }]]);
+      near(v('Y'), f(a, b) ? 5 * 10e3 / (10e3 + 50) : 0, 1e-3);
+    }
+  });
+  it('inverter and Schmitt inverter; the Schmitt input has hysteresis (60 % up, 40 % down)', () => {
+    for (const a of [false, true]) expect(run([V(lv(a), 'A'), ['not', {}, { '1': 'A', '2': 'Y' }], R('1meg', 'Y', 'GND')]).v('Y') > 2.5).toBe(!a);
+    // a slow triangle 0 → 5 → 0 V over 2 ms
+    const { r } = run([['vpulse', { value: '5', low: '0', freq: '500', duty: '50', edge: '1m' }, { '1': 'A', '2': 'GND' }], ['schmitt', {}, { '1': 'A', '2': 'Y' }], R('1meg', 'Y', 'GND')],
+      { type: 'tran', stop: '2m', step: '1u' });
+    const at = (cond: (k: number) => boolean) => { for (let k = 1; k < r.x.length; k++) if (cond(k)) return r.v['A'][k]; return NaN; };
+    near(at((k) => r.v['Y'][k - 1] > 2.5 && r.v['Y'][k] <= 2.5), 3, 0.05); // falls when A passes 60 %
+    near(at((k) => r.v['Y'][k - 1] < 2.5 && r.v['Y'][k] >= 2.5), 2, 0.05); // rises when A falls below 40 %
+  });
+  it('D flip-flop: Q̄ fed back to D divides the clock by two; the 3.3 V rail sets the levels', () => {
+    const { r } = run([['vpulse', { value: '3.3', freq: '1k', edge: '1u' }, { '1': 'CLK', '2': 'GND' }], ['dff', { value: '+3V3' }, { '1': 'QN', '2': 'CLK', '3': 'Q', '4': 'QN' }], R('100k', 'Q', 'GND')],
+      { type: 'tran', stop: '10m', step: '5u' });
+    let rises = 0;
+    for (let k = 1; k < r.x.length; k++) if (r.v['Q'][k - 1] < 1.65 && r.v['Q'][k] >= 1.65) rises++;
+    expect(rises).toBe(5); // 10 clock periods → 5 output periods
+    near(Math.max(...r.v['Q']), 3.3 * 100e3 / (100e3 + 50), 1e-3);
+    expect(r.rails.map((x) => x.net)).toContain('+3V3');
+  });
+  it('the supply rail is the drawn net when there is one; an unnamed rail is refused', () => {
+    // drawn +5V rail driven by a 4 V source: the gate output follows it
+    const { v } = run([V(4, '+5V'), ['not', {}, { '1': 'GND', '2': 'Y' }], R('1meg', 'Y', 'GND')]);
+    near(v('Y'), 4, 1e-3);
+    const { sheet } = deck([V(5, 'A'), ['not', { value: 'VDD' }, { '1': 'A', '2': 'Y' }]]);
+    expect((simulate(sheet) as { error: string }).error).toMatch(/Logic supply rail "VDD"/);
+  });
+});
+
 describe('switches and power symbols', () => {
   for (const closed of [true, false]) it(`switch ${closed ? 'closed' : 'open'}`, () => {
     const { i, refs } = run([V(5, 'A'), R('1k', 'A', 'B'), ['switch', { closed: String(closed) }, { '1': 'B', '2': 'GND' }]]);

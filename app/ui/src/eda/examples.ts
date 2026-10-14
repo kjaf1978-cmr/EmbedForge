@@ -292,6 +292,26 @@ EXAMPLES.push(
       return b.done();
     },
   },
+  {
+    id: 'logic-divider', title: 'Divide by two with a D flip-flop', level: 'beginner',
+    summary: 'A 2 Hz clock drives a D flip-flop whose Q̄ is fed back to D: Q toggles on every rising clock edge and blinks the LED at 1 Hz. The flip-flop is supplied from +5V (hidden supply pins).',
+    tryThis: 'Compare CLK and Q: Q changes only on rising clock edges, at half the frequency. Open the Stress tab: the LED current is within its rating.',
+    build: () => {
+      const b = new B();
+      b.part('vpulse', 0, 0, { value: '5', low: '0', freq: '2', duty: '50', edge: '1m' });
+      b.part('dff', 120, -20, { value: '+5V' });
+      b.part('resistor', 230, -30, { value: '330' });
+      const d = b.part('led', 260, 0, { colour: 'green' }, 1);
+      b.part('gnd', 0, 30); b.part('gnd', 260, 30);
+      b.wire([0, -30], [40, -30], [40, -10], [80, -10]);
+      b.wire([160, -10], [180, -10], [180, 40], [60, 40], [60, -30], [80, -30]);
+      b.wire([160, -30], [200, -30]);
+      b.label('CLK', 20, -30); b.label('Q', 180, -30);
+      b.v(20, -30); b.v(180, -30); b.i(d, '2');
+      b.sim({ type: 'tran', stop: '4', step: '' });
+      return b.done();
+    },
+  },
 );
 
 export function exampleById(id: string): Example | undefined {

@@ -1,7 +1,7 @@
 // Schematic → simulation circuit (SIM-01, SIM-05). Each part becomes one or more primitive
 // elements; the SPICE export (SIM-04) writes exactly these elements.
 
-import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, type MosModel } from '../sim/circuit';
+import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, type LogicFn, type MosModel } from '../sim/circuit';
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
@@ -71,8 +71,21 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
     parts.set(p.ref, { ref: p.ref, elements: elements.slice(before).map((e) => e.name), pinNode });
   }
 
-  // rails named by power symbols but driven by no voltage source get an ideal supply
+  // logic parts: their supply rail is the drawn net of that name, or an ideal supply
   const rails: { net: string; volts: number }[] = [];
+  const hidden = new Set<string>();
+  for (const e of elements) if (e.kind === 'X' && e.vcc.startsWith('rail:')) {
+    const name = e.vcc.slice(5);
+    const node = netNode.get(name);
+    if (node) e.vcc = node; else hidden.add(name);
+  }
+  for (const name of hidden) {
+    const v = railVoltage(name);
+    if (v === null) { errors.push(`Logic supply rail "${name}" is not drawn and its name gives no voltage: name it like +5V or +3V3.`); continue; }
+    elements.push({ kind: 'V', name: `RAIL_${name}`, p: `rail:${name}`, n: '0', dc: v });
+    rails.push({ net: name, volts: v });
+  }
+  // rails named by power symbols but driven by no voltage source get an ideal supply
   const driven = new Set<string>();
   for (const e of elements) if (e.kind === 'V') { driven.add(e.p); driven.add(e.n); }
   for (const n of conn.nets) {
@@ -112,6 +125,12 @@ function tieIslands(elements: Element[]) {
     tied.add(r);
     elements.push({ kind: 'R', name: `RTIE${++k}`, a: node, b: '0', r: 1e3 });
   }
+}
+
+/** Supply of a logic part, resolved in buildSimNet to the net of the rail it names (or to an
+ *  ideal supply when no such rail is drawn). */
+function logicRail(p: Part): string {
+  return `rail:${(p.props.value ?? '+5V').trim() || '+5V'}`;
 }
 
 function partElements(p: Part, pin: Record<string, string>, out: Element[], errors: string[], warnings: string[] = []) {
@@ -207,6 +226,15 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       );
       break;
     }
+    case 'and2': case 'nand2': case 'or2': case 'nor2': case 'xor2':
+      out.push({ kind: 'X', name: ref, fn: s.id.slice(0, -1) as LogicFn, ins: [pin['1'], pin['2']], outs: [pin['3']], vcc: logicRail(p) });
+      break;
+    case 'not': case 'schmitt':
+      out.push({ kind: 'X', name: ref, fn: s.id as LogicFn, ins: [pin['1']], outs: [pin['2']], vcc: logicRail(p) });
+      break;
+    case 'dff':
+      out.push({ kind: 'X', name: ref, fn: 'dff', ins: [pin['1'], pin['2']], outs: [pin['3'], pin['4']], vcc: logicRail(p) });
+      break;
     case 'potentiometer': {
       const r = Math.max(v('value', 'resistance'), 1e-3);
       const pos = Math.min(1, Math.max(0, v('position', 'wiper position') / 100));

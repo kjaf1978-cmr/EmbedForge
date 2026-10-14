@@ -38,7 +38,7 @@ export function outOfLimits(def: ParamDef, v: number): string | null {
   return null;
 }
 
-export type Category = 'Passive' | 'Sources' | 'Semiconductors' | 'Integrated circuits' | 'Switches' | 'Motors' | 'Power';
+export type Category = 'Passive' | 'Sources' | 'Semiconductors' | 'Integrated circuits' | 'Logic' | 'Switches' | 'Motors' | 'Power';
 
 export interface SymbolDef {
   id: string;
@@ -57,6 +57,8 @@ export interface SymbolDef {
   valAt: Pt;
   /** Power and ground symbols: the value is the net name; they are not parts of the netlist. */
   power?: boolean;
+  /** Logic part: supplied from the rail named by its value; every pin has a DC path. */
+  logic?: boolean;
   /** Operable on the schematic while simulating (SIM-03). */
   interactive?: 'toggle' | 'momentary' | 'throw' | 'pot';
   simulated: boolean;
@@ -85,6 +87,54 @@ const vert = (type: PinType = 'power_out'): PinDef[] => [
 const opts = (names: string[]) => names.map((n) => ({ value: n, label: n }));
 const H = { refAt: { x: 0, y: -14 }, valAt: { x: 0, y: 18 } };
 const VV = { refAt: { x: 22, y: -6 }, valAt: { x: 22, y: 8 } };
+
+const RAIL: ParamDef = { key: 'value', label: 'Supply rail', kind: 'text', default: '+5V', help: 'the gate is supplied from this rail (hidden supply pins, as on most schematics); thresholds are half of it' };
+const AND_BODY = 'M -20 -20 H 0 A 20 20 0 0 1 0 20 H -20 Z';
+const OR_BODY = 'M -24 -20 Q -12 0 -24 20 Q 8 20 22 0 Q 8 -20 -24 -20 Z';
+function gate(id: string, name: string, desc: string, body: string, bubble: boolean, extra: Gfx[] = [], keywords: string[] = []): SymbolDef {
+  const outX = bubble ? 28 : 22;
+  return {
+    id, name, category: 'Logic', keywords: ['u', 'logic', 'gate', '74hc', 'digital', name.toLowerCase(), ...keywords], prefix: 'U', logic: true,
+    description: `${desc} CMOS-like: inputs switch at half the supply rail, the output drives the rail or ground through 50 Ω; no propagation delay.`,
+    pins: [{ id: '1', name: 'A', x: -40, y: -10, type: 'input' }, { id: '2', name: 'B', x: -40, y: 10, type: 'input' }, { id: '3', name: 'Y', x: 40, y: 0, type: 'output' }],
+    refAt: { x: 0, y: -26 }, valAt: { x: 0, y: 32 }, simulated: true,
+    gfx: () => [path(`M -40 -10 H -20 M -40 10 H -20 M ${outX} 0 H 40`), path(body, 'bg'), ...extra, ...(bubble ? [circle(25, 0, 3, 'bg')] : [])],
+    value: RAIL, params: [],
+  };
+}
+const LOGIC: SymbolDef[] = [
+  gate('and2', 'AND gate', 'Two-input AND: the output is high when both inputs are high.', AND_BODY, false, [], ['and', '7408']),
+  gate('nand2', 'NAND gate', 'Two-input NAND: the output is low when both inputs are high.', AND_BODY, true, [], ['nand', '7400']),
+  gate('or2', 'OR gate', 'Two-input OR: the output is high when either input is high.', OR_BODY, false, [], ['or', '7432']),
+  gate('nor2', 'NOR gate', 'Two-input NOR: the output is low when either input is high.', OR_BODY, true, [], ['nor', '7402']),
+  gate('xor2', 'XOR gate', 'Two-input exclusive OR: the output is high when the inputs differ.', OR_BODY, false, [path('M -30 -20 Q -18 0 -30 20')], ['xor', '7486']),
+  {
+    id: 'not', name: 'Inverter (NOT)', category: 'Logic', keywords: ['u', 'not', 'inverter', 'logic', '7404', 'digital'], prefix: 'U', logic: true,
+    description: 'Inverter: the output is the opposite of the input. CMOS-like: switches at half the supply rail, output through 50 Ω; no propagation delay.',
+    pins: [{ id: '1', name: 'A', x: -40, y: 0, type: 'input' }, { id: '2', name: 'Y', x: 40, y: 0, type: 'output' }],
+    refAt: { x: 0, y: -22 }, valAt: { x: 0, y: 28 }, simulated: true,
+    gfx: () => [path('M -40 0 H -16 M 22 0 H 40'), path('M -16 -14 L 14 0 L -16 14 Z', 'bg'), circle(17, 0, 3, 'bg')],
+    value: RAIL, params: [],
+  },
+  {
+    id: 'schmitt', name: 'Schmitt-trigger inverter', category: 'Logic', keywords: ['u', 'schmitt', 'inverter', 'logic', '74hc14', '40106', 'debounce', 'hysteresis'], prefix: 'U', logic: true,
+    description: 'Inverter with hysteresis (74HC14-like): the input switches up at 60 % and down at 40 % of the supply rail, so slow or noisy signals give clean edges. Output through 50 Ω; no propagation delay.',
+    pins: [{ id: '1', name: 'A', x: -40, y: 0, type: 'input' }, { id: '2', name: 'Y', x: 40, y: 0, type: 'output' }],
+    refAt: { x: 0, y: -22 }, valAt: { x: 0, y: 28 }, simulated: true,
+    gfx: () => [path('M -40 0 H -16 M 22 0 H 40'), path('M -16 -14 L 14 0 L -16 14 Z', 'bg'), circle(17, 0, 3, 'bg'), path('M -11 3 H -5 V -3 M -8 3 V -3 H -2')],
+    value: RAIL, params: [],
+  },
+  {
+    id: 'dff', name: 'D flip-flop', category: 'Logic', keywords: ['u', 'flip-flop', 'flipflop', 'd-type', 'latch', '7474', 'register', 'divider', 'logic'], prefix: 'U', logic: true,
+    description: 'D-type flip-flop (74HC74-like, without set and reset): on each rising edge of CLK, Q takes the level of D; Q̄ is its opposite. Q starts low. Switches at half the supply rail; outputs through 50 Ω.',
+    pins: [{ id: '1', name: 'D', x: -40, y: -10, type: 'input' }, { id: '2', name: 'CLK', x: -40, y: 10, type: 'input' },
+      { id: '3', name: 'Q', x: 40, y: -10, type: 'output' }, { id: '4', name: 'Q̄', x: 40, y: 10, type: 'output' }],
+    refAt: { x: 0, y: -30 }, valAt: { x: 0, y: 36 }, simulated: true,
+    gfx: () => [path('M -40 -10 H -20 M -40 10 H -20 M 20 -10 H 40 M 20 10 H 40'), path('M -20 -22 H 20 V 22 H -20 Z', 'bg'), path('M -20 5 L -13 10 L -20 15'),
+      text(-13, -7, 'D', 7), text(13, -7, 'Q', 7), text(13, 13, 'Q̄', 7)],
+    value: RAIL, params: [],
+  },
+];
 
 export const SYMBOLS: SymbolDef[] = [
   {
@@ -449,6 +499,7 @@ export const SYMBOLS: SymbolDef[] = [
     gfx: () => [path('M 0 0 V -8 M -8 -8 H 8')],
     value: { key: 'value', label: 'Rail', kind: 'text', default: '+5V' }, params: [],
   },
+  ...LOGIC,
 ];
 
 export const SYMBOL = new Map(SYMBOLS.map((s) => [s.id, s]));
@@ -459,7 +510,7 @@ export function symbolOf(id: string): SymbolDef {
   return s;
 }
 
-export const CATEGORIES: Category[] = ['Passive', 'Sources', 'Semiconductors', 'Integrated circuits', 'Switches', 'Motors', 'Power'];
+export const CATEGORIES: Category[] = ['Passive', 'Sources', 'Semiconductors', 'Integrated circuits', 'Logic', 'Switches', 'Motors', 'Power'];
 
 /** Part picker search (UI-08 (a)): every word must match name, keywords, category or a model. */
 export function searchSymbols(q: string): SymbolDef[] {

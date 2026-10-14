@@ -83,6 +83,8 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
         const nets = g.map((pin) => conn.pinNet.get(`${p.ref}.${pin}`)).filter(Boolean) as string[];
         for (let i = 1; i < nets.length; i++) union(nets[0], nets[i]);
       }
+      // logic parts: inputs have a resistance to ground and outputs drive the rail or ground
+      if (s.logic) for (const pp of s.pins) { const n = conn.pinNet.get(`${p.ref}.${pp.id}`); if (n) union(n, GND_NET); }
       if (s.id === 'switch' && p.props.closed === 'true') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.2`); if (a && b) union(a, b); }
       if (s.id === 'button' && p.props.pressed === 'true') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.2`); if (a && b) union(a, b); }
       if (s.id === 'spdt') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.${p.props.position === 'B' ? 3 : 2}`); if (a && b) union(a, b); }

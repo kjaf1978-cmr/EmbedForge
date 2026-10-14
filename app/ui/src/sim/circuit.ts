@@ -39,9 +39,16 @@ export type Element =
    *  1.0 ms → −90°, 1.5 ms → 0°, 2.0 ms → +90°), turns toward it at `slew` degrees per second,
    *  and drives out with angle/100 V through 100 Ω. No SPICE primitive; the export says so. */
   | { kind: 'P'; name: string; sig: string; gnd: string; out: string; slew: number }
+  /** Logic gate or D flip-flop, behavioural CMOS: inputs switch at half the supply (Schmitt
+   *  inverter: 60 % up, 40 % down) and load the node with 10 MΩ to ground; outputs drive the
+   *  supply or ground through 50 Ω. No propagation delay; output changes are located in time.
+   *  dff: ins = [D, CLK], outs = [Q, Q̄], Q takes D on a rising clock edge. */
+  | { kind: 'X'; name: string; fn: LogicFn; ins: string[]; outs: string[]; vcc: string }
   /** 555 timer, behavioural (comparators at 2/3 and 1/3 of CTRL, latch, output and discharge
    *  stages). It has no SPICE primitive; the export says so. */
   | { kind: 'T'; name: string; gnd: string; trig: string; out: string; rst: string; ctrl: string; thr: string; dis: string; vcc: string };
+
+export type LogicFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'schmitt' | 'dff';
 
 export interface Circuit {
   title?: string;
@@ -60,6 +67,7 @@ export function terminals(e: Element): string[] {
     case 'K': return [];
     case 'W': return [e.p, e.n];
     case 'P': return [e.sig, e.gnd, e.out];
+    case 'X': return [...e.ins, ...e.outs, e.vcc];
     case 'T': return [e.gnd, e.trig, e.out, e.rst, e.ctrl, e.thr, e.dis, e.vcc];
   }
 }

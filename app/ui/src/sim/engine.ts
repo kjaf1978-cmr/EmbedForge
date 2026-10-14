@@ -650,6 +650,66 @@ class Timer555 implements Device {
   }
 }
 
+class Logic implements Device {
+  /** Output levels (1 = high); the Schmitt input state; the flip-flop's last clock level. */
+  out: number[];
+  private inHigh = false;
+  private lastClk = false;
+  private static readonly GOUT = 1 / 50;
+  private static readonly GIN = 1e-7;
+  constructor(public el: Element & { kind: 'X' }, private ins: number[], private outs: number[], private vcc: number) {
+    this.out = outs.map(() => 0);
+  }
+  private next(x: Float64Array): { out: number[]; inHigh: boolean; clk: boolean } {
+    const vcc = V(x, this.vcc), hi = (n: number) => V(x, n) > 0.5 * vcc;
+    const a = this.ins.map(hi);
+    const f = this.el.fn;
+    let inHigh = this.inHigh, clk = this.lastClk, out = [...this.out];
+    switch (f) {
+      case 'and': out = [a.every(Boolean) ? 1 : 0]; break;
+      case 'or': out = [a.some(Boolean) ? 1 : 0]; break;
+      case 'nand': out = [a.every(Boolean) ? 0 : 1]; break;
+      case 'nor': out = [a.some(Boolean) ? 0 : 1]; break;
+      case 'xor': out = [a.filter(Boolean).length % 2]; break;
+      case 'not': out = [a[0] ? 0 : 1]; break;
+      case 'schmitt': {
+        const v = V(x, this.ins[0]);
+        if (v > 0.6 * vcc) inHigh = true; else if (v < 0.4 * vcc) inHigh = false;
+        out = [inHigh ? 0 : 1];
+        break;
+      }
+      case 'dff': {
+        clk = a[1];
+        if (clk && !this.lastClk) out = a[0] ? [1, 0] : [0, 1];
+        else if (this.out[0] === this.out[1]) out = [0, 1]; // power-up state: Q low
+        break;
+      }
+    }
+    return { out, inHigh, clk };
+  }
+  pending(x: Float64Array) {
+    const n = this.next(x);
+    return n.inHigh !== this.inHigh || n.clk !== this.lastClk || n.out.some((v, k) => v !== this.out[k]);
+  }
+  commitState(x: Float64Array) { const n = this.next(x); this.out = n.out; this.inHigh = n.inHigh; this.lastClk = n.clk; }
+  private stamp(c: { A: Float64Array; n: number }) {
+    for (const i of this.ins) stampG(c, i, -1, Logic.GIN);
+    this.outs.forEach((o, k) => stampG(c, o, this.out[k] ? this.vcc : -1, Logic.GOUT));
+  }
+  load(c: Ctx) { this.stamp(c); }
+  loadAC(c: AcCtx) { this.stamp({ A: c.Ar, n: c.n }); }
+  currents(x: Float64Array) {
+    const iin = this.ins.map((i) => V(x, i) * Logic.GIN);
+    let ivcc = 0;
+    const iout = this.outs.map((o, k) => {
+      const i = Logic.GOUT * (V(x, o) - (this.out[k] ? V(x, this.vcc) : 0));
+      if (this.out[k]) ivcc -= i;
+      return i;
+    });
+    return [...iin, ...iout, ivcc];
+  }
+}
+
 class Servo implements Device {
   angle = 0; target = 0; private high = false; private tRise = 0; private tLast = 0;
   private static readonly G = 1 / 100;
@@ -746,6 +806,7 @@ export class Engine {
         case 'M': this.devices.push(new Mosfet(e, ix(e.d), ix(e.g), ix(e.s))); break;
         case 'K': case 'W': break; // after the elements they refer to
         case 'P': this.devices.push(new Servo(e, ix(e.sig), ix(e.gnd), ix(e.out))); break;
+        case 'X': this.devices.push(new Logic(e, e.ins.map(ix), e.outs.map(ix), ix(e.vcc))); break;
         case 'T': this.devices.push(new Timer555(e, { gnd: ix(e.gnd), trig: ix(e.trig), out: ix(e.out), rst: ix(e.rst), ctrl: ix(e.ctrl), thr: ix(e.thr), dis: ix(e.dis), vcc: ix(e.vcc), n13: timerNode.get(e.name)! })); break;
       }
     }

@@ -67,6 +67,8 @@ export function elementLine(e: Element, models: Map<string, string>): string {
       const card = `CSW(IT=${n(e.it)} IH=${n(e.ih)} RON=${n(e.ron)} ROFF=${n(e.roff)})`;
       return `${nm} ${N(e.p)} ${N(e.n)} ${spiceName({ kind: 'V', name: e.ctrl } as Element)} ${model(models, 'W', card)}`;
     }
+    case 'X':
+      return `* ${e.name}: logic ${e.fn} (in ${e.ins.map(N).join(' ')}, out ${e.outs.map(N).join(' ')}, supply ${N(e.vcc)}). NETApps simulates it with a behavioural model that has no SPICE primitive.`;
     case 'P':
       return `* ${e.name}: hobby servo (PWM ${N(e.sig)} GND ${N(e.gnd)} POS ${N(e.out)}). NETApps simulates it with a behavioural model that has no SPICE primitive.`;
     case 'T':
