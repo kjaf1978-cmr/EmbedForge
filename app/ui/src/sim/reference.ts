@@ -262,3 +262,38 @@ REFERENCE.push(
     analysis: { type: 'op' }, nodes: ['m', 'k', 'j', 'qe'], currents: ['V1'],
   },
 );
+
+// devices of the power and installation track (D20)
+REFERENCE.push(
+  {
+    id: 'varistor-dc',
+    circuit: { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0 },
+      { kind: 'R', name: 'R1', a: 'in', b: 'm', r: 100 },
+      // a 470 V (1 mA) varistor, α fitted to 775 V at 50 A
+      { kind: 'Z', name: 'Z1', a: 'm', b: '0', vn: 470, alpha: 21.6 },
+    ] },
+    analysis: { type: 'dc', source: 'V1', start: -900, stop: 900, step: 20 }, nodes: ['m'], currents: ['V1'],
+  },
+  {
+    id: 'varistor-surge-tran',
+    circuit: { elements: [
+      // 1.2/50 µs voltage impulse of 4 kV through 2 Ω (combination-wave source impedance)
+      { kind: 'V', name: 'VS', p: 's', n: '0', dc: 0, wave: { type: 'exp', v1: 0, v2: 4148, td1: 0, tau1: 0.405e-6, td2: 0, tau2: 68.2e-6 } },
+      { kind: 'R', name: 'RS', a: 's', b: 'm', r: 2 },
+      { kind: 'Z', name: 'Z1', a: 'm', b: '0', vn: 470, alpha: 21.6 },
+    ] },
+    analysis: { type: 'tran', tstep: 0.1e-6, tstop: 100e-6, tmax: 0.1e-6 }, nodes: ['m', 's'], currents: ['VS'],
+  },
+  {
+    id: 'voltage-switch-dc',
+    circuit: { elements: [
+      { kind: 'V', name: 'VC', p: 'c', n: '0', dc: 0 },
+      { kind: 'V', name: 'V1', p: 'a', n: '0', dc: 12 },
+      { kind: 'R', name: 'RL', a: 'a', b: 'o', r: 1e3 },
+      { kind: 'S', name: 'S1', p: 'o', n: '0', cp: 'c', cn: '0', vt: 2.5, vh: 0.5, ron: 1, roff: 1e9 },
+    ] },
+    // up and down: hysteresis between 2 V and 3 V; the points step past the thresholds
+    analysis: { type: 'dc', source: 'VC', start: 0, stop: 5, step: 0.3 }, nodes: ['o'], currents: ['V1'],
+  },
+);

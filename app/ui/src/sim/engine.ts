@@ -360,6 +360,128 @@ class CSwitch implements Device {
   }
 }
 
+/** Metal-oxide varistor: i = 1 mA·sign(v)·(|v|/vn)^α. Its current rises by e for every 1/α
+ *  of relative voltage, so the Newton step is limited like a junction's (pnjlim with
+ *  V_T = vn/α, around vn). */
+class Varistor implements Device {
+  v = 0; g = GMIN; i0 = 0;
+  constructor(public el: Element & { kind: 'Z' }, private a: number, private b: number) {}
+  private eval(v: number): [number, number] {
+    const { vn, alpha } = this.el, u = Math.abs(v) / vn;
+    if (u === 0) return [0, GMIN];
+    const i = 1e-3 * Math.pow(u, alpha);
+    return [Math.sign(v) * i + GMIN * v, (alpha * i) / Math.abs(v) + GMIN];
+  }
+  load(c: Ctx) {
+    let v = V(c.x, this.a) - V(c.x, this.b);
+    if (!c.init) {
+      const { vn, alpha } = this.el, vt = vn / alpha;
+      const lim = (x: number, old: number) => pnjlim(x, old, vt, vn, c);
+      v = v >= 0 ? lim(v, Math.max(this.v, 0)) : -lim(-v, Math.max(-this.v, 0));
+    } else v = 0;
+    const [i, g] = this.eval(v);
+    this.v = v; this.i0 = i; this.g = g;
+    stampJ(c, this.a, this.b, i, g, v);
+  }
+  loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.g, 0); }
+  currents(x: Float64Array) { const [i] = this.eval(V(x, this.a) - V(x, this.b)); return [i, -i]; }
+  converged(x: Float64Array) { const v = V(x, this.a) - V(x, this.b); return near(this.eval(v)[0], this.i0 + this.g * (v - this.v)); }
+  acCurrents(re: Float64Array, im: Float64Array) {
+    const [ar, ai] = Vc(re, im, this.a), [br, bi] = Vc(re, im, this.b);
+    return [[(ar - br) * this.g, (ai - bi) * this.g], [-(ar - br) * this.g, -(ai - bi) * this.g]] as [number, number][];
+  }
+}
+
+/** Voltage-controlled switch with hysteresis (SPICE S): a discrete state like the relay contact. */
+class VSwitch implements Device {
+  on = false;
+  constructor(public el: Element & { kind: 'S' }, private a: number, private b: number, private cp: number, private cn: number) {}
+  private next(x: Float64Array) {
+    const v = V(x, this.cp) - V(x, this.cn);
+    if (v > this.el.vt + this.el.vh) return true;
+    if (v < this.el.vt - this.el.vh) return false;
+    return this.on;
+  }
+  pending(x: Float64Array) { return this.next(x) !== this.on; }
+  commitState(x: Float64Array) { this.on = this.next(x); }
+  get g() { return 1 / (this.on ? this.el.ron : this.el.roff); }
+  load(c: Ctx) { stampG(c, this.a, this.b, this.g); }
+  loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.g, 0); }
+  currents(x: Float64Array) { const i = (V(x, this.a) - V(x, this.b)) * this.g; return [i, -i, 0, 0]; }
+  acCurrents(re: Float64Array, im: Float64Array) {
+    const [ar, ai] = Vc(re, im, this.a), [br, bi] = Vc(re, im, this.b);
+    return [[(ar - br) * this.g, (ai - bi) * this.g], [-(ar - br) * this.g, -(ai - bi) * this.g], [0, 0], [0, 0]] as [number, number][];
+  }
+}
+
+/** Gas discharge tube: open until |v| > vspark; then an arc (varc in series with ron, in the
+ *  direction of the spark) until the current falls below ihold. */
+class Gdt implements Device {
+  dir = 0; // 0 off, ±1 conducting
+  constructor(public el: Element & { kind: 'N' }, private a: number, private b: number) {}
+  private static readonly GOFF = 1e-10;
+  private next(x: Float64Array): number {
+    const v = V(x, this.a) - V(x, this.b);
+    if (this.dir === 0) return Math.abs(v) > this.el.vspark ? Math.sign(v) : 0;
+    const i = (v - this.dir * this.el.varc) / this.el.ron;
+    return i * this.dir < this.el.ihold ? 0 : this.dir;
+  }
+  pending(x: Float64Array) { return this.next(x) !== this.dir; }
+  commitState(x: Float64Array) { this.dir = this.next(x); }
+  load(c: Ctx) {
+    if (this.dir === 0) { stampG(c, this.a, this.b, Gdt.GOFF); return; }
+    // i = (v − dir·varc)/ron: a conductance and a source
+    const g = 1 / this.el.ron;
+    stampG(c, this.a, this.b, g);
+    rhs(c, this.a, (this.dir * this.el.varc) * g); rhs(c, this.b, -(this.dir * this.el.varc) * g);
+  }
+  loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.dir ? 1 / this.el.ron : Gdt.GOFF, 0); }
+  currents(x: Float64Array) {
+    const v = V(x, this.a) - V(x, this.b);
+    const i = this.dir === 0 ? v * Gdt.GOFF : (v - this.dir * this.el.varc) / this.el.ron;
+    return [i, -i];
+  }
+}
+
+/** Circuit breaker (thermal-magnetic, optionally with a residual-current trip). */
+class Breaker implements Device {
+  closed: boolean;
+  /** Thermal state: i²/inom², low-pass filtered with tau. */
+  theta = 0;
+  private tLast = 0;
+  static readonly THERMAL_TRIP = 1.66;
+  constructor(public el: Element & { kind: 'Y' }, private poles: [number, number][]) { this.closed = el.closed; }
+  private g() { return this.closed ? 1 / this.el.ron : 1e-12; }
+  private poleI(x: Float64Array) { return this.poles.map(([a, b]) => (V(x, a) - V(x, b)) * this.g()); }
+  private trips(x: Float64Array): boolean {
+    if (!this.closed) return false;
+    const i = this.poleI(x), e = this.el;
+    if (i.some((v) => Math.abs(v) > e.mag * e.inom * Math.SQRT2)) return true;
+    if (e.idn > 0 && Math.abs(i.reduce((s, v) => s + v, 0)) > 0.8 * e.idn) return true;
+    return this.theta >= Breaker.THERMAL_TRIP;
+  }
+  pending(x: Float64Array) { return this.trips(x); }
+  commitState(x: Float64Array) { if (this.trips(x)) this.closed = false; }
+  initTran() { this.tLast = 0; }
+  accept(c: Ctx, x: Float64Array) {
+    if (c.mode !== 'tran' || !this.closed) return;
+    const h = Math.max(0, c.t - this.tLast);
+    this.tLast = c.t;
+    const q = Math.max(...this.poleI(x).map((v) => (v / this.el.inom) ** 2));
+    // exact for a constant input over the step
+    this.theta = q + (this.theta - q) * Math.exp(-h / this.el.tau);
+  }
+  load(c: Ctx) { for (const [a, b] of this.poles) stampG(c, a, b, this.g()); }
+  loadAC(c: AcCtx) { for (const [a, b] of this.poles) stampGc(c, a, b, this.g(), 0); }
+  currents(x: Float64Array) { return this.poleI(x).flatMap((i) => [i, -i]); }
+  acCurrents(re: Float64Array, im: Float64Array) {
+    return this.poles.flatMap(([a, b]) => {
+      const [ar, ai] = Vc(re, im, a), [br, bi] = Vc(re, im, b), g = this.g();
+      return [[(ar - br) * g, (ai - bi) * g], [-(ar - br) * g, -(ai - bi) * g]] as [number, number][];
+    });
+  }
+}
+
 class ISource implements Device {
   constructor(public el: Element & { kind: 'I' }, private p: number, private q: number) {}
   value(c: Ctx) {
@@ -860,6 +982,10 @@ export class Engine {
         case 'Q': this.devices.push(new Bjt(e, ix(e.c), ix(e.b), ix(e.e), at(e))); break;
         case 'M': this.devices.push(new Mosfet(e, ix(e.d), ix(e.g), ix(e.s), at(e))); break;
         case 'K': case 'W': break; // after the elements they refer to
+        case 'Z': this.devices.push(new Varistor(e, ix(e.a), ix(e.b))); break;
+        case 'S': this.devices.push(new VSwitch(e, ix(e.p), ix(e.n), ix(e.cp), ix(e.cn))); break;
+        case 'N': this.devices.push(new Gdt(e, ix(e.a), ix(e.b))); break;
+        case 'Y': this.devices.push(new Breaker(e, e.poles.map((q) => [ix(q.a), ix(q.b)] as [number, number]))); break;
         case 'P': this.devices.push(new Servo(e, ix(e.sig), ix(e.gnd), ix(e.out))); break;
         case 'X': this.devices.push(new Logic(e, e.ins.map(ix), e.outs.map(ix), ix(e.vcc))); break;
         case 'T': this.devices.push(new Timer555(e, { gnd: ix(e.gnd), trig: ix(e.trig), out: ix(e.out), rst: ix(e.rst), ctrl: ix(e.ctrl), thr: ix(e.thr), dis: ix(e.dis), vcc: ix(e.vcc), n13: timerNode.get(e.name)! })); break;

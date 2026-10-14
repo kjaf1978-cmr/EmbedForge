@@ -4,7 +4,7 @@
 
 import { opValue, type Circuit, type Element, type Wave } from './circuit';
 import { spiceNumber as n } from '../eda/units';
-import { GSHUNT } from './engine';
+import { GMIN, GSHUNT } from './engine';
 
 export type Analysis =
   | { type: 'op' }
@@ -24,6 +24,12 @@ function wave(dc: number, w: Wave | undefined): string {
   if (!w || w.type === 'dc') return base;
   if (w.type === 'sin') return `${base} SIN(${[w.vo, w.va, w.freq, w.td ?? 0, w.theta ?? 0, ...(w.phase ? [w.phase] : [])].map(n).join(' ')})`;
   if (w.type === 'pulse') return `${base} PULSE(${[w.v1, w.v2, w.td, w.tr, w.tf, w.pw, w.per].map(n).join(' ')})`;
+  // ngspice reads a zero TD1 or TD2 as "not given" and delays the wave by about TSTEP
+  // (checked against the formula): tiny positive delays keep it at the start
+  if (w.type === 'exp') {
+    const td1 = Math.max(w.td1, 1e-15), td2 = Math.max(w.td2, td1 + 1e-15);
+    return `${base} EXP(${[w.v1, w.v2, td1, w.tau1, td2, w.tau2].map(n).join(' ')})`;
+  }
   return `${base} PWL(${w.pts.map(([t, v]) => `${n(t)} ${n(v)}`).join(' ')})`;
 }
 
@@ -70,6 +76,20 @@ export function elementLine(e: Element, models: Map<string, string>, temp?: numb
       const card = `CSW(IT=${n(e.it)} IH=${n(e.ih)} RON=${n(e.ron)} ROFF=${n(e.roff)})`;
       return `${nm} ${N(e.p)} ${N(e.n)} ${spiceName({ kind: 'V', name: e.ctrl } as Element)} ${model(models, 'W', card)}`;
     }
+    case 'Z': {
+      // the same equation as the engine, with GMIN across it
+      const v = `V(${N(e.a)},${N(e.b)})`;
+      return `B${nm.slice(1)} ${N(e.a)} ${N(e.b)} I = 1e-3*sgn(${v})*pow(abs(${v})/${n(e.vn)},${n(e.alpha)}) + ${n(GMIN)}*${v}`;
+    }
+    case 'S': {
+      const card = `SW(VT=${n(e.vt)} VH=${n(e.vh)} RON=${n(e.ron)} ROFF=${n(e.roff)})`;
+      return `${nm} ${N(e.p)} ${N(e.n)} ${N(e.cp)} ${N(e.cn)} ${model(models, 'S', card)}`;
+    }
+    case 'N':
+      return `* ${e.name}: gas discharge tube ${N(e.a)}–${N(e.b)} (spark-over ${n(e.vspark)} V, arc ${n(e.varc)} V). NETApps simulates it with a behavioural model that has no SPICE primitive.`;
+    case 'Y':
+      return [`* ${e.name}: circuit breaker (${n(e.inom)} A${e.idn ? `, RCD ${n(e.idn)} A` : ''}), exported ${e.closed ? 'closed' : 'open'}; its trip is simulated by NETApps only.`,
+        ...e.poles.map((q, k) => `R${nm.slice(1)}_${k + 1} ${N(q.a)} ${N(q.b)} ${n(e.closed ? e.ron : 1e12)}`)].join('\n');
     case 'X':
       return `* ${e.name}: logic ${e.fn} (in ${e.ins.map(N).join(' ')}, out ${e.outs.map(N).join(' ')}, supply ${N(e.vcc)}). NETApps simulates it with a behavioural model that has no SPICE primitive.`;
     case 'P':
