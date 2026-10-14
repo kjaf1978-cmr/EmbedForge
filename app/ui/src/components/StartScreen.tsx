@@ -59,11 +59,14 @@ export function StartScreen({ backend, onNew, onTutorial, onExample, onOpen, ver
 
       <section class="roadmap" aria-labelledby="h-road">
         <h2 id="h-road">What this version does, and what comes next</h2>
-        <p>NETApps Electric Simulation {version || ''} — Increment 2 of the plan (decision D17: design tools first).</p>
+        <p>NETApps Electric Simulation {version || ''} — Increment 3 of the plan has started (decision D19).</p>
         <ul>
           <li><strong>Now:</strong> schematic editor, electrical rule check, circuit simulator (cross-checked against ngspice) with parameter sweeps (up to three properties), temperature analysis, tolerance analysis, stress check, SPICE model import, probes, waveform viewer with FFT and pulse measurements, motors and servos that move on the schematic with transient playback, transformers (single- and three-phase), relays, motors (DC, AC, servo), protection and power parts (TVS diodes, IGBTs, bridge rectifiers, fuses), optocouplers, the TL431, logic gates, parts list, SPICE/SVG/PNG/CSV export, projects under version control.</li>
-          <li><strong>Next — Increment 3:</strong> PCB layout and routing (footprints, placement, interactive and automatic routing, design rule check, Gerber files).</li>
-          <li><strong>Then:</strong> boards and flashing (4), the natural-language design assistant (5), the parts catalogue and generated circuits (6), firmware emulation (7).</li>
+          <li><strong>In progress — Increment 3:</strong> PCB layout and routing (footprints, placement, interactive and automatic routing, design rule check, Gerber files).</li>
+          <li><strong>Increment 4 — boards:</strong> Arduino Uno, Mega and Nano, Raspberry Pi 5, 4, 3 B+ and Zero 2 W, Raspberry Pi Pico family: pin capabilities and limits, symbols, footprints and shield/HAT outlines, detection, flashing and deployment.</li>
+          <li><strong>Increment 5 — offline AI design assistant:</strong> a language model built into the app (runs on your computer, no internet) turns a description in plain English into requirements, asks what is unclear, and drives the design.</li>
+          <li><strong>Increment 6 — generated designs:</strong> parts catalogue, pin allocation and interfacing on the chosen board, schematic and PCB layout generated from the requirements and verified (ERC, DRC).</li>
+          <li><strong>Increment 7 — board emulation:</strong> Arduino and Raspberry Pi firmware running in the simulator together with the circuit: animated breadboard, virtual multimeter, oscilloscope, logic analyser and serial monitor.</li>
         </ul>
       </section>
     </div>
