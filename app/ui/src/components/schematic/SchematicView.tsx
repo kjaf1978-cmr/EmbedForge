@@ -27,6 +27,7 @@ import { toCsv } from '../../sim/measure';
 import { motionAt, shownTorque, type Motion } from '../../sim/motion';
 import { footprintChoices, footprintOf } from '../../pcb/library';
 import { FOOTPRINTS } from '../../pcb/footprint';
+import { unbuyable } from '../../eda/standard';
 import { FIRST_CIRCUIT } from '../../eda/tutorial';
 import { GfxEl, SheetContent, partTransform } from './SheetSvg';
 import { Plot, type Trace } from './Plot';
@@ -1345,6 +1346,11 @@ function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, on
       )}
       {field(s.value, true)}
       {s.params.map((p) => field(p, false))}
+      {!s.power && unbuyable(part).map((u) => (
+        <p key={u.key} class="small s-warn" role="note">{u.message}{u.options.length > 0 && ': '}
+          {u.options.map((o) => <button key={o} class="link" onClick={() => apply(setProps(sheet, part.id, { [u.key]: o }), `${part.ref} ${u.key} = ${o} (standard)`)}>use {o}</button>)}
+        </p>
+      ))}
       <FootprintField part={part} sheet={sheet} apply={apply} />
       {op && !s.power && (
         <>

@@ -4,6 +4,7 @@
 import { symbolOf, railVoltage, type Pt } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
 import { pinPositions, type Sheet } from './schematic';
+import { unbuyable } from './standard';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -11,7 +12,7 @@ export interface ErcIssue {
   id: string;
   severity: Severity;
   /** Requirement item the rule implements. */
-  rule: 'ED-09.a' | 'ED-09.b' | 'ED-09.c' | 'ED-09.d' | 'ED-09.e' | 'ED-03.f' | 'ED-08' | 'SIM-05' | 'net-name' | 'stress';
+  rule: 'ED-09.a' | 'ED-09.b' | 'ED-09.c' | 'ED-09.d' | 'ED-09.e' | 'ED-03.f' | 'ED-08' | 'SIM-05' | 'VER-13' | 'net-name' | 'stress';
   message: string;
   at: Pt | null;
   refs: string[];
@@ -130,6 +131,9 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
       [a, b].includes(conn.pinNet.get(`${d.ref}.1`) ?? '') && [a, b].includes(conn.pinNet.get(`${d.ref}.2`) ?? ''));
     if (!flyback) add({ severity: 'warning', rule: 'ED-03.f', message: `${l.sym === 'relay' ? 'Relay coil' : l.sym === 'dcmotor' ? 'Motor' : 'Inductive load'} ${l.ref} is switched by a transistor without a flyback diode across it: switching off causes a high voltage spike.`, at: { x: l.x, y: l.y }, refs: [l.ref] });
   }
+
+  // VER-13: values and ratings that can be bought (E series, catalogue rating steps)
+  for (const p of sheet.parts) for (const u of unbuyable(p)) add({ severity: 'warning', rule: 'VER-13', message: `${u.message}.`, at: { x: p.x, y: p.y }, refs: [p.ref] });
 
   // ED-08 and SIM-05
   const generic = sheet.parts.filter((p) => !symbolOf(p.sym).power).length;

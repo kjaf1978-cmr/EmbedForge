@@ -108,6 +108,12 @@ on the sheet): unconnected pins, wires that end nowhere, nets without a DC path 
 short-circuited or parallel voltage sources, duplicate references, and inductive loads switched
 without a flyback diode.
 
+It also checks that every value and rating can be bought: resistors from the E24 (5 %) or
+E96 (1 %) series, capacitors from E12 or E24 (electrolytics E6 or E12), inductors and NTC
+thermistors from E12, potentiometers in the usual 1-2-2.2-4.7-5 steps, and power, voltage and
+fuse ratings in the catalogue steps. For a value that is not sold, the part's properties offer
+the nearest standard values; for a rating between steps, the next step up. One click applies it.
+
 Parts of the generic library are marked **not a standard part**: they are not catalogue parts
 yet. The parts catalogue arrives in Increment 6.
 
