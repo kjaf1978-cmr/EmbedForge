@@ -17,6 +17,7 @@ import { erc, type ErcIssue } from '../../eda/erc';
 import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
 import { sweepTargets } from '../../eda/simnet';
 import { bomCsv, buildBom } from '../../eda/bom';
+import { importModel } from '../../eda/spicemodel';
 import { BJTS, DIODES, MOSFETS, OPAMPS, ZENERS } from '../../eda/models';
 import { formatValue, parseValue, shortValue } from '../../eda/units';
 import { schematicSpice, stepValues } from '../../sim/run';
@@ -1222,6 +1223,19 @@ function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, on
       return (
         <div class="field" key={d.key}>
           <label><input type="checkbox" ref={main ? (valueRef as never) : undefined} checked={v === 'true'} onChange={(e) => set((e.target as HTMLInputElement).checked ? 'true' : 'false')} /> {d.label}</label>
+        </div>
+      );
+    }
+    if (d.key === 'spice') {
+      const r = v.trim() ? importModel(part.sym, v) : null;
+      return (
+        <div class="field" key={d.key}>
+          <label for={id}>{d.label}</label>
+          <textarea id={id} rows={3} spellcheck={false} placeholder=".model 1N4001 D(IS=29.5n RS=73.6m N=1.98 BV=50)" value={v}
+                    onChange={(e) => set((e.target as HTMLTextAreaElement).value.trim())} aria-describedby={`${id}-h`} />
+          <span id={`${id}-h`} class={`small ${r && 'error' in r ? 's-fail' : 'muted'}`}>
+            {!r ? d.help : 'error' in r ? `Not used: ${r.error}.` : `Uses ${r.name} (${r.used.join(', ') || 'defaults'})${r.ignored.length ? `; ignored: ${r.ignored.join(', ')}` : ''}. It replaces the model above.`}
+          </span>
         </div>
       );
     }

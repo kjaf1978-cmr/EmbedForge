@@ -1,7 +1,8 @@
 // Schematic → simulation circuit (SIM-01, SIM-05). Each part becomes one or more primitive
 // elements; the SPICE export (SIM-04) writes exactly these elements.
 
-import { terminals, type Circuit, type Element } from '../sim/circuit';
+import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, type MosModel } from '../sim/circuit';
+import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
 import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, RELAYS, ZENERS, findModel, ledModel } from './models';
@@ -66,7 +67,7 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
       pinNode[pp.pin] = net ? netNode.get(net)! : `nc_${p.ref}_${pp.pin}`;
     }
     const before = elements.length;
-    partElements(p, pinNode, elements, errors);
+    partElements(p, pinNode, elements, errors, warnings);
     parts.set(p.ref, { ref: p.ref, elements: elements.slice(before).map((e) => e.name), pinNode });
   }
 
@@ -113,10 +114,19 @@ function tieIslands(elements: Element[]) {
   }
 }
 
-function partElements(p: Part, pin: Record<string, string>, out: Element[], errors: string[]) {
+function partElements(p: Part, pin: Record<string, string>, out: Element[], errors: string[], warnings: string[] = []) {
   const s = symbolOf(p.sym);
   const v = (k: string, what = k) => num(p.props[k], `${p.ref} ${what}`, errors);
   const ref = p.ref;
+  // an imported SPICE .model card replaces the chosen generic model
+  const custom = <T,>(): T | undefined => {
+    const text = p.props.spice?.trim();
+    if (!text) return undefined;
+    const r = importModel(p.sym, text);
+    if ('error' in r) { errors.push(`${ref} SPICE model: ${r.error}`); return undefined; }
+    if (r.ignored.length) warnings.push(`${ref} model ${r.name}: ${r.ignored.join(', ')} ignored (no junction capacitance or temperature in the simulator).`);
+    return r.model as T;
+  };
   switch (s.id) {
     case 'resistor': out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: Math.max(v('value', 'resistance'), 1e-6) }); break;
     case 'capacitor': case 'capacitor_pol': out.push({ kind: 'C', name: ref, a: pin['1'], b: pin['2'], c: v('value', 'capacitance') }); break;
@@ -259,15 +269,15 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'idc': out.push({ kind: 'I', name: ref, p: pin['2'], n: pin['1'], dc: v('value', 'current') }); break;
-    case 'diode': out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: findModel(DIODES, p.props.value).model }); break;
-    case 'zener': out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: findModel(ZENERS, p.props.value).model }); break;
+    case 'diode': out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: custom<DiodeModel>() ?? findModel(DIODES, p.props.value).model }); break;
+    case 'zener': out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: custom<DiodeModel>() ?? findModel(ZENERS, p.props.value).model }); break;
     case 'led': {
       const c = LED_COLOURS.find((x) => x.name === p.props.colour) ?? LED_COLOURS[0];
       out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: ledModel(c.vf) });
       break;
     }
-    case 'npn': case 'pnp': out.push({ kind: 'Q', name: ref, c: pin['2'], b: pin['1'], e: pin['3'], model: findModel(BJTS.filter((m) => m.model.type === s.id), p.props.value).model }); break;
-    case 'nmos': case 'pmos': out.push({ kind: 'M', name: ref, d: pin['2'], g: pin['1'], s: pin['3'], model: findModel(MOSFETS.filter((m) => m.model.type === s.id), p.props.value).model }); break;
+    case 'npn': case 'pnp': out.push({ kind: 'Q', name: ref, c: pin['2'], b: pin['1'], e: pin['3'], model: custom<BjtModel>() ?? findModel(BJTS.filter((m) => m.model.type === s.id), p.props.value).model }); break;
+    case 'nmos': case 'pmos': out.push({ kind: 'M', name: ref, d: pin['2'], g: pin['1'], s: pin['3'], model: custom<MosModel>() ?? findModel(MOSFETS.filter((m) => m.model.type === s.id), p.props.value).model }); break;
     case 'opamp': {
       const m = findModel(OPAMPS, p.props.value).model;
       const inp = pin['3'], inn = pin['2'], o = pin['6'], vp = pin['7'], vn = pin['4'];

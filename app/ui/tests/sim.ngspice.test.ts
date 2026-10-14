@@ -128,6 +128,8 @@ const partDecks: [string, Spec[], SimSettings][] = [
   ['three-phase induction motor at 50 Hz', [['vsin3', { value: '230', ac: '1' }, { '1': 'U', '2': 'V', '3': 'W', '4': 'GND' }], R('0.5', 'U', 'MU'),
     ['motor3', {}, { '1': 'MU', '2': 'V', '3': 'W', '4': 'N' }]], { type: 'ac', fstart: '1', fstop: '1k', perDecade: '10' }],
   ['single-phase motor', [['vsin', { value: '325', freq: '50' }, { '1': 'L', '2': 'GND' }], R('1', 'L', 'ML'), ['motor1', {}, { '1': 'ML', '2': 'GND' }]], { type: 'tran', stop: '60m', step: '50u' }],
+  ['imported SPICE models (1N4001, BC337)', [V(5, 'A'), R('1k', 'A', 'K'), ['diode', { spice: '.model 1N4001 D(IS=29.5n RS=73.6m N=1.98 CJO=17p BV=50 IBV=10u)' }, { '2': 'K', '1': 'GND' }],
+    R('10k', 'A', 'B'), R('470', 'A', 'C'), ['npn', { spice: '.model BC337 NPN(IS=4.13E-14 BF=292 BR=7.4 VAF=145 NF=1 NR=1)' }, { '1': 'B', '2': 'C', '3': 'GND' }]], { type: 'dc', target: 'V1', param: 'value', start: '0', stop: '5', step: '0.1' }],
   ['relay with flyback diode', [['vpulse', { value: '5', freq: '20', edge: '1m' }, { '1': 'C', '2': 'GND' }], ['diode', {}, { '1': 'C', '2': 'GND' }], V(12, 'COM'),
     R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND'), ['relay', {}, { '1': 'C', '2': 'GND', '3': 'COM', '4': 'NC', '5': 'NO' }]], { type: 'tran', stop: '100m', step: '20u' }],
 ];

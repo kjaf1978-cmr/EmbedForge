@@ -365,6 +365,17 @@ test('text notes (T) and the parts list (BOM)', async ({ page }) => {
   await expect(side.getByRole('heading', { name: 'Resistor' })).toBeVisible();
 });
 
+test('SPICE model import: paste a .model card into a diode', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: Half-wave rectifier with smoothing' }).click();
+  await click(page, 60, -60); // D1
+  const box = page.getByLabel('SPICE model (optional)');
+  await box.fill('.model 1N4001 D(IS=29.5n RS=73.6m N=1.98 CJO=17p BV=50)');
+  await box.blur();
+  await expect(page.getByText(/Uses 1N4001 \(IS, RS, N, BV\); ignored: CJO/)).toBeVisible();
+  await box.fill('.model X NPN(IS=1e-14)'); await box.blur();
+  await expect(page.getByText(/Not used: a NPN model does not fit/)).toBeVisible();
+});
+
 test('ED-09: rule check markers and the Checks list', async ({ page }) => {
   await page.getByRole('button', { name: /New schematic/ }).click();
   await pick(page, 'Resistor'); await click(page, 0, 0);
