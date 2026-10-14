@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.3",
+  "app_version": "0.2.4",
   "os": "windows",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.4",
+          "date": "2026-10-14",
+          "text": "SPICE .model import for diodes and transistors; parameter sweep of up to three properties; tolerance analysis (Monte Carlo); stress check (smoke analysis) against maximum ratings; logic gates and D flip-flop; SPICE-style truncation-error step control; corrected first point of a 555 started at power-on."
+        },
         {
           "version": "0.2.3",
           "date": "2026-10-13",
@@ -54,8 +59,8 @@
   ],
   "files": [
     {
-      "path": "NETApps-Setup-0.2.3-x64.exe",
-      "from": "files/NETApps-Setup-0.2.3-x64.exe",
+      "path": "NETApps-Setup-0.2.4-x64.exe",
+      "from": "files/NETApps-Setup-0.2.4-x64.exe",
       "role": "bootstrap"
     },
     {
@@ -69,8 +74,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.3-source.tar.gz",
-      "from": "files/source/embedforge-0.2.3-source.tar.gz",
+      "path": "source/embedforge-0.2.4-source.tar.gz",
+      "from": "files/source/embedforge-0.2.4-source.tar.gz",
       "role": "source"
     },
     {

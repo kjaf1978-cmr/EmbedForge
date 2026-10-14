@@ -698,7 +698,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "ef-cm"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "ef-schema",
  "git2",
@@ -712,7 +712,7 @@ dependencies = [
 
 [[package]]
 name = "ef-diag"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "ef-cm",
  "ef-host",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "ef-helper"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "ef-cm",
  "ef-host",
@@ -736,7 +736,7 @@ dependencies = [
 
 [[package]]
 name = "ef-host"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -745,7 +745,7 @@ dependencies = [
 
 [[package]]
 name = "ef-integrity"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "ef-cm",
  "minisign-verify",
@@ -757,7 +757,7 @@ dependencies = [
 
 [[package]]
 name = "ef-schema"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -786,7 +786,7 @@ checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
 
 [[package]]
 name = "embedforge"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "base64 0.22.1",
  "ef-cm",

@@ -19,9 +19,9 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 192 passed (0.2.3) |
-| — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 34 cases agree (18 reference circuits, 12 example schematics, 6 part decks) (0.2.3) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 34 passed, 3 consecutive runs (0.2.3) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 216 passed (0.2.4) |
+| — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 37 cases agree (18 reference circuits, 12 example schematics, 7 part decks) (0.2.4) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 37 passed, 3 consecutive runs (0.2.4) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 1a. Signed releases (SEC-02, TEST-04)
@@ -163,6 +163,27 @@ Found and fixed on the way:
 Two new examples, DC motor start-up and three-phase supply with a Dyn transformer, are checked
 like the others: rule check clean, simulated, and cross-checked against ngspice.
 
+## 3d. Version 0.2.4: your requests of 14 October 2026
+
+| Request | Status | Evidence |
+|---|---|---|
+| Continue improving Increment 2 | B | SPICE `.model` import (diodes, Zeners, BJTs, level-1 MOSFETs; used and ignored parameters shown; ngspice agrees with imported 1N4001 and BC337 models). Tolerance analysis (Monte Carlo): seeded, Gaussian or even, per-kind tolerances; spread of a divider within the worst case. Logic gates (AND, NAND, OR, NOR, XOR, NOT, Schmitt) and a D flip-flop, with truth tables, Schmitt thresholds and divide-by-two tested, plus an example. |
+| Smoke analysis | B | Stress tab and checks: every part against its maximum ratings (datasheet absolute maximums of the built-in models; rating properties on passives and switches), peaks for voltages and currents, averages for power and rectifier current, derating level 80 % by default. Tests for resistor power, diode and LED current, capacitor voltage, reversed electrolytics, transient averages; every example within its ratings. |
+| Multi-component parametric analysis | B | The parameter sweep takes up to three properties; every combination runs (at most 50). An operating point gives one curve per combination of the further properties. Tests: order of the combinations, divider formula, three properties in a transient, the run limit. |
+
+Found and fixed on the way:
+- **555 started at power-on:** the first point mixed the new latch state with the old
+  solution, a 0.73 A output spike that does not happen (found by the stress check). t = 0
+  is now solved again.
+- **Three-phase example:** its 100 Ω loads dissipate 530 W each, so they are rated 1 kW. It
+  now switches on at t = 0: from the DC operating point the windings short the supply. The
+  Simulation tab warns about this for transformers and AC motors.
+- **Transient step control:** the time step now follows the truncation error of every
+  capacitor and inductor, as in SPICE. The three-phase switch-on agrees with ngspice; run
+  times are unchanged.
+- **Simulation tab:** Controls and Probes come before the sweep and tolerance sections, so the
+  live controls stay in view.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
@@ -170,9 +191,9 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. ~~Sign 0.2.3~~ done 14 October 2026 (section 1a). Tags **v0.2.2** (b035130) and
-   **v0.2.3** (5b9f9fb) need a session that may push tags (see item 3).
-2. **Your look at it:** install 0.2.3 over the earlier version, open the tutorial and two examples, and tell
+1. **Sign 0.2.4** (signing kit "NETApps-signing-kit"). 0.2.3 is signed (section 1a); tags
+   **v0.2.2** (b035130) and **v0.2.3** (5b9f9fb) need a session that may push tags (see item 3).
+2. **Your look at it:** install 0.2.4 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
    - VAPP-01;

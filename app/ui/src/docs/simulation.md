@@ -32,6 +32,29 @@ resistance or D1 model), then give a list of values or models separated by space
 run, named after the value. An operating point with a sweep becomes a plot of the voltages and
 currents against the swept value.
 
+You can step up to three properties at once (**＋ Add a property**): every combination runs, at
+most 50 runs, and each trace is named after its values.
+
+## Tolerance analysis (Monte Carlo)
+
+**Tolerance analysis** runs the analysis 2 to 50 times with every resistor, potentiometer,
+capacitor and inductor value varied within its tolerance (set per kind of part, in %): Gaussian
+with the tolerance as 3 σ, or evenly spread. Run 1 uses the drawn values. The same seed gives
+the same runs, so a result can be repeated. An operating point shows each voltage and current
+over the runs; the Min, Max and Average columns of the table give the spread.
+
+## Stress check (smoke analysis)
+
+After a simulation, the **Stress** tab compares every part with its maximum ratings: power of
+resistors and potentiometers, voltage of capacitors (and reverse voltage of electrolytics),
+current of inductors, switches and relay contacts, forward current, reverse voltage and power
+of diodes and LEDs, collector or drain voltage, current and power of transistors and MOSFETs,
+supply voltage and output current of op-amps, regulators and the 555. Peaks are used for
+voltages and currents, averages over the run for power and rectifier current. Parts above the
+warning level (default 80 % of the rating) are warnings, parts above the rating errors; both
+also appear in the Checks list. The ratings of resistors, capacitors, inductors and switches
+are properties of the part (for example a 0.25 W resistor).
+
 ## Probes and the waveform viewer
 
 - **V** then click a wire or pin: the voltage of that net against ground. Drag from one net to
@@ -53,8 +76,16 @@ the strongest component with its total harmonic distortion (harmonics 2 to 10).
 The simulator is a SPICE-style engine built into NETApps (modified nodal analysis, the
 SPICE diode, bipolar and level-1 MOSFET equations). It is checked against ngspice on a
 reference suite of circuits on every build: results agree within 1 % or 1 mV / 1 µA (SIM-04).
+The time step of a transient follows the integration error of every capacitor and inductor, as
+in SPICE.
 
 - Diodes, LEDs and Zener diodes: SPICE diode model; LEDs from their forward voltage at 20 mA.
+- **SPICE models:** diodes, Zeners, transistors and MOSFETs take a pasted `.model` line from a
+  datasheet (property "SPICE model"). The parameters the simulator models are used; the others
+  (junction capacitances, temperature) are listed as ignored. Level-1 MOSFET models only.
+- Logic gates and the D flip-flop: CMOS-like, switching at half the supply rail (the Schmitt
+  inverter at 60 % and 40 %), outputs through 50 Ω, no propagation delay. They are supplied from
+  the rail named in their "Supply rail" property (hidden supply pins).
 - Transistors: SPICE Gummel–Poon model without charge storage (DC, AC and switching at low
   frequency; no junction capacitances).
 - MOSFETs: level-1 model with body diode. Power MOSFET models are approximations fitted to the
