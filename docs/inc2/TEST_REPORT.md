@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - ~~signed the media~~ (0.2.2, done 13 October 2026, section 1a);
+  - ~~signed the media~~ (0.2.3, done 14 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - approved the gate.
 
@@ -24,7 +24,24 @@
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 34 passed, 3 consecutive runs (0.2.3) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
-## 1a. Signed release 0.2.2 (SEC-02, TEST-04)
+## 1a. Signed releases (SEC-02, TEST-04)
+
+### 0.2.3 (current)
+
+Signed by the owner on their own PC, 14 October 2026, from the signing kit "NETApps-signing-kit"
+of CI run [38464644649](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38464644649)
+(commit 5b9f9fb). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `d7d61ae155e5f0c98e58663c0328b85403bde56328ea3ac97a4481ce7c1adbd8` |
+| ubuntu-x86_64 | 4 | `da5681d50b129b2f570553e8eb19997e43091f95a07891b785f8e4412c8060d8` |
+| windows-x86_64 | 1 | `2cca162c05271ac05543ee18c4cc65263bbeedb6c362e498c3cff40f191a7242` |
+
+All three: PASS. The next commit (5c0c3a4) only reformats Rust code; it changes no behaviour.
+
+### 0.2.2
 
 Signed by the owner on their own PC, 13 October 2026, from the signing kit of CI run
 [38454327509](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38454327509)
@@ -153,8 +170,8 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. **Sign 0.2.3** (signing kit "NETApps-signing-kit"). 0.2.2 is signed (section 1a); tag
-   **v0.2.2** should point at b035130 (see item 3).
+1. ~~Sign 0.2.3~~ done 14 October 2026 (section 1a). Tags **v0.2.2** (b035130) and
+   **v0.2.3** (5b9f9fb) need a session that may push tags (see item 3).
 2. **Your look at it:** install 0.2.3 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
