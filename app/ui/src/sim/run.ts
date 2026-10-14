@@ -152,6 +152,70 @@ export function simulateStepped(sheet: Sheet): SimResult | SimFailure {
   return overlayRuns(runs.map(({ combo, r }) => ({ label: axes.map((a, k) => axisLabel(a, combo[k])).join(', '), r })), t0);
 }
 
+/** Small seeded random number generator (mulberry32): the same seed gives the same runs. */
+export function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const MC_KINDS: Record<string, 'tolR' | 'tolC' | 'tolL'> = { resistor: 'tolR', potentiometer: 'tolR', capacitor: 'tolC', capacitor_pol: 'tolC', inductor: 'tolL' };
+
+/** The sheets of a tolerance analysis: run 1 is nominal, the others vary every resistor,
+ *  capacitor and inductor value within its tolerance. */
+export function monteCarloSheets(sheet: Sheet): { label: string; sheet: Sheet }[] | { error: string } {
+  const mc = sheet.mc!;
+  const n = Number(mc.runs), seed = Number(mc.seed || '1');
+  if (!(Number.isInteger(n) && n >= 2 && n <= MAX_RUNS)) return { error: `Tolerance analysis: the number of runs must be from 2 to ${MAX_RUNS}` };
+  if (!Number.isFinite(seed)) return { error: 'Tolerance analysis: the seed must be a number' };
+  const tol: Record<string, number> = {};
+  for (const k of ['tolR', 'tolC', 'tolL'] as const) {
+    const t = parseValue(mc[k] || '0');
+    if (t === null || t < 0 || t >= 100) return { error: 'Tolerance analysis: tolerances must be from 0 to below 100 %' };
+    tol[k] = t / 100;
+  }
+  const rand = rng(seed);
+  const gauss = () => { const u = Math.max(rand(), 1e-12), v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const out: { label: string; sheet: Sheet }[] = [{ label: 'nominal', sheet: { ...sheet, mc: undefined, step: undefined } }];
+  for (let k = 2; k <= n; k++) {
+    const parts = sheet.parts.map((p) => {
+      const kind = MC_KINDS[p.sym];
+      const v = kind ? parseValue(p.props.value ?? '') : null;
+      if (!kind || v === null || !tol[kind]) return p;
+      const d = mc.dist === 'gauss' ? Math.max(-1, Math.min(1, gauss() / 3)) : 2 * rand() - 1;
+      return { ...p, props: { ...p.props, value: String(v * (1 + tol[kind] * d)) } };
+    });
+    out.push({ label: `run ${k}`, sheet: { ...sheet, parts, mc: undefined, step: undefined } });
+  }
+  return out;
+}
+
+/** Tolerance analysis: every run overlaid; an operating point gives each result over the runs. */
+export function simulateMonteCarlo(sheet: Sheet): SimResult | SimFailure {
+  if (sheet.step?.on) return { error: 'Turn off either the parameter sweep or the tolerance analysis: they cannot run together', errors: [] };
+  const t0 = performance.now();
+  const sheets = monteCarloSheets(sheet);
+  if ('error' in sheets) return { error: sheets.error, errors: [] };
+  const runs: Run[] = [];
+  for (const { label, sheet: s } of sheets) {
+    const r = simulate(s);
+    if ('error' in r) return { error: `Tolerance analysis, ${label}: ${r.error}`, errors: r.errors };
+    runs.push({ label, r });
+  }
+  const first = runs[0].r;
+  if (first.analysis === 'op') {
+    const pick = (f: (r: SimResult) => Record<string, number[]>) =>
+      Object.fromEntries(Object.keys(f(first)).map((k) => [k, runs.map(({ r }) => f(r)[k]?.[0] ?? NaN)]));
+    return { ...first, analysis: 'dc', xLabel: 'Run', xUnit: '', x: runs.map((_, k) => k + 1), v: pick((r) => r.v), i: pick((r) => r.i), warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
+  }
+  return overlayRuns(runs, t0);
+}
+
 /** Pin currents of a part: the currents into its elements at terminals on that pin's node. */
 function pinCurrents(net: SimNet, w: Waveforms, imag: boolean): Record<string, number[]> {
   const out: Record<string, number[]> = {};
@@ -173,6 +237,7 @@ function pinCurrents(net: SimNet, w: Waveforms, imag: boolean): Record<string, n
 const terms = terminals;
 
 export function simulate(sheet: Sheet): SimResult | SimFailure {
+  if (sheet.mc?.on) return simulateMonteCarlo(sheet);
   if (sheet.step?.on) return simulateStepped(sheet);
   const t0 = performance.now();
   const conn = connectivity(sheet);
@@ -229,6 +294,7 @@ export function schematicSpice(sheet: Sheet, title = 'NETApps schematic'): strin
   const st = sheet.step?.on ? sheet.step : undefined;
   const head = [
     `* Exported by NETApps Electric Simulation. Ground is node 0.`,
+    ...(sheet.mc?.on ? [`* Tolerance analysis (${sheet.mc.runs} runs, R ${sheet.mc.tolR} %, C ${sheet.mc.tolC} %, L ${sheet.mc.tolL} %): not exported; this netlist has the nominal values.`] : []),
     ...(st ? [`* Parameter sweep of ${st.ref} ${st.param} (${st.mode === 'list' ? st.list : `${st.start} to ${st.stop}, ${st.mode === 'dec' ? `${st.step} per decade` : `step ${st.step}`}`}): not exported; this netlist has the drawn value.`] : []),
     ...net.rails.map((r) => `* Rail ${r.net} is driven by an ideal ${r.volts} V supply (RAIL_${r.net}).`),
     ...[...net.parts.values()].filter((p) => p.elements.length > 1).map((p) => `* ${p.ref} is modelled by ${p.elements.join(', ')}.`),

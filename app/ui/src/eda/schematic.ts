@@ -67,6 +67,21 @@ export interface StepSweep {
   step: string;
 }
 
+/** Tolerance analysis (Monte Carlo): runs with resistors, capacitors and inductors varied. */
+export interface MonteCarlo {
+  on: boolean;
+  /** Number of runs, the nominal one included. */
+  runs: string;
+  /** Seed of the random numbers: the same seed gives the same runs. */
+  seed: string;
+  /** uniform within ±tolerance, or Gaussian with the tolerance as 3 σ (clipped at it). */
+  dist: 'uniform' | 'gauss';
+  /** Tolerances in % per kind of part. */
+  tolR: string;
+  tolC: string;
+  tolL: string;
+}
+
 export interface Sheet {
   parts: Part[];
   wires: Wire[];
@@ -74,6 +89,7 @@ export interface Sheet {
   probes: Probe[];
   sim: SimSettings;
   step?: StepSweep;
+  mc?: MonteCarlo;
 }
 
 export const GRID = 10;

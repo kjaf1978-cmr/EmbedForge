@@ -384,6 +384,20 @@ test('SPICE model import: paste a .model card into a diode', async ({ page }) =>
   await expect(page.getByText(/Not used: a NPN model does not fit/)).toBeVisible();
 });
 
+test('tolerance analysis (Monte Carlo): runs overlaid, nominal first', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: RC low-pass filter (frequency response)' }).click();
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Simulation' }).click();
+  await side.getByLabel('Run with part values varied within their tolerances').check();
+  const runs = side.getByLabel('Runs', { exact: true });
+  await runs.fill('5'); await runs.press('Tab');
+  await expect(side.getByText(/2 parts vary in the others/)).toBeVisible();
+  await page.keyboard.press('F5');
+  const results = page.getByRole('region', { name: 'Waveform viewer' });
+  await expect(results.getByRole('row', { name: /\|V\(OUT\)\| · nominal/ })).toBeVisible();
+  await expect(results.getByRole('row', { name: /\|V\(OUT\)\| · run 5/ })).toBeVisible();
+});
+
 test('ED-09: rule check markers and the Checks list', async ({ page }) => {
   await page.getByRole('button', { name: /New schematic/ }).click();
   await pick(page, 'Resistor'); await click(page, 0, 0);

@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings, type StepAxis, type StepSweep } from '../../eda/schematic';
+import { GRID, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type MonteCarlo, type SimSettings, type StepAxis, type StepSweep } from '../../eda/schematic';
 import {
   addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
   placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
@@ -1417,6 +1417,37 @@ function StepPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: st
   );
 }
 
+/** Tolerance analysis (Monte Carlo): runs with resistors, capacitors and inductors varied. */
+function McPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: string) => void }) {
+  const mc: MonteCarlo = sheet.mc ?? { on: false, runs: '20', seed: '1', dist: 'gauss', tolR: '5', tolC: '10', tolL: '10' };
+  const set = (next: MonteCarlo, label: string) => apply({ ...sheet, mc: next }, label);
+  const varied = sheet.parts.filter((p) => ['resistor', 'potentiometer', 'capacitor', 'capacitor_pol', 'inductor'].includes(p.sym)).length;
+  const inp = (label: string, key: 'runs' | 'seed' | 'tolR' | 'tolC' | 'tolL', unit = '') => (
+    <label class="field">{label}{unit && ` (${unit})`}<input value={mc[key]} size={5} onChange={(e) => set({ ...mc, [key]: (e.target as HTMLInputElement).value.trim() }, `Tolerance ${key} ${(e.target as HTMLInputElement).value.trim()}`)} /></label>
+  );
+  return (
+    <fieldset>
+      <legend>Tolerance analysis (Monte Carlo)</legend>
+      <label><input type="checkbox" checked={mc.on} onChange={(e) => set({ ...mc, on: (e.target as HTMLInputElement).checked }, (e.target as HTMLInputElement).checked ? 'Tolerance analysis on' : 'Tolerance analysis off')} /> Run with part values varied within their tolerances</label>
+      {mc.on && (
+        <>
+          <div class="row wrap">
+            {inp('Runs', 'runs')}
+            {inp('Seed', 'seed')}
+            <label class="field">Spread
+              <select value={mc.dist} onChange={(e) => set({ ...mc, dist: (e.target as HTMLSelectElement).value as MonteCarlo['dist'] }, 'Tolerance spread')}>
+                <option value="gauss">Gaussian (tolerance = 3 σ)</option><option value="uniform">even within ± tolerance</option>
+              </select>
+            </label>
+          </div>
+          <div class="row wrap">{inp('Resistors', 'tolR', '± %')}{inp('Capacitors', 'tolC', '± %')}{inp('Inductors', 'tolL', '± %')}</div>
+          <p class="small muted">Run 1 uses the drawn values; {varied} part{varied === 1 ? '' : 's'} vary in the others. The same seed gives the same runs. An operating point shows every result over the runs (see Min, Max and Average in the table).{sheet.step?.on ? ' Turn off the parameter sweep to run it.' : ''}</p>
+        </>
+      )}
+    </fieldset>
+  );
+}
+
 interface SimPanelProps {
   sheet: Sheet; apply: (s: Sheet, label: string) => void; running: boolean; status: JSX.Element | null;
   live: boolean; setLive: (b: boolean) => void; showValues: boolean; setShowValues: (b: boolean) => void;
@@ -1501,6 +1532,7 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
         </div>
       )}
       <StepPanel sheet={sheet} apply={apply} />
+      <McPanel sheet={sheet} apply={apply} />
       <div class="row">
         <button class="primary" onClick={run} disabled={running}>{running ? 'Simulating…' : '▶ Simulate (F5)'}</button>
         <label><input type="checkbox" checked={live} onChange={(e) => setLive((e.target as HTMLInputElement).checked)} /> Update live</label>
