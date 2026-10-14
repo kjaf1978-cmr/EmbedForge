@@ -159,3 +159,124 @@ export const RELAYS: NamedModel<RelayModel>[] = [
   { name: '12 V', note: '12 V coil, 400 Ω (30 mA), changeover contact', model: { vcoil: 12, rcoil: 400, lcoil: 0.8 } },
   { name: '24 V', note: '24 V coil, 1.6 kΩ (15 mA), changeover contact', model: { vcoil: 24, rcoil: 1600, lcoil: 3.2 } },
 ];
+
+// ---- power and installation parts (decision D20) -------------------------------------------
+
+/** Metal-oxide varistors: varistor voltage Vn at 1 mA, clamping voltage Vc at Ic (8/20 µs),
+ *  maximum surge current, energy (2 ms) and continuous AC voltage, from the typical datasheet
+ *  values of each disc size. α = ln(Ic / 1 mA) / ln(Vc / Vn). */
+export interface VaristorModel { vn: number; vc: number; ic: number; imax: number; energy: number; vac: number }
+export const varistorAlpha = (m: VaristorModel) => Math.log(m.ic / 1e-3) / Math.log(m.vc / m.vn);
+export const VARISTORS: NamedModel<VaristorModel>[] = [
+  { name: '10D471K', note: 'Ø 10 mm disc, 300 V AC (470 V at 1 mA), clamps 775 V at 25 A, 3.5 kA, 70 J', model: { vn: 470, vc: 775, ic: 25, imax: 3500, energy: 70, vac: 300 } },
+  { name: '14D471K', note: 'Ø 14 mm disc, 300 V AC, clamps 775 V at 50 A, 6 kA, 140 J', model: { vn: 470, vc: 775, ic: 50, imax: 6000, energy: 140, vac: 300 } },
+  { name: '20D471K', note: 'Ø 20 mm disc, 300 V AC, clamps 775 V at 100 A, 10 kA, 270 J', model: { vn: 470, vc: 775, ic: 100, imax: 10000, energy: 270, vac: 300 } },
+  { name: '14D431K', note: 'Ø 14 mm disc, 275 V AC (430 V at 1 mA), clamps 710 V at 50 A, 6 kA, 125 J', model: { vn: 430, vc: 710, ic: 50, imax: 6000, energy: 125, vac: 275 } },
+  { name: '14D681K', note: 'Ø 14 mm disc, 420 V AC, for 400 V line voltage: clamps 1120 V at 50 A, 6 kA, 190 J', model: { vn: 680, vc: 1120, ic: 50, imax: 6000, energy: 190, vac: 420 } },
+  { name: '14D121K', note: 'Ø 14 mm disc, 75 V AC / 100 V DC (120 V at 1 mA), clamps 200 V at 50 A, 4.5 kA, 30 J', model: { vn: 120, vc: 200, ic: 50, imax: 4500, energy: 30, vac: 75 } },
+  { name: 'SPD-T2 275', note: 'surge protective device type 2, 275 V AC, In 20 kA, Imax 40 kA (8/20 µs), Up ≤ 1.3 kV: a 40 kA MOV block', model: { vn: 430, vc: 1300, ic: 20000, imax: 40000, energy: 1200, vac: 275 } },
+  { name: 'SPD-T2 PV 1000', note: 'surge protective device type 2 for PV, 1000 V DC, In 20 kA, Imax 40 kA, Up ≤ 3.8 kV: MOV blocks in series', model: { vn: 1250, vc: 3800, ic: 20000, imax: 40000, energy: 2400, vac: 700 } },
+  { name: 'SPD-T3 275', note: 'surge protective device type 3 (socket level), 275 V AC, Uoc 6 kV, Up ≤ 1.2 kV: a 14 mm MOV with its thermal fuse', model: { vn: 430, vc: 1200, ic: 3000, imax: 6000, energy: 125, vac: 275 } },
+];
+
+/** Gas discharge tubes and spark gaps: DC spark-over voltage, arc voltage, holdover current
+ *  and the impulse current rating (8/20 µs; 10/350 µs for the type 1 spark gap). */
+export interface GdtModel { vspark: number; varc: number; ihold: number; imax: number }
+export const GDTS: NamedModel<GdtModel>[] = [
+  { name: 'GDT 90 V', note: '2-electrode gas discharge tube, 90 V DC spark-over, 10 kA (8/20 µs): data and telecom lines', model: { vspark: 90, varc: 15, ihold: 0.15, imax: 10000 } },
+  { name: 'GDT 230 V', note: '2-electrode gas discharge tube, 230 V DC spark-over, 10 kA', model: { vspark: 230, varc: 20, ihold: 0.2, imax: 10000 } },
+  { name: 'GDT 600 V', note: '2-electrode gas discharge tube, 600 V DC spark-over, 20 kA: N–PE in a "3 + 1" SPD', model: { vspark: 600, varc: 25, ihold: 0.3, imax: 20000 } },
+  { name: 'Spark gap T1 255', note: 'type 1 lightning current arrester (encapsulated spark gap), 255 V AC, Iimp 25 kA (10/350 µs), Up ≤ 4 kV', model: { vspark: 4000, varc: 30, ihold: 0.5, imax: 25000 } },
+];
+
+/** Miniature circuit breakers (IEC 60898): rated current; the curve sets the magnetic trip. */
+export const BREAKER_A = [2, 4, 6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250];
+/** Instantaneous (magnetic) trip in multiples of In: the guaranteed value of each curve (B 3–5, C 5–10, D 10–20). */
+export const CURVE_MAG: Record<string, number> = { B: 5, C: 10, D: 20 };
+
+/** Contactors: AC-3 rated current (IEC 60947-4-1) and coil. Pull-in at 85 %, drop-out at 40 %
+ *  of the coil's rated current (peak-detected over ~20 ms, as the armature's inertia does). */
+export interface ContactorModel { ac3: number; coil: 'dc' | 'ac'; vcoil: number; rcoil: number; lcoil: number }
+const ctr = (ac3: number, coil: 'dc' | 'ac', vcoil: number, rcoil: number, lcoil: number): NamedModel<ContactorModel> => ({
+  name: `${ac3} A, coil ${vcoil} V ${coil.toUpperCase()}`, note: `3 poles AC-3 ${ac3} A (about ${(ac3 * 0.4 * 1.732 * 0.85).toFixed(1)} kW at 400 V), 1 NO + 1 NC auxiliary; coil ${vcoil} V ${coil === 'ac' ? 'AC 50 Hz' : 'DC'}`,
+  model: { ac3, coil, vcoil, rcoil, lcoil },
+});
+export const CONTACTORS: NamedModel<ContactorModel>[] = [
+  ctr(9, 'ac', 230, 600, 20), ctr(18, 'ac', 230, 450, 16), ctr(32, 'ac', 230, 300, 12), ctr(65, 'ac', 230, 150, 6), ctr(95, 'ac', 230, 100, 4),
+  ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
+];
+
+/** Comparators with open-collector outputs. */
+export const COMPARATORS: NamedModel<{ gain: number; tresp: number; isink: number }>[] = [
+  { name: 'LM393', note: 'dual comparator, open collector, 2 to 36 V, gain 200 V/mV, 1.3 µs', model: { gain: 2e5, tresp: 1.3e-6, isink: 0.016 } },
+  { name: 'LM339', note: 'quad comparator, open collector, 2 to 36 V, gain 200 V/mV, 1.3 µs', model: { gain: 2e5, tresp: 1.3e-6, isink: 0.016 } },
+];
+
+/** PV modules at standard test conditions (1000 W/m², 25 °C cells, AM 1.5): typical datasheet
+ *  values of each module class. The single-diode model is fitted to them (pvFit). */
+export interface PvModel { cells: number; voc: number; isc: number; vmp: number; imp: number; kIsc: number; kVoc: number }
+export const PV_MODULES: NamedModel<PvModel>[] = [
+  { name: '100 Wp, 36 cells', note: '12 V class module: Voc 22.0 V, Isc 5.90 A, Vmp 18.0 V, Imp 5.56 A', model: { cells: 36, voc: 22.0, isc: 5.90, vmp: 18.0, imp: 5.56, kIsc: 0.0005, kVoc: -0.0031 } },
+  { name: '280 Wp, 60 cells poly', note: 'Voc 38.5 V, Isc 9.40 A, Vmp 31.5 V, Imp 8.89 A', model: { cells: 60, voc: 38.5, isc: 9.40, vmp: 31.5, imp: 8.89, kIsc: 0.0005, kVoc: -0.0031 } },
+  { name: '410 Wp, 108 half-cells mono', note: 'Voc 37.4 V, Isc 13.9 A, Vmp 31.3 V, Imp 13.1 A', model: { cells: 54, voc: 37.4, isc: 13.9, vmp: 31.3, imp: 13.1, kIsc: 0.00048, kVoc: -0.0027 } },
+  { name: '550 Wp, 144 half-cells mono', note: 'Voc 49.6 V, Isc 14.0 A, Vmp 41.6 V, Imp 13.2 A', model: { cells: 72, voc: 49.6, isc: 14.0, vmp: 41.6, imp: 13.2, kIsc: 0.00048, kVoc: -0.0027 } },
+];
+
+/** Single-diode PV model at 25 °C fitted to Voc, Isc and the maximum power point: the diode
+ *  ideality n (per cell) and series resistance Rs are chosen so that the curve passes through
+ *  (Vmp, Imp) with dP/dV = 0 there; Rsh = 50 Ω per cell (typical shunt of crystalline cells). */
+export function pvFit(m: PvModel): { n: number; rs: number; rsh: number; is: number } {
+  const vt = (1.38064852e-23 * 298.15) / 1.6021766208e-19, rsh = 50 * m.cells;
+  const at = (n: number) => {
+    const a = n * m.cells * vt;
+    const is = (m.isc - m.voc / rsh) / (Math.exp(m.voc / a) - 1);
+    // Imp = Isc − Is(e^((Vmp + Imp·Rs)/a) − 1) − (Vmp + Imp·Rs)/Rsh, solved for Rs by bisection
+    const f = (rs: number) => m.isc - is * (Math.exp((m.vmp + m.imp * rs) / a) - 1) - (m.vmp + m.imp * rs) / rsh - m.imp;
+    let lo = 0, hi = 2;
+    for (let k = 0; k < 100; k++) { const mid = (lo + hi) / 2; if (f(mid) > 0) lo = mid; else hi = mid; }
+    const rs = (lo + hi) / 2;
+    // dI/dV of the model at the MPP, from the implicit equation
+    const e = (is / a) * Math.exp((m.vmp + m.imp * rs) / a) + 1 / rsh;
+    const dIdV = -e / (1 + e * rs);
+    return { is, rs, dPdV: m.imp + m.vmp * dIdV, f0: f(0) };
+  };
+  // the largest n with a positive Rs (above it the curve cannot reach Imp at Vmp) …
+  let lo = 0.8, hi = 3;
+  for (let k = 0; k < 100; k++) { const mid = (lo + hi) / 2; if (at(mid).f0 > 0) lo = mid; else hi = mid; }
+  // … and below it the n where the maximum power point lies at Vmp (dP/dV rises with n)
+  hi = lo; lo = 0.8;
+  for (let k = 0; k < 100; k++) { const mid = (lo + hi) / 2; if (at(mid).dPdV > 0) hi = mid; else lo = mid; }
+  const n = (lo + hi) / 2, r = at(n);
+  return { n, rs: r.rs, rsh, is: r.is };
+}
+
+/** Tapped autotransformers (core and winding): rated power, the tap voltages at nominal flux
+ *  (the common N end is 0 V), magnetising current about 2 % of the rated current. */
+export interface AutoTransformerModel { va: number; taps: number[]; f: number }
+export const AUTOTRANSFORMERS: NamedModel<AutoTransformerModel>[] = [
+  { name: '1 kVA 230 V, taps 150–280 V', note: 'toroidal autotransformer for a relay-switched stabiliser: taps 150, 170, 190, 210, 230, 250, 280 V', model: { va: 1000, taps: [150, 170, 190, 210, 230, 250, 280], f: 50 } },
+  { name: '5 kVA 230 V, taps 150–280 V', note: 'as above, 5 kVA', model: { va: 5000, taps: [150, 170, 190, 210, 230, 250, 280], f: 50 } },
+];
+
+/** Half-bridge gate drivers: one input, high and low outputs with a fixed dead time. */
+export const GATE_DRIVERS: NamedModel<{ ron: number; dead: number; vbmax: number }>[] = [
+  { name: 'IR2184-type 600 V', note: 'half-bridge driver, 600 V bootstrap, 1.4/1.8 A, 0.5 µs dead time, input IN (HO follows it, LO the inverse)', model: { ron: 10, dead: 0.5e-6, vbmax: 600 } },
+];
+
+/** Power semiconductors for inverters and chargers (datasheet ratings). */
+export const POWER_MOSFETS: NamedModel<MosModel>[] = [
+  // RDS(on) = 1/(KP·(VGS − VTO)) at VGS = 10 V
+  { name: 'IRFP4468', note: 'N-channel 100 V / 195 A (TO-247), RDS(on) ≈ 2.0 mΩ: 24–48 V inverter and charger bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 71, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
+  { name: 'IRFP4110', note: 'N-channel 100 V / 120 A (TO-247), RDS(on) ≈ 3.7 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 39, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
+  { name: 'IRFB4115', note: 'N-channel 150 V / 104 A (TO-220), RDS(on) ≈ 9.3 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 15.4, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
+  { name: 'IPW65R041', note: 'N-channel 650 V / 68 A superjunction (TO-247), RDS(on) ≈ 41 mΩ: 400 V bus bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.5, kp: 3.8, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
+];
+MOSFETS.push(...POWER_MOSFETS);
+
+// IGBT modules for 400 V three-phase inverters (DC bus 650–700 V): one switch of a half-bridge
+// module, VCE(sat) ≈ 1.75 V at the rated current with VGE = 15 V
+const module = (a: number): NamedModel<IgbtModel> => ({
+  name: `Module 1200 V ${a} A`, note: `one switch (with its anti-parallel diode) of a 1200 V / ${a} A half-bridge IGBT module; VCE(sat) ≈ 1.75 V, VGE(th) ≈ 5.8 V`,
+  model: { vto: 5.8, kp: Number((a / 2 / (1.05 * (9.2 - 0.525))).toFixed(3)), bf: 1, is: 1e-10 * (a / 40), diode: { is: 1e-9 * (a / 40), n: 1.5, rs: 0.8 / a } },
+});
+IGBTS.push(module(100), module(200), module(450));

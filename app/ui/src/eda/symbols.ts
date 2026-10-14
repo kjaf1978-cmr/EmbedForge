@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, BJTS, BRIDGES, DIODES, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, REGULATORS, RELAYS, SHUNT_REFS, TVS, ZENERS, findModel } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -38,7 +38,7 @@ export function outOfLimits(def: ParamDef, v: number): string | null {
   return null;
 }
 
-export type Category = 'Passive' | 'Sources' | 'Semiconductors' | 'Integrated circuits' | 'Logic' | 'Switches' | 'Motors' | 'Power';
+export type Category = 'Passive' | 'Sources' | 'Semiconductors' | 'Integrated circuits' | 'Logic' | 'Switches' | 'Motors' | 'Installation' | 'Power';
 
 export interface SymbolDef {
   id: string;
@@ -439,6 +439,26 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(SHUNT_REFS.map((m) => m.name)), default: 'TL431' }, params: [],
   },
   {
+    id: 'comparator', name: 'Comparator', category: 'Integrated circuits', keywords: ['u', 'comparator', 'lm393', 'lm339', 'window', 'threshold', 'open collector'], prefix: 'U',
+    description: 'Voltage comparator with an open-collector output (LM393 pin-out: 3 +, 2 −, 1 OUT, 8 V+, 4 GND): the output transistor pulls OUT to GND while − is above +; a pull-up resistor gives the high level.',
+    pins: [{ id: '3', name: '+', x: -40, y: -10, type: 'input' }, { id: '2', name: '−', x: -40, y: 10, type: 'input' }, { id: '1', name: 'OUT', x: 40, y: 0, type: 'output' },
+      { id: '8', name: 'V+', x: 0, y: -30, type: 'power_in' }, { id: '4', name: 'GND', x: 0, y: 30, type: 'power_in' }],
+    refAt: { x: 16, y: -20 }, valAt: { x: 16, y: 26 }, simulated: true,
+    gfx: () => [path('M -40 -10 H -20 M -40 10 H -20 M 20 0 H 40 M 0 -30 V -10 M 0 30 V 10'), path('M -20 -20 L 20 0 L -20 20 Z', 'bg'), text(-14, -6, '+', 9), text(-14, 13, '−', 9),
+      path('M 6 -3 L 10 0 L 6 3', 'none', 0.8)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(COMPARATORS.map((m) => m.name)), default: 'LM393' }, params: [],
+  },
+  {
+    id: 'hbdriver', name: 'Half-bridge gate driver', category: 'Integrated circuits', keywords: ['u', 'gate driver', 'half bridge', 'bootstrap', 'ir2184', 'ir2110', 'mosfet driver', 'igbt driver', 'inverter'], prefix: 'U',
+    description: 'Half-bridge gate driver (IR2184 pin-out: 1 IN, 3 COM, 4 LO, 5 VS, 6 HO, 7 VB, 8 VCC): HO (between VB and VS, supplied by a bootstrap diode and capacitor) follows IN, LO the inverse, with a dead time of 0.5 µs between them. Logic high above 3.3 V.',
+    pins: [{ id: '1', name: 'IN', x: -40, y: 0, type: 'input' }, { id: '8', name: 'VCC', x: -20, y: -40, type: 'power_in' }, { id: '3', name: 'COM', x: -20, y: 40, type: 'power_in' },
+      { id: '7', name: 'VB', x: 40, y: -30, type: 'power_in' }, { id: '6', name: 'HO', x: 40, y: -10, type: 'output' }, { id: '5', name: 'VS', x: 40, y: 10, type: 'passive' }, { id: '4', name: 'LO', x: 40, y: 30, type: 'output' }],
+    refAt: { x: 0, y: -46 }, valAt: { x: 0, y: 52 }, simulated: true,
+    gfx: () => [path('M -40 0 H -26 M -20 -40 V -34 M -20 40 V 34 M 26 -30 H 40 M 26 -10 H 40 M 26 10 H 40 M 26 30 H 40'), path('M -26 -34 H 26 V 34 H -26 Z', 'bg'),
+      text(-16, 3, 'IN', 6), text(-20, -27, 'VCC', 5), text(-20, 31, 'COM', 5), text(18, -27, 'VB', 5), text(18, -7, 'HO', 5), text(18, 13, 'VS', 5), text(18, 33, 'LO', 5)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(GATE_DRIVERS.map((m) => m.name)), default: GATE_DRIVERS[0].name }, params: [],
+  },
+  {
     id: 'lm317', name: 'Adjustable regulator', category: 'Integrated circuits', keywords: ['u', 'lm317', 'adjustable', 'regulator', 'variable supply'], prefix: 'U',
     description: 'Adjustable linear regulator (pins as TO-220 LM317: 1 ADJ, 2 OUT, 3 IN). OUT stays 1.25 V above ADJ: Vout = 1.25 V × (1 + R2/R1) with R1 from OUT to ADJ and R2 from ADJ to ground.',
     pins: [{ id: '3', name: 'IN', x: -40, y: 0, type: 'power_in' }, { id: '1', name: 'ADJ', x: 0, y: 30, type: 'input' }, { id: '2', name: 'OUT', x: 40, y: 0, type: 'power_out' }],
@@ -561,6 +581,115 @@ export const SYMBOLS: SymbolDef[] = [
     params: [],
   },
   {
+    id: 'mov', name: 'Varistor (MOV)', category: 'Installation', keywords: ['rv', 'mov', 'varistor', 'surge', 'spd', 'overvoltage', 'protection', 'lightning'], prefix: 'RV',
+    description: 'Metal-oxide varistor or type 2/3 surge protective device: almost no current up to its continuous voltage, then a steep rise that clamps the surge (i = 1 mA·(v/Vn)^α, α from the datasheet clamping voltage).',
+    pins: two('1', '2'), ...H, simulated: true,
+    gfx: () => [path('M -30 0 H -14 M 14 0 H 30'), path('M -14 -6 H 14 V 6 H -14 Z', 'bg'), path('M -16 9 L -10 9 L 12 -9', 'none', 1.2), text(12, -12, 'U', 6)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(VARISTORS.map((m) => m.name)), default: '14D471K' }, params: [],
+  },
+  {
+    id: 'gdt', name: 'Gas discharge tube / spark gap', category: 'Installation', keywords: ['gdt', 'gas discharge', 'arrester', 'spark gap', 'surge', 'lightning', 'type 1', 'n-pe'], prefix: 'GDT',
+    description: 'Gas discharge tube or type 1 spark gap: open until the voltage exceeds its spark-over voltage, then an arc of about 20 V until the current falls below the holdover current.',
+    pins: two('1', '2'), ...H, simulated: true,
+    gfx: () => [path('M -30 0 H -6 M 6 0 H 30 M -6 -7 V 7 M 6 -7 V 7', 'none', 1.6), circle(0, 0, 11), circle(-2, 4, 0.8, fg), circle(2, -3, 0.8, fg)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(GDTS.map((m) => m.name)), default: 'GDT 230 V' }, params: [],
+  },
+  {
+    id: 'breaker1', name: 'Circuit breaker 1-pole', category: 'Installation', keywords: ['q', 'f', 'mcb', 'breaker', 'circuit breaker', 'protection', 'overcurrent'], prefix: 'Q',
+    description: 'Miniature circuit breaker, 1-pole: closed until it trips. Magnetic trip at the guaranteed instantaneous value of the curve (B 5 × In, C 10 × In, D 20 × In; r.m.s. of a sine), thermal trip by an I² integrator (2.55 × In after about 20 s, never at 1.13 × In, as IEC 60898). Click it while simulating to switch it on again.',
+    pins: [{ id: '1', name: 'L1 in', x: 0.0, y: -30, type: 'passive' }, { id: '2', name: 'L1 out', x: 0.0, y: 30, type: 'passive' }],
+    refAt: { x: 14.0, y: -6 }, valAt: { x: 14.0, y: 8 }, simulated: true, interactive: 'toggle',
+    gfx: () => [path('M 0.0 -30 V -12 M 0.0 12 V 30 M 0.0 12 L -8.0 -10', 'none', 1.6), path('M -3.0 -15 L 3.0 -9 M 3.0 -15 L -3.0 -9'), path('M -6.0 0 H -4.0', 'none', 0.8)],
+    value: { key: 'value', label: 'Rated current In', kind: 'select', unit: 'A', options: BREAKER_A.map((a) => ({ value: String(a), label: `${a} A` })), default: '16' },
+    params: [{ key: 'curve', label: 'Trip curve', kind: 'select', options: [{ value: 'B', label: 'B (3–5 × In: resistive loads, long cables)' }, { value: 'C', label: 'C (5–10 × In: general, motors)' }, { value: 'D', label: 'D (10–20 × In: transformers, high inrush)' }], default: 'C' }, { key: 'closed', label: 'Switched on', kind: 'bool', default: 'true' }],
+  },
+  {
+    id: 'breaker2', name: 'Circuit breaker 1-pole + N', category: 'Installation', keywords: ['q', 'f', 'mcb', 'breaker', 'circuit breaker', 'protection', 'overcurrent', 'rcd', 'rcbo', 'residual'], prefix: 'Q',
+    description: 'Miniature circuit breaker, 1-pole + N: closed until it trips. Magnetic trip at the guaranteed instantaneous value of the curve (B 5 × In, C 10 × In, D 20 × In; r.m.s. of a sine), thermal trip by an I² integrator (2.55 × In after about 20 s, never at 1.13 × In, as IEC 60898); with a residual-current trip on the sum of the pole currents. Click it while simulating to switch it on again.',
+    pins: [{ id: '1', name: 'L1 in', x: -10.0, y: -30, type: 'passive' }, { id: '2', name: 'L1 out', x: -10.0, y: 30, type: 'passive' }, { id: 'N1', name: 'N in', x: 10.0, y: -30, type: 'passive' }, { id: 'N2', name: 'N out', x: 10.0, y: 30, type: 'passive' }],
+    refAt: { x: 24.0, y: -6 }, valAt: { x: 24.0, y: 8 }, simulated: true, interactive: 'toggle',
+    gfx: () => [path('M -10.0 -30 V -12 M -10.0 12 V 30 M -10.0 12 L -18.0 -10', 'none', 1.6), path('M -13.0 -15 L -7.0 -9 M -7.0 -15 L -13.0 -9'), path('M 10.0 -30 V -12 M 10.0 12 V 30 M 10.0 12 L 2.0 -10', 'none', 1.6), path('M 7.0 -15 L 13.0 -9 M 13.0 -15 L 7.0 -9'), path('M -16.0 0 H 6.0', 'none', 0.8)],
+    value: { key: 'value', label: 'Rated current In', kind: 'select', unit: 'A', options: BREAKER_A.map((a) => ({ value: String(a), label: `${a} A` })), default: '16' },
+    params: [{ key: 'curve', label: 'Trip curve', kind: 'select', options: [{ value: 'B', label: 'B (3–5 × In: resistive loads, long cables)' }, { value: 'C', label: 'C (5–10 × In: general, motors)' }, { value: 'D', label: 'D (10–20 × In: transformers, high inrush)' }], default: 'C' }, { key: 'rcd', label: 'Residual current trip (RCD)', kind: 'select', options: [{ value: '0', label: 'none (MCB only)' }, { value: '30m', label: '30 mA (personal protection)' }, { value: '100m', label: '100 mA' }, { value: '300m', label: '300 mA (fire protection)' }], default: '30m' }, { key: 'closed', label: 'Switched on', kind: 'bool', default: 'true' }],
+  },
+  {
+    id: 'breaker3', name: 'Circuit breaker 3-pole', category: 'Installation', keywords: ['q', 'f', 'mcb', 'breaker', 'circuit breaker', 'protection', 'overcurrent', 'three phase', '3 phase'], prefix: 'Q',
+    description: 'Miniature circuit breaker, 3-pole: closed until it trips. Magnetic trip at the guaranteed instantaneous value of the curve (B 5 × In, C 10 × In, D 20 × In; r.m.s. of a sine), thermal trip by an I² integrator (2.55 × In after about 20 s, never at 1.13 × In, as IEC 60898). Click it while simulating to switch it on again.',
+    pins: [{ id: '1', name: 'L1 in', x: -20.0, y: -30, type: 'passive' }, { id: '2', name: 'L1 out', x: -20.0, y: 30, type: 'passive' }, { id: '3', name: 'L2 in', x: 0.0, y: -30, type: 'passive' }, { id: '4', name: 'L2 out', x: 0.0, y: 30, type: 'passive' }, { id: '5', name: 'L3 in', x: 20.0, y: -30, type: 'passive' }, { id: '6', name: 'L3 out', x: 20.0, y: 30, type: 'passive' }],
+    refAt: { x: 34.0, y: -6 }, valAt: { x: 34.0, y: 8 }, simulated: true, interactive: 'toggle',
+    gfx: () => [path('M -20.0 -30 V -12 M -20.0 12 V 30 M -20.0 12 L -28.0 -10', 'none', 1.6), path('M -23.0 -15 L -17.0 -9 M -17.0 -15 L -23.0 -9'), path('M 0.0 -30 V -12 M 0.0 12 V 30 M 0.0 12 L -8.0 -10', 'none', 1.6), path('M -3.0 -15 L 3.0 -9 M 3.0 -15 L -3.0 -9'), path('M 20.0 -30 V -12 M 20.0 12 V 30 M 20.0 12 L 12.0 -10', 'none', 1.6), path('M 17.0 -15 L 23.0 -9 M 23.0 -15 L 17.0 -9'), path('M -26.0 0 H 16.0', 'none', 0.8)],
+    value: { key: 'value', label: 'Rated current In', kind: 'select', unit: 'A', options: BREAKER_A.map((a) => ({ value: String(a), label: `${a} A` })), default: '16' },
+    params: [{ key: 'curve', label: 'Trip curve', kind: 'select', options: [{ value: 'B', label: 'B (3–5 × In: resistive loads, long cables)' }, { value: 'C', label: 'C (5–10 × In: general, motors)' }, { value: 'D', label: 'D (10–20 × In: transformers, high inrush)' }], default: 'C' }, { key: 'closed', label: 'Switched on', kind: 'bool', default: 'true' }],
+  },
+  {
+    id: 'breaker4', name: 'Circuit breaker 3-pole + N', category: 'Installation', keywords: ['q', 'f', 'mcb', 'breaker', 'circuit breaker', 'protection', 'overcurrent', 'rcd', 'rcbo', 'residual', 'three phase', '3 phase'], prefix: 'Q',
+    description: 'Miniature circuit breaker, 3-pole + N: closed until it trips. Magnetic trip at the guaranteed instantaneous value of the curve (B 5 × In, C 10 × In, D 20 × In; r.m.s. of a sine), thermal trip by an I² integrator (2.55 × In after about 20 s, never at 1.13 × In, as IEC 60898); with a residual-current trip on the sum of the pole currents. Click it while simulating to switch it on again.',
+    pins: [{ id: '1', name: 'L1 in', x: -30.0, y: -30, type: 'passive' }, { id: '2', name: 'L1 out', x: -30.0, y: 30, type: 'passive' }, { id: '3', name: 'L2 in', x: -10.0, y: -30, type: 'passive' }, { id: '4', name: 'L2 out', x: -10.0, y: 30, type: 'passive' }, { id: '5', name: 'L3 in', x: 10.0, y: -30, type: 'passive' }, { id: '6', name: 'L3 out', x: 10.0, y: 30, type: 'passive' }, { id: 'N1', name: 'N in', x: 30.0, y: -30, type: 'passive' }, { id: 'N2', name: 'N out', x: 30.0, y: 30, type: 'passive' }],
+    refAt: { x: 44.0, y: -6 }, valAt: { x: 44.0, y: 8 }, simulated: true, interactive: 'toggle',
+    gfx: () => [path('M -30.0 -30 V -12 M -30.0 12 V 30 M -30.0 12 L -38.0 -10', 'none', 1.6), path('M -33.0 -15 L -27.0 -9 M -27.0 -15 L -33.0 -9'), path('M -10.0 -30 V -12 M -10.0 12 V 30 M -10.0 12 L -18.0 -10', 'none', 1.6), path('M -13.0 -15 L -7.0 -9 M -7.0 -15 L -13.0 -9'), path('M 10.0 -30 V -12 M 10.0 12 V 30 M 10.0 12 L 2.0 -10', 'none', 1.6), path('M 7.0 -15 L 13.0 -9 M 13.0 -15 L 7.0 -9'), path('M 30.0 -30 V -12 M 30.0 12 V 30 M 30.0 12 L 22.0 -10', 'none', 1.6), path('M 27.0 -15 L 33.0 -9 M 33.0 -15 L 27.0 -9'), path('M -36.0 0 H 26.0', 'none', 0.8)],
+    value: { key: 'value', label: 'Rated current In', kind: 'select', unit: 'A', options: BREAKER_A.map((a) => ({ value: String(a), label: `${a} A` })), default: '16' },
+    params: [{ key: 'curve', label: 'Trip curve', kind: 'select', options: [{ value: 'B', label: 'B (3–5 × In: resistive loads, long cables)' }, { value: 'C', label: 'C (5–10 × In: general, motors)' }, { value: 'D', label: 'D (10–20 × In: transformers, high inrush)' }], default: 'C' }, { key: 'rcd', label: 'Residual current trip (RCD)', kind: 'select', options: [{ value: '0', label: 'none (MCB only)' }, { value: '30m', label: '30 mA (personal protection)' }, { value: '100m', label: '100 mA' }, { value: '300m', label: '300 mA (fire protection)' }], default: '30m' }, { key: 'closed', label: 'Switched on', kind: 'bool', default: 'true' }],
+  },
+  {
+    id: 'contactor', name: 'Contactor', category: 'Installation', keywords: ['k', 'km', 'contactor', 'three phase', 'motor starter', 'change-over', 'ats', 'power relay'], prefix: 'K',
+    description: 'Contactor: three main contacts (1–2, 3–4, 5–6) and auxiliary contacts 13–14 (NO) and 21–22 (NC), closed while the coil A1–A2 is energised. Pull-in at 85 %, drop-out at 40 % of the rated coil current, with the armature\'s inertia (an AC coil holds through the zero crossings).',
+    pins: [{ id: 'A1', name: 'A1', x: -60, y: -20, type: 'passive' }, { id: 'A2', name: 'A2', x: -60, y: 20, type: 'passive' },
+      { id: '1', name: '1/L1', x: -30, y: -30, type: 'passive' }, { id: '2', name: '2/T1', x: -30, y: 30, type: 'passive' },
+      { id: '3', name: '3/L2', x: -10, y: -30, type: 'passive' }, { id: '4', name: '4/T2', x: -10, y: 30, type: 'passive' },
+      { id: '5', name: '5/L3', x: 10, y: -30, type: 'passive' }, { id: '6', name: '6/T3', x: 10, y: 30, type: 'passive' },
+      { id: '13', name: '13', x: 30, y: -30, type: 'passive' }, { id: '14', name: '14 NO', x: 30, y: 30, type: 'passive' },
+      { id: '21', name: '21', x: 50, y: -30, type: 'passive' }, { id: '22', name: '22 NC', x: 50, y: 30, type: 'passive' }],
+    refAt: { x: 0, y: -40 }, valAt: { x: 0, y: 46 }, simulated: true,
+    gfx: () => [path('M -60 -20 H -50 V -8 M -60 20 H -50 V 8'), path('M -56 -8 H -44 V 8 H -56 Z', 'bg'),
+      ...[-30, -10, 10, 30].map((x) => path(`M ${x} -30 V -8 M ${x} 8 V 30 M ${x} 8 L ${x - 7} -7`, 'none', 1.6)),
+      path('M 50 -30 V -8 M 50 8 V 30 M 50 -8 L 44 8', 'none', 1.6), path('M -44 0 H 46', 'none', 0.8)],
+    value: { key: 'value', label: 'Size and coil', kind: 'select', options: opts(CONTACTORS.map((m) => m.name)), default: CONTACTORS[0].name }, params: [],
+  },
+  {
+    id: 'pv', name: 'Solar (PV) module', category: 'Installation', keywords: ['pv', 'solar', 'photovoltaic', 'panel', 'module', 'array', 'string'], prefix: 'PV',
+    description: 'Photovoltaic module or array: single-diode model fitted to the datasheet values at standard test conditions (Voc, Isc, Vmp, Imp); the current follows the irradiance and the cells follow the circuit temperature. Several modules in series (string) and strings in parallel make an array.',
+    pins: vert(), ...VV, simulated: true,
+    gfx: () => [path('M 0 -30 V -18 M 0 18 V 30'), path('M -16 -18 H 16 V 18 H -16 Z', 'bg'), path('M -16 -6 H 16 M -16 6 H 16 M -5 -18 V 18 M 5 -18 V 18', 'none', 0.6),
+      path('M -26 -26 L -18 -18 M -22 -28 L -14 -20', 'none', 1), text(-8, -22, '+', 8)],
+    value: { key: 'value', label: 'Module', kind: 'select', options: opts(PV_MODULES.map((m) => m.name)), default: PV_MODULES[2].name },
+    params: [
+      { key: 'g', label: 'Irradiance', kind: 'value', unit: 'W/m²', default: '1000', help: '1000 W/m² = full sun (standard test conditions)', limits: { ge: 0, le: 1400, text: 'must be from 0 to 1400 W/m²' } },
+      { key: 'ns', label: 'Modules in series (string)', kind: 'value', default: '1', limits: { ge: 1, le: 40, text: 'must be from 1 to 40' } },
+      { key: 'np', label: 'Strings in parallel', kind: 'value', default: '1', limits: { ge: 1, le: 40, text: 'must be from 1 to 40' } },
+    ],
+  },
+  {
+    id: 'autotransformer', name: 'Autotransformer, tapped', category: 'Installation', keywords: ['t', 'autotransformer', 'tapped', 'taps', 'stabiliser', 'stabilizer', 'avr', 'variac'], prefix: 'T',
+    description: 'Tapped autotransformer: one winding from N with taps T1–T7 at the voltages of the model (at nominal flux). A relay-switched mains stabiliser connects the input to one tap and takes the output from another.',
+    pins: [{ id: 'N', name: 'N', x: -20, y: 40, type: 'passive' }, ...[1, 2, 3, 4, 5, 6, 7].map((k) => ({ id: `T${k}`, name: `T${k}`, x: 20, y: 40 - k * 10, type: 'passive' as const }))],
+    refAt: { x: -28, y: -24 }, valAt: { x: -28, y: -12 }, simulated: true,
+    gfx: () => [path('M -20 40 V 30 H 0'), path('M 0 34 Q 8 30 0 26 Q 8 22 0 18 Q 8 14 0 10 Q 8 6 0 2 Q 8 -2 0 -6 Q 8 -10 0 -14 Q 8 -18 0 -22 Q 8 -26 0 -30'),
+      path('M -6 34 V -32 M -9 34 V -32', 'none', 0.8), ...[1, 2, 3, 4, 5, 6, 7].map((k) => path(`M 4 ${40 - k * 10} H 20`, 'none', 1))],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(AUTOTRANSFORMERS.map((m) => m.name)), default: AUTOTRANSFORMERS[0].name }, params: [],
+  },
+  {
+    id: 'vsurge', name: 'Surge generator, voltage 1.2/50 µs', category: 'Sources', keywords: ['surge', 'impulse', 'lightning', 'combination wave', '1.2/50', 'iec 61000-4-5', 'test'], prefix: 'VS',
+    description: 'Surge test generator (IEC 61000-4-5 combination wave, open-circuit voltage 1.2/50 µs) with its source impedance: 2 Ω line to line, 12 Ω line to earth. A test source: not a part of the product.',
+    pins: vert(), ...VV, simulated: true,
+    gfx: () => [path('M 0 -30 V -15 M 0 15 V 30'), circle(0, 0, 15, 'bg'), path('M -9 6 L -6 -8 L 9 6', 'none', 1.4), text(0, -18, '+', 8)],
+    value: { key: 'value', label: 'Open-circuit peak voltage', kind: 'value', unit: 'V', default: '4k', limits: { gt: 0, le: 30e3, text: 'must be above 0 and at most 30 kV' } },
+    params: [
+      { key: 'rsrc', label: 'Source impedance', kind: 'select', options: [{ value: '2', label: '2 Ω (line to line)' }, { value: '12', label: '12 Ω (line to earth)' }, { value: '42', label: '42 Ω (data lines)' }], default: '2' },
+      { key: 'delay', label: 'Delay', kind: 'value', unit: 's', default: '0' },
+    ],
+  },
+  {
+    id: 'isurge', name: 'Surge generator, current 8/20 or 10/350 µs', category: 'Sources', keywords: ['surge', 'impulse current', 'lightning', '8/20', '10/350', 'iimp', 'in', 'test'], prefix: 'IS',
+    description: 'Impulse current generator: 8/20 µs (IEC 61000-4-5, the nominal discharge current of type 2 SPDs) or 10/350 µs (the lightning impulse current of type 1 SPDs). Current flows out of "out". A test source: not a part of the product.',
+    pins: two('out', 'in', 'power_out').map((p) => ({ ...p, id: p.name === 'out' ? '1' : '2' })), ...H, simulated: true,
+    gfx: () => [path('M -30 0 H -15 M 15 0 H 30'), circle(0, 0, 15, 'bg'), path('M -8 6 L -5 -8 L 8 6', 'none', 1.4), path('M 18 -6 L 26 -6'), arrowHead(18, -6, 27, -6, 4, 2)],
+    value: { key: 'value', label: 'Peak current', kind: 'value', unit: 'A', default: '20k', limits: { gt: 0, le: 200e3, text: 'must be above 0 and at most 200 kA' } },
+    params: [
+      { key: 'wave', label: 'Wave shape', kind: 'select', options: [{ value: '8/20', label: '8/20 µs (induced surge, In / Imax)' }, { value: '10/350', label: '10/350 µs (direct lightning, Iimp)' }], default: '8/20' },
+      { key: 'delay', label: 'Delay', kind: 'value', unit: 's', default: '0' },
+    ],
+  },
+  {
     id: 'gnd', name: 'Ground', category: 'Power', keywords: ['gnd', 'ground', '0v', 'earth', 'common'], prefix: '#PWR',
     description: 'Ground (0 V). Every circuit needs one; all ground symbols are connected.',
     pins: [{ id: '1', name: 'GND', x: 0, y: 0, type: 'power_in' }], refAt: { x: 0, y: 40 }, valAt: { x: 0, y: 32 }, power: true, simulated: true,
@@ -585,7 +714,7 @@ export function symbolOf(id: string): SymbolDef {
   return s;
 }
 
-export const CATEGORIES: Category[] = ['Passive', 'Sources', 'Semiconductors', 'Integrated circuits', 'Logic', 'Switches', 'Motors', 'Power'];
+export const CATEGORIES: Category[] = ['Passive', 'Sources', 'Semiconductors', 'Integrated circuits', 'Logic', 'Switches', 'Motors', 'Installation', 'Power'];
 
 /** Part picker search (UI-08 (a)): every word must match name, keywords, category or a model. */
 export function searchSymbols(q: string): SymbolDef[] {

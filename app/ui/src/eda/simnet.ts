@@ -5,7 +5,8 @@ import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, 
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, BJTS, BRIDGES, DIODES, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, REGULATORS, RELAYS, SHUNT_REFS, TVS, ZENERS, findModel, ledModel, tvsJunction } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
+import { satCurrent } from '../sim/engine';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
 import { pinPositions, sheetTemp, type Part, type Sheet, type SimSettings } from './schematic';
@@ -244,6 +245,146 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'dff':
       out.push({ kind: 'X', name: ref, fn: 'dff', ins: [pin['1'], pin['2']], outs: [pin['3'], pin['4']], vcc: logicRail(p) });
       break;
+    case 'mov': {
+      const m = findModel(VARISTORS, p.props.value).model;
+      out.push({ kind: 'Z', name: ref, a: pin['1'], b: pin['2'], vn: m.vn, alpha: varistorAlpha(m) });
+      break;
+    }
+    case 'gdt': {
+      const m = findModel(GDTS, p.props.value).model;
+      out.push({ kind: 'N', name: ref, a: pin['1'], b: pin['2'], vspark: m.vspark, varc: m.varc, ron: m.vspark > 1000 ? 0.002 : 0.02, ihold: m.ihold });
+      break;
+    }
+    case 'breaker1': case 'breaker2': case 'breaker3': case 'breaker4': {
+      const inom = v('value', 'rated current'), curve = p.props.curve ?? 'C';
+      const pairs = s.id === 'breaker1' ? [['1', '2']] : s.id === 'breaker2' ? [['1', '2'], ['N1', 'N2']] : s.id === 'breaker3' ? [['1', '2'], ['3', '4'], ['5', '6']] : [['1', '2'], ['3', '4'], ['5', '6'], ['N1', 'N2']];
+      const idn = s.id === 'breaker2' || s.id === 'breaker4' ? parseValue(p.props.rcd ?? '0') ?? 0 : 0;
+      // a few milliohms per pole: 80 mΩ·A / In (16 A: 5 mΩ)
+      out.push({ kind: 'Y', name: ref, poles: pairs.map(([a, b]) => ({ a: pin[a], b: pin[b] })), inom, mag: CURVE_MAG[curve] ?? 10, tau: 68, idn, ron: 0.08 / inom, closed: p.props.closed !== 'false' });
+      break;
+    }
+    case 'contactor': {
+      const m = findModel(CONTACTORS, p.props.value).model;
+      // coil: resistance and inductance; the armature is the coil current, rectified and
+      // smoothed (pull-in 5 ms, drop-out time constant 20 ms): 10 V at the rated current
+      const c = `${ref}#c`, ep = `${ref}#ep`, em = `${ref}#em`, arm = `${ref}#arm`, ar = `${ref}#ar`;
+      const w = 2 * Math.PI * 50, ipk = m.coil === 'ac' ? (Math.SQRT2 * m.vcoil) / Math.hypot(m.rcoil, w * m.lcoil) : m.vcoil / m.rcoil;
+      // 12.5 V before the 5 kΩ / 20 kΩ divider of the armature filter: 10 V on it at the rated current
+      const g = 12.5 / (ipk * m.rcoil);
+      const dm = { is: 1e-15, n: 0.1, rs: 0 };
+      out.push(
+        { kind: 'R', name: `${ref}_RC`, a: pin.A1, b: c, r: m.rcoil },
+        { kind: 'L', name: `${ref}_LC`, a: c, b: pin.A2, l: m.lcoil },
+        { kind: 'E', name: `${ref}_EP`, p: ep, n: '0', cp: pin.A1, cn: c, gain: g },
+        { kind: 'E', name: `${ref}_EM`, p: em, n: '0', cp: pin.A1, cn: c, gain: -g },
+        { kind: 'D', name: `${ref}_DP`, a: ep, k: ar, model: dm, fixedTemp: true },
+        { kind: 'D', name: `${ref}_DM`, a: em, k: ar, model: dm, fixedTemp: true },
+        { kind: 'R', name: `${ref}_RCH`, a: ar, b: arm, r: 5e3 },
+        { kind: 'C', name: `${ref}_CA`, a: arm, b: '0', c: 1e-6 },
+        { kind: 'R', name: `${ref}_RA`, a: arm, b: '0', r: 20e3 },
+      );
+      // pull-in at 8.5 V (85 %), drop-out at 4 V (40 %)
+      const sw = (name: string, a: string, b: string, nc = false) => out.push({ kind: 'S', name: `${ref}_${name}`, p: a, n: b, cp: arm, cn: '0', vt: 6.25, vh: 2.25, ron: nc ? 1e9 : 0.002, roff: nc ? 0.002 : 1e9 });
+      sw('K1', pin['1'], pin['2']); sw('K2', pin['3'], pin['4']); sw('K3', pin['5'], pin['6']); sw('NO', pin['13'], pin['14']); sw('NC', pin['21'], pin['22'], true);
+      break;
+    }
+    case 'comparator': {
+      const m = findModel(COMPARATORS, p.props.value).model;
+      const [inp, inn, o, vp, g] = [pin['3'], pin['2'], pin['1'], pin['8'], pin['4']];
+      const n1 = `${ref}#n1`, nh = `${ref}#nh`, b = `${ref}#b`, gm = 1e-3, r1 = m.gain / gm;
+      const dm = { is: 1e-15, n: 0.1, rs: 0 };
+      out.push(
+        // the output transistor conducts while − is above +: n1 = gain·(v− − v+), clamped to 0…1 V above GND
+        { kind: 'G', name: `${ref}_G1`, p: g, n: n1, cp: inn, cn: inp, gm },
+        { kind: 'R', name: `${ref}_R1`, a: n1, b: g, r: r1 },
+        // response time: 100 mV overdrive charges the node to 1 V in tresp
+        { kind: 'C', name: `${ref}_C1`, a: n1, b: g, c: (gm * 0.1 * m.tresp) / 1 },
+        { kind: 'V', name: `${ref}_VH`, p: nh, n: g, dc: 1 },
+        { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm, fixedTemp: true },
+        { kind: 'D', name: `${ref}_DL`, a: g, k: n1, model: dm, fixedTemp: true },
+        // buffered, so the base current does not load the amplifier node
+        { kind: 'E', name: `${ref}_EB`, p: `${ref}#o1`, n: g, cp: n1, cn: g, gain: 1 },
+        { kind: 'R', name: `${ref}_RB`, a: `${ref}#o1`, b, r: 1e3 },
+        { kind: 'Q', name: `${ref}_Q`, c: o, b, e: g, model: { type: 'npn', is: 1e-14, bf: 100, br: 1, nf: 1, nr: 1 }, fixedTemp: true },
+        { kind: 'R', name: `${ref}_RS`, a: vp, b: g, r: 5e3 },
+      );
+      break;
+    }
+    case 'pv': {
+      const m = findModel(PV_MODULES, p.props.value).model, f = pvFit(m);
+      const gIrr = Math.max(v('g', 'irradiance'), 0), ns = Math.max(1, Math.round(v('ns', 'modules in series'))), np = Math.max(1, Math.round(v('np', 'strings in parallel')));
+      // N cells in series behave as one diode with N times the emission coefficient; band gap
+      // and XTI scale with N too, so the temperature drift is that of one cell
+      const N = f.n * m.cells * ns, cellsN = m.cells * ns;
+      const isNom = (f.is * np) / satCurrent(1, N, 298.15, 3 * cellsN, 1.12 * cellsN);
+      const isc = m.isc * np * (gIrr / 1000) * (1 + m.kIsc * (temp - 25));
+      const j = `${ref}#j`;
+      out.push(
+        { kind: 'I', name: `${ref}_IPH`, p: pin['2'], n: j, dc: isc },
+        { kind: 'D', name: `${ref}_D`, a: j, k: pin['2'], model: { is: isNom, n: N, rs: 0, xti: 3 * cellsN, eg: 1.12 * cellsN } },
+        { kind: 'R', name: `${ref}_RSH`, a: j, b: pin['2'], r: (f.rsh * ns) / np },
+        { kind: 'R', name: `${ref}_RS`, a: j, b: pin['1'], r: Math.max((f.rs * ns) / np, 1e-6) },
+      );
+      break;
+    }
+    case 'autotransformer': {
+      const m = findModel(AUTOTRANSFORMERS, p.props.value).model;
+      const top = m.taps[m.taps.length - 1];
+      // magnetising current 2 % of the rated current at 230 V; copper loss 1 %
+      const lFull = (top / 230) ** 2 * (230 / (2 * Math.PI * m.f * (0.02 * m.va / 230)));
+      const rFull = (0.01 * 230 * 230) / m.va;
+      const nodes = [pin.N, ...m.taps.map((_, k) => pin[`T${k + 1}`])];
+      const segs: string[] = [];
+      for (let k = 0; k < m.taps.length; k++) {
+        const share = (m.taps[k] - (k ? m.taps[k - 1] : 0)) / top, mid = `${ref}#s${k}`;
+        out.push({ kind: 'R', name: `${ref}_R${k}`, a: nodes[k], b: mid, r: Math.max(rFull * share, 1e-6) }, { kind: 'L', name: `${ref}_L${k}`, a: mid, b: nodes[k + 1], l: lFull * share * share });
+        segs.push(`${ref}_L${k}`);
+      }
+      for (let i = 0; i < segs.length; i++) for (let j2 = i + 1; j2 < segs.length; j2++) out.push({ kind: 'K', name: `${ref}_K${i}_${j2}`, l1: segs[i], l2: segs[j2], k: 0.999 });
+      break;
+    }
+    case 'hbdriver': {
+      const m = findModel(GATE_DRIVERS, p.props.value).model;
+      const [inp, vcc, com, vb, ho, vs, lo] = [pin['1'], pin['8'], pin['3'], pin['7'], pin['6'], pin['5'], pin['4']];
+      // the input (0/5 V), delayed by an RC; HO is on above 3.7 V of it and LO below 1.3 V, so
+      // after either edge both are off for τ·(ln 4 − ln(5/3.65)) = 1.07·τ: τ from the dead time
+      const u0 = `${ref}#u0`, u = `${ref}#u`, tau = m.dead / 1.07;
+      out.push(
+        { kind: 'E', name: `${ref}_EIN`, p: u0, n: com, cp: inp, cn: com, gain: 1 },
+        { kind: 'R', name: `${ref}_RD`, a: u0, b: u, r: 1e3 },
+        { kind: 'C', name: `${ref}_CD`, a: u, b: com, c: tau / 1e3 },
+        { kind: 'S', name: `${ref}_SHU`, p: vb, n: ho, cp: u, cn: com, vt: 3.7, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SHD`, p: ho, n: vs, cp: com, cn: u, vt: -3.6, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SLU`, p: vcc, n: lo, cp: com, cn: u, vt: -1.3, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SLD`, p: lo, n: com, cp: u, cn: com, vt: 1.4, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'R', name: `${ref}_RQ`, a: vcc, b: com, r: 15e3 },
+        { kind: 'R', name: `${ref}_RBQ`, a: vb, b: vs, r: 150e3 },
+      );
+      break;
+    }
+    case 'vsurge': {
+      const vp = v('value', 'peak voltage'), rs = parseValue(p.props.rsrc ?? '2') ?? 2, td = v('delay', 'delay');
+      const mid = `${ref}#s`;
+      out.push(
+        // 1.2/50 µs: 1.037·Vp·(e^(−t/68.2 µs) − e^(−t/0.405 µs))
+        { kind: 'V', name: ref, p: mid, n: pin['2'], dc: 0, wave: { type: 'exp', v1: 0, v2: 1.0372 * vp, td1: td, tau1: 0.4042e-6, td2: td, tau2: 68.22e-6 } },
+        { kind: 'R', name: `${ref}_RS`, a: mid, b: pin['1'], r: rs },
+      );
+      break;
+    }
+    case 'isurge': {
+      const ip = v('value', 'peak current'), td = v('delay', 'delay');
+      if ((p.props.wave ?? '8/20') === '10/350') {
+        out.push({ kind: 'I', name: ref, p: pin['2'], n: pin['1'], dc: 0, wave: { type: 'exp', v1: 0, v2: 1.0514 * ip, td1: td, tau1: 4.064e-6, td2: td, tau2: 470.1e-6 } });
+      } else {
+        // 8/20 µs (IEC 61000-4-5): i = 0.01243·Ip·t³·e^(−t/3.911 µs), t in µs, sampled
+        const pts: [number, number][] = [[0, 0]];
+        for (let k = 1; k <= 160; k++) { const t = k < 80 ? k * 0.25 : 20 + (k - 80) * 1.0; pts.push([(td + t * 1e-6), ip * 0.01243 * t ** 3 * Math.exp(-t / 3.911)]); }
+        if (td > 0) pts.splice(1, 0, [td, 0]);
+        out.push({ kind: 'I', name: ref, p: pin['2'], n: pin['1'], dc: 0, wave: { type: 'pwl', pts } });
+      }
+      break;
+    }
     case 'ntc': {
       // R(T) = R25·exp(B·(1/T − 1/T25)) with T25 = 298.15 K
       const tk = temp + 273.15, r = Math.max(v('value', 'resistance') * Math.exp(v('beta', 'B value') * (1 / tk - 1 / 298.15)), 1e-6);

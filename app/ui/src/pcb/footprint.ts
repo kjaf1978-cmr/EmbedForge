@@ -140,7 +140,7 @@ add(soic('SOIC-8', 'SOIC-8', 8));
 // connectors: parts that are off the board are wired to a connector
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
-for (const n of [2, 3, 4, 8]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
+for (const n of [2, 3, 4, 6, 8, 12]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
 add(make('Bridge_Inline_4', 'Bridge rectifier, 4 inline legs 5.08 mm (+ ~ ~ −)', 'check the marking on the body: + ~ ~ −', [1, 2, 3, 4].map((k) => tht(String(k), -7.62 + (k - 1) * 5.08, 0, 2.2, 1.2, k === 1 ? 'rect' : 'circle')),
   box(-10, -2, 10, 2), { x0: -10, y0: -1.9, x1: 10, y1: 1.9, h: 15 }));
 // switches and relays
@@ -151,3 +151,11 @@ add(make('SW_Tactile_6mm', 'Push-button, tactile 6 × 6 mm', 'pads 1a/1b are one
   { x0: -3, y0: -3, x1: 3, y1: 3, h: 5 }));
 add(make('Relay_SPDT_SRD', 'Relay SPDT, SRD style (12 mm rows)', 'coil A1/A2, contacts COM, NC, NO', [tht('1', 2, -6, 2.5, 1.3), tht('2', 2, 6, 2.5, 1.3), tht('3', 0, 0, 2.5, 1.3, 'rect'), tht('4', 14.2, -6, 2.5, 1.3), tht('5', 14.2, 6, 2.5, 1.3)],
   box(-1.6, -8, 17.4, 8), { x0: -1.5, y0: -7.9, x1: 17.3, y1: 7.9, h: 15.5 }));
+// protection parts
+const movDisc = (id: string, name: string, pitch: number, D: number, t: number) =>
+  add(make(id, name, `varistor disc Ø ${D} mm, pitch ${pitch} mm`, [tht('1', -pitch / 2, 0, 2.0, 1.0, 'rect'), tht('2', pitch / 2, 0, 2.0, 1.0)],
+    box(-D / 2 - 0.2, -t / 2 - 0.2, D / 2 + 0.2, t / 2 + 0.2), { x0: -D / 2, y0: -t / 2, x1: D / 2, y1: t / 2, h: D + 3 }));
+movDisc('MOV_Disc_10', 'Varistor disc Ø 10 mm, 7.5 mm', 7.5, 12, 5);
+movDisc('MOV_Disc_14', 'Varistor disc Ø 14 mm, 7.5 mm', 7.5, 16, 6);
+movDisc('MOV_Disc_20', 'Varistor disc Ø 20 mm, 10 mm', 10, 22, 6.5);
+add(axial('GDT_Axial_8x6', 'Gas discharge tube 8 × 6 mm, axial, 15.24 mm', 15.24, 1.0, 2.0, 6, 8, 8));

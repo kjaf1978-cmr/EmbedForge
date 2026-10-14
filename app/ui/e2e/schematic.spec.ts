@@ -201,7 +201,8 @@ test('every part: place it, change every property, simulate; every analysis and 
   for (let z = 0; z < 5; z++) await kit.getByRole('button', { name: 'Zoom out' }).click();
   for (const [k, name] of names.entries()) {
     await pick(page, name);
-    await click(page, (k % 7 - 3) * 160, (Math.floor(k / 7) - 1.5) * 160);
+    // 9 columns, so every part of the library lands on the canvas
+    await click(page, (k % 9 - 4) * 120, (Math.floor(k / 9) - 1.5) * 120);
     await page.keyboard.press('Escape');
   }
   await expect(page.locator('g.part')).toHaveCount(names.length);
@@ -241,7 +242,7 @@ test('every part: place it, change every property, simulate; every analysis and 
   await page.keyboard.press('F5');
   await expect(side.getByText(/ground symbol is not connected/).first()).toBeVisible();
   const gi = names.indexOf('Ground'), vi = names.indexOf('DC voltage source');
-  const pos = (k: number) => ({ x: (k % 7 - 3) * 160, y: (Math.floor(k / 7) - 1.5) * 160 });
+  const pos = (k: number) => ({ x: (k % 9 - 4) * 120, y: (Math.floor(k / 9) - 1.5) * 120 });
   await page.getByRole('button', { name: 'Fit', exact: true }).click();
   await canvas(page).focus(); await page.keyboard.press('w');
   await click(page, pos(gi).x, pos(gi).y);

@@ -29,6 +29,11 @@ export const DC_PATH: Record<string, string[][]> = {
   // IGBT: collector–emitter (the gate is insulated); optocoupler: LED and transistor sides
   // separately; TL431: cathode–anode (REF is an input only)
   igbt: [['2', '3']], opto: [['1', '2'], ['3', '4']], tl431: [['2', '3']],
+  // breakers (closed), contactor coil, PV, autotransformer, comparator and driver supplies,
+  // surge voltage generator; varistors, GDTs and the current generator give no DC path
+  breaker1: [['1', '2']], breaker2: [['1', '2'], ['N1', 'N2']], breaker3: [['1', '2'], ['3', '4'], ['5', '6']], breaker4: [['1', '2'], ['3', '4'], ['5', '6'], ['N1', 'N2']],
+  contactor: [['A1', 'A2']], pv: [['1', '2']], autotransformer: [['N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']],
+  comparator: [['8', '4']], hbdriver: [['8', '3', '4'], ['7', '6', '5']], vsurge: [['1', '2']], mov: [], gdt: [], isurge: [],
   vdc: [['1', '2']], battery: [['1', '2']], vsin: [['1', '2']], vpulse: [['1', '2']],
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],

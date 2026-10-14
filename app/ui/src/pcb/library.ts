@@ -38,6 +38,8 @@ const FET: Record<string, FootprintChoice> = {
   '2N7000': legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D'), BS170: legs('TO-92_Wide', ['2', '1', '3'], 'D-G-S'), BS250: legs('TO-92_Wide', ['2', '1', '3'], 'D-G-S'),
   IRLZ44N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF9540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
   AO3400: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), AO3401: legs('SOT-23', ['1', '3', '2'], 'G-S-D'),
+  IRFP4468: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4110: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IPW65R041: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
+  IRFB4115: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
 };
 // regulators: symbol pins 1 IN, 2 GND, 3 OUT
 const REG: Record<string, FootprintChoice> = {
@@ -91,7 +93,19 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'bridge': return [map('Bridge_Inline_4', { 3: '1', 1: '2', 2: '3', 4: '4' }, { note: 'inline + ~ ~ −: check the marking on the body' })];
     case 'npn': case 'pnp': return [BJT[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C')];
     case 'nmos': case 'pmos': return [FET[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D')];
-    case 'igbt': return [legs('TO-247_Vertical', ['1', '2', '3'], 'G-C-E')];
+    case 'igbt': return v.startsWith('Module') ? [same('TerminalBlock_1x3', pins, 'module on its heatsink: G, C, E wired to the board')] : [legs('TO-247_Vertical', ['1', '2', '3'], 'G-C-E')];
+    case 'mov': return v.startsWith('SPD') ? [same('TerminalBlock_1x2', pins, 'DIN-rail surge protective device, wired')] : [same(v.startsWith('20D') ? 'MOV_Disc_20' : v.startsWith('10D') ? 'MOV_Disc_10' : 'MOV_Disc_14', pins)];
+    case 'gdt': return v.startsWith('Spark') ? [same('TerminalBlock_1x2', pins, 'DIN-rail type 1 arrester, wired')] : [same('GDT_Axial_8x6', pins)];
+    case 'breaker1': return [same('TerminalBlock_1x2', pins, 'DIN-rail device: its terminals on the board')];
+    case 'breaker2': return [map('TerminalBlock_1x4', { 1: '1', 2: '2', N1: '3', N2: '4' }, { note: 'DIN-rail device: L in, L out, N in, N out' })];
+    case 'breaker3': return [same('TerminalBlock_1x6', pins, 'DIN-rail device: L1 in/out, L2 in/out, L3 in/out')];
+    case 'breaker4': return [map('TerminalBlock_1x8', { 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', N1: '7', N2: '8' }, { note: 'DIN-rail device: L1, L2, L3, N in/out' })];
+    case 'contactor': return [map('TerminalBlock_1x12', Object.fromEntries(['A1', 'A2', '1', '2', '3', '4', '5', '6', '13', '14', '21', '22'].map((x, k) => [x, String(k + 1)])), { note: 'DIN-rail contactor: A1 A2 1 2 3 4 5 6 13 14 21 22' })];
+    case 'pv': return [same('TerminalBlock_1x2', pins, 'PV cable (via MC4 connectors): + and −')];
+    case 'autotransformer': return [map('TerminalBlock_1x8', { N: '1', T1: '2', T2: '3', T3: '4', T4: '5', T5: '6', T6: '7', T7: '8' }, { note: 'off-board autotransformer: N, T1 … T7' })];
+    case 'comparator': return v === 'LM339' ? [map('DIP-14', { 3: '5', 2: '4', 1: '2', 8: '3', 4: '12' }, { note: 'comparator 1 of the LM339; tie the inputs of the unused ones to GND' })] : [same('DIP-8', pins, 'comparator A of the LM393'), same('SOIC-8', pins)];
+    case 'hbdriver': return [map('DIP-8', { 1: '1', 8: ['8', '2'], 3: '3', 4: '4', 5: '5', 6: '6', 7: '7' }, { note: 'IR2184 pin-out; SD (pin 2) tied to VCC' })];
+    case 'vsurge': case 'isurge': return [same('PinHeader_1x2', pins, 'test generator: not a part of the board')];
     case 'opto': return [same('DIP-4', pins, '1 A, 2 K, 3 E, 4 C')];
     case 'opamp': return OPAMP[v] ?? OPAMP.generic;
     case 'regulator': return [REG[v] ?? legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT')];

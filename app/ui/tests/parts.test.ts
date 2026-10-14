@@ -159,7 +159,7 @@ describe('protection, power and interface parts', () => {
     expect(Math.max(...out)).toBeGreaterThan(8.3); expect(Math.max(...out)).toBeLessThan(9.2);
     near(measure(r.x, out, 20e-3, 60e-3).freq!, 100, 2);
   });
-  const sat: Record<string, [vcesat: number, amps: number]> = { IKW30N60T: [1.5, 30], IKW40N120T2: [1.75, 40], 'generic 600 V 20 A': [1.8, 20] };
+  const sat: Record<string, [vcesat: number, amps: number]> = { IKW30N60T: [1.5, 30], IKW40N120T2: [1.75, 40], 'generic 600 V 20 A': [1.8, 20], 'Module 1200 V 100 A': [1.75, 100], 'Module 1200 V 200 A': [1.75, 200], 'Module 1200 V 450 A': [1.75, 450] };
   for (const m of IGBTS) it(`IGBT ${m.name}: VCE(sat) about ${sat[m.name][0]} V at ${sat[m.name][1]} A with 15 V on the gate, blocks with 0 V`, () => {
     const [vs, amps] = sat[m.name];
     const load = String(100 / amps);
@@ -467,6 +467,25 @@ describe('parts left on their own', () => {
     const sw = run([...base, ...lone], { type: 'dc', target: 'R3', param: 'value', start: '0', stop: '10', step: '1' });
     near(sw.r.v["B"][0], 2.5, 1e-6);
   });
+});
+
+describe('installation and power parts (detailed checks in installation.test.ts)', () => {
+  const decks: [string, Spec[], SimSettings?][] = [
+    ['mov', [V(230, 'L'), ['mov', {}, { '1': 'L', '2': 'GND' }]]],
+    ['gdt', [V(200, 'L'), R('100', 'L', 'M'), ['gdt', {}, { '1': 'M', '2': 'GND' }]]],
+    ['breaker1', [V(230, 'L'), ['breaker1', {}, { '1': 'L', '2': 'O' }], R('100', 'O', 'GND')]],
+    ['breaker2', [V(230, 'L'), ['breaker2', {}, { '1': 'L', '2': 'O', N1: 'GND', N2: 'NO' }], R('100', 'O', 'NO')]],
+    ['breaker3', [V(230, 'L'), ['breaker3', {}, { '1': 'L', '2': 'A', '3': 'L', '4': 'B', '5': 'L', '6': 'C' }], R('100', 'A', 'GND'), R('100', 'B', 'GND'), R('100', 'C', 'GND')]],
+    ['breaker4', [V(230, 'L'), ['breaker4', {}, { '1': 'L', '2': 'A', '3': 'L', '4': 'B', '5': 'L', '6': 'C', N1: 'GND', N2: 'N' }], R('100', 'A', 'N'), R('100', 'B', 'N'), R('100', 'C', 'N')]],
+    ['contactor', [V(24, 'C'), ['contactor', { value: '9 A, coil 24 V DC' }, { A1: 'C', A2: 'GND', '1': 'C', '2': 'O' }], R('100', 'O', 'GND')]],
+    ['pv', [['pv', {}, { '1': 'P', '2': 'GND' }], R('2', 'P', 'GND')]],
+    ['autotransformer', [V(0, 'T5'), ['autotransformer', {}, { N: 'GND', T5: 'T5', T1: 'T1' }], R('1k', 'T1', 'GND')]],
+    ['vsurge', [['vsurge', {}, { '1': 'S', '2': 'GND' }], R('10', 'S', 'GND')], { type: 'tran', stop: '20u', step: '50n' }],
+    ['isurge', [['isurge', {}, { '1': 'S', '2': 'GND' }], R('1', 'S', 'GND')], { type: 'tran', stop: '20u', step: '50n' }],
+    ['comparator', [V(5, 'VCC'), V(1, 'P'), ['comparator', {}, { '3': 'P', '2': 'GND', '1': 'O', '8': 'VCC', '4': 'GND' }], R('10k', 'VCC', 'O')]],
+    ['hbdriver', [V(15, 'VCC'), V(0, 'IN'), ['hbdriver', {}, { '1': 'IN', '8': 'VCC', '3': 'GND', '7': 'VCC', '6': 'HO', '5': 'GND', '4': 'LO' }], R('1k', 'HO', 'GND'), R('1k', 'LO', 'GND')]],
+  ];
+  for (const [sym, parts, sim] of decks) it(`${sym} simulates in a minimal circuit and exports to SPICE`, () => { run(parts, sim); });
 });
 
 describe('coverage', () => {
