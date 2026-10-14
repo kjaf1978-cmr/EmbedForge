@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from '../../eda/schematic';
+import { GRID, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type SimSettings, type StepAxis, type StepSweep } from '../../eda/schematic';
 import {
   addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
   placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
@@ -20,7 +20,7 @@ import { bomCsv, buildBom } from '../../eda/bom';
 import { importModel } from '../../eda/spicemodel';
 import { BJTS, DIODES, MOSFETS, OPAMPS, ZENERS } from '../../eda/models';
 import { formatValue, parseValue, shortValue } from '../../eda/units';
-import { schematicSpice, stepValues } from '../../sim/run';
+import { MAX_RUNS, schematicSpice, stepValues } from '../../sim/run';
 import type { SimClient, SimOutcome } from '../../sim/client';
 import { toCsv } from '../../sim/measure';
 import { FIRST_CIRCUIT } from '../../eda/tutorial';
@@ -1348,7 +1348,8 @@ function PotSlider({ id, label, value, partId, setOverride, onCommit }: {
   );
 }
 
-/** Parameter sweep (.step): one part property over a list or a range of values. */
+/** Parameter sweep (.step): up to three part properties, each over a list or a range; every
+ *  combination runs. */
 function StepPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: string) => void }) {
   const st: StepSweep = sheet.step ?? { on: false, ref: '', param: 'value', mode: 'list', list: '', start: '', stop: '', step: '' };
   const set = (next: StepSweep, label: string) => apply({ ...sheet, step: next }, label);
@@ -1356,42 +1357,60 @@ function StepPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: st
     const sd = symbolOf(p.sym);
     return [sd.value, ...sd.params].filter((d) => d.kind === 'value' || d.kind === 'select').map((d) => ({ ref: p.ref, param: d.key, label: `${p.ref} ${d.label.toLowerCase()}`, def: d, now: p.props[d.key] ?? d.default }));
   });
-  const cur = candidates.find((c) => c.ref === st.ref && c.param === st.param);
-  const vals = st.on ? stepValues(st) : null;
-  const choose = (key: string) => {
+  const { on, more, ...first } = st;
+  const axes: StepAxis[] = [first, ...(more ?? [])];
+  const setAxes = (next: StepAxis[], label: string) => { const [a0, ...rest] = next; set({ on, ...a0, ...(rest.length ? { more: rest } : {}) }, label); };
+  const setAxis = (k: number, a: StepAxis, label: string) => setAxes(axes.map((x, j) => (j === k ? a : x)), label);
+  const suggest = (key: string): StepAxis | null => {
     const c = candidates.find((x) => `${x.ref}|${x.param}` === key);
-    if (!c) return;
+    if (!c) return null;
     // a sensible first list: the options of a model choice, or half, the value and double
     const n = parseValue(c.now);
     const list = c.def.kind === 'select' ? (c.def.options ?? []).map((o) => o.value).join(' ') : n !== null ? [n / 2, n, n * 2].map((x) => shortValue(x)).join(' ') : c.now;
-    set({ ...st, on: true, ref: c.ref, param: c.param, mode: 'list', list }, `Step ${c.label}`);
+    return { ref: c.ref, param: c.param, mode: 'list', list, start: '', stop: '', step: '' };
   };
-  const inp = (label: string, value: string, key: 'list' | 'start' | 'stop' | 'step') => (
-    <label class="field">{label}<input value={value} onChange={(e) => set({ ...st, [key]: (e.target as HTMLInputElement).value.trim() }, `Step ${key} ${(e.target as HTMLInputElement).value.trim()}`)} /></label>
-  );
+  const counts = axes.map((a) => (a.ref ? stepValues(a) : null));
+  const total = counts.reduce((n, c) => n * (c && !('error' in c) ? c.values.length : 1), 1);
+  const used = new Set(axes.map((a) => `${a.ref}|${a.param}`));
   return (
     <fieldset>
       <legend>Parameter sweep (.step)</legend>
-      <label><input type="checkbox" checked={st.on} onChange={(e) => set({ ...st, on: (e.target as HTMLInputElement).checked }, (e.target as HTMLInputElement).checked ? 'Parameter sweep on' : 'Parameter sweep off')} /> Run the analysis once per value of a part property</label>
-      {st.on && (
+      <label><input type="checkbox" checked={on} onChange={(e) => set({ ...st, on: (e.target as HTMLInputElement).checked }, (e.target as HTMLInputElement).checked ? 'Parameter sweep on' : 'Parameter sweep off')} /> Run the analysis once per value of a part property</label>
+      {on && (
         <>
+          {axes.map((a, k) => {
+            const cur = candidates.find((c) => c.ref === a.ref && c.param === a.param);
+            const vals = counts[k];
+            const inp = (label: string, value: string, key: 'list' | 'start' | 'stop' | 'step') => (
+              <label class="field">{label}<input value={value} onChange={(e) => setAxis(k, { ...a, [key]: (e.target as HTMLInputElement).value.trim() }, `Step ${key} ${(e.target as HTMLInputElement).value.trim()}`)} /></label>
+            );
+            return (
+              <div class="step-axis" key={k} role="group" aria-label={`Stepped property ${k + 1}`}>
+                <div class="row wrap">
+                  <label class="field">{k ? `Stepped property ${k + 1}` : 'Stepped property'}
+                    <select value={cur ? `${cur.ref}|${cur.param}` : ''} onChange={(e) => { const n = suggest((e.target as HTMLSelectElement).value); if (n) setAxis(k, n, `Step ${n.ref} ${n.param}`); }}>
+                      {!cur && <option value="">choose…</option>}
+                      {candidates.filter((c) => `${c.ref}|${c.param}` === `${a.ref}|${a.param}` || !used.has(`${c.ref}|${c.param}`)).map((c) => <option key={`${c.ref}|${c.param}`} value={`${c.ref}|${c.param}`}>{c.label}</option>)}
+                    </select>
+                  </label>
+                  <label class="field">Values
+                    <select value={a.mode} onChange={(e) => setAxis(k, { ...a, mode: (e.target as HTMLSelectElement).value as StepAxis['mode'] }, 'Step mode')}>
+                      <option value="list">a list</option><option value="lin">from, to, step</option><option value="dec">from, to, per decade</option>
+                    </select>
+                  </label>
+                  {k > 0 && <button aria-label={`Remove stepped property ${k + 1}`} title="Remove this property" onClick={() => setAxes(axes.filter((_, j) => j !== k), 'Remove stepped property')}>✕</button>}
+                </div>
+                {a.mode === 'list'
+                  ? <div class="row wrap">{inp(cur?.def.kind === 'select' ? 'Models (separated by spaces)' : 'Values (separated by spaces)', a.list, 'list')}</div>
+                  : <div class="row wrap">{inp('From', a.start, 'start')}{inp('To', a.stop, 'stop')}{inp(a.mode === 'dec' ? 'Points per decade' : 'Step', a.step, 'step')}</div>}
+                <p class="small muted">{vals && ('error' in vals ? vals.error : `${vals.values.length} values: ${vals.values.join(', ')}${cur?.def.unit ? ` ${cur.def.unit}` : ''}`)}</p>
+              </div>
+            );
+          })}
           <div class="row wrap">
-            <label class="field">Stepped property
-              <select value={cur ? `${cur.ref}|${cur.param}` : ''} onChange={(e) => choose((e.target as HTMLSelectElement).value)}>
-                {!cur && <option value="">choose…</option>}
-                {candidates.map((c) => <option key={`${c.ref}|${c.param}`} value={`${c.ref}|${c.param}`}>{c.label}</option>)}
-              </select>
-            </label>
-            <label class="field">Values
-              <select value={st.mode} onChange={(e) => set({ ...st, mode: (e.target as HTMLSelectElement).value as StepSweep['mode'] }, 'Step mode')}>
-                <option value="list">a list</option><option value="lin">from, to, step</option><option value="dec">from, to, per decade</option>
-              </select>
-            </label>
+            {axes.length < 3 && <button onClick={() => setAxes([...axes, { ref: '', param: 'value', mode: 'list', list: '', start: '', stop: '', step: '' }], 'Add stepped property')}>＋ Add a property</button>}
+            <span class={`small ${total > MAX_RUNS ? 's-fail' : 'muted'}`}>{axes.length > 1 ? `${total} runs (every combination; at most ${MAX_RUNS}). ` : `${total} runs. `}Each probe gets one trace per run.</span>
           </div>
-          {st.mode === 'list'
-            ? <div class="row wrap">{inp(cur?.def.kind === 'select' ? 'Models (separated by spaces)' : 'Values (separated by spaces)', st.list, 'list')}</div>
-            : <div class="row wrap">{inp('From', st.start, 'start')}{inp('To', st.stop, 'stop')}{inp(st.mode === 'dec' ? 'Points per decade' : 'Step', st.step, 'step')}</div>}
-          <p class="small muted">{vals && ('error' in vals ? vals.error : `${vals.values.length} runs: ${vals.values.join(', ')}${cur?.def.unit ? ` ${cur.def.unit}` : ''}. Each probe gets one trace per run.`)}</p>
         </>
       )}
     </fieldset>

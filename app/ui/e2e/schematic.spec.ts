@@ -322,14 +322,22 @@ test('parameter sweep (.step): one trace per value of C1, saved with the sheet',
   const side = page.getByRole('complementary', { name: 'Properties and simulation' });
   await side.getByRole('tab', { name: 'Simulation' }).click();
   await side.getByLabel('Run the analysis once per value of a part property').check();
-  await side.getByLabel('Stepped property').selectOption({ label: 'C1 capacitance' });
+  await side.getByRole('group', { name: 'Stepped property 1' }).getByRole('combobox').first().selectOption({ label: 'C1 capacitance' });
   await expect(side.getByLabel('Values (separated by spaces)')).toHaveValue('50n 100n 200n');
-  await expect(side.getByText(/3 runs: 50n, 100n, 200n F/)).toBeVisible();
+  await expect(side.getByText(/3 values: 50n, 100n, 200n F/)).toBeVisible();
   await page.keyboard.press('F5');
   const results = page.getByRole('region', { name: 'Waveform viewer' });
   for (const c of ['50n', '100n', '200n']) await expect(results.getByRole('row', { name: new RegExp(`\\|V\\(OUT\\)\\| · C1 = ${c}`) })).toBeVisible();
+  // a second property: R1 at 500, 1k and 2k → 9 runs
+  await side.getByRole('button', { name: '＋ Add a property' }).click();
+  await side.getByRole('group', { name: 'Stepped property 2' }).getByRole('combobox').first().selectOption({ label: 'R1 resistance' });
+  await expect(side.getByText(/9 runs \(every combination/)).toBeVisible();
+  await page.keyboard.press('F5');
+  await expect(results.getByRole('row', { name: /\|V\(OUT\)\| · C1 = 200n, R1 = 2k/ })).toBeVisible();
+  await side.getByRole('button', { name: 'Remove stepped property 2' }).click();
+  await expect(side.getByText(/^3 runs/)).toBeVisible();
   // undo turns the sweep off again, step by step
-  await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z');
+  for (let k = 0; k < 5; k++) await page.keyboard.press("Control+z");
   await expect(side.getByLabel('Run the analysis once per value of a part property')).not.toBeChecked();
 });
 

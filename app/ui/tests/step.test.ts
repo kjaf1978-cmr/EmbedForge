@@ -70,4 +70,25 @@ describe('parameter sweep runs', () => {
     const back = fromFiles(JSON.parse(JSON.stringify(toFiles('Step', sheet)))).sheet;
     expect(back.step).toEqual(sheet.step);
   });
+  it('two properties: every combination, first one fastest; an operating point gives one curve per value of the second', () => {
+    const { sheet, refs } = deck(divider);
+    sheet.step = step({ ref: refs[2], list: '1k 3k', more: [{ ref: refs[1], param: 'value', mode: 'list', list: '1k 2k 4k', start: '', stop: '', step: '' }] });
+    const r = simulate(sheet) as SimResult;
+    expect(r.x).toEqual([1e3, 3e3]);
+    expect(r.steps!.map((s) => s.label)).toEqual([`${refs[1]} = 1k`, `${refs[1]} = 2k`, `${refs[1]} = 4k`]);
+    [1e3, 2e3, 4e3].forEach((r1, k) => r.x.forEach((r2, j) => near(r.steps![k].v['OUT'][j], (10 * r2) / (r1 + r2), 1e-6)));
+  });
+  it('three properties in a transient: labels name every value; more than 50 runs is refused', () => {
+    const { sheet, refs } = deck([['vpulse', { value: '5', freq: '100' }, { '1': 'IN', '2': 'GND' }], ['resistor', { value: '1k' }, { '1': 'IN', '2': 'OUT' }], ['capacitor', { value: '1u' }, { '1': 'OUT', '2': 'GND' }]],
+      { type: 'tran', stop: '20m', step: '' });
+    const ax = (ref: string, param: string, list: string) => ({ ref, param, mode: 'list' as const, list, start: '', stop: '', step: '' });
+    sheet.step = step({ ref: refs[1], list: '1k 2k', more: [ax(refs[2], 'value', '1u 2u'), ax(refs[0], 'value', '3 5')] });
+    const r = simulate(sheet) as SimResult;
+    expect(r.steps!.length).toBe(8);
+    expect(r.steps![0].label).toBe(`${refs[1]} = 1k, ${refs[2]} = 1u, ${refs[0]} = 3`);
+    expect(r.steps![7].label).toBe(`${refs[1]} = 2k, ${refs[2]} = 2u, ${refs[0]} = 5`);
+    sheet.step = step({ ref: refs[1], mode: 'lin', start: '1k', stop: '10k', step: '1k', more: [ax(refs[2], 'value', '1u 2u 3u 4u 5u 6u')] });
+    expect((simulate(sheet) as { error: string }).error).toMatch(/10 × 6 = 60 runs; at most 50/);
+  });
 });
+

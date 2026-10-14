@@ -5,7 +5,7 @@ import { toSpice, spiceName, type Analysis } from './spice';
 import { terminals, type Element } from './circuit';
 import { buildSimNet, planAnalysis, type SimNet } from '../eda/simnet';
 import { connectivity } from '../eda/connectivity';
-import type { Sheet, StepSweep } from '../eda/schematic';
+import type { Sheet, StepAxis } from '../eda/schematic';
 import { parseValue, shortValue } from '../eda/units';
 
 export interface SimResult {
@@ -41,7 +41,7 @@ export interface StepRun {
 export const MAX_STEPS = 25;
 
 /** Values of a parameter sweep, as the texts to put into the property. */
-export function stepValues(st: StepSweep): { values: string[] } | { error: string } {
+export function stepValues(st: StepAxis): { values: string[] } | { error: string } {
   if (st.mode === 'list') {
     const values = st.list.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
     if (!values.length) return { error: 'Parameter sweep: give at least one value' };
@@ -84,27 +84,13 @@ function resample(xs: number[], ys: number[], grid: number[]): number[] {
 /** Runs the analysis once per sweep value. An operating point becomes a sweep over the values
  *  (x = the stepped value); other analyses share the x axis of the first run (a transient is
  *  resampled to 2000 points) and carry every run in `steps`. */
-export function simulateStepped(sheet: Sheet): SimResult | SimFailure {
-  const st = sheet.step!;
-  const t0 = performance.now();
-  const part = sheet.parts.find((p) => p.ref === st.ref);
-  if (!part) return { error: `Parameter sweep: there is no part ${st.ref || '(none chosen)'}`, errors: [] };
-  const vals = stepValues(st);
-  if ('error' in vals) return { error: vals.error, errors: [] };
-  const runs: { label: string; r: SimResult }[] = [];
-  for (const val of vals.values) {
-    const r = simulate(withProp(sheet, st.ref, st.param, val));
-    if ('error' in r) return { error: `${st.ref} ${st.param} = ${val}: ${r.error}`, errors: r.errors };
-    runs.push({ label: `${st.ref} ${st.param === 'value' ? '' : `${st.param} `}= ${val}`, r });
-  }
+export const MAX_RUNS = 50;
+
+export interface Run { label: string; r: SimResult }
+
+/** Overlays runs on the x axis of the first (a transient is resampled to 2000 points). */
+export function overlayRuns(runs: Run[], t0: number): SimResult {
   const first = runs[0].r;
-  if (first.analysis === 'op') {
-    const xs = vals.values.map((v) => parseValue(v));
-    if (xs.some((x) => x === null)) return { error: 'Parameter sweep of an operating point needs numeric values; step models in a transient, AC or DC sweep', errors: [] };
-    const pick = (f: (r: SimResult) => Record<string, number[]>) =>
-      Object.fromEntries(Object.keys(f(first)).map((k) => [k, runs.map(({ r }) => f(r)[k]?.[0] ?? NaN)]));
-    return { ...first, analysis: 'dc', xLabel: `${st.ref} ${st.param}`, xUnit: '', x: xs as number[], v: pick((r) => r.v), i: pick((r) => r.i), warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
-  }
   const grid = first.analysis === 'tran'
     ? Array.from({ length: 2001 }, (_, k) => (first.x[first.x.length - 1] * k) / 2000)
     : first.x;
@@ -112,6 +98,58 @@ export function simulateStepped(sheet: Sheet): SimResult | SimFailure {
     rec ? Object.fromEntries(Object.entries(rec).map(([k, y]) => [k, resample(r.x, y, grid)])) : undefined;
   const steps: StepRun[] = runs.map(({ label, r }) => ({ label, v: map(r, r.v)!, vi: map(r, r.vi), i: map(r, r.i)!, ii: map(r, r.ii) }));
   return { ...first, x: grid, v: steps[0].v, vi: steps[0].vi, i: steps[0].i, ii: steps[0].ii, steps, warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
+}
+
+const axisLabel = (a: StepAxis, val: string) => `${a.ref} ${a.param === 'value' ? '' : `${a.param} `}= ${val}`;
+
+/** Runs the analysis once per combination of the swept values (parameter sweep, .step).
+ *  An operating point becomes a sweep over the first property's values (one curve per
+ *  combination of the others); other analyses overlay every run. */
+export function simulateStepped(sheet: Sheet): SimResult | SimFailure {
+  const st = sheet.step!;
+  const t0 = performance.now();
+  const axes: StepAxis[] = [st, ...(st.more ?? [])];
+  const lists: string[][] = [];
+  for (const a of axes) {
+    if (!sheet.parts.some((p) => p.ref === a.ref)) return { error: `Parameter sweep: there is no part ${a.ref || '(none chosen)'}`, errors: [] };
+    const vals = stepValues(a);
+    if ('error' in vals) return { error: axes.length > 1 ? `${a.ref} ${a.param}: ${vals.error}` : vals.error, errors: [] };
+    lists.push(vals.values);
+  }
+  const total = lists.reduce((n, l) => n * l.length, 1);
+  if (total > MAX_RUNS) return { error: `Parameter sweep: ${lists.map((l) => l.length).join(' × ')} = ${total} runs; at most ${MAX_RUNS}`, errors: [] };
+  // every combination, the first property varying fastest
+  const combos = Array.from({ length: total }, (_, idx) => {
+    let rest = idx;
+    return lists.map((l) => { const v = l[rest % l.length]; rest = Math.floor(rest / l.length); return v; });
+  });
+  const runs: { combo: string[]; r: SimResult }[] = [];
+  for (const c of combos) {
+    let s: Sheet = { ...sheet, step: undefined };
+    axes.forEach((a, k) => { s = withProp(s, a.ref, a.param, c[k]); });
+    const r = simulate(s);
+    if ('error' in r) return { error: `${axes.map((a, k) => axisLabel(a, c[k])).join(', ')}: ${r.error}`, errors: r.errors };
+    runs.push({ combo: c, r });
+  }
+  const first = runs[0].r;
+  if (first.analysis === 'op') {
+    const xs = lists[0].map((v) => parseValue(v));
+    if (xs.some((x) => x === null)) return { error: 'Parameter sweep of an operating point needs numeric values for the first property; step models in a transient, AC or DC sweep', errors: [] };
+    const curve = (group: { r: SimResult }[]) => {
+      const pick = (f: (r: SimResult) => Record<string, number[]>) =>
+        Object.fromEntries(Object.keys(f(first)).map((k) => [k, group.map(({ r }) => f(r)[k]?.[0] ?? NaN)]));
+      return { v: pick((r) => r.v), i: pick((r) => r.i) };
+    };
+    const n0 = lists[0].length;
+    const groups: { label: string; v: Record<string, number[]>; i: Record<string, number[]> }[] = [];
+    for (let g = 0; g < runs.length / n0; g++) {
+      const part = runs.slice(g * n0, (g + 1) * n0);
+      groups.push({ label: axes.slice(1).map((a, k) => axisLabel(a, part[0].combo[k + 1])).join(', '), ...curve(part) });
+    }
+    const base = { ...first, analysis: 'dc' as const, xLabel: `${st.ref} ${st.param}`, xUnit: '', x: xs as number[], v: groups[0].v, i: groups[0].i, warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
+    return axes.length > 1 ? { ...base, steps: groups } : base;
+  }
+  return overlayRuns(runs.map(({ combo, r }) => ({ label: axes.map((a, k) => axisLabel(a, combo[k])).join(', '), r })), t0);
 }
 
 /** Pin currents of a part: the currents into its elements at terminals on that pin's node. */

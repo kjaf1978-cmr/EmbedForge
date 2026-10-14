@@ -40,8 +40,21 @@ export type SimSettings =
   | { type: 'dc'; target: string; param: string; start: string; stop: string; step: string };
 
 /** Parameter sweep (SPICE .step): the analysis runs once per value of one part property. */
+export interface StepAxis {
+  /** Part reference and property key (value, or a parameter such as "lp"). */
+  ref: string;
+  param: string;
+  mode: 'list' | 'lin' | 'dec';
+  list: string;
+  start: string;
+  stop: string;
+  step: string;
+}
+
 export interface StepSweep {
   on: boolean;
+  /** Further properties stepped together with this one (every combination runs). */
+  more?: StepAxis[];
   /** Part reference and property key (value, or a parameter such as "lp"). */
   ref: string;
   param: string;
