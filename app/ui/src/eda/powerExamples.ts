@@ -218,6 +218,72 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
   return { sheet: nb.done(), nb };
 }
 
+/** Input voltages at which the stabiliser steps to the next tap (r.m.s.), and its taps. */
+export const STAB_STEPS = [160, 180, 200, 220, 240, 265];
+export const STAB_TAPS = [150, 170, 190, 210, 230, 250, 280];
+/** The reference ladder of the stabiliser, from GND up to VREF (E96). */
+const STAB_LADDER = ['5.36k', '732', '732', '732', '732', '909', '787'];
+
+/** Relay-switched mains voltage stabiliser (step-type AVR): the input feeds one tap of a tapped
+ *  autotransformer, the output is taken from its 230 V tap, so V_out = V_in·230/tap. `vin`: input
+ *  r.m.s. voltage. */
+export function stabiliser(vin = 230, step?: MainsStep, stop = '0.6', ladder = STAB_LADDER): { sheet: Sheet; nb: NB } {
+  const nb = new NB();
+  const X = (k: number) => k * 110, Y = (k: number) => k * 110;
+  nb.note('Relay-switched stabiliser: the input is connected to one tap of a 1 kVA autotransformer (150 … 280 V) and the output taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in.', X(0), Y(-1))
+    .note('Six 12 V relays in a chain choose the tap: each relay\'s NC contact feeds the next relay, so two taps are never connected, not even while a relay changes over.', X(0), Y(-0.75))
+    .note('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input; 1 MΩ feedback gives each a hysteresis of about 3 V. An output relay connects the load once the control has settled after power-on.', X(0), Y(-0.5));
+  nb.part('VIN', 'vsin', X(0), Y(1), { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': step ? 'L_STEP' : 'GND' });
+  if (step) nb.part('VS', 'vsin', X(0), Y(2), { value: String(Number(((step.to[0] - vin) * Math.SQRT2).toPrecision(6))), freq: '50', delay: String(step.at) }, { '1': 'L_STEP', '2': 'GND' });
+  nb.part('QF1', 'breaker1', X(1), Y(1), { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN' });
+  // input sense, filtered to the mean (τ 47 ms) so the ripple does not reach the comparators
+  nb.part('TR1', 'transformer', X(2), Y(1), SENSE_TR, { '1': 'VIN', '2': 'GND', '3': 'SA', '4': 'SB' })
+    .part('RS1', 'resistor', X(2.5), Y(1.5), { value: '220' }, { '1': 'SA', '2': 'SN' })
+    .part('CS1', 'capacitor', X(3.5), Y(1.5), { value: '100n', vmax: '63' }, { '1': 'SN', '2': 'SB' })
+    .part('BR1', 'bridge', X(3), Y(1), { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VSR', '4': 'GND' })
+    .part('C1', 'capacitor_pol', X(4), Y(1), { value: '4.7u', vmax: '35' }, { '1': 'VSR', '2': 'GND' })
+    .part('R1', 'resistor', X(5), Y(1), { value: '68k' }, { '1': 'VSR', '2': 'SENSE' })
+    .part('R2', 'resistor', X(6), Y(1), { value: '10k' }, { '1': 'SENSE', '2': 'GND' }, 1)
+    .part('R3', 'resistor', X(7), Y(1), { value: '100k' }, { '1': 'SENSE', '2': 'SF' })
+    .part('C2', 'capacitor', X(8), Y(1), { value: '470n', vmax: '50' }, { '1': 'SF', '2': 'GND' }, 1);
+  // supply and reference ladder: N1 … N6, one threshold per step
+  nb.part('V12', 'vdc', X(0), Y(3), { value: '12' }, { '1': 'V12', '2': 'GND' })
+    .part('R4', 'resistor', X(1), Y(3), { value: '2.2k' }, { '1': 'V12', '2': 'VREF' })
+    .part('U1', 'tl431', X(2), Y(3), { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' });
+  const lad = ['GND', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'VREF'];
+  ladder.forEach((r, k) => nb.part(`RL${k + 1}`, 'resistor', X(3 + k), Y(3), { value: r }, { '1': lad[k + 1], '2': lad[k] }, 1));
+  // per step k: relay k is on while the input is below its threshold (the comparator output is
+  // released: SF below Nk); the first relay that is on in the chain connects its tap
+  const chain = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
+  for (let k = 0; k < 6; k++) {
+    const n = k + 1, x = X(2 * k), y = Y(5);
+    nb.part(`U${n + 1}`, 'comparator', x, y, { value: 'LM339' }, { '3': `N${n}`, '2': 'SF', '1': `O${n}`, '8': 'V12', '4': 'GND' })
+      .part(`RP${n}`, 'resistor', x + X(1), y, { value: '10k' }, { '1': 'V12', '2': `O${n}` }, 1)
+      .part(`RF${n}`, 'resistor', x, y + Y(1), { value: '1M' }, { '1': `O${n}`, '2': `N${n}` })
+      .part(`RB${n}`, 'resistor', x + X(1), y + Y(1), { value: '10k' }, { '1': `O${n}`, '2': `B${n}` })
+      .part(`Q${n}`, 'npn', x, y + Y(2), { value: 'BC547B' }, { '1': `B${n}`, '2': `K${n}`, '3': 'GND' })
+      .part(`D${n}`, 'diode', x + X(1), y + Y(2), { value: '1N4148' }, { '2': `K${n}`, '1': 'V12' })
+      .part(`K${n}`, 'relay', x, y + Y(3.3), { value: '12 V' }, { '1': 'V12', '2': `K${n}`, '3': chain[k], '5': `T${n}`, '4': k < 5 ? chain[k + 1] : 'T7' });
+  }
+  // the autotransformer and the load: 1 kVA at 230 V
+  nb.part('T1', 'autotransformer', X(10), Y(1), { value: '1 kVA 230 V, taps 150–280 V' }, { N: 'GND', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' })
+    .part('RLOAD', 'resistor', X(11), Y(1), { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'GND' }, 1);
+  // output delay: the load is connected only once the control has settled after power-on (the
+  // sense filter starts empty, so every relay is on at first and the 150 V tap is chosen);
+  // 1 MΩ·1.5 µF against VREF: 0.35 s here, 3 … 180 s in a stabiliser for appliances
+  nb.part('RD', 'resistor', X(0), Y(9.5), { value: '1M' }, { '1': 'V12', '2': 'DLY' })
+    .part('CD', 'capacitor', X(1), Y(9.5), { value: '1.5u', vmax: '25' }, { '1': 'DLY', '2': 'GND' }, 1)
+    .part('U8', 'comparator', X(2), Y(9.5), { value: 'LM339' }, { '3': 'DLY', '2': 'VREF', '1': 'OD', '8': 'V12', '4': 'GND' })
+    .part('RPD', 'resistor', X(3), Y(9.5), { value: '10k' }, { '1': 'V12', '2': 'OD' }, 1)
+    .part('RBD', 'resistor', X(3), Y(10.5), { value: '10k' }, { '1': 'OD', '2': 'BD' })
+    .part('QD', 'npn', X(4), Y(10.5), { value: 'BC547B' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
+    .part('DD', 'diode', X(5), Y(10.5), { value: '1N4148' }, { '2': 'KD', '1': 'V12' })
+    .part('KO', 'relay', X(6), Y(10), { value: '12 V' }, { '1': 'V12', '2': 'KD', '3': 'T5', '5': 'OUT' });
+  nb.v('VIN').v('OUT').v('SF').i('RLOAD', '1');
+  nb.sim({ type: 'tran', stop, step: '200u', start: 'zero' });
+  return { sheet: nb.done(), nb };
+}
+
 export const POWER_EXAMPLES: Example[] = [
   {
     id: 'changeover-1p', title: 'Mains / back-up change-over with voltage protection (single-phase)', level: 'advanced',
@@ -230,5 +296,11 @@ export const POWER_EXAMPLES: Example[] = [
     summary: 'A three-phase load runs from the mains while every phase stays within 195–253 V and none is more than about 10 % below the highest; a lost phase, an over- or undervoltage or an asymmetry switches it to a three-phase back-up source. Four-pole contactors switch L1, L2, L3 and N; nine LM339 comparators watch the three phases.',
     tryThis: 'Simulate: K1 connects the mains (I(K1.1)). Set the L3 source V3 to 254 (180 V r.m.s.) or to 0 (phase lost) and simulate again: K2 takes over. Set it to 286 (202 V): inside the voltage window, but 12 % below the other phases, so the asymmetry trips.',
     build: () => changeover3().sheet,
+  },
+  {
+    id: 'stabiliser', title: 'Mains voltage stabiliser, relay-switched taps (1 kVA)', level: 'advanced',
+    summary: 'Keeps a 1 kVA load near 230 V for inputs of 140–300 V: the input is switched to one of seven autotransformer taps by a chain of six 12 V relays under LM339 comparator control; an output relay connects the load once the control has settled.',
+    tryThis: 'Simulate at 230 V: the output OUT is the input. Set the input source V1 to 255 (180 V r.m.s.) or 382 (270 V) and simulate: another tap is chosen and OUT stays within about ±6 % of 230 V. Watch SF cross the ladder voltages N1 … N6.',
+    build: () => stabiliser().sheet,
   },
 ];

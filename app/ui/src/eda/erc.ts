@@ -21,7 +21,7 @@ export interface ErcIssue {
 /** Element kinds that conduct at DC (for the floating-net rule). */
 export const DC_PATH: Record<string, string[][]> = {
   resistor: [['1', '2']], inductor: [['1', '2']], potentiometer: [['1', '2', '3']],
-  transformer: [['1', '2'], ['3', '4']], relay: [['1', '2']],
+  transformer: [['1', '2'], ['3', '4']], relay: [['1', '2'], ['3', '4', '5']],
   transformer3: [['1', '2', '3', '4'], ['5', '6', '7', '8']], vsin3: [['1', '2', '3', '4']],
   // the servo's PWM input (100 kΩ) and angle output (100 Ω) are referred to its − pin
   dcmotor: [['1', '2']], motor1: [['1', '2']], motor3: [['1', '2', '3', '4']], servo: [['1', '2', '3', '4']],

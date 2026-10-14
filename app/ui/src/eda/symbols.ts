@@ -513,7 +513,7 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'relay', name: 'Relay', category: 'Switches', keywords: ['k', 'relay', 'coil', 'contactor', 'changeover'], prefix: 'K',
     description: 'Relay with a changeover contact: COM connects to NC at rest and to NO while the coil is energised (pull-in at 75 %, drop-out at 25 % of the nominal coil current). The coil is inductive: switch it with a flyback diode.',
     pins: [{ id: '1', name: 'A1', x: -20, y: -30, type: 'passive' }, { id: '2', name: 'A2', x: -20, y: 30, type: 'passive' },
-      { id: '3', name: 'COM', x: 10, y: 30, type: 'passive' }, { id: '4', name: 'NC', x: 40, y: -10, type: 'passive' }, { id: '5', name: 'NO', x: 40, y: 10, type: 'passive' }],
+      { id: '3', name: 'COM', x: 10, y: 30, type: 'passive' }, { id: '4', name: 'NC', x: 40, y: -10, type: 'passive', optional: true }, { id: '5', name: 'NO', x: 40, y: 10, type: 'passive', optional: true }],
     refAt: { x: 10, y: -24 }, valAt: { x: 10, y: 44 }, simulated: true,
     gfx: () => [
       path('M -20 -30 V -10 M -20 10 V 30'), path('M -28 -10 H -12 V 10 H -28 Z', 'bg'), path('M -28 10 L -12 -10'),

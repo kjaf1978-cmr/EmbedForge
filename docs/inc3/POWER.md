@@ -68,3 +68,25 @@ capacitance. Rectifier diodes and bridges now have their datasheet junction capa
 against ngspice at 1 MHz), and the sense transformers in both designs have realistic winding
 resistance, magnetising inductance and leakage, with the RC snubber that a real board needs for
 the resulting ringing.
+
+### P4 — mains voltage stabiliser (done)
+
+Example `stabiliser`: a step-type stabiliser for a 1 kVA load. The input feeds one of seven
+taps of a tapped autotransformer (150, 170, 190, 210, 230, 250, 280 V) and the output is
+taken from the 230 V tap, so V_out = V_in·230/tap. Six 12 V relays in a chain select the
+tap; each one's NC contact feeds the next, so two taps can never be connected, even while a
+relay changes over. The input is sensed like the change-over (transformer, snubber, bridge,
+68k/10k) and filtered to its mean (100k/470 nF). Six LM339 comparators against a TL431 ladder
+(E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V in, with 1 MΩ feedback for about 3 V of
+hysteresis. BC547B drivers with 1N4148 flyback diodes drive the relays.
+
+A seventh comparator delays the output relay after power-on, using 1 MΩ·1.5 µF against VREF
+(0.35 s here; 3–180 s in a stabiliser for appliances). The first simulation showed why it is
+needed: with the sense filter still empty at power-on, every relay is on, the 150 V tap is
+chosen, and the load would see about 346 V for 0.2 s, with 14 A through the relay contacts.
+
+Verified (tests/stabiliser.test.ts): 6 V either side of every step and at 140 and 300 V, the
+right tap is chosen and the output is V_in·230/tap within 2 % and within 230 V ± 10 %
+(215 … 246 V over 140 … 300 V). The load is connected only after the delay and never sees
+more than 253 V. A sag from 230 to 195 V while running steps down a tap and the output
+recovers. The stress check is clean at 140 V (largest input current) and 226 V.
