@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - ~~signed the media~~ (0.2.5, done 14 October 2026, section 1a);
+  - signed the media (0.2.6: kit pending; 0.2.5 signed 14 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - approved the gate.
 
@@ -19,9 +19,9 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 295 passed (0.2.5) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 305 passed (0.2.6) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 40 passed, 3 consecutive runs (0.2.5) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 1a. Signed releases (SEC-02, TEST-04)
@@ -99,7 +99,7 @@ the owner's PC; the builder never held the key.
 
 | Req | Status | Evidence |
 |---|---|---|
-| UI-24 | B | Start screen with new, tutorial, saved projects, 11 examples with previews and hints, roadmap. `editor.test.ts` checks every example: connected, ERC-clean, simulates. Browser tests open examples, run the tutorial and save/open projects. |
+| UI-24 | B | Start screen with new, tutorial, saved projects, 15 examples with previews and hints, roadmap. `editor.test.ts` checks every example: connected, ERC-clean, simulates. Browser tests open examples, run the tutorial and save/open projects. |
 | UI-08 (a) | B | Part library with categories and search (`searchSymbols` test; browser test). |
 | UI-08 (b) | B | Orthogonal wiring; junction dots at T-junctions and points of degree ≥ 3; crossing wires do not connect (`eda.test.ts`). |
 | UI-08 (c) | B | Net labels, power rails and ground; same names join nets (`eda.test.ts`). |
@@ -119,7 +119,7 @@ the owner's PC; the builder never held the key.
 | SIM-01 (a)–(d) | B | Operating point, DC sweep, transient and AC, each against ngspice (section 1). |
 | SIM-02 | B | Voltage, differential and current probes; viewer with two cursors, zoom, min/max/average/RMS/peak-to-peak/frequency (`measure.ts`; browser test). |
 | SIM-03 | B | Switches, push-buttons (held), potentiometers (wheel, slider). Push-button to LED in under 1 s (`editor.test.ts` measures it; browser test). |
-| SIM-04 | B | 25 cases against ngspice 42 within 1 % or 1 mV / 1 µA, on every CI run. SPICE export of the schematic. The 555 is the exception: it has no SPICE primitive, and its export line says so. |
+| SIM-04 | B | 55 cases against ngspice 42 within 1 % or 1 mV / 1 µA, on every CI run (section 1). SPICE export of the schematic. The 555 is the exception: it has no SPICE primitive, and its export line says so. |
 | SIM-05 | B | Every part in the library has a model. A rail without a source gets an ideal supply, and the Simulation tab says so. A missing ground stops the simulation with a message. |
 | DATA-01..03, CM-02 (projects) | B | `projects.rs` tests: create, save (commit per save, no commit when unchanged), load, list, exports not committed, invalid netlists and paths refused. Round trip without host data (`editor.test.ts`). |
 | INV-08 | B | netlist.json is derived from the geometry and stored with it. On open it is compared, and a disagreement is reported (`editor.test.ts`). |
@@ -254,6 +254,18 @@ Found and fixed on the way:
 - **Browser test race:** the navigator test (UI-01/02/03) typed its arrow keys before the tree
   had taken the focus after Ctrl+1, and failed once in 3 runs; it now waits for the focus.
 
+## 3g. Version 0.2.6: your request of 14 October 2026
+
+| Request | Status | Evidence |
+|---|---|---|
+| Show a movement of servos and motors proportional to the torque they produce | B | The simulation reports each motor's torque and speed and each servo's angle: DC motor T = k·i_a (stall torque k·V/R_a and no-load speed checked); induction motors T = P_ag/ω_s from the air-gap power (three-phase within 1 % of an independent phasor solution of the equivalent circuit), averaged over one supply period; servo angle exact also with a loaded output. On the schematic the rotor turns at a rate proportional to the torque, with an arc and a torque/rpm label; the servo horn points at its angle. Transient playback (play, pause, time slider) shows any moment of the run; LEDs follow it too. New servo example. Browser test of the playback. |
+
+Found and fixed on the way:
+- **ERC false warnings:** the floating-net rule had no DC paths for the parts added in 0.2.5
+  (TVS, bridge rectifier, IGBT, optocoupler, TL431, NTC, fuse), nor for the servo's and the DC
+  motor's outputs, so their nets were reported as floating. A test now checks that every part
+  states its DC paths.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
@@ -264,7 +276,7 @@ The run with a person is yours (U).
 1. ~~Sign 0.2.5~~ done 14 October 2026 (section 1a). Tags **v0.2.2** (b035130), **v0.2.3**
    (5b9f9fb), **v0.2.4** (2ea8bec) and **v0.2.5** (5cb9bf0) need a session that may push tags
    (see item 3).
-2. **Your look at it:** install 0.2.5 over the earlier version, open the tutorial and two examples, and tell
+2. **Your look at it:** install 0.2.6 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
    - VAPP-01;
