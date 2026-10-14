@@ -3,23 +3,26 @@
 // on-resistance, and say so. Every model lists what it is good for.
 
 import type { BjtModel, DiodeModel, MosModel } from '../sim/circuit';
-import { VT } from '../sim/engine';
+import { TNOM, VT } from '../sim/engine';
 
 export interface NamedModel<T> { name: string; note: string; model: T }
 
 export const DIODES: NamedModel<DiodeModel>[] = [
   { name: '1N4148', note: 'small-signal switching diode, 100 V / 200 mA', model: { is: 2.52e-9, n: 1.752, rs: 0.568, bv: 100, ibv: 100e-6 } },
   { name: '1N4007', note: 'rectifier diode, 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6 } },
-  { name: '1N5819', note: 'Schottky diode, 40 V / 1 A, low forward voltage', model: { is: 31.7e-6, n: 1.373, rs: 0.051, bv: 40, ibv: 1e-3 } },
+  { name: '1N5819', note: 'Schottky diode, 40 V / 1 A, low forward voltage', model: { is: 31.7e-6, n: 1.373, rs: 0.051, bv: 40, ibv: 1e-3, xti: 2, eg: 0.69 } },
 ];
 
 export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12]] as [string, number][])
   .map(([name, v]) => ({ name, note: `Zener diode ${v} V, 500 mW`, model: { is: 1e-14, n: 1, rs: 2, bv: v, ibv: 5e-3 } }));
 
-/** LED model from its forward voltage at 20 mA (N = 1.9, RS = 5 Ω). */
+/** LED model from its forward voltage at 20 mA (N = 1.9, RS = 5 Ω). The junction voltage of
+ *  a diode at a fixed current changes by (V_j − EG − XTI·V_T)/T per kelvin; EG is chosen so
+ *  that the forward voltage falls by 2 mV/K, as LEDs typically do (SPICE's silicon default
+ *  EG = 1.11 eV would make it rise). */
 export function ledModel(vf: number): DiodeModel {
-  const n = 1.9, rs = 5, i = 0.02;
-  return { is: i / Math.exp((vf - i * rs) / (n * VT)), n, rs, bv: 5, ibv: 10e-6 };
+  const n = 1.9, rs = 5, i = 0.02, vj = vf - i * rs, xti = 3;
+  return { is: i / Math.exp(vj / (n * VT)), n, rs, bv: 5, ibv: 10e-6, xti, eg: vj + 2e-3 * TNOM - xti * VT };
 }
 
 export const LED_COLOURS: { name: string; vf: number; css: string }[] = [

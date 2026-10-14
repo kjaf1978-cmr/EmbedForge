@@ -8,7 +8,7 @@ import { decadePoints } from '../sim/engine';
 import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, RELAYS, ZENERS, findModel, ledModel } from './models';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
-import { pinPositions, type Part, type Sheet, type SimSettings } from './schematic';
+import { pinPositions, sheetTemp, type Part, type Sheet, type SimSettings } from './schematic';
 import { parseValue } from './units';
 
 export interface PartSim {
@@ -98,7 +98,10 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
     rails.push({ net: n.name, volts: v });
   }
   tieIslands(elements);
-  return { circuit: { title: 'NETApps schematic', elements }, netNode, parts, notSimulated, rails, errors, warnings };
+  const temp = sheetTemp(sheet);
+  if (typeof temp !== 'number') errors.push(temp.error);
+  const circuit: Circuit = { title: 'NETApps schematic', elements, ...(typeof temp === 'number' && temp !== 27 ? { temp } : {}) };
+  return { circuit, netNode, parts, notSimulated, rails, errors, warnings };
 }
 
 /**
@@ -143,11 +146,15 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     if (!text) return undefined;
     const r = importModel(p.sym, text);
     if ('error' in r) { errors.push(`${ref} SPICE model: ${r.error}`); return undefined; }
-    if (r.ignored.length) warnings.push(`${ref} model ${r.name}: ${r.ignored.join(', ')} ignored (no junction capacitance or temperature in the simulator).`);
+    if (r.ignored.length) warnings.push(`${ref} model ${r.name}: ${r.ignored.join(', ')} ignored (no junction capacitance in the simulator).`);
     return r.model as T;
   };
   switch (s.id) {
-    case 'resistor': out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: Math.max(v('value', 'resistance'), 1e-6) }); break;
+    case 'resistor': {
+      const tc = p.props.tc?.trim() ? v('tc', 'temperature coefficient') : 0;
+      out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: Math.max(v('value', 'resistance'), 1e-6), ...(tc ? { tc1: tc * 1e-6 } : {}) });
+      break;
+    }
     case 'capacitor': case 'capacitor_pol': out.push({ kind: 'C', name: ref, a: pin['1'], b: pin['2'], c: v('value', 'capacitance') }); break;
     case 'inductor': out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') }); break;
     case 'transformer': {
@@ -321,9 +328,9 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'R', name: `${ref}_R1`, a: n1, b: '0', r: r1 },
         { kind: 'C', name: `${ref}_C1`, a: n1, b: '0', c: 1 / (2 * Math.PI * r1 * fp) },
         { kind: 'V', name: `${ref}_VH`, p: vp, n: nh, dc: clamp },
-        { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm },
+        { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm, fixedTemp: true },
         { kind: 'V', name: `${ref}_VL`, p: nl, n: vn, dc: clampLow },
-        { kind: 'D', name: `${ref}_DL`, a: nl, k: n1, model: dm },
+        { kind: 'D', name: `${ref}_DL`, a: nl, k: n1, model: dm, fixedTemp: true },
         { kind: 'E', name: `${ref}_EO`, p: oi, n: '0', cp: n1, cn: '0', gain: 1 },
         { kind: 'R', name: `${ref}_RO`, a: oi, b: o, r: m.rout },
       );
@@ -339,10 +346,10 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'V', name: `${ref}_VREF`, p: r, n: g, dc: m.vout },
         { kind: 'G', name: `${ref}_GERR`, p: vin, n: b, cp: r, cn: vo, gm: 0.1 },
         { kind: 'R', name: `${ref}_RBE`, a: b, b: vo, r: 1e4 },
-        { kind: 'Q', name: `${ref}_QP`, c: vin, b, e: vo, model: { type: 'npn', is: 1e-13, bf: 100, br: 1, nf: 1, nr: 1 } },
+        { kind: 'Q', name: `${ref}_QP`, c: vin, b, e: vo, model: { type: 'npn', is: 1e-13, bf: 100, br: 1, nf: 1, nr: 1 }, fixedTemp: true },
         // dropout: the base cannot rise above IN − dropout + one diode drop
         { kind: 'V', name: `${ref}_VH`, p: vin, n: h, dc: m.dropout },
-        { kind: 'D', name: `${ref}_DH`, a: b, k: h, model: { is: 1e-14, n: 1, rs: 0 } },
+        { kind: 'D', name: `${ref}_DH`, a: b, k: h, model: { is: 1e-14, n: 1, rs: 0 }, fixedTemp: true },
         { kind: 'R', name: `${ref}_RMIN`, a: vo, b: g, r: 1e5 },
       );
       if (adj) out.push({ kind: 'I', name: `${ref}_IADJ`, p: vin, n: g, dc: m.iq });

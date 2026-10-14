@@ -90,6 +90,21 @@ export interface Sheet {
   sim: SimSettings;
   step?: StepSweep;
   mc?: MonteCarlo;
+  /** Circuit temperature in °C (SPICE .temp); empty or absent: 27 °C. */
+  temp?: string;
+}
+
+/** Stepped-property reference of the circuit temperature in a parameter sweep. */
+export const TEMP_REF = '@TEMP';
+
+/** The circuit temperature in °C, or why the text is not one. */
+export function sheetTemp(s: { temp?: string }): number | { error: string } {
+  const t = s.temp?.trim();
+  if (!t) return 27;
+  const v = parseValue(t);
+  if (v === null) return { error: `Temperature: "${t}" is not a number` };
+  if (!(v > -273.15) || v > 1000) return { error: 'Temperature: must be above −273.15 °C and at most 1000 °C' };
+  return v;
 }
 
 export const GRID = 10;

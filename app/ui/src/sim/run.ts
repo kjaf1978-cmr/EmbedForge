@@ -5,7 +5,7 @@ import { toSpice, spiceName, type Analysis } from './spice';
 import { terminals, type Element } from './circuit';
 import { buildSimNet, planAnalysis, type SimNet } from '../eda/simnet';
 import { connectivity } from '../eda/connectivity';
-import type { Sheet, StepAxis } from '../eda/schematic';
+import { TEMP_REF, type Sheet, type StepAxis } from '../eda/schematic';
 import { parseValue, shortValue } from '../eda/units';
 
 export interface SimResult {
@@ -67,6 +67,7 @@ export function stepValues(st: StepAxis): { values: string[] } | { error: string
 
 /** The sheet with one property of one part set to `value`. */
 export function withProp(sheet: Sheet, ref: string, param: string, value: string): Sheet {
+  if (ref === TEMP_REF) return { ...sheet, step: undefined, temp: value };
   return { ...sheet, step: undefined, parts: sheet.parts.map((p) => (p.ref === ref ? { ...p, props: { ...p.props, [param]: value } } : p)) };
 }
 
@@ -103,7 +104,7 @@ export function overlayRuns(runs: Run[], t0: number): SimResult {
   return { ...first, x: grid, v: steps[0].v, vi: steps[0].vi, i: steps[0].i, ii: steps[0].ii, steps, warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
 }
 
-const axisLabel = (a: StepAxis, val: string) => `${a.ref} ${a.param === 'value' ? '' : `${a.param} `}= ${val}`;
+const axisLabel = (a: StepAxis, val: string) => (a.ref === TEMP_REF ? `T = ${val} °C` : `${a.ref} ${a.param === 'value' ? '' : `${a.param} `}= ${val}`);
 
 /** Runs the analysis once per combination of the swept values (parameter sweep, .step).
  *  An operating point becomes a sweep over the first property's values (one curve per
@@ -114,7 +115,7 @@ export function simulateStepped(sheet: Sheet): SimResult | SimFailure {
   const axes: StepAxis[] = [st, ...(st.more ?? [])];
   const lists: string[][] = [];
   for (const a of axes) {
-    if (!sheet.parts.some((p) => p.ref === a.ref)) return { error: `Parameter sweep: there is no part ${a.ref || '(none chosen)'}`, errors: [] };
+    if (a.ref !== TEMP_REF && !sheet.parts.some((p) => p.ref === a.ref)) return { error: `Parameter sweep: there is no part ${a.ref || '(none chosen)'}`, errors: [] };
     const vals = stepValues(a);
     if ('error' in vals) return { error: axes.length > 1 ? `${a.ref} ${a.param}: ${vals.error}` : vals.error, errors: [] };
     lists.push(vals.values);
@@ -149,7 +150,7 @@ export function simulateStepped(sheet: Sheet): SimResult | SimFailure {
       const part = runs.slice(g * n0, (g + 1) * n0);
       groups.push({ label: axes.slice(1).map((a, k) => axisLabel(a, part[0].combo[k + 1])).join(', '), ...curve(part) });
     }
-    const base = { ...first, analysis: 'dc' as const, xLabel: `${st.ref} ${st.param}`, xUnit: '', x: xs as number[], v: groups[0].v, i: groups[0].i, warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
+    const base = { ...first, analysis: 'dc' as const, xLabel: st.ref === TEMP_REF ? 'Temperature' : `${st.ref} ${st.param}`, xUnit: st.ref === TEMP_REF ? '°C' : '', x: xs as number[], v: groups[0].v, i: groups[0].i, warnings: [...new Set(runs.flatMap(({ r }) => r.warnings))], ms: performance.now() - t0 };
     return axes.length > 1 ? { ...base, steps: groups } : base;
   }
   return overlayRuns(runs.map(({ combo, r }) => ({ label: axes.map((a, k) => axisLabel(a, combo[k])).join(', '), r })), t0);
@@ -308,7 +309,7 @@ export function schematicSpice(sheet: Sheet, title = 'NETApps schematic'): strin
   const head = [
     `* Exported by NETApps Electric Simulation. Ground is node 0.`,
     ...(sheet.mc?.on ? [`* Tolerance analysis (${sheet.mc.runs} runs, R ${sheet.mc.tolR} %, C ${sheet.mc.tolC} %, L ${sheet.mc.tolL} %): not exported; this netlist has the nominal values.`] : []),
-    ...(st ? [`* Parameter sweep of ${st.ref} ${st.param} (${st.mode === 'list' ? st.list : `${st.start} to ${st.stop}, ${st.mode === 'dec' ? `${st.step} per decade` : `step ${st.step}`}`}): not exported; this netlist has the drawn value.`] : []),
+    ...(st ? [`* Parameter sweep of ${st.ref === TEMP_REF ? 'the temperature' : `${st.ref} ${st.param}`} (${st.mode === 'list' ? st.list : `${st.start} to ${st.stop}, ${st.mode === 'dec' ? `${st.step} per decade` : `step ${st.step}`}`}): not exported; this netlist has the drawn value.`] : []),
     ...net.rails.map((r) => `* Rail ${r.net} is driven by an ideal ${r.volts} V supply (RAIL_${r.net}).`),
     ...[...net.parts.values()].filter((p) => p.elements.length > 1).map((p) => `* ${p.ref} is modelled by ${p.elements.join(', ')}.`),
   ];

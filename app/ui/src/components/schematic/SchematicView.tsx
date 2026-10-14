@@ -5,8 +5,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
-import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type Pt, type SymbolDef } from '../../eda/symbols';
-import { GRID, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type MonteCarlo, type SimSettings, type StepAxis, type StepSweep } from '../../eda/schematic';
+import { CATEGORIES, outOfLimits, searchSymbols, symbolOf, SYMBOLS, type ParamDef, type Pt, type SymbolDef } from '../../eda/symbols';
+import { GRID, TEMP_REF, annotate, key, netLabels, newId, toLocal, onSegment, pinPositions, samePt, snap, snapPt, type Part, type Probe, type Rot, type Sheet, type MonteCarlo, type SimSettings, type StepAxis, type StepSweep } from '../../eda/schematic';
 import {
   addLabel, addWire, mirrorSelectionV, rotateSelectionCcw, selectionBounds, connectionAt, copySelection, deleteSelection, hitTest, inRect, isEmpty, mirrorSelection, moveSelection, noSelection, paste,
   placePart, rotateSelection, routeAround, setProps, setRef, sheetBounds, wireCollisions, noCollision, type Clip, type Hit, type Selection,
@@ -1368,6 +1368,9 @@ function StepPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: st
     const sd = symbolOf(p.sym);
     return [sd.value, ...sd.params].filter((d) => d.kind === 'value' || d.kind === 'select').map((d) => ({ ref: p.ref, param: d.key, label: `${p.ref} ${d.label.toLowerCase()}`, def: d, now: p.props[d.key] ?? d.default }));
   });
+  // the circuit temperature can be stepped like a part property
+  const tempDef: ParamDef = { key: 'value', label: 'Circuit temperature', kind: 'value', unit: '°C', default: '27' };
+  candidates.unshift({ ref: TEMP_REF, param: 'value', label: 'circuit temperature (°C)', def: tempDef, now: sheet.temp?.trim() || '27' });
   const { on, more, ...first } = st;
   const axes: StepAxis[] = [first, ...(more ?? [])];
   const setAxes = (next: StepAxis[], label: string) => { const [a0, ...rest] = next; set({ on, ...a0, ...(rest.length ? { more: rest } : {}) }, label); };
@@ -1377,7 +1380,8 @@ function StepPanel({ sheet, apply }: { sheet: Sheet; apply: (s: Sheet, label: st
     if (!c) return null;
     // a sensible first list: the options of a model choice, or half, the value and double
     const n = parseValue(c.now);
-    const list = c.def.kind === 'select' ? (c.def.options ?? []).map((o) => o.value).join(' ') : n !== null ? [n / 2, n, n * 2].map((x) => shortValue(x)).join(' ') : c.now;
+    const list = c.ref === TEMP_REF ? '-20 27 85'
+      : c.def.kind === 'select' ? (c.def.options ?? []).map((o) => o.value).join(' ') : n !== null ? [n / 2, n, n * 2].map((x) => shortValue(x)).join(' ') : c.now;
     return { ref: c.ref, param: c.param, mode: 'list', list, start: '', stop: '', step: '' };
   };
   const counts = axes.map((a) => (a.ref ? stepValues(a) : null));
@@ -1508,6 +1512,10 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
           <label key={t} class="radio"><input type="radio" name="analysis" checked={s.type === t} onChange={() => choose(t)} /> <strong>{label}</strong> <span class="small muted">{help}</span></label>
         ))}
       </fieldset>
+      <div class="row wrap">
+        {field('Temperature', sheet.temp ?? '', (v) => apply({ ...sheet, temp: v || undefined }, `Temperature ${v || '27'} °C`), '°C',
+          sheet.temp?.trim() && parseValue(sheet.temp) !== null ? `semiconductors and resistors at ${formatValue(parseValue(sheet.temp)!, '°C')}` : 'empty: 27 °C (SPICE .temp)')}
+      </div>
       {s.type === 'tran' && (
         <div class="row wrap">
           {field('Stop time', s.stop, (v) => set({ ...s, stop: v }, `Stop time ${v}`), 's')}

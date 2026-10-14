@@ -5,7 +5,7 @@ import type { BjtModel, Circuit, DiodeModel, MosModel } from './circuit';
 import type { Analysis } from './spice';
 
 export const D1N4148: DiodeModel = { is: 2.52e-9, n: 1.752, rs: 0.568 };
-export const LED_RED: DiodeModel = { is: 1.0e-19, n: 1.9, rs: 5 };
+export const LED_RED: DiodeModel = { is: 1.0e-19, n: 1.9, rs: 5, xti: 3, eg: 2.42 };
 export const ZENER_5V1: DiodeModel = { is: 1e-14, n: 1, rs: 1, bv: 5.1, ibv: 5e-3 };
 export const Q2N3904: BjtModel = { type: 'npn', is: 6.734e-15, bf: 416.4, br: 0.7371, nf: 1, nr: 1, vaf: 74.03 };
 export const Q2N3906: BjtModel = { type: 'pnp', is: 1.41e-15, bf: 180.7, br: 4.977, nf: 1, nr: 1, vaf: 18.7 };
@@ -233,3 +233,32 @@ export const REFERENCE: RefCase[] = [
     analysis: { type: 'op' }, nodes: ['a', 'b'],
   },
 ];
+
+/** The same circuits at other temperatures (SPICE .temp): semiconductor equations and
+ *  resistor temperature coefficients against ngspice's temperature models. */
+const AT_TEMP: [string, number][] = [
+  ['led-op', -20], ['led-op', 85], ['zener-dc', 85], ['npn-switch-dc', -20], ['npn-switch-dc', 85], ['pnp-op', 85],
+  ['ce-amplifier-ac', 85], ['nmos-switch-dc', -20], ['nmos-switch-dc', 85], ['pmos-high-side-dc', 85],
+  ['half-wave-rectifier-tran', 85], ['current-source-op', 125],
+];
+for (const [id, temp] of AT_TEMP) {
+  const rc = REFERENCE.find((r) => r.id === id)!;
+  REFERENCE.push({ ...rc, id: `${id}@${temp}C`, circuit: { ...rc.circuit, temp } });
+}
+REFERENCE.push(
+  {
+    id: 'temperature-coefficients-op@85C',
+    circuit: { temp: 85, elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 5 },
+      // metal film (+100 ppm/K), carbon film (−500 ppm/K, with a square term)
+      { kind: 'R', name: 'R1', a: 'in', b: 'm', r: 10e3, tc1: 100e-6 },
+      { kind: 'R', name: 'R2', a: 'm', b: 'k', r: 10e3, tc1: -500e-6, tc2: 1e-6 },
+      // a diode with its own XTI and EG (Schottky-like), and one kept at 27 °C (fixedTemp)
+      { kind: 'D', name: 'D1', a: 'k', k: 'j', model: { is: 1e-8, n: 1.05, rs: 1, xti: 2, eg: 0.69 } },
+      { kind: 'D', name: 'D2', a: 'j', k: '0', model: D1N4148, fixedTemp: true },
+      { kind: 'Q', name: 'Q1', c: 'in', b: 'm', e: 'qe', model: { ...Q2N3904, xti: 4, eg: 1.2 } },
+      { kind: 'R', name: 'RE', a: 'qe', b: '0', r: 4.7e3 },
+    ] },
+    analysis: { type: 'op' }, nodes: ['m', 'k', 'j', 'qe'], currents: ['V1'],
+  },
+);

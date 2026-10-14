@@ -1,7 +1,7 @@
 // SPICE .model import: a .model card from a datasheet or a vendor library replaces the chosen
 // generic model of a diode, Zener, bipolar transistor or MOSFET. The parameters the engine
-// uses are taken; charge-storage and temperature parameters are listed as ignored (the engine
-// has no junction capacitance and no temperature).
+// uses are taken, including the temperature parameters XTI and EG; charge-storage parameters
+// are listed as ignored (the engine has no junction capacitance).
 
 import type { BjtModel, DiodeModel, MosModel } from '../sim/circuit';
 
@@ -38,8 +38,8 @@ export function parseModelCard(text: string): ModelCard | { error: string } {
 export interface Imported<T> { name: string; model: T; used: string[]; ignored: string[] }
 
 const USED = {
-  D: ['IS', 'N', 'RS', 'BV', 'IBV'],
-  Q: ['IS', 'BF', 'BR', 'NF', 'NR', 'VAF', 'VAR', 'VA', 'VB'],
+  D: ['IS', 'N', 'RS', 'BV', 'IBV', 'XTI', 'EG'],
+  Q: ['IS', 'BF', 'BR', 'NF', 'NR', 'VAF', 'VAR', 'VA', 'VB', 'XTI', 'EG'],
   M: ['VTO', 'KP', 'LAMBDA', 'IS', 'LEVEL'],
 };
 
@@ -54,16 +54,17 @@ export function importModel(sym: string, text: string): Imported<DiodeModel | Bj
   const card = parseModelCard(text);
   if ('error' in card) return card;
   const p = card.params, get = (k: string, d: number) => p.get(k) ?? d;
+  const temp = { ...(p.has('XTI') ? { xti: p.get('XTI') } : {}), ...(p.has('EG') ? { eg: p.get('EG') } : {}) };
   const want: Record<string, string[]> = { diode: ['D'], zener: ['D'], led: ['D'], npn: ['NPN'], pnp: ['PNP'], nmos: ['NMOS'], pmos: ['PMOS'] };
   if (!want[sym]?.includes(card.type)) return { error: `a ${card.type} model does not fit this part (it needs ${want[sym]?.join(' or ') ?? 'no model'})` };
   if (card.type === 'D') {
     const bv = p.get('BV');
-    const model: DiodeModel = { is: get('IS', 1e-14), n: get('N', 1), rs: get('RS', 0), ...(bv ? { bv, ibv: get('IBV', 1e-3) } : {}) };
+    const model: DiodeModel = { is: get('IS', 1e-14), n: get('N', 1), rs: get('RS', 0), ...(bv ? { bv, ibv: get('IBV', 1e-3) } : {}), ...temp };
     return { name: card.name, model, ...split(card, USED.D) };
   }
   if (card.type === 'NPN' || card.type === 'PNP') {
     const vaf = p.get('VAF') ?? p.get('VA'), vr = p.get('VAR') ?? p.get('VB');
-    const model: BjtModel = { type: card.type === 'NPN' ? 'npn' : 'pnp', is: get('IS', 1e-16), bf: get('BF', 100), br: get('BR', 1), nf: get('NF', 1), nr: get('NR', 1), ...(vaf ? { vaf } : {}), ...(vr ? { var: vr } : {}) };
+    const model: BjtModel = { type: card.type === 'NPN' ? 'npn' : 'pnp', is: get('IS', 1e-16), bf: get('BF', 100), br: get('BR', 1), nf: get('NF', 1), nr: get('NR', 1), ...(vaf ? { vaf } : {}), ...(vr ? { var: vr } : {}), ...temp };
     return { name: card.name, model, ...split(card, USED.Q) };
   }
   const level = get('LEVEL', 1);

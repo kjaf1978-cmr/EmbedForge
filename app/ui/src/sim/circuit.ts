@@ -10,12 +10,14 @@ export type Wave =
   | { type: 'pulse'; v1: number; v2: number; td: number; tr: number; tf: number; pw: number; per: number }
   | { type: 'pwl'; pts: [number, number][] };
 
-export interface DiodeModel { is: number; n: number; rs: number; bv?: number; ibv?: number }
-export interface BjtModel { type: 'npn' | 'pnp'; is: number; bf: number; br: number; nf: number; nr: number; vaf?: number; var?: number }
+/** xti and eg: temperature exponent of IS and band gap in eV (SPICE defaults 3 and 1.11). */
+export interface DiodeModel { is: number; n: number; rs: number; bv?: number; ibv?: number; xti?: number; eg?: number }
+export interface BjtModel { type: 'npn' | 'pnp'; is: number; bf: number; br: number; nf: number; nr: number; vaf?: number; var?: number; xti?: number; eg?: number }
 export interface MosModel { type: 'nmos' | 'pmos'; vto: number; kp: number; lambda: number; w: number; l: number; is: number }
 
 export type Element =
-  | { kind: 'R'; name: string; a: string; b: string; r: number }
+  /** tc1, tc2: temperature coefficients (1/K, 1/K²): r(T) = r·(1 + tc1·ΔT + tc2·ΔT²), ΔT from 27 °C. */
+  | { kind: 'R'; name: string; a: string; b: string; r: number; tc1?: number; tc2?: number }
   | { kind: 'C'; name: string; a: string; b: string; c: number }
   | { kind: 'L'; name: string; a: string; b: string; l: number }
   /** Voltage source: v(p) − v(n) = value. Branch current flows from p through the source to n. */
@@ -26,9 +28,11 @@ export type Element =
   | { kind: 'E'; name: string; p: string; n: string; cp: string; cn: string; gain: number }
   /** Voltage-controlled current source: gm·(v(cp) − v(cn)) flows from p through the source to n. */
   | { kind: 'G'; name: string; p: string; n: string; cp: string; cn: string; gm: number }
-  | { kind: 'D'; name: string; a: string; k: string; model: DiodeModel }
-  | { kind: 'Q'; name: string; c: string; b: string; e: string; model: BjtModel }
-  | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel }
+  /** fixedTemp: part of a macro model (op-amp clamps, regulator pass transistor), kept at
+   *  27 °C whatever the circuit temperature, because the macro model's behaviour is fitted there. */
+  | { kind: 'D'; name: string; a: string; k: string; model: DiodeModel; fixedTemp?: boolean }
+  | { kind: 'Q'; name: string; c: string; b: string; e: string; model: BjtModel; fixedTemp?: boolean }
+  | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel; fixedTemp?: boolean }
   /** Coupling of two inductors (by element name): M = k·√(L1·L2), dots at each inductor's first node. */
   | { kind: 'K'; name: string; l1: string; l2: string; k: number }
   /** Current-controlled switch (SPICE W): on above it + ih, off below it − ih, where the control
@@ -53,6 +57,8 @@ export type LogicFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'schmitt' 
 export interface Circuit {
   title?: string;
   elements: Element[];
+  /** Circuit temperature in °C (SPICE .temp); model parameters are given at 27 °C (TNOM). */
+  temp?: number;
 }
 
 /** Terminal nodes of an element, in the order its terminal currents are reported. */

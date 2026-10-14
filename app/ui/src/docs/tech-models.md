@@ -3,7 +3,9 @@
 Every part on the schematic is turned into primitive elements by `eda/simnet.ts`. Resistors,
 capacitors, inductors and sources are primitives themselves; semiconductors use SPICE device
 equations; integrated circuits, transformers and motors are *macro models* built from
-primitives; a few parts are behavioural. V_T = kT/q ≈ 25.9 mV at 27 °C.
+primitives; a few parts are behavioural. V_T = kT/q ≈ 25.9 mV at 27 °C; at another circuit
+temperature T every equation below uses V_T(T) and the temperature-adjusted parameters given in
+the last section, Temperature.
 
 ## Diode, LED, Zener
 
@@ -49,8 +51,9 @@ Power-MOSFET models are level-1 fits to the threshold voltage and on-resistance.
 ## Imported SPICE models
 
 A pasted `.model` line is read by `eda/spicemodel.ts`. SPICE numbers are parsed with SPICE's
-suffixes (M = milli, MEG = mega). The parameters above are used; parameters for effects the
-simulator does not model (CJO, TT, temperature coefficients…) are listed as ignored.
+suffixes (M = milli, MEG = mega). The parameters above are used, with XTI and EG for the
+temperature; parameters for effects the simulator does not model (CJO, TT…) are listed as
+ignored.
 
 @code eda/spicemodel.ts spiceValue
 
@@ -135,3 +138,33 @@ Behavioural parts have no SPICE primitive; the SPICE export writes a comment in 
 DC, sine, pulse and three-phase sources follow SPICE's SIN and PULSE definitions:
 
 @code sim/circuit.ts waveAt
+
+## Temperature
+
+Model parameters are given at the nominal temperature T_nom = 27 °C (300.15 K). At a circuit
+temperature T (SPICE `.temp`) the engine adjusts them as ngspice does (`diotemp`, `bjttemp`,
+`mos1temp`):
+
+- **Thermal voltage:** V_T(T) = k·T/q.
+- **Diode and bipolar saturation current:**
+
+      I_S(T) = I_S · exp((T/T_nom − 1)·E_G/(N·V_T(T))) · (T/T_nom)^(XTI/N)
+
+  with the band gap E_G = 1.11 eV and XTI = 3 unless the model sets them (Schottky diodes 0.69 eV
+  and 2). A bipolar transistor uses N = 1 in this formula. At a fixed current the junction
+  voltage then changes by about (V_j − E_G − XTI·V_T)/T per kelvin: −2 mV/K for a silicon diode
+  at 1 mA. LED models get the band gap that gives their typical −2 mV/K.
+- **Zener breakdown** is computed again from I_S(T), with the breakdown voltage itself fixed.
+- **MOSFET (level 1, PHI = 0.6 V, GAMMA = 0):** KP(T) = KP·(T/T_nom)^−1.5 (mobility), and the
+  threshold follows the silicon band gap E_g(T) = 1.16 − 7.02·10⁻⁴·T²/(T + 1108) and the surface
+  potential: V_TO(T) = V_TO + ½·(E_g(T_nom) − E_g(T)) + type·½·(φ(T) − φ), about −1 mV/K. The body
+  diode's I_S follows exp(E_g(T_nom)/V_T(T_nom) − E_g(T)/V_T(T)).
+- **Resistors:** R(T) = R·(1 + TC1·ΔT + TC2·ΔT²) with ΔT = T − 27 °C; the property is TC1 in ppm/K.
+
+@code sim/engine.ts satCurrent
+
+@code sim/engine.ts mosAtTemp
+
+The junctions inside macro models (the op-amp's output clamps, the regulator's pass transistor)
+stay at 27 °C: the macro model is fitted to the datasheet behaviour, not to the physics of its
+inner parts. The SPICE export writes `temp=27` on them, so ngspice does the same.

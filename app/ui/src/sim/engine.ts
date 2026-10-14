@@ -10,8 +10,42 @@
 import { breakpoints, opValue, terminals, waveAt, type BjtModel, type Circuit, type DiodeModel, type Element, type MosModel } from './circuit';
 import { solveComplex, solveReal } from './linalg';
 
-/** Thermal voltage kT/q at 27 °C, the SPICE default temperature. */
-export const VT = (1.38064852e-23 * 300.15) / 1.6021766208e-19;
+/** Nominal temperature in kelvin (27 °C, SPICE TNOM): model parameters are given at it. */
+export const TNOM = 300.15;
+/** Thermal voltage kT/q at the absolute temperature tk. */
+export const thermalVoltage = (tk: number) => (1.38064852e-23 * tk) / 1.6021766208e-19;
+/** Thermal voltage at 27 °C, the SPICE default temperature. */
+export const VT = thermalVoltage(TNOM);
+
+/** Band gap of silicon in eV at tk (SPICE's fit, used for the MOSFET's temperature shifts). */
+const egSi = (tk: number) => 1.16 - (7.02e-4 * tk * tk) / (tk + 1108);
+
+/** Junction saturation current at tk (SPICE diotemp/bjttemp):
+ *    IS(T) = IS·exp((T/TNOM − 1)·EG/(N·V_T(T)) + (XTI/N)·ln(T/TNOM))
+ *  with the band gap EG = 1.11 eV and XTI = 3 unless the model sets them. A bipolar transistor
+ *  uses N = 1 here, as SPICE does. IS roughly doubles every 5 K, so a diode's forward voltage
+ *  at a fixed current falls by about 2 mV/K. */
+export function satCurrent(is: number, n: number, tk: number, xti = 3, eg = 1.11): number {
+  const r = tk / TNOM;
+  return is * Math.exp(((r - 1) * eg) / (n * thermalVoltage(tk)) + (xti / n) * Math.log(r));
+}
+
+/** Level-1 MOSFET parameters at tk (SPICE mos1temp with GAMMA = 0 and PHI = 0.6 V):
+ *  KP falls as (T/TNOM)^−1.5 (carrier mobility); the threshold follows the band gap and the
+ *  surface potential, VTO(T) = VTO + ½·(EG(TNOM) − EG(T)) + type·½·(PHI(T) − PHI), about
+ *  −1 mV/K for an n-channel device; the body diode's IS follows exp(EG(TNOM)/V_T(TNOM) − EG(T)/V_T(T)). */
+export function mosAtTemp(m: MosModel, tk: number): { vto: number; kp: number; is: number } {
+  const vt = thermalVoltage(tk), phi = 0.6, type = m.type === 'nmos' ? 1 : -1;
+  const eg = egSi(tk), eg1 = egSi(TNOM), r = tk / TNOM, fact2 = tk / TNOM;
+  const pbfact = -2 * vt * (1.5 * Math.log(fact2) - eg / (2 * vt) + 1.1150877 / (2 * VT));
+  const pbfact1 = -2 * VT * (-eg1 / (2 * VT) + 1.1150877 / (2 * VT));
+  const tphi = fact2 * (phi - pbfact1) + pbfact;
+  return {
+    vto: m.vto + 0.5 * (eg1 - eg) + type * 0.5 * (tphi - phi),
+    kp: m.kp / (r * Math.sqrt(r)),
+    is: m.is * Math.exp(-eg / vt + eg1 / VT),
+  };
+}
 export const GMIN = 1e-12;
 /** Shunt conductance from every node to ground, so a node held only by capacitors still solves.
  *  The SPICE export sets the same value (.option rshunt). */
@@ -149,8 +183,12 @@ interface Device {
 const near = (a: number, b: number) => Math.abs(a - b) <= RELTOL * Math.max(Math.abs(a), Math.abs(b)) + ABSTOL;
 
 class Resistor implements Device {
-  constructor(public el: Element & { kind: 'R' }, private a: number, private b: number) {}
-  get g() { return 1 / Math.max(this.el.r, 1e-12); }
+  /** r(T) = r·(1 + tc1·ΔT + tc2·ΔT²) with ΔT = T − 27 °C. */
+  constructor(public el: Element & { kind: 'R' }, private a: number, private b: number, private dt = 0) {}
+  get g() {
+    const { r, tc1 = 0, tc2 = 0 } = this.el, dt = this.dt;
+    return 1 / Math.max(r * (1 + tc1 * dt + tc2 * dt * dt), 1e-12);
+  }
   load(c: Ctx) { stampG(c, this.a, this.b, this.g); }
   loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.g, 0); }
   currents(x: Float64Array) { const i = (V(x, this.a) - V(x, this.b)) * this.g; return [i, -i]; }
@@ -379,15 +417,16 @@ function breakdownVoltage(m: DiodeModel, vt: number): number | undefined {
 
 class Diode implements Device {
   vd = 0; gd = 0; cd = 0;
-  private vte: number; private vcrit: number; private tbv?: number;
-  constructor(public el: Element & { kind: 'D' }, private a: number, private ai: number, private k: number) {
+  private vte: number; private vcrit: number; private tbv?: number; private is: number;
+  constructor(public el: Element & { kind: 'D' }, private a: number, private ai: number, private k: number, tk = TNOM) {
     const m = el.model;
-    this.vte = m.n * VT;
-    this.vcrit = this.vte * Math.log(this.vte / (Math.SQRT2 * m.is));
-    this.tbv = breakdownVoltage(m, this.vte);
+    this.vte = m.n * thermalVoltage(tk);
+    this.is = satCurrent(m.is, m.n, tk, m.xti, m.eg);
+    this.vcrit = this.vte * Math.log(this.vte / (Math.SQRT2 * this.is));
+    this.tbv = breakdownVoltage({ ...m, is: this.is }, this.vte);
   }
   private eval(vd: number): [number, number] {
-    const { is } = this.el.model, vte = this.vte;
+    const is = this.is, vte = this.vte;
     if (vd >= -3 * vte) { const e = exp(vd / vte); return [is * (e - 1) + GMIN * vd, (is * e) / vte + GMIN]; }
     if (this.tbv === undefined || vd >= -this.tbv) {
       let arg = (3 * vte) / (vd * Math.E); arg = arg * arg * arg;
@@ -435,18 +474,21 @@ class Bjt implements Device {
   // small-signal partial derivatives at the last evaluation
   private d = { cc: 0, cb: 0, ccBe: 0, ccBc: 0, cbBe: 0, cbBc: 0 };
   private sgn: number; private vcritF: number; private vcritR: number;
-  constructor(public el: Element & { kind: 'Q' }, private c: number, private b: number, private e: number) {
+  private vtf: number; private vtr: number; private is: number;
+  constructor(public el: Element & { kind: 'Q' }, private c: number, private b: number, private e: number, tk = TNOM) {
     const m = el.model;
     this.sgn = m.type === 'npn' ? 1 : -1;
-    this.vcritF = m.nf * VT * Math.log((m.nf * VT) / (Math.SQRT2 * m.is));
-    this.vcritR = m.nr * VT * Math.log((m.nr * VT) / (Math.SQRT2 * m.is));
+    this.is = satCurrent(m.is, 1, tk, m.xti, m.eg);
+    this.vtf = m.nf * thermalVoltage(tk); this.vtr = m.nr * thermalVoltage(tk);
+    this.vcritF = this.vtf * Math.log(this.vtf / (Math.SQRT2 * this.is));
+    this.vcritR = this.vtr * Math.log(this.vtr / (Math.SQRT2 * this.is));
   }
   private eval(vbe: number, vbc: number) {
     const m: BjtModel = this.el.model;
-    const vtf = m.nf * VT, vtr = m.nr * VT;
+    const vtf = this.vtf, vtr = this.vtr, is = this.is;
     const ebe = exp(vbe / vtf), ebc = exp(vbc / vtr);
-    const cbe = m.is * (ebe - 1) + GMIN * vbe, gbe = (m.is * ebe) / vtf + GMIN;
-    const cbc = m.is * (ebc - 1) + GMIN * vbc, gbc = (m.is * ebc) / vtr + GMIN;
+    const cbe = is * (ebe - 1) + GMIN * vbe, gbe = (is * ebe) / vtf + GMIN;
+    const cbc = is * (ebc - 1) + GMIN * vbc, gbc = (is * ebc) / vtr + GMIN;
     const ivaf = m.vaf ? 1 / m.vaf : 0, ivar = m.var ? 1 / m.var : 0;
     const D = 1 - ivaf * vbc - ivar * vbe; // 1/qb
     const cc = (cbe - cbc) * D - cbc / m.br;
@@ -464,8 +506,8 @@ class Bjt implements Device {
     let vbe = s * (V(x, this.b) - V(x, this.e)), vbc = s * (V(x, this.b) - V(x, this.c));
     if (c.init) { vbe = this.vcritF; vbc = 0; }
     else {
-      vbe = pnjlim(vbe, this.vbe, this.el.model.nf * VT, this.vcritF, c);
-      vbc = pnjlim(vbc, this.vbc, this.el.model.nr * VT, this.vcritR, c);
+      vbe = pnjlim(vbe, this.vbe, this.vtf, this.vcritF, c);
+      vbc = pnjlim(vbc, this.vbc, this.vtr, this.vcritR, c);
     }
     this.vbe = vbe; this.vbc = vbc;
     const r = this.eval(vbe, vbc);
@@ -508,13 +550,16 @@ class Bjt implements Device {
 class Mosfet implements Device {
   vgs = 0; vds = 0; vbd = 0;
   private sgn: number; private von: number; private beta: number; private vcrit: number;
+  private vt: number; private is: number;
   private ss = { gm: 0, gds: 0, rev: false, gbd: 0, cd: 0 };
-  constructor(public el: Element & { kind: 'M' }, private d: number, private g: number, private s: number) {
+  constructor(public el: Element & { kind: 'M' }, private d: number, private g: number, private s: number, tk = TNOM) {
     const m: MosModel = el.model;
+    const t = tk === TNOM ? m : mosAtTemp(m, tk);
     this.sgn = m.type === 'nmos' ? 1 : -1;
-    this.von = this.sgn * m.vto;
-    this.beta = (m.kp * m.w) / m.l;
-    this.vcrit = VT * Math.log(VT / (Math.SQRT2 * m.is));
+    this.von = this.sgn * t.vto;
+    this.beta = (t.kp * m.w) / m.l;
+    this.vt = thermalVoltage(tk); this.is = t.is;
+    this.vcrit = this.vt * Math.log(this.vt / (Math.SQRT2 * this.is));
   }
   /** Level-1 drain current for vds ≥ 0. */
   private ids(vgs: number, vds: number): [number, number, number] {
@@ -525,10 +570,10 @@ class Mosfet implements Device {
     return [betap * vds * (vgst - vds / 2), betap * vds, betap * (vgst - vds) + lam * beta * vds * (vgst - vds / 2)];
   }
   private bodyDiode(vbd: number): [number, number] {
-    const is = this.el.model.is;
-    if (vbd <= -3 * VT) return [GMIN * vbd - is, GMIN];
-    const e = exp(vbd / VT);
-    return [is * (e - 1) + GMIN * vbd, (is * e) / VT + GMIN];
+    const is = this.is, vt = this.vt;
+    if (vbd <= -3 * vt) return [GMIN * vbd - is, GMIN];
+    const e = exp(vbd / vt);
+    return [is * (e - 1) + GMIN * vbd, (is * e) / vt + GMIN];
   }
   load(c: Ctx) {
     const s = this.sgn, x = c.x;
@@ -545,7 +590,7 @@ class Mosfet implements Device {
         vgd = fetlim(vgd, vgdo, this.von); vds = vgs - vgd; vds = -limvds(-vds, -this.vds); vgs = vgd + vds;
       }
       if (Math.abs(lv[0] - vgs) > 1e-12 || Math.abs(lv[1] - vds) > 1e-12) c.noncon = true;
-      vbd = pnjlim(vbd, this.vbd, VT, this.vcrit, c);
+      vbd = pnjlim(vbd, this.vbd, this.vt, this.vcrit, c);
     }
     this.vgs = vgs; this.vds = vds; this.vbd = vbd;
     const g = this.g, d = this.d, src = this.s;
@@ -795,10 +840,12 @@ export class Engine {
     for (const e of circuit.elements) if (e.kind === 'T') timerNode.set(e.name, node(`${e.name}#n13`, false));
     let k = this.nNodes;
     const br = () => k++;
+    const tk = (circuit.temp ?? 27) + 273.15, at = (e: { fixedTemp?: boolean }) => (e.fixedTemp ? TNOM : tk);
+    if (!(tk > 0)) throw new SimError(`temperature ${circuit.temp} °C is below absolute zero`);
     for (const e of circuit.elements) {
       const ix = (s: string) => node(s);
       switch (e.kind) {
-        case 'R': this.devices.push(new Resistor(e, ix(e.a), ix(e.b))); break;
+        case 'R': this.devices.push(new Resistor(e, ix(e.a), ix(e.b), tk - TNOM)); break;
         case 'C': this.devices.push(new Capacitor(e, ix(e.a), ix(e.b))); break;
         case 'L': this.devices.push(new Inductor(e, ix(e.a), ix(e.b), br())); break;
         case 'V': this.devices.push(new VSource(e, ix(e.p), ix(e.n), br())); this.breaks.push({ wave: e }); break;
@@ -807,11 +854,11 @@ export class Engine {
         case 'G': this.devices.push(new Vccs(e, ix(e.p), ix(e.n), ix(e.cp), ix(e.cn))); break;
         case 'D': {
           const ai = internal.find(([d]) => d === e)?.[1] ?? ix(e.a);
-          this.devices.push(new Diode(e, ix(e.a), ai, ix(e.k)));
+          this.devices.push(new Diode(e, ix(e.a), ai, ix(e.k), at(e)));
           break;
         }
-        case 'Q': this.devices.push(new Bjt(e, ix(e.c), ix(e.b), ix(e.e))); break;
-        case 'M': this.devices.push(new Mosfet(e, ix(e.d), ix(e.g), ix(e.s))); break;
+        case 'Q': this.devices.push(new Bjt(e, ix(e.c), ix(e.b), ix(e.e), at(e))); break;
+        case 'M': this.devices.push(new Mosfet(e, ix(e.d), ix(e.g), ix(e.s), at(e))); break;
         case 'K': case 'W': break; // after the elements they refer to
         case 'P': this.devices.push(new Servo(e, ix(e.sig), ix(e.gnd), ix(e.out))); break;
         case 'X': this.devices.push(new Logic(e, e.ins.map(ix), e.outs.map(ix), ix(e.vcc))); break;

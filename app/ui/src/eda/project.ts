@@ -37,6 +37,7 @@ export function toFiles(name: string, sheet: Sheet): ProjectFiles {
           sim: sheet.sim,
           ...(sheet.step ? { step: sheet.step } : {}),
           ...(sheet.mc ? { mc: sheet.mc } : {}),
+          ...(sheet.temp ? { temp: sheet.temp } : {}),
         },
       },
     },
@@ -75,6 +76,7 @@ export function fromFiles(files: Partial<ProjectFiles>): Loaded {
   if (geo.sim) sheet.sim = geo.sim as Sheet['sim'];
   if (geo.step) sheet.step = geo.step as Sheet['step'];
   if (geo.mc) sheet.mc = geo.mc as Sheet['mc'];
+  if (typeof geo.temp === 'string') sheet.temp = geo.temp;
   if (net) {
     const d = diffNetlist(net as Netlist, buildNetlist(sheet));
     if (!diffIsEmpty(d)) notes.push(`netlist.json disagrees with the schematic drawing (${describeDiff(d)}). The drawing is used; saving writes a matching netlist.`);

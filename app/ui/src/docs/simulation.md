@@ -28,12 +28,26 @@ for the keyboard: arrow keys, Page Up/Down, Home and End move a slider.
 **Parameter sweep (.step)** in the Simulation tab runs the analysis once per value of one part
 property, as LTspice's `.step` does: choose the property (for example C1 capacitance, R2
 resistance or D1 model), then give a list of values or models separated by spaces, or a range
-(from, to, step) or a range per decade. At most 25 runs. Every probe then shows one trace per
+(from, to, step) or a range per decade. At most 50 runs. Every probe then shows one trace per
 run, named after the value. An operating point with a sweep becomes a plot of the voltages and
 currents against the swept value.
 
 You can step up to three properties at once (**＋ Add a property**): every combination runs, at
 most 50 runs, and each trace is named after its values.
+
+## Temperature
+
+**Temperature** in the Simulation tab sets the circuit temperature in °C, as SPICE's `.temp`
+does; empty means 27 °C, the temperature at which every model is given. Diodes, LEDs, transistors
+and MOSFETs follow the SPICE temperature equations: a silicon diode's forward voltage falls by
+about 2 mV per kelvin, a transistor's V_BE likewise, and a MOSFET's threshold voltage and gain
+fall as it warms. Resistors change by their **temperature coefficient** (property, in ppm/K:
+metal film about 50, carbon film about −500).
+
+To see a circuit over a temperature range, choose **circuit temperature (°C)** as the stepped
+property of a parameter sweep, for example −20 27 85. It can be combined with part properties.
+The op-amp, regulator and 555 models keep their 27 °C behaviour: their temperature drift is
+not modelled.
 
 ## Tolerance analysis (Monte Carlo)
 
@@ -93,8 +107,9 @@ in SPICE.
 
 - Diodes, LEDs and Zener diodes: SPICE diode model; LEDs from their forward voltage at 20 mA.
 - **SPICE models:** diodes, Zeners, transistors and MOSFETs take a pasted `.model` line from a
-  datasheet (property "SPICE model"). The parameters the simulator models are used; the others
-  (junction capacitances, temperature) are listed as ignored. Level-1 MOSFET models only.
+  datasheet (property "SPICE model"). The parameters the simulator models are used, including
+  the temperature parameters XTI and EG; the others (junction capacitances) are listed as
+  ignored. Level-1 MOSFET models only.
 - Logic gates and the D flip-flop: CMOS-like, switching at half the supply rail (the Schmitt
   inverter at 60 % and 40 %), outputs through 50 Ω, no propagation delay. They are supplied from
   the rail named in their "Supply rail" property (hidden supply pins).

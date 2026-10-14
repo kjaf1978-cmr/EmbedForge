@@ -342,6 +342,23 @@ test('parameter sweep (.step): one trace per value of C1, saved with the sheet',
   await expect(side.getByLabel('Run the analysis once per value of a part property')).not.toBeChecked();
 });
 
+test('temperature: the circuit at 85 °C and the temperature as a stepped property', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: LED with series resistor' }).click();
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Simulation' }).click();
+  const temp = side.getByRole('textbox', { name: /^Temperature/ });
+  await temp.fill('85');
+  await temp.press('Tab');
+  await expect(side.getByText('semiconductors and resistors at 85 °C')).toBeVisible();
+  await page.keyboard.press('F5');
+  await expect(side.getByRole('status')).not.toContainText(/error|failed/i);
+  await side.getByLabel('Run the analysis once per value of a part property').check();
+  await side.getByRole('group', { name: 'Stepped property 1' }).getByRole('combobox').first().selectOption({ label: 'circuit temperature (°C)' });
+  await expect(side.getByText(/3 values: -20, 27, 85 °C/)).toBeVisible();
+  await page.keyboard.press('F5');
+  await expect(page.getByRole('region', { name: 'Waveform viewer' }).getByText(/Temperature/).first()).toBeVisible();
+});
+
 test('FFT view: the spectrum of the amplifier output, with its THD', async ({ page }) => {
   await page.getByRole('button', { name: 'Open example: Non-inverting op-amp amplifier' }).click();
   await page.keyboard.press('F5');

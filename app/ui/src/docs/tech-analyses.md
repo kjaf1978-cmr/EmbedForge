@@ -2,7 +2,8 @@
 
 The four basic analyses (operating point, DC sweep, transient, AC) are described on the
 [engine page](#doc:tech-engine). This page covers what is built on them: the DC sweep, the
-parameter sweep, the tolerance analysis, the stress check and the waveform measurements.
+parameter sweep (with the temperature sweep), the tolerance analysis, the stress check and the
+waveform measurements.
 Source: `sim/run.ts`, `eda/smoke.ts`, `sim/measure.ts`.
 
 ## DC sweep
@@ -24,6 +25,13 @@ decade):
 **Runs.** With several properties every combination runs, the first property varying fastest:
 run index r is decomposed into one index per property, r = i₀ + n₀·(i₁ + n₁·i₂). At most 50 runs.
 Each run is an ordinary simulation of a copy of the sheet with the properties changed.
+
+**Temperature.** The circuit temperature can be one of the stepped properties: each run then
+sets the sheet's temperature instead of a part property, and the engine adjusts every model to
+it (see [device models](#doc:tech-models)). An operating point stepped over temperature gives
+each voltage and current against T, as SPICE's `.dc temp` does.
+
+@code sim/run.ts withProp
 
 **Combining the runs.** For an operating point, the result becomes a sweep over the first
 property's values, with one curve per combination of the other properties. Transient, AC and

@@ -141,7 +141,7 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'resistor', name: 'Resistor', category: 'Passive', keywords: ['r', 'ohm', 'resistance'], prefix: 'R',
     description: 'Fixed resistor.', pins: two('1', '2'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -15 M 15 0 H 30'), path('M -15 -6 H 15 V 6 H -15 Z', 'bg')],
-    value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '1k' }, params: [{ key: 'pmax', label: 'Power rating', kind: 'value', unit: 'W', default: '0.25', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
+    value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '1k' }, params: [{ key: 'pmax', label: 'Power rating', kind: 'value', unit: 'W', default: '0.25', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }, { key: 'tc', label: 'Temperature coefficient', kind: 'value', unit: 'ppm/K', default: '0', help: 'change per kelvin from 27 °C (metal film about 50, carbon film about −500)', limits: { ge: -1e4, le: 1e4, text: 'must be from −10 000 to 10 000 ppm/K' } }],
   },
   {
     id: 'capacitor', name: 'Capacitor', category: 'Passive', keywords: ['c', 'cap', 'ceramic', 'farad'], prefix: 'C',

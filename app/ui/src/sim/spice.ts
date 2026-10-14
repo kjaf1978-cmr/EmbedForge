@@ -37,10 +37,13 @@ export function spiceName(e: Element): string {
   return s[0]?.toUpperCase() === e.kind ? s : `${e.kind}${s}`;
 }
 
-export function elementLine(e: Element, models: Map<string, string>): string {
+/** `temp`: the circuit temperature; macro-model parts (fixedTemp) then get temp=27. */
+export function elementLine(e: Element, models: Map<string, string>, temp?: number): string {
   const N = spiceNode, nm = spiceName(e);
+  const fixed = temp !== undefined && temp !== 27 && 'fixedTemp' in e && e.fixedTemp ? ' temp=27' : '';
+  const tc = (m: { xti?: number; eg?: number }) => `${m.xti !== undefined ? ` XTI=${n(m.xti)}` : ''}${m.eg !== undefined ? ` EG=${n(m.eg)}` : ''}`;
   switch (e.kind) {
-    case 'R': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.r)}`;
+    case 'R': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.r)}${e.tc1 ? ` tc1=${n(e.tc1)}` : ''}${e.tc2 ? ` tc2=${n(e.tc2)}` : ''}`;
     case 'C': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.c)}`;
     case 'L': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.l)}`;
     case 'V': return `${nm} ${N(e.p)} ${N(e.n)} ${wave(e.dc, e.wave)}${ac(e)}`;
@@ -49,18 +52,18 @@ export function elementLine(e: Element, models: Map<string, string>): string {
     case 'G': return `${nm} ${N(e.p)} ${N(e.n)} ${N(e.cp)} ${N(e.cn)} ${n(e.gm)}`;
     case 'D': {
       const m = e.model;
-      const card = `D(IS=${n(m.is)} N=${n(m.n)} RS=${n(m.rs)}${m.bv ? ` BV=${n(m.bv)} IBV=${n(m.ibv ?? 1e-3)}` : ''} CJO=0 TT=0)`;
-      return `${nm} ${N(e.a)} ${N(e.k)} ${model(models, 'D', card)}`;
+      const card = `D(IS=${n(m.is)} N=${n(m.n)} RS=${n(m.rs)}${m.bv ? ` BV=${n(m.bv)} IBV=${n(m.ibv ?? 1e-3)}` : ''}${tc(m)} CJO=0 TT=0)`;
+      return `${nm} ${N(e.a)} ${N(e.k)} ${model(models, 'D', card)}${fixed}`;
     }
     case 'Q': {
       const m = e.model;
-      const card = `${m.type.toUpperCase()}(IS=${n(m.is)} BF=${n(m.bf)} BR=${n(m.br)} NF=${n(m.nf)} NR=${n(m.nr)}${m.vaf ? ` VAF=${n(m.vaf)}` : ''}${m.var ? ` VAR=${n(m.var)}` : ''})`;
-      return `${nm} ${N(e.c)} ${N(e.b)} ${N(e.e)} ${model(models, 'Q', card)}`;
+      const card = `${m.type.toUpperCase()}(IS=${n(m.is)} BF=${n(m.bf)} BR=${n(m.br)} NF=${n(m.nf)} NR=${n(m.nr)}${m.vaf ? ` VAF=${n(m.vaf)}` : ''}${m.var ? ` VAR=${n(m.var)}` : ''}${tc(m)})`;
+      return `${nm} ${N(e.c)} ${N(e.b)} ${N(e.e)} ${model(models, 'Q', card)}${fixed}`;
     }
     case 'M': {
       const m = e.model;
       const card = `${m.type.toUpperCase()}(LEVEL=1 VTO=${n(m.vto)} KP=${n(m.kp)} LAMBDA=${n(m.lambda)} IS=${n(m.is)})`;
-      return `${nm} ${N(e.d)} ${N(e.g)} ${N(e.s)} ${N(e.s)} ${model(models, 'M', card)} W=${n(m.w)} L=${n(m.l)}`;
+      return `${nm} ${N(e.d)} ${N(e.g)} ${N(e.s)} ${N(e.s)} ${model(models, 'M', card)} W=${n(m.w)} L=${n(m.l)}${fixed}`;
     }
     case 'K': return `${nm} ${spiceName({ kind: 'L', name: e.l1 } as Element)} ${spiceName({ kind: 'L', name: e.l2 } as Element)} ${n(e.k)}`;
     case 'W': {
@@ -95,8 +98,9 @@ export function analysisLine(a: Analysis): string {
 /** Complete netlist. `extra` lines go before `.end` (for example a .control block). */
 export function toSpice(c: Circuit, analysis?: Analysis, extra: string[] = []): string {
   const models = new Map<string, string>();
-  const lines = c.elements.map((e) => elementLine(e, models));
+  const lines = c.elements.map((e) => elementLine(e, models, c.temp));
   const out = [`* ${c.title ?? 'NETApps circuit'}`, `.option rshunt=${n(1 / GSHUNT)}`];
+  if (c.temp !== undefined && c.temp !== 27) out.push(`.temp ${n(c.temp)}`);
   for (const [card, name] of models) out.push(`.model ${name} ${card}`);
   out.push(...lines);
   if (analysis) out.push(analysisLine(analysis));
