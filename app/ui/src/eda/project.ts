@@ -39,6 +39,7 @@ export function toFiles(name: string, sheet: Sheet): ProjectFiles {
           ...(sheet.mc ? { mc: sheet.mc } : {}),
           ...(sheet.temp ? { temp: sheet.temp } : {}),
         },
+        ...(sheet.board ? { pcb: sheet.board } : {}),
       },
     },
   };
@@ -50,7 +51,8 @@ export interface Loaded { sheet: Sheet; notes: string[] }
 export function fromFiles(files: Partial<ProjectFiles>): Loaded {
   const notes: string[] = [];
   const sheet = emptySheet();
-  const geo = (files['geometry.json'] as { views?: { schematic?: Record<string, unknown> } } | undefined)?.views?.schematic;
+  const views = (files['geometry.json'] as { views?: { schematic?: Record<string, unknown>; pcb?: unknown } } | undefined)?.views;
+  const geo = views?.schematic;
   const net = files['netlist.json'] as Netlist | undefined;
   if (!geo) return { sheet, notes: net && (net.parts?.length ?? 0) > 0 ? ['This project has a netlist but no schematic drawing yet.'] : [] };
   const props = new Map((net?.parts ?? []).map((p) => [p.ref, p.props]));
@@ -77,6 +79,7 @@ export function fromFiles(files: Partial<ProjectFiles>): Loaded {
   if (geo.step) sheet.step = geo.step as Sheet['step'];
   if (geo.mc) sheet.mc = geo.mc as Sheet['mc'];
   if (typeof geo.temp === 'string') sheet.temp = geo.temp;
+  if (views?.pcb && typeof views.pcb === 'object') sheet.board = views.pcb as Sheet['board'];
   if (net) {
     const d = diffNetlist(net as Netlist, buildNetlist(sheet));
     if (!diffIsEmpty(d)) notes.push(`netlist.json disagrees with the schematic drawing (${describeDiff(d)}). The drawing is used; saving writes a matching netlist.`);

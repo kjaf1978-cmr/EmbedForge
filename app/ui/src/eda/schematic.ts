@@ -3,6 +3,7 @@
 
 import { symbolOf, type Pt, type SymbolDef } from './symbols';
 import { parseValue } from './units';
+import type { Board } from '../pcb/board';
 
 export type Rot = 0 | 1 | 2 | 3;
 
@@ -92,6 +93,8 @@ export interface Sheet {
   mc?: MonteCarlo;
   /** Circuit temperature in °C (SPICE .temp); empty or absent: 27 °C. */
   temp?: string;
+  /** The printed circuit board made from this schematic (Increment 3), once started. */
+  board?: Board;
 }
 
 /** Stepped-property reference of the circuit temperature in a parameter sweep. */

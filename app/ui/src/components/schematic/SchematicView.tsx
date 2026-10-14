@@ -25,6 +25,8 @@ import { MAX_RUNS, schematicSpice, stepValues } from '../../sim/run';
 import type { SimClient, SimOutcome } from '../../sim/client';
 import { toCsv } from '../../sim/measure';
 import { motionAt, shownTorque, type Motion } from '../../sim/motion';
+import { footprintChoices, footprintOf } from '../../pcb/library';
+import { FOOTPRINTS } from '../../pcb/footprint';
 import { FIRST_CIRCUIT } from '../../eda/tutorial';
 import { GfxEl, SheetContent, partTransform } from './SheetSvg';
 import { Plot, type Trace } from './Plot';
@@ -1247,6 +1249,27 @@ function Inspector({ sheet, sel, conn, op, apply, valueRef, setOverride, onProbe
   );
 }
 
+/** The part's footprint on the board (PCB-02), with what its pads connect to. */
+function FootprintField({ part, sheet, apply }: { part: Part; sheet: Sheet; apply: (s: Sheet, label: string) => void }) {
+  const choices = footprintChoices(part);
+  const cur = footprintOf(part);
+  if (!cur) return null;
+  const id = `fp-${part.id}`;
+  const pad = Object.entries(cur.choice.pins).map(([pin, pads]) => `${symbolOf(part.sym).pins.find((q) => q.id === pin)?.name ?? pin} → ${pads.join(', ')}`).join(' · ');
+  return (
+    <div class="field">
+      <label for={id}>Footprint</label>
+      <select id={id} value={cur.fp.id} disabled={choices.length < 2} onChange={(e) => {
+        const v = (e.target as HTMLSelectElement).value;
+        apply(setProps(sheet, part.id, { footprint: v === choices[0].footprint ? '' : v }), `${part.ref} footprint ${v}`);
+      }}>
+        {choices.map((c) => <option key={c.footprint} value={c.footprint}>{FOOTPRINTS[c.footprint].name}</option>)}
+      </select>
+      <span class="small muted">Pads: {pad}{cur.choice.note ? ` (${cur.choice.note})` : ''}</span>
+    </div>
+  );
+}
+
 function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, onProbe, colour }: Omit<InspectorProps, 'sel'> & { part: Part }) {
   const s = symbolOf(part.sym);
   const [refText, setRefText] = useState(part.ref);
@@ -1320,6 +1343,7 @@ function PartInspector({ part, sheet, conn, op, apply, valueRef, setOverride, on
       )}
       {field(s.value, true)}
       {s.params.map((p) => field(p, false))}
+      <FootprintField part={part} sheet={sheet} apply={apply} />
       {op && !s.power && (
         <>
           <h4>{op.final ? 'At the end of the run' : 'Operating point'}</h4>
