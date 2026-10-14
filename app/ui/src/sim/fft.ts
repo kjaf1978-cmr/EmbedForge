@@ -4,15 +4,20 @@
 
 import { interpAt } from './measure';
 
-/** In-place radix-2 FFT of (re, im); the length must be a power of two. */
+/** In-place radix-2 FFT of (re, im); the length must be a power of two.
+ *  X[k] = Σₙ x[n]·e^(−j·2π·k·n/N), computed in log₂N stages of N/2 butterflies (Cooley–Tukey,
+ *  decimation in time): O(N·log N) instead of O(N²). */
 export function fft(re: Float64Array, im: Float64Array): void {
   const n = re.length;
+  // reorder the samples into bit-reversed index order, so the butterflies can work in place
   for (let i = 1, j = 0; i < n; i++) {
     let bit = n >> 1;
     for (; j & bit; bit >>= 1) j ^= bit;
     j ^= bit;
     if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
   }
+  // stage by stage, combine two DFTs of length len/2 into one of length len:
+  // X[a] = E + W·O and X[b] = E − W·O with the twiddle factor W = e^(−j·2π·k/len)
   for (let len = 2; len <= n; len <<= 1) {
     const ang = (-2 * Math.PI) / len, wr = Math.cos(ang), wi = Math.sin(ang);
     for (let i = 0; i < n; i += len) {

@@ -5,6 +5,7 @@ import { Keymap, eventKeys } from './core/keymap';
 import { DEFAULTS, clampScale, resolvedTheme, sanitise, type UiSettings } from './core/settings';
 import { UndoStack } from './core/undo';
 import { DocsIndex, type DocPage } from './core/docsIndex';
+import { expandCode } from './core/docCode';
 import { buildModel, type ProjectDocs } from './core/projectModel';
 import type { LibraryItem } from './core/library';
 import type { Backend, HostFinding, ProjectInfo, StartupStatus } from './backend';
@@ -25,7 +26,7 @@ const docFiles = import.meta.glob('./docs/*.md', { query: '?raw', import: 'defau
 const DOCS: DocPage[] = Object.entries(docFiles).map(([path, body]) => ({
   id: path.split('/').pop()!.replace('.md', ''),
   title: (body.match(/^# (.+)$/m)?.[1] ?? path),
-  body,
+  body: expandCode(body).text,
 }));
 
 type View = 'start' | 'schematic' | 'project' | 'library' | 'docs' | 'diagnostics' | 'host' | 'settings';

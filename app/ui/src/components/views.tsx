@@ -129,16 +129,31 @@ export function DocsView({ index, pageId, onPage }: { index: DocsIndex; pageId: 
   const [q, setQ] = useState('');
   const hits = q ? index.search(q) : [];
   const page = index.page(pageId);
+  const pages = index.list();
+  // links between pages: [text](#doc:page-id)
+  const follow = (e: MouseEvent) => {
+    const a = (e.target as HTMLElement).closest('a');
+    const href = a?.getAttribute('href') ?? '';
+    if (href.startsWith('#doc:')) { e.preventDefault(); onPage(href.slice(5)); (e.currentTarget as HTMLElement).scrollTop = 0; }
+  };
+  const group = (tech: boolean) => pages.filter((p) => p.id.startsWith('tech-') === tech);
   return (
     <section aria-label="Documentation" class="docs">
       <input aria-label="Search documentation" placeholder="Search documentation…" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+      <nav aria-label="Contents" class="doc-toc">
+        {([['User guide', false], ['Technical reference', true]] as const).map(([label, tech]) => (
+          <div key={label}><strong class="small">{label}</strong>
+            <ul>{group(tech).map((p) => <li key={p.id}><button class="link" aria-current={p.id === pageId ? 'page' : undefined} onClick={() => onPage(p.id)}>{p.title.replace(/^Technical reference: /, '')}</button></li>)}</ul>
+          </div>
+        ))}
+      </nav>
       {q && (
         <ul class="hits" aria-label="Search results">
           {hits.map((h) => <li key={h.id}><button class="link" onClick={() => { onPage(h.id); setQ(''); }}>{h.title}</button><div class="small muted">{h.snippet}</div></li>)}
           {hits.length === 0 && <li class="muted">No page matches.</li>}
         </ul>
       )}
-      {page ? <Markdown text={page.body} /> : <p>Page not found.</p>}
+      <div class="doc-page" onClick={follow as never}>{page ? <Markdown text={page.body} /> : <p>Page not found.</p>}</div>
     </section>
   );
 }

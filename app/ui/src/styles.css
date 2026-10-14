@@ -70,6 +70,13 @@ table { border-collapse: collapse; width: 100%; background: var(--panel); }
 th, td { border: 1px solid var(--line); padding: 0.25em 0.45em; text-align: left; vertical-align: top; }
 .md h1 { font-size: 1.25em; } .md h2 { font-size: 1.1em; } .md code { font-size: 0.95em; }
 .md table { margin: 0.5em 0; }
+.md pre { background: var(--panel, rgba(127,127,127,0.08)); border: 1px solid var(--line); border-radius: 4px; padding: 0.6em 0.8em; overflow-x: auto; font-size: 0.82em; line-height: 1.4; max-width: 100%; }
+.md pre code { font-size: inherit; white-space: pre; }
+.md .code-caption { margin: 0.8em 0 0.2em; font-size: 0.8em; color: var(--muted); }
+.md blockquote { margin: 0.5em 0; padding: 0.2em 0.8em; border-left: 3px solid var(--accent); }
+.doc-toc { display: flex; gap: 1.5em; flex-wrap: wrap; margin: 0.5em 0 1em; padding-bottom: 0.5em; border-bottom: 1px solid var(--line); }
+.doc-toc ul { list-style: none; margin: 0.2em 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.1em 0.8em; }
+.doc-toc button[aria-current='page'] { font-weight: 700; text-decoration: none; }
 .docs > input { width: 100%; margin-bottom: 0.6em; }
 .hits { list-style: none; padding: 0; border-bottom: 1px solid var(--line); margin-bottom: 0.8em; }
 .hits li { margin-bottom: 0.4em; }

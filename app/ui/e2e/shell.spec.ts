@@ -152,3 +152,15 @@ test('SS-08 + HOST-04: start-up banner reports offline repair and stays accessib
   await expect(page.getByRole('alert', { name: 'Start-up checks' })).toHaveCount(0);
 });
 });
+
+test('documentation: contents list, technical reference with source code, links between pages', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Documentation', exact: true }).click();
+  const toc = page.getByRole('navigation', { name: 'Contents' });
+  await toc.getByRole('button', { name: 'overview and modules' }).click();
+  await expect(page.getByRole('heading', { name: 'Technical reference: overview and modules' })).toBeVisible();
+  await page.getByRole('link', { name: 'FFT and harmonics' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Technical reference: FFT and harmonics' })).toBeVisible();
+  await expect(page.locator('.md pre code').filter({ hasText: 'export function spectrum(' })).toBeVisible();
+  await expect(page.getByText('(code ').first()).toHaveCount(0); // no unresolved code marker
+});

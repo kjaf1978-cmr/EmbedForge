@@ -183,6 +183,7 @@ export function monteCarloSheets(sheet: Sheet): { label: string; sheet: Sheet }[
     tol[k] = t / 100;
   }
   const rand = rng(seed);
+  // Box–Muller transform: two even random numbers give one standard normal number
   const gauss = () => { const u = Math.max(rand(), 1e-12), v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
   const out: { label: string; sheet: Sheet }[] = [{ label: 'nominal', sheet: { ...sheet, mc: undefined, step: undefined } }];
   for (let k = 2; k <= n; k++) {
@@ -190,6 +191,7 @@ export function monteCarloSheets(sheet: Sheet): { label: string; sheet: Sheet }[
       const kind = MC_KINDS[p.sym];
       const v = kind ? parseValue(p.props.value ?? '') : null;
       if (!kind || v === null || !tol[kind]) return p;
+      // d in [−1, 1]: Gaussian with σ = 1/3 (the tolerance is 3 σ) clipped at ±1, or even
       const d = mc.dist === 'gauss' ? Math.max(-1, Math.min(1, gauss() / 3)) : 2 * rand() - 1;
       return { ...p, props: { ...p.props, value: String(v * (1 + tol[kind] * d)) } };
     });

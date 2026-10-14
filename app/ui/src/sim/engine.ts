@@ -164,6 +164,10 @@ class Resistor implements Device {
 class Capacitor implements Device {
   vprev = 0; iprev = 0; inow = 0;
   constructor(public el: Element & { kind: 'C' }, private a: number, private b: number) {}
+  /** Companion model of one time step: the capacitor becomes a conductance g in parallel with a
+   *  current source, i = g·v − ieq.
+   *  Backward Euler:  i = C·(v − v₋)/h            → g = C/h,  ieq = g·v₋
+   *  Trapezoidal:     i = 2C·(v − v₋)/h − i₋      → g = 2C/h, ieq = g·v₋ + i₋ */
   private comp(c: Ctx): [number, number] {
     const C = this.el.c;
     if (c.method === 'be') { const g = C / c.h; return [g, g * this.vprev]; }
@@ -244,6 +248,10 @@ class Vcvs extends Branch {
 class Inductor extends Branch {
   iprev = 0; vprev = 0;
   constructor(public el: Element & { kind: 'L' }, p: number, q: number, k: number) { super(p, q, k); }
+  /** The inductor keeps its current as an unknown (branch row k): v = L·di/dt becomes
+   *  Backward Euler:  v − (L/h)·i = −(L/h)·i₋
+   *  Trapezoidal:     v − (2L/h)·i = −(2L/h)·i₋ − v₋
+   *  At DC it is a short (v = 0); at a power-on start (uic) its current is held at 0. */
   load(c: Ctx) {
     if (c.mode === 'dc' && c.uic) { add(c, this.p, this.k, 1); add(c, this.q, this.k, -1); add(c, this.k, this.k, 1); return; }
     this.stampBranch(c);
