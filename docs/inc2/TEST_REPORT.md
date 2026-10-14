@@ -19,9 +19,9 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 216 passed (0.2.4) |
-| — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 37 cases agree (18 reference circuits, 12 example schematics, 7 part decks) (0.2.4) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 37 passed, 3 consecutive runs (0.2.4) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 295 passed (0.2.5) |
+| — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 40 passed, 3 consecutive runs (0.2.5) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 1a. Signed releases (SEC-02, TEST-04)
@@ -223,6 +223,21 @@ Three defects found and fixed:
   frequency.
 - **Overlays:** parameter-sweep and Monte Carlo transients were resampled to 2001 points. They
   now keep the finest run's resolution (up to 20 000 points).
+
+## 3f. Version 0.2.5: your requests of 14 October 2026
+
+| Request | Status | Evidence |
+|---|---|---|
+| Continue with the app development | B | **Temperature analysis:** the circuit temperature (SPICE `.temp`) sets V_T, the diode and bipolar saturation currents (XTI, EG), Zener breakdown, MOSFET KP and VTO, and resistor temperature coefficients; the temperature can be stepped in the parameter sweep. 13 ngspice cases at −20, 85 and 125 °C agree; unit tests against the SPICE formulas (−2 mV/K for a silicon diode at 1 mA). **Pulse measurements:** rise and fall time (10–90 %), period, duty cycle, overshoot and undershoot, checked against a trapezoidal pulse train, RC rise time RC·ln 9, series-RLC overshoot and the 555's period and duty cycle. |
+| TVS diode, IGBT and other parts common in modern designs | B | TVS diodes SMAJ5.0/12/24/33 A and CA (stand-off, breakdown and clamping voltage at the peak pulse current within 6 % of the datasheet, both directions for CA); IGBTs IKW30N60T, IKW40N120T2 (with diode) and a generic one (VCE(sat) at the rated current within 0.3 V of the datasheet; the diode conducts in reverse, the generic one blocks); PC817 optocoupler (IC = CTR·IF within 8 %, saturation, off); TL431 and TLV431 (reference within 0.5 %, with a divider twice it); bridge rectifiers DB107, KBP206, GBU8K (both half-waves, 100 Hz output); NTC thermistor (exact B formula at −20, 25, 85 °C); fuse (stress check flags an RMS current above the rating); and more models: BAT54, SS34, BD139/BD140, AO3400, AO3401, IRF540N, LM324, MCP6002, NE5532, MCP1700-3.3, L78L05. Stress ratings for all of them. 5 new ngspice decks (TVS both kinds, bridge with smoothing, IGBT gate sweep, optocoupler transfer, TL431 regulator) agree. |
+
+Found and fixed on the way:
+- **LED temperature drift:** with SPICE's silicon band gap (1.11 eV) an LED's forward voltage
+  would rise with temperature; LED models now have the band gap that gives the typical
+  −2 mV/K, and Schottky models the usual 0.69 eV.
+- **The parameter sweep help** still said "at most 25 runs"; it is 50.
+- **Browser test race:** the navigator test (UI-01/02/03) typed its arrow keys before the tree
+  had taken the focus after Ctrl+1, and failed once in 3 runs; it now waits for the focus.
 
 ## 4. Usability (section 22 step 4)
 

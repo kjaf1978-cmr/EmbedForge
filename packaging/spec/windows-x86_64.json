@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.4",
+  "app_version": "0.2.5",
   "os": "windows",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.5",
+          "date": "2026-10-14",
+          "text": "Temperature analysis: circuit temperature (as SPICE .temp) for diodes, LEDs, transistors, MOSFETs and resistors (temperature coefficient), and the temperature as a stepped property of the parameter sweep. Pulse measurements in the waveform viewer: rise and fall time, period, duty cycle, overshoot. FFT view: frequencies between bins, no aliasing, full resolution of stepped runs. New parts: TVS diodes (uni- and bidirectional), IGBTs, optocoupler, TL431 shunt reference, bridge rectifiers, NTC thermistor, fuse; more models (BAT54, SS34, BD139/BD140, AO3400, AO3401, IRF540N, LM324, MCP6002, NE5532, MCP1700, L78L05). Help: technical reference with the theory and the code of every analysis."
+        },
         {
           "version": "0.2.4",
           "date": "2026-10-14",
@@ -59,8 +64,8 @@
   ],
   "files": [
     {
-      "path": "NETApps-Setup-0.2.4-x64.exe",
-      "from": "files/NETApps-Setup-0.2.4-x64.exe",
+      "path": "NETApps-Setup-0.2.5-x64.exe",
+      "from": "files/NETApps-Setup-0.2.5-x64.exe",
       "role": "bootstrap"
     },
     {
@@ -74,8 +79,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.4-source.tar.gz",
-      "from": "files/source/embedforge-0.2.4-source.tar.gz",
+      "path": "source/embedforge-0.2.5-source.tar.gz",
+      "from": "files/source/embedforge-0.2.5-source.tar.gz",
       "role": "source"
     },
     {

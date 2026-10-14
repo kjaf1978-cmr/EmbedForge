@@ -36,6 +36,8 @@ test('UI-01/02/03 + PERF-10: keyboard-only selection cross-highlights every view
   await page.keyboard.press('Control+1');
   const tree = page.getByRole('tree', { name: 'Project navigator' });
   await expect(tree).toBeVisible();
+  // the keys go to the tree only once it has taken the focus
+  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role=tree]'))).toBe(true);
   // project → Requirements group → R1, R2, R3
   for (const k of ['ArrowDown', 'ArrowRight', 'ArrowDown', 'ArrowDown']) await page.keyboard.press(k);
   await page.keyboard.press('Enter');
