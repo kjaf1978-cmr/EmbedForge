@@ -6,7 +6,9 @@ import { placePart } from '../src/eda/editor';
 import { deck, tested, type Spec } from './deck';
 import { annotate, emptySheet, type SimSettings } from '../src/eda/schematic';
 import { SYMBOLS } from '../src/eda/symbols';
-import { BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, ZENERS } from '../src/eda/models';
+import { BJTS, BRIDGES, DIODES, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, SHUNT_REFS, TVS, ZENERS } from '../src/eda/models';
+import { smoke } from '../src/eda/smoke';
+import { connectivity } from '../src/eda/connectivity';
 import { simulate, schematicSpice, type SimResult } from '../src/sim/run';
 
 function run(parts: Spec[], sim?: SimSettings) {
@@ -83,7 +85,7 @@ describe('sources', () => {
 });
 
 describe('semiconductors, every model', () => {
-  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5819': [0.12, 0.45] };
+  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35] };
   for (const m of DIODES) it(`diode ${m.name}: conducts forward, blocks reverse`, () => {
     const f = run([V(5, 'A'), R('1k', 'A', 'K'), ['diode', { value: m.name }, { '2': 'K', '1': 'GND' }]]);
     expect(f.v('K')).toBeGreaterThan(fwd[m.name][0]); expect(f.v('K')).toBeLessThan(fwd[m.name][1]);
@@ -127,6 +129,95 @@ describe('semiconductors, every model', () => {
     expect(on.v('D')).toBeGreaterThan(9.5);
     const off = run([V(10, 'VDD'), R('1k', 'D', 'GND'), V(10, 'G'), ['pmos', { value: m.name }, { '1': 'G', '2': 'D', '3': 'VDD' }]]);
     expect(off.v('D')).toBeLessThan(0.01);
+  });
+});
+
+describe('protection, power and interface parts', () => {
+  const I = (amps: number, from: string, into: string): Spec => ['idc', { value: String(amps) }, { '1': into, '2': from }];
+  for (const m of TVS) it(`TVS ${m.name}: blocks at ${m.model.vrwm} V, breaks down near ${m.model.vbr} V, clamps near ${m.model.vc} V at ${m.model.ipp} A`, () => {
+    const { vrwm, vbr, vc, ipp, bidirectional } = m.model;
+    for (const sign of bidirectional ? [1, -1] : [1]) {
+      // the line is K (pin 1); a reverse voltage on the line is positive for sign = 1
+      const stand = run([V(sign * vrwm, 'L'), ['tvs', { value: m.name }, { '1': 'L', '2': 'GND' }]]);
+      expect(Math.abs(stand.i(`${stand.refs[1]}.1`))).toBeLessThan(1e-6);
+      const brk = run([V(sign * (vbr + 20), 'S'), R('2k', 'S', 'L'), ['tvs', { value: m.name }, { '1': 'L', '2': 'GND' }]]);
+      near(sign * brk.v('L'), vbr, 0.04 * vbr);
+      const clamp = run([I(sign * ipp, 'GND', 'L'), ['tvs', { value: m.name }, { '1': 'L', '2': 'GND' }]]);
+      near(sign * clamp.v('L'), vc, 0.06 * vc);
+    }
+    if (!bidirectional) {
+      const f = run([V(5, 'S'), R('1k', 'S', 'L'), ['tvs', { value: m.name }, { '2': 'L', '1': 'GND' }]]);
+      expect(f.v('L')).toBeLessThan(0.8);
+    }
+  });
+  for (const m of BRIDGES) it(`bridge rectifier ${m.name}: both half-waves, 2 diode drops, output at twice the frequency`, async () => {
+    const { measure } = await import('../src/sim/measure');
+    const { r } = run([['vsin', { value: '10', freq: '50' }, { '1': 'AC1', '2': 'AC2' }], R('1meg', 'AC2', 'GND'), ['bridge', { value: m.name }, { '1': 'AC1', '2': 'AC2', '3': 'P', '4': 'GND' }], R('1k', 'P', 'GND')],
+      { type: 'tran', stop: '60m', step: '20u' });
+    const out = r.v['P'], k0 = r.x.findIndex((t) => t >= 20e-3);
+    expect(Math.min(...out.slice(k0))).toBeGreaterThan(-0.01);
+    expect(Math.max(...out)).toBeGreaterThan(8.3); expect(Math.max(...out)).toBeLessThan(9.2);
+    near(measure(r.x, out, 20e-3, 60e-3).freq!, 100, 2);
+  });
+  const sat: Record<string, [vcesat: number, amps: number]> = { IKW30N60T: [1.5, 30], IKW40N120T2: [1.75, 40], 'generic 600 V 20 A': [1.8, 20] };
+  for (const m of IGBTS) it(`IGBT ${m.name}: VCE(sat) about ${sat[m.name][0]} V at ${sat[m.name][1]} A with 15 V on the gate, blocks with 0 V`, () => {
+    const [vs, amps] = sat[m.name];
+    const load = String(100 / amps);
+    const on = run([V(100, 'VCC'), R(load, 'VCC', 'C'), V(15, 'G'), ['igbt', { value: m.name }, { '1': 'G', '2': 'C', '3': 'GND' }]]);
+    near(on.v('C'), vs, 0.3);
+    const off = run([V(100, 'VCC'), R(load, 'VCC', 'C'), V(0, 'G'), ['igbt', { value: m.name }, { '1': 'G', '2': 'C', '3': 'GND' }]]);
+    expect(off.v('C')).toBeGreaterThan(99.9);
+    // reverse: the co-packed diode conducts from E to C; without one the IGBT blocks
+    const rev = run([V(-10, 'S'), R('10', 'S', 'C'), V(0, 'G'), ['igbt', { value: m.name }, { '1': 'G', '2': 'C', '3': 'GND' }]]);
+    if (m.model.diode) { expect(rev.v('C')).toBeGreaterThan(-1.2); expect(rev.v('C')).toBeLessThan(-0.5); } else expect(rev.v('C')).toBeLessThan(-9.9);
+  });
+  for (const ctr of [100, 200]) it(`optocoupler PC817 with CTR ${ctr} %: IC = CTR·IF before saturation, saturates with a large load, off without LED current`, () => {
+    const parts = (rl: string, vin: number): Spec[] => [V(vin, 'IN'), R('1k', 'IN', 'A'), ['opto', { value: 'PC817', ctr: String(ctr) }, { '1': 'A', '2': 'K', '3': 'E', '4': 'C' }],
+      R('1', 'K', 'GND'), V(5, 'VCC'), R(rl, 'VCC', 'C'), R('1', 'E', 'GND')];
+    const lin = run(parts('100', 5));
+    const iF = lin.i(`${lin.refs[2]}.1`), iC = lin.i(`${lin.refs[2]}.4`);
+    expect(iF).toBeGreaterThan(3e-3);
+    near(iC / iF, ctr / 100, 0.08 * ctr / 100);
+    const s = run(parts('10k', 5));
+    expect(s.v('C')).toBeLessThan(0.3);
+    const off = run(parts('10k', 0));
+    expect(off.v('C')).toBeGreaterThan(4.99);
+  });
+  for (const m of SHUNT_REFS) it(`${m.name}: REF tied to K is ${m.model.vref} V; with a 1:1 divider twice that`, () => {
+    const vref = m.model.vref, vin = m.name === 'TLV431' ? 5 : 12;
+    const ref = run([V(vin, 'S'), R('1k', 'S', 'K'), ['tl431', { value: m.name }, { '1': 'K', '2': 'GND', '3': 'K' }]]);
+    near(ref.v('K'), vref, 0.005 * vref);
+    const div = run([V(vin, 'S'), R('1k', 'S', 'K'), ['tl431', { value: m.name }, { '1': 'F', '2': 'GND', '3': 'K' }], R('10k', 'K', 'F'), R('10k', 'F', 'GND')]);
+    near(div.v('K'), 2 * vref, 0.005 * 2 * vref);
+    // a supply below the reference: the cathode current stops and K follows the supply
+    const low = run([V(vref * 0.8, 'S'), R('1k', 'S', 'K'), ['tl431', { value: m.name }, { '1': 'K', '2': 'GND', '3': 'K' }]]);
+    near(low.v('K'), vref * 0.8, 0.01);
+  });
+  it('NTC thermistor: R25 at 25 °C, R25·exp(B·(1/T − 1/298.15)) at 85 °C and −20 °C', () => {
+    for (const [t, want] of [[25, 10e3], [85, 10e3 * Math.exp(3950 * (1 / 358.15 - 1 / 298.15))], [-20, 10e3 * Math.exp(3950 * (1 / 253.15 - 1 / 298.15))]] as const) {
+      const { sheet, refs } = deck([V(1, 'A'), ['ntc', { value: '10k', beta: '3950' }, { '1': 'A', '2': 'GND' }]]);
+      sheet.temp = String(t);
+      const r = simulate(sheet) as SimResult;
+      near(1 / r.i[`${refs[1]}.1`][0], want, want * 1e-6);
+    }
+  });
+  it('fuse: its cold resistance in the circuit; the stress check says when it would blow', () => {
+    const { sheet, refs } = deck([V(2, 'A'), ['fuse', { value: '1', r: '0.1' }, { '1': 'A', '2': 'B' }], R('1', 'B', 'GND')]);
+    const r = simulate(sheet) as SimResult;
+    near(r.v['B'][0], 2 / 1.1, 1e-6);
+    const row = smoke(sheet, connectivity(sheet), r).rows.find((x) => x.ref === refs[1])!;
+    expect(row.quantity).toBe('Irms');
+    expect(row.status).toBe('over');
+    near(row.value, 2 / 1.1, 1e-6);
+  });
+  it('stress check of the new parts: TVS peak pulse power, IGBT collector current, optocoupler LED current', () => {
+    const { sheet, refs } = deck([['idc', { value: '43.5' }, { '1': 'L', '2': 'GND' }], ['tvs', { value: 'SMAJ5.0A' }, { '1': 'L', '2': 'GND' }],
+      V(100, 'VCC'), R('2', 'VCC', 'C'), V(15, 'G'), ['igbt', { value: 'IKW30N60T' }, { '1': 'G', '2': 'C', '3': 'GND' }]]);
+    const r = simulate(sheet) as SimResult;
+    const rows = smoke(sheet, connectivity(sheet), r).rows;
+    const tvsPk = rows.find((x) => x.ref === refs[1] && x.quantity === 'Ppk')!;
+    expect(tvsPk.value).toBeGreaterThan(350); expect(tvsPk.value).toBeLessThan(450);
+    expect(rows.find((x) => x.ref === refs[5] && x.quantity === 'Ic')!.status).toBe('over');
   });
 });
 

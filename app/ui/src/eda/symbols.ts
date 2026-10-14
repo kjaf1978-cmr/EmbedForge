@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, RELAYS, ZENERS } from './models';
+import { ADJ_REGULATORS, BJTS, BRIDGES, DIODES, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, REGULATORS, RELAYS, SHUNT_REFS, TVS, ZENERS, findModel } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -285,6 +285,25 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'value', label: 'Current', kind: 'value', unit: 'A', default: '1m' }, params: [],
   },
   {
+    id: 'ntc', name: 'NTC thermistor', category: 'Passive', keywords: ['rt', 'ntc', 'thermistor', 'temperature sensor', 'inrush'], prefix: 'RT',
+    description: 'NTC thermistor: R = R25·exp(B·(1/T − 1/298.15 K)) at the circuit temperature (Simulation tab), so it follows a temperature sweep. Self-heating is not modelled.',
+    pins: two('1', '2'), ...H, simulated: true,
+    gfx: () => [path('M -30 0 H -15 M 15 0 H 30'), path('M -15 -6 H 15 V 6 H -15 Z', 'bg'), path('M -14 11 L 12 -11 H 18'), text(-20, -11, '−t°', 7)],
+    value: { key: 'value', label: 'Resistance at 25 °C', kind: 'value', unit: 'Ω', default: '10k', limits: { gt: 0, text: 'must be above 0' } },
+    params: [
+      { key: 'beta', label: 'B value', kind: 'value', unit: 'K', default: '3950', help: 'B25/85 from the datasheet (typically 3000 to 4500 K)', limits: { gt: 0, le: 20000, text: 'must be above 0 and at most 20 000 K' } },
+      { key: 'pmax', label: 'Power rating', kind: 'value', unit: 'W', default: '0.5', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } },
+    ],
+  },
+  {
+    id: 'fuse', name: 'Fuse', category: 'Passive', keywords: ['f', 'fuse', 'protection', 'overcurrent'], prefix: 'F',
+    description: 'Fuse: its cold resistance in the circuit. The stress check reports when the RMS current exceeds the rated current (the fuse would blow); the simulation does not open it.',
+    pins: two('1', '2'), ...H, simulated: true,
+    gfx: () => [path('M -30 0 H -15 M 15 0 H 30'), path('M -15 -5 H 15 V 5 H -15 Z', 'bg'), path('M -15 0 H 15')],
+    value: { key: 'value', label: 'Rated current', kind: 'value', unit: 'A', default: '1', limits: { gt: 0, text: 'must be above 0' } },
+    params: [{ key: 'r', label: 'Cold resistance', kind: 'value', unit: 'Ω', default: '0.1', help: 'from the datasheet (a 1 A fast fuse is about 0.1 Ω)', limits: { gt: 0, text: 'must be above 0' } }],
+  },
+  {
     id: 'diode', name: 'Diode', category: 'Semiconductors', keywords: ['d', 'rectifier', '1n4148', '1n4007', 'schottky'], prefix: 'D',
     description: 'Diode; current flows from anode (left) to cathode (bar).',
     pins: [{ id: '2', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '1', name: 'K', x: 30, y: 0, type: 'passive' }], ...H, simulated: true,
@@ -346,6 +365,46 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'pmos').map((m) => m.name)), default: 'BS250' }, params: [{ key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
+    id: 'tvs', name: 'TVS diode', category: 'Semiconductors', keywords: ['d', 'tvs', 'transient', 'suppressor', 'esd', 'surge', 'protection', 'smaj', 'transil'], prefix: 'D',
+    description: 'Transient voltage suppressor: blocks up to its stand-off voltage and clamps surges at its breakdown voltage. "A" types are unidirectional (cathode to the protected line), "CA" types bidirectional.',
+    pins: [{ id: '2', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '1', name: 'K', x: 30, y: 0, type: 'passive' }], ...H, simulated: true,
+    gfx: (p) => findModel(TVS, p.value ?? '').model.bidirectional
+      ? [path('M -30 0 H -16 M 16 0 H 30 M -4 -12 L 0 -9 V 9 L 4 12', 'none', 2), path('M -16 -9 L 0 0 L -16 9 Z', fg), path('M 16 -9 L 0 0 L 16 9 Z', fg)]
+      : [path('M -30 0 H -8 M 8 0 H 30 M 3 -12 L 8 -9 V 9 L 13 12', 'none', 2), path('M -8 -9 L 8 0 L -8 9 Z', fg)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(TVS.map((m) => m.name)), default: 'SMAJ12A' }, params: [],
+  },
+  {
+    id: 'bridge', name: 'Bridge rectifier', category: 'Semiconductors', keywords: ['br', 'bridge', 'rectifier', 'graetz', 'full wave', 'db107', 'kbp', 'gbu'], prefix: 'BR',
+    description: 'Full-wave bridge rectifier: four diodes; the AC goes to the two ~ pins, the DC comes out between + and −.',
+    pins: [{ id: '1', name: '~', x: -40, y: 0, type: 'passive' }, { id: '2', name: '~', x: 40, y: 0, type: 'passive' }, { id: '3', name: '+', x: 0, y: -40, type: 'passive' }, { id: '4', name: '−', x: 0, y: 40, type: 'passive' }],
+    refAt: { x: 30, y: -26 }, valAt: { x: 30, y: 30 }, simulated: true,
+    gfx: () => [path('M -40 0 H -20 M 20 0 H 40 M 0 -40 V -20 M 0 20 V 40'), path('M -20 0 L 0 -20 L 20 0 L 0 20 Z', 'bg'),
+      arrowHead(-14, -6, -6, -14), arrowHead(14, -6, 6, -14), arrowHead(-6, 14, -14, 6), arrowHead(6, 14, 14, 6),
+      text(8, -30, '+', 8), text(8, 34, '−', 8), text(-30, -6, '~', 8), text(30, -6, '~', 8)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BRIDGES.map((m) => m.name)), default: 'DB107' }, params: [],
+  },
+  {
+    id: 'igbt', name: 'IGBT', category: 'Semiconductors', keywords: ['q', 'igbt', 'insulated gate', 'inverter', 'motor drive', 'power switch'], prefix: 'Q',
+    description: 'N-channel IGBT (G left, C top, E bottom): a voltage-controlled power switch for high voltages; on above its gate threshold, about VCE(sat) across it when on. Models with "diode" have the usual anti-parallel diode.',
+    pins: [{ id: '1', name: 'G', x: -30, y: 0, type: 'input' }, { id: '2', name: 'C', x: 10, y: -30, type: 'passive' }, { id: '3', name: 'E', x: 10, y: 30, type: 'passive' }],
+    refAt: { x: 36, y: -6 }, valAt: { x: 36, y: 8 }, simulated: true,
+    gfx: (p) => [circle(2, 0, 20), path('M -30 0 H -12 M -12 -10 V 10', 'none', 2), path('M -7 -12 V 12', 'none', 2),
+      path('M -7 -6 L 10 -18 V -30 M -7 6 L 10 18 V 30'), arrowHead(-7, 6, 7, 15.6),
+      ...(findModel(IGBTS, p.value ?? '').model.diode ? [path('M 10 -24 H 26 V 24 H 10'), path('M 20 6 H 32 L 26 -4 Z', fg), path('M 20 -4 H 32')] : [])],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(IGBTS.map((m) => m.name)), default: 'IKW30N60T' }, params: [],
+  },
+  {
+    id: 'opto', name: 'Optocoupler', category: 'Semiconductors', keywords: ['u', 'opto', 'optocoupler', 'optoisolator', 'pc817', 'isolation', 'phototransistor'], prefix: 'U',
+    description: 'Optocoupler (PC817 pin-out: 1 anode, 2 cathode, 3 emitter, 4 collector): the LED current, times the current transfer ratio, flows into the phototransistor\'s collector until it saturates. Input and output are isolated.',
+    pins: [{ id: '1', name: 'A', x: -40, y: -10, type: 'passive' }, { id: '2', name: 'K', x: -40, y: 10, type: 'passive' }, { id: '4', name: 'C', x: 40, y: -10, type: 'passive' }, { id: '3', name: 'E', x: 40, y: 10, type: 'passive' }],
+    refAt: { x: 0, y: -30 }, valAt: { x: 0, y: 36 }, simulated: true,
+    gfx: () => [path('M -28 -22 H 28 V 22 H -28 Z', 'bg'), path('M -40 -10 H -14 V -6 M -14 6 V 10 H -40'), path('M -20 -6 H -8 L -14 6 Z', fg), path('M -20 6 H -8'),
+      path('M -4 -4 L 4 0 M -4 4 L 4 8'), arrowHead(-4, -4, 4, 0, 4, 2), arrowHead(-4, 4, 4, 8, 4, 2),
+      path('M 10 -9 V 9', 'none', 2), path('M 10 -4 L 22 -10 H 40 M 10 4 L 22 10 H 40'), arrowHead(10, 4, 20.5, 9.2, 5, 2.5)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(OPTOS.map((m) => m.name)), default: 'PC817' },
+    params: [{ key: 'ctr', label: 'Current transfer ratio', kind: 'value', unit: '%', default: '100', help: 'IC/IF before saturation: PC817 rank A 80–160 %, B 130–260 %, C 200–400 %', limits: { gt: 0, le: 1000, text: 'must be above 0 and at most 1000 %' } }],
+  },
+  {
     id: 'opamp', name: 'Op-amp', category: 'Integrated circuits', keywords: ['u', 'opamp', 'operational amplifier', 'lm358', 'tl072', 'comparator'], prefix: 'U',
     description: 'Operational amplifier with supply pins (pin numbers of a single op-amp in DIP-8).',
     pins: [
@@ -365,6 +424,14 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 0, y: -20 }, valAt: { x: 0, y: 44 }, simulated: true,
     gfx: () => [path('M -40 0 H -25 M 25 0 H 40 M 0 10 V 30'), path('M -25 -10 H 25 V 10 H -25 Z', 'bg'), text(-14, 3, 'IN', 7), text(13, 3, 'OUT', 7), text(0, 8, 'GND', 6)],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(REGULATORS.map((m) => m.name)), default: '7805' }, params: [],
+  },
+  {
+    id: 'tl431', name: 'Shunt reference', category: 'Integrated circuits', keywords: ['u', 'tl431', 'tlv431', 'shunt', 'reference', 'programmable zener', 'feedback'], prefix: 'U',
+    description: 'Adjustable shunt regulator (TL431): the cathode sinks the current that holds REF at the reference voltage above the anode; with REF tied to the cathode it is a 2.495 V reference, with a divider any voltage up to 36 V (Vout = Vref × (1 + R1/R2)).',
+    pins: [{ id: '2', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '3', name: 'K', x: 30, y: 0, type: 'passive' }, { id: '1', name: 'REF', x: 0, y: 30, type: 'input' }],
+    refAt: { x: 0, y: -14 }, valAt: { x: 26, y: 20 }, simulated: true,
+    gfx: () => [path('M -30 0 H -8 M 8 0 H 30 M 4 -11 L 8 -9 V 9 L 12 11', 'none', 2), path('M -8 -9 L 8 0 L -8 9 Z', fg), path('M 0 5 V 30')],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(SHUNT_REFS.map((m) => m.name)), default: 'TL431' }, params: [],
   },
   {
     id: 'lm317', name: 'Adjustable regulator', category: 'Integrated circuits', keywords: ['u', 'lm317', 'adjustable', 'regulator', 'variable supply'], prefix: 'U',

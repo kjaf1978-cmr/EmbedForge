@@ -10,7 +10,7 @@ import type { Sheet } from './schematic';
 import type { Connectivity } from './connectivity';
 import type { SimResult } from '../sim/run';
 
-type Quantity = 'P' | 'V' | 'Vr' | 'If' | 'Ic' | 'Vce' | 'Id' | 'Vds' | 'Vgs' | 'Iz' | 'Vin' | 'Vs' | 'I' | 'Vcc' | 'Iout';
+type Quantity = 'P' | 'V' | 'Vr' | 'If' | 'Ic' | 'Vce' | 'Id' | 'Vds' | 'Vgs' | 'Iz' | 'Vin' | 'Vs' | 'I' | 'Vcc' | 'Iout' | 'Ppk' | 'Vge' | 'Vka' | 'Ik' | 'Irms';
 
 export interface Stress {
   ref: string;
@@ -26,24 +26,33 @@ export interface Stress {
 
 /** Absolute maximum ratings of the built-in models (datasheets; TO-92/TO-220 in free air). */
 const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>> = {
-  diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, '1N5819': { If: 1, Vr: 40, P: 1.25 } },
+  diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 } },
+  // TVS: 1 W steady state, 400 W peak pulse (10/1000 µs)
+  tvs: { '*': { P: 1, Ppk: 400 } },
+  bridge: { DB107: { If: 1, Vr: 1000 }, KBP206: { If: 2, Vr: 600 }, GBU8K: { If: 8, Vr: 800 } },
+  // IGBTs: collector current at 100 °C case; power in free air (TO-247)
+  igbt: { IKW30N60T: { Vce: 600, Ic: 30, Vge: 20, P: 3.5 }, IKW40N120T2: { Vce: 1200, Ic: 40, Vge: 20, P: 3.5 }, 'generic 600 V 20 A': { Vce: 600, Ic: 20, Vge: 20, P: 3.5 } },
+  opto: { PC817: { If: 0.05, Vr: 6, Vce: 35, Ic: 0.05, P: 0.15 } },
+  tl431: { TL431: { Vka: 37, Ik: 0.1, P: 0.62 }, TLV431: { Vka: 6, Ik: 0.015, P: 0.62 } },
   zener: { '*': { P: 0.5 } },
   led: { '*': { If: 0.03, Vr: 5 } },
-  npn: { '2N3904': { Vce: 40, Ic: 0.2, P: 0.625 }, BC547B: { Vce: 45, Ic: 0.1, P: 0.5 }, '2N2222A': { Vce: 40, Ic: 0.8, P: 0.5 } },
-  pnp: { '2N3906': { Vce: 40, Ic: 0.2, P: 0.625 }, BC557B: { Vce: 45, Ic: 0.1, P: 0.5 } },
-  nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 } },
-  pmos: { BS250: { Vds: 45, Id: 0.23, Vgs: 20, P: 0.83 }, IRF9540N: { Vds: 100, Id: 23, Vgs: 20, P: 2 } },
-  opamp: { generic: { Vs: 36, Iout: 0.025 }, LM358: { Vs: 32, Iout: 0.03 }, TL072: { Vs: 36, Iout: 0.025 } },
-  regulator: { '7805': { Vin: 35, Iout: 1, P: 2 }, '7809': { Vin: 35, Iout: 1, P: 2 }, '7812': { Vin: 35, Iout: 1, P: 2 }, 'AMS1117-3.3': { Vin: 15, Iout: 1, P: 0.8 }, 'AMS1117-5.0': { Vin: 15, Iout: 1, P: 0.8 } },
+  npn: { '2N3904': { Vce: 40, Ic: 0.2, P: 0.625 }, BC547B: { Vce: 45, Ic: 0.1, P: 0.5 }, '2N2222A': { Vce: 40, Ic: 0.8, P: 0.5 }, BD139: { Vce: 80, Ic: 1.5, P: 1.25 } },
+  pnp: { '2N3906': { Vce: 40, Ic: 0.2, P: 0.625 }, BC557B: { Vce: 45, Ic: 0.1, P: 0.5 }, BD140: { Vce: 80, Ic: 1.5, P: 1.25 } },
+  nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 }, AO3400: { Vds: 30, Id: 5.8, Vgs: 12, P: 1.4 }, IRF540N: { Vds: 100, Id: 33, Vgs: 20, P: 2 } },
+  pmos: { BS250: { Vds: 45, Id: 0.23, Vgs: 20, P: 0.83 }, IRF9540N: { Vds: 100, Id: 23, Vgs: 20, P: 2 }, AO3401: { Vds: 30, Id: 4, Vgs: 12, P: 1.4 } },
+  opamp: { generic: { Vs: 36, Iout: 0.025 }, LM358: { Vs: 32, Iout: 0.03 }, TL072: { Vs: 36, Iout: 0.025 }, LM324: { Vs: 32, Iout: 0.03 }, MCP6002: { Vs: 6, Iout: 0.023 }, NE5532: { Vs: 44, Iout: 0.038 } },
+  regulator: { '7805': { Vin: 35, Iout: 1, P: 2 }, '7809': { Vin: 35, Iout: 1, P: 2 }, '7812': { Vin: 35, Iout: 1, P: 2 }, 'AMS1117-3.3': { Vin: 15, Iout: 1, P: 0.8 }, 'AMS1117-5.0': { Vin: 15, Iout: 1, P: 0.8 },
+    'MCP1700-3.3': { Vin: 6, Iout: 0.25, P: 0.5 }, L78L05: { Vin: 30, Iout: 0.1, P: 0.7 } },
   lm317: { LM317: { Vin: 40, Iout: 1.5, P: 2 } },
   timer555: { NE555: { Vcc: 16, Iout: 0.2, P: 0.6 } },
   relay: { '*': { I: 10 } },
 };
 
-const UNIT: Record<Quantity, 'W' | 'V' | 'A'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A' };
+const UNIT: Record<Quantity, 'W' | 'V' | 'A'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A' };
 const WHAT: Record<Quantity, string> = {
   P: 'power', V: 'voltage', Vr: 'reverse voltage', If: 'forward current', Ic: 'collector current', Vce: 'collector–emitter voltage', Id: 'drain current',
   Vds: 'drain–source voltage', Vgs: 'gate–source voltage', Iz: 'Zener current', Vin: 'input voltage', Vs: 'supply voltage', I: 'current', Vcc: 'supply voltage', Iout: 'output current',
+  Ppk: 'peak pulse power', Vge: 'gate–emitter voltage', Vka: 'cathode–anode voltage', Ik: 'cathode current', Irms: 'RMS current (the fuse blows above its rating)',
 };
 
 const peak = (y: number[]) => y.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
@@ -118,6 +127,16 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       }
       case 'timer555': if (model) { add('Vcc', peak(vAcross('8', '1')), model.Vcc); add('Iout', peak(iPin('3')), model.Iout); add('P', P(['1', '2', '3', '4', '5', '6', '7', '8']), model.P); } break;
       case 'relay': if (model) add('I', Math.max(peak(iPin('4')), peak(iPin('5'))), model.I); break;
+      case 'ntc': add('P', P(['1', '2']), prop('pmax')); break;
+      case 'fuse': { const i = iPin('1'); add('Irms', Math.sqrt(mean(r.x, i.map((v) => v * v), tran)), prop('value')); break; }
+      case 'tvs': if (model) { add('P', P(['1', '2']), model.P); add('Ppk', maxOf(power(['1', '2'])), model.Ppk); } break;
+      case 'bridge': if (model) { add('If', mean(r.x, iPin('3').map((v) => Math.max(-v, 0)), tran), model.If); add('Vr', peak(vAcross('3', '4')), model.Vr); } break;
+      case 'igbt': if (model) { add('Vce', peak(vAcross('2', '3')), model.Vce); add('Ic', peak(iPin('2')), model.Ic); add('Vge', peak(vAcross('1', '3')), model.Vge); add('P', P(['1', '2', '3']), model.P); } break;
+      case 'opto': if (model) {
+        add('If', maxOf(iPin('1')), model.If); add('Vr', maxOf(vAcross('2', '1')), model.Vr);
+        add('Vce', peak(vAcross('4', '3')), model.Vce); add('Ic', peak(iPin('4')), model.Ic); add('P', P(['4', '3']), model.P);
+      } break;
+      case 'tl431': if (model) { add('Vka', peak(vAcross('3', '2')), model.Vka); add('Ik', peak(iPin('3')), model.Ik); add('P', P(['1', '2', '3']), model.P); } break;
       default: break;
     }
   }

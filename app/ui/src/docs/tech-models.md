@@ -59,6 +59,45 @@ ignored.
 
 @code eda/spicemodel.ts importModel
 
+## Protection, power and interface parts
+
+**TVS diode.** A diode junction with reverse breakdown at the nominal breakdown voltage V_BR
+(at 10 mA) and a series resistance R_S = (V_C − V_BR)/I_PP from the datasheet's clamping
+voltage V_C at the peak pulse current I_PP. A bidirectional type is two junctions in
+anti-series; each breaks down 0.6 V below V_BR (the other conducts forward) and carries R_S/2.
+
+@code eda/models.ts tvsJunction
+
+**Bridge rectifier:** four identical diodes, ~1 → +, ~2 → +, − → ~1, − → ~2.
+
+**IGBT.** The equivalent circuit of the device: an N-channel MOSFET (gate G, source at the
+emitter) whose drain current is the base current of a wide-base PNP (emitter at the collector
+C, collector at the emitter E). The collector current is (1 + β_PNP)·I_MOS, and
+
+    V_CE(sat) = V_EB(PNP) + V_DS(MOS)
+
+The MOSFET's V_TO is the datasheet gate threshold and its K_P is chosen so that V_CE(sat) at
+the rated current with V_GE = 15 V matches the datasheet; the short-circuit current then comes
+out at about four to five times the rated current, as in real devices. Without a co-packed
+diode the IGBT blocks in reverse (the PNP's emitter junction); models with a diode add it from E
+to C.
+
+**Optocoupler.** The infrared LED (1.2 V at 20 mA) in series with a 1 Ω current sense; a
+voltage-controlled current source puts CTR/β·I_F into the base of the phototransistor (β = 500),
+so I_C = CTR·I_F until the transistor saturates. The two sides share no node.
+
+**TL431 shunt reference.** An error amplifier (transconductance 1 mS into 10 MΩ: gain 10⁴)
+compares REF with V_ref above the anode; its output is clamped between the anode and 2.5 V
+above it, buffered, and drives an NPN (β = 100) through 1 kΩ from the cathode to the anode. The
+loop gain is about 1000 A/V, so REF stays within about 0.1 mV of V_ref from 1 to 100 mA. A
+diode from anode to cathode conducts in reverse. The macro model is kept at 27 °C (the real
+part is temperature-compensated).
+
+**NTC thermistor:** R(T) = R₂₅·exp(B·(1/T − 1/298.15 K)) at the circuit temperature T.
+
+**Fuse:** its cold resistance; whether it blows is the stress check's comparison of the RMS
+current over the run with the rated current.
+
 ## Op-amp (macro model)
 
     input:   R_in between + and −

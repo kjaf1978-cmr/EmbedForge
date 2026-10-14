@@ -128,6 +128,19 @@ in SPICE.
 - Op-amps: macro model with gain, one pole (gain–bandwidth), input and output resistance, and
   an output that stops short of the supply rails by the amount the model states (LM358: 1.5 V
   below V+, 0.1 V above V−). Supply current is not modelled.
+- TVS diodes: breakdown at the nominal breakdown voltage and the datasheet clamping voltage at
+  the peak pulse current; bidirectional types clamp both ways. The stress check compares the
+  peak power with the 400 W pulse rating and the average with 1 W.
+- IGBTs: the classic equivalent circuit (a MOSFET driving a PNP), fitted to the gate threshold
+  and VCE(sat); models with a diode include the anti-parallel diode. No gate charge, tail
+  current or switching losses.
+- Optocoupler: an infrared LED and a phototransistor; the collector current is the current
+  transfer ratio (property, %) times the LED current until the transistor saturates.
+- TL431 shunt reference: holds REF at 2.495 V above the anode (TLV431: 1.24 V) by sinking
+  cathode current; it conducts like a diode in reverse. The minimum cathode current is not
+  modelled.
+- NTC thermistor: follows the circuit temperature with its B value; no self-heating. Fuse: its
+  cold resistance; the stress check says when the RMS current would blow it.
 - A part, or a group of parts, connected to nothing else is tied to ground at one point. No
   current can flow through that tie, so it changes no result; it only keeps the simulator from
   failing on a part you have not wired yet.

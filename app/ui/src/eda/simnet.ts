@@ -5,7 +5,7 @@ import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, 
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, BJTS, DIODES, LED_COLOURS, MOSFETS, OPAMPS, REGULATORS, RELAYS, ZENERS, findModel, ledModel } from './models';
+import { ADJ_REGULATORS, BJTS, BRIDGES, DIODES, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, REGULATORS, RELAYS, SHUNT_REFS, TVS, ZENERS, findModel, ledModel, tvsJunction } from './models';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
 import { pinPositions, sheetTemp, type Part, type Sheet, type SimSettings } from './schematic';
@@ -57,6 +57,7 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
   for (const p of sheet.parts) if (!symbolOf(p.sym).power) refCount.set(p.ref, (refCount.get(p.ref) ?? 0) + 1);
   for (const [r, n] of refCount) if (n > 1) errors.push(`Reference ${r} is used ${n} times. Use Annotate to renumber, then simulate.`);
 
+  const sheetT = sheetTemp(sheet);
   for (const p of sheet.parts) {
     const s = symbolOf(p.sym);
     if (s.power) continue;
@@ -67,7 +68,7 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
       pinNode[pp.pin] = net ? netNode.get(net)! : `nc_${p.ref}_${pp.pin}`;
     }
     const before = elements.length;
-    partElements(p, pinNode, elements, errors, warnings);
+    partElements(p, pinNode, elements, errors, warnings, typeof sheetT === 'number' ? sheetT : 27);
     parts.set(p.ref, { ref: p.ref, elements: elements.slice(before).map((e) => e.name), pinNode });
   }
 
@@ -136,7 +137,8 @@ function logicRail(p: Part): string {
   return `rail:${(p.props.value ?? '+5V').trim() || '+5V'}`;
 }
 
-function partElements(p: Part, pin: Record<string, string>, out: Element[], errors: string[], warnings: string[] = []) {
+/** `temp`: the circuit temperature in °C (parts whose value depends on it, such as the NTC). */
+function partElements(p: Part, pin: Record<string, string>, out: Element[], errors: string[], warnings: string[] = [], temp = 27) {
   const s = symbolOf(p.sym);
   const v = (k: string, what = k) => num(p.props[k], `${p.ref} ${what}`, errors);
   const ref = p.ref;
@@ -242,6 +244,78 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'dff':
       out.push({ kind: 'X', name: ref, fn: 'dff', ins: [pin['1'], pin['2']], outs: [pin['3'], pin['4']], vcc: logicRail(p) });
       break;
+    case 'ntc': {
+      // R(T) = R25·exp(B·(1/T − 1/T25)) with T25 = 298.15 K
+      const tk = temp + 273.15, r = Math.max(v('value', 'resistance') * Math.exp(v('beta', 'B value') * (1 / tk - 1 / 298.15)), 1e-6);
+      out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r });
+      break;
+    }
+    case 'fuse': out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: Math.max(v('r', 'cold resistance'), 1e-6) }); break;
+    case 'tvs': {
+      const m = findModel(TVS, p.props.value).model;
+      if (!m.bidirectional) { out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: tvsJunction(m) }); break; }
+      // two junctions in anti-series: one conducts forward (about 0.6 V at 10 mA), the other breaks
+      // down, so each breaks down 0.6 V below VBR and carries half the clamping resistance
+      const mid = `${ref}#m`, j = tvsJunction(m, m.vbr - 0.6), half = { ...j, rs: j.rs / 2 };
+      out.push({ kind: 'D', name: `${ref}_D1`, a: pin['2'], k: mid, model: half }, { kind: 'D', name: `${ref}_D2`, a: pin['1'], k: mid, model: half });
+      break;
+    }
+    case 'bridge': {
+      const m = findModel(BRIDGES, p.props.value).model;
+      const [ac1, ac2, pos, neg] = [pin['1'], pin['2'], pin['3'], pin['4']];
+      out.push(
+        { kind: 'D', name: `${ref}_D1`, a: ac1, k: pos, model: m }, { kind: 'D', name: `${ref}_D2`, a: ac2, k: pos, model: m },
+        { kind: 'D', name: `${ref}_D3`, a: neg, k: ac1, model: m }, { kind: 'D', name: `${ref}_D4`, a: neg, k: ac2, model: m },
+      );
+      break;
+    }
+    case 'igbt': {
+      // the MOSFET's drain feeds the base of the wide-base PNP: IC = (1 + BF)·IMOS
+      const m = findModel(IGBTS, p.props.value).model;
+      const b = `${ref}#b`, [g, c, e] = [pin['1'], pin['2'], pin['3']];
+      out.push(
+        { kind: 'M', name: `${ref}_M`, d: b, g, s: e, model: { type: 'nmos', vto: m.vto, kp: m.kp, lambda: 0.002, w: 1, l: 1, is: 1e-12 } },
+        { kind: 'Q', name: `${ref}_Q`, c: e, b, e: c, model: { type: 'pnp', is: m.is, bf: m.bf, br: 1, nf: 1, nr: 1 } },
+      );
+      if (m.diode) out.push({ kind: 'D', name: `${ref}_D`, a: e, k: c, model: m.diode });
+      break;
+    }
+    case 'opto': {
+      // LED, a 1 Ω current sense, and a photocurrent CTR/BF·IF from collector into the base
+      const m = findModel(OPTOS, p.props.value).model;
+      const ctr = v('ctr', 'current transfer ratio') / 100;
+      const sense = `${ref}#s`, b = `${ref}#b`;
+      out.push(
+        { kind: 'D', name: `${ref}_D`, a: pin['1'], k: sense, model: ledModel(m.vf) },
+        { kind: 'R', name: `${ref}_RS`, a: sense, b: pin['2'], r: 1 },
+        { kind: 'G', name: `${ref}_G`, p: pin['4'], n: b, cp: sense, cn: pin['2'], gm: ctr / m.bf },
+        { kind: 'Q', name: `${ref}_Q`, c: pin['4'], b, e: pin['3'], model: { type: 'npn', is: 1e-14, bf: m.bf, br: 1, nf: 1, nr: 1, vaf: 100 } },
+      );
+      break;
+    }
+    case 'tl431': {
+      // error amplifier (gain 10⁴) from REF against Vref above the anode, clamped between the
+      // anode and 2.5 V above it, buffered, driving an NPN from cathode to anode; a diode
+      // conducts in reverse
+      const m = findModel(SHUNT_REFS, p.props.value).model;
+      const [refPin, a, k] = [pin['1'], pin['2'], pin['3']];
+      const r = `${ref}#r`, e = `${ref}#e`, h = `${ref}#h`, o = `${ref}#o`, b = `${ref}#b`;
+      const dm = { is: 1e-15, n: 0.1, rs: 0 };
+      out.push(
+        { kind: 'V', name: `${ref}_VR`, p: r, n: a, dc: m.vref },
+        { kind: 'G', name: `${ref}_G`, p: a, n: e, cp: refPin, cn: r, gm: 1e-3 },
+        { kind: 'R', name: `${ref}_R1`, a: e, b: a, r: 1e7 },
+        { kind: 'D', name: `${ref}_DL`, a, k: e, model: dm, fixedTemp: true },
+        { kind: 'V', name: `${ref}_VH`, p: h, n: a, dc: 2.5 },
+        { kind: 'D', name: `${ref}_DH`, a: e, k: h, model: dm, fixedTemp: true },
+        // unity buffer, so the base current does not load the amplifier (loop gain 1000 A/V)
+        { kind: 'E', name: `${ref}_EB`, p: o, n: a, cp: e, cn: a, gain: 1 },
+        { kind: 'R', name: `${ref}_RB`, a: o, b, r: 1e3 },
+        { kind: 'Q', name: `${ref}_Q`, c: k, b, e: a, model: { type: 'npn', is: 1e-14, bf: 100, br: 1, nf: 1, nr: 1 }, fixedTemp: true },
+        { kind: 'D', name: `${ref}_DR`, a, k, model: { is: 1e-14, n: 1, rs: 0.5 }, fixedTemp: true },
+      );
+      break;
+    }
     case 'potentiometer': {
       const r = Math.max(v('value', 'resistance'), 1e-3);
       const pos = Math.min(1, Math.max(0, v('position', 'wiper position') / 100));
