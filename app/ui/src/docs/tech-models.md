@@ -17,7 +17,16 @@ The SPICE diode equation with series resistance R_S (an internal node) and rever
 
 A conductance GMIN = 10⁻¹² S is added in parallel, as in SPICE. LEDs are diodes whose I_S is
 chosen so that their forward voltage at 20 mA is the colour's typical value (n = 1.9,
-R_S = 5 Ω). Junction capacitance is not modelled.
+R_S = 5 Ω).
+
+Rectifier diodes (1N4007) and bridge rectifiers have a constant junction capacitance C_J
+(datasheet typical values: 15 pF for the 1N4007 and DB107, 25 pF for the KBP206, 55 pF for the
+GBU8K) across the junction, inside R_S; it is exported as CJO with M = 0, which SPICE also takes
+as constant. It keeps the diode's off state capacitive, as it is: when a bridge fed by a
+transformer stops conducting, the transformer's leakage inductance rings with it instead of
+facing an open circuit. A power-on start (capacitors discharged) does not hold C_J at 0 V; it
+starts at the junction voltage of the first solution. Other diodes have no junction
+capacitance.
 
 @code sim/engine.ts Diode.eval
 
@@ -52,8 +61,8 @@ Power-MOSFET models are level-1 fits to the threshold voltage and on-resistance.
 
 A pasted `.model` line is read by `eda/spicemodel.ts`. SPICE numbers are parsed with SPICE's
 suffixes (M = milli, MEG = mega). The parameters above are used, with XTI and EG for the
-temperature; parameters for effects the simulator does not model (CJO, TT…) are listed as
-ignored.
+temperature; parameters for effects the simulator does not model (CJO, which SPICE makes voltage-dependent,
+TT…) are listed as ignored.
 
 @code eda/spicemodel.ts spiceValue
 
@@ -174,7 +183,8 @@ Behavioural parts have no SPICE primitive; the SPICE export writes a comment in 
 
 ## Sources
 
-DC, sine, pulse and three-phase sources follow SPICE's SIN and PULSE definitions:
+DC, sine, pulse and three-phase sources follow SPICE's SIN and PULSE definitions. A sine
+source's delay is SPICE's TD: before it the source holds offset + amplitude·sin(phase).
 
 @code sim/circuit.ts waveAt
 

@@ -33,3 +33,38 @@ verified first; each design then gets its PCB layout with the Increment 3 tools.
 
 High-power designs are simulated as circuits (switching transients over a few mains periods);
 thermal design (heatsinks) is given as calculations, not simulated.
+
+## Progress
+
+### P3 — change-over (done)
+
+Two examples, `changeover-1p` and `changeover-3p` (app/ui/src/eda/powerExamples.ts), built from
+catalogue parts only: per phase a 1 VA 230/12 V sense transformer with a 220 Ω + 100 nF
+snubber, DB107 bridge, 4.7 µF, 68k/10k divider; a TL431 reference split by 2.1k/4.22k/12.1k
+(E96) into the two thresholds; LM393/LM339 comparators; 10k/4.7 µF delay; IRLZ44N coil drivers
+with 12 V Zener gate clamps; 24 V DC contactors (32 A, 2- or 4-pole) interlocked through their
+NC auxiliary contacts; C32 breakers. The 3P+N design adds a diode-OR of the three rectified
+phases scaled by 768k/100k as the asymmetry threshold.
+
+Measured in the tests (tests/power.test.ts, power3.test.ts, power3step.test.ts):
+
+| Condition | Single-phase | 3P+N |
+|---|---|---|
+| Trip while connected | below 195 V (194 trips, 196 holds), above 253 V (252 holds, 254 trips) | 190 V or 256 V on one phase trips; 250 V on all holds |
+| Accepted at start-up | about 197 … 250 V (194 and 256 rejected, 200 and 248 accepted) | 230 and 240 V accepted; 190 V and a lost phase rejected |
+| Reconnect after a trip (hysteresis) | about 205 … 245 V (200 and 250 stay on back-up, 210 and 240 reconnect) | — |
+| Asymmetry | — | one phase 12 % below the others trips (start-up and while connected), 7 % holds |
+| Interlock | never both contactors carrying current at any time point | same |
+| Stress check | every part within its ratings at 230 V | same |
+
+The thresholds were set on the simulated sense ripple (minima for undervoltage, peaks for
+overvoltage) and the hysteresis is larger than that ripple, so a voltage near a threshold does
+not make the contactors chatter.
+
+Found on the way and fixed in the engine: a bridge on a transformer secondary that starts with
+a non-zero source voltage (any phase other than 0°) did not converge. When the bridge stopped
+conducting, the leakage inductance faced an open circuit, because the diodes had no junction
+capacitance. Rectifier diodes and bridges now have their datasheet junction capacitance (checked
+against ngspice at 1 MHz), and the sense transformers in both designs have realistic winding
+resistance, magnetising inductance and leakage, with the RC snubber that a real board needs for
+the resulting ringing.

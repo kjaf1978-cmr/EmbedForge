@@ -58,7 +58,7 @@ export function elementLine(e: Element, models: Map<string, string>, temp?: numb
     case 'G': return `${nm} ${N(e.p)} ${N(e.n)} ${N(e.cp)} ${N(e.cn)} ${n(e.gm)}`;
     case 'D': {
       const m = e.model;
-      const card = `D(IS=${n(m.is)} N=${n(m.n)} RS=${n(m.rs)}${m.bv ? ` BV=${n(m.bv)} IBV=${n(m.ibv ?? 1e-3)}` : ''}${tc(m)} CJO=0 TT=0)`;
+      const card = `D(IS=${n(m.is)} N=${n(m.n)} RS=${n(m.rs)}${m.bv ? ` BV=${n(m.bv)} IBV=${n(m.ibv ?? 1e-3)}` : ''}${tc(m)} CJO=${n(m.cj ?? 0)} M=0 TT=0)`;
       return `${nm} ${N(e.a)} ${N(e.k)} ${model(models, 'D', card)}${fixed}`;
     }
     case 'Q': {

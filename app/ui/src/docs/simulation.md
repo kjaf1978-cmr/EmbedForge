@@ -132,6 +132,7 @@ The time step of a transient follows the integration error of every capacitor an
 in SPICE.
 
 - Diodes, LEDs and Zener diodes: SPICE diode model; LEDs from their forward voltage at 20 mA.
+  Rectifier diodes and bridges include their junction capacitance (constant, datasheet value).
 - **SPICE models:** diodes, Zeners, transistors and MOSFETs take a pasted `.model` line from a
   datasheet (property "SPICE model"). The parameters the simulator models are used, including
   the temperature parameters XTI and EG; the others (junction capacitances) are listed as

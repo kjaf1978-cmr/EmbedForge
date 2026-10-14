@@ -473,8 +473,9 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'vsin': {
-      const off = v('offset'), amp = v('value', 'amplitude'), f = v('freq', 'frequency'), ph = p.props.phase ? v('phase') : 0;
-      out.push({ kind: 'V', name: ref, p: pin['1'], n: pin['2'], dc: off, wave: { type: 'sin', vo: off, va: amp, freq: f, ...(ph ? { phase: ph } : {}) }, acMag: v('ac', 'AC magnitude') || undefined, ...(ph ? { acPhase: ph } : {}) });
+      const off = v('offset'), amp = v('value', 'amplitude'), f = v('freq', 'frequency'), ph = p.props.phase ? v('phase') : 0, td = p.props.delay ? v('delay') : 0;
+      if (td < 0) errors.push(`${p.ref}: the delay must not be negative`);
+      out.push({ kind: 'V', name: ref, p: pin['1'], n: pin['2'], dc: off, wave: { type: 'sin', vo: off, va: amp, freq: f, ...(ph ? { phase: ph } : {}), ...(td > 0 ? { td } : {}) }, acMag: v('ac', 'AC magnitude') || undefined, ...(ph ? { acPhase: ph } : {}) });
       break;
     }
     case 'vsin3': {

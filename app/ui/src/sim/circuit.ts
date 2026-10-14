@@ -14,7 +14,10 @@ export type Wave =
   | { type: 'exp'; v1: number; v2: number; td1: number; tau1: number; td2: number; tau2: number };
 
 /** xti and eg: temperature exponent of IS and band gap in eV (SPICE defaults 3 and 1.11). */
-export interface DiodeModel { is: number; n: number; rs: number; bv?: number; ibv?: number; xti?: number; eg?: number }
+/** cj: junction capacitance (F), constant (SPICE CJO with M = 0); it keeps a diode's off state
+ *  capacitive, as it is, so an inductor that a turning-off rectifier leaves without a path rings
+ *  down instead of meeting an open circuit. */
+export interface DiodeModel { is: number; n: number; rs: number; bv?: number; ibv?: number; xti?: number; eg?: number; cj?: number }
 export interface BjtModel { type: 'npn' | 'pnp'; is: number; bf: number; br: number; nf: number; nr: number; vaf?: number; var?: number; xti?: number; eg?: number }
 export interface MosModel { type: 'nmos' | 'pmos'; vto: number; kp: number; lambda: number; w: number; l: number; is: number }
 

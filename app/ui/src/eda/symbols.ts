@@ -252,6 +252,7 @@ export const SYMBOLS: SymbolDef[] = [
       { key: 'freq', label: 'Frequency', kind: 'value', unit: 'Hz', default: '1k', limits: { gt: 0, text: 'must be above 0' } },
       { key: 'offset', label: 'Offset', kind: 'value', unit: 'V', default: '0' },
       { key: 'phase', label: 'Phase', kind: 'value', unit: '°', default: '0' },
+      { key: 'delay', label: 'Delay', kind: 'value', unit: 's', default: '0', help: 'Before the delay the source holds offset + amplitude·sin(phase) (SPICE TD)' },
       { key: 'ac', label: 'AC magnitude', kind: 'value', unit: 'V', default: '1', help: 'Amplitude used by the AC analysis' },
     ],
   },

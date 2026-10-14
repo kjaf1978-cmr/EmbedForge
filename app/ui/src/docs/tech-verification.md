@@ -46,8 +46,8 @@ another temperature against the SPICE temperature formula, resistors against R·
 
 ## What the checks do not cover
 
-- Effects the models leave out: junction capacitances (fast switching of diodes and
-  transistors), core saturation of transformers, current limits of regulators, propagation
+- Effects the models leave out: junction capacitances of transistors and small-signal diodes
+  (fast switching; rectifiers have a constant one, checked against ngspice at 1 MHz), core saturation of transformers, current limits of regulators, propagation
   delays of logic, temperature drift of op-amps, regulators and the 555, self-heating.
 - Behavioural parts (555, logic, servo) have no SPICE counterpart; they are checked against
   their datasheet behaviour only.

@@ -201,7 +201,9 @@ class Resistor implements Device {
 
 class Capacitor implements Device {
   vprev = 0; iprev = 0; inow = 0;
-  constructor(public el: Element & { kind: 'C' }, private a: number, private b: number) {}
+  /** `heldAtStart`: a power-on start (uic) holds it at 0 V. A junction capacitance is not: it
+   *  belongs to its device's state and starts at the voltage of the first solution. */
+  constructor(public el: Element & { kind: 'C' }, private a: number, private b: number, private heldAtStart = true) {}
   /** Companion model of one time step: the capacitor becomes a conductance g in parallel with a
    *  current source, i = g·v − ieq.
    *  Backward Euler:  i = C·(v − v₋)/h            → g = C/h,  ieq = g·v₋
@@ -212,7 +214,7 @@ class Capacitor implements Device {
     const g = (2 * C) / c.h; return [g, g * this.vprev + this.iprev];
   }
   load(c: Ctx) {
-    if (c.mode === 'dc') { if (c.uic) stampG(c, this.a, this.b, 1e4); return; }
+    if (c.mode === 'dc') { if (c.uic && this.heldAtStart) stampG(c, this.a, this.b, 1e4); return; }
     const [g, ieq] = this.comp(c); // i = g·v − ieq
     stampG(c, this.a, this.b, g);
     rhs(c, this.a, ieq); rhs(c, this.b, -ieq);
@@ -540,8 +542,11 @@ function breakdownVoltage(m: DiodeModel, vt: number): number | undefined {
 class Diode implements Device {
   vd = 0; gd = 0; cd = 0;
   private vte: number; private vcrit: number; private tbv?: number; private is: number;
+  /** The junction capacitance, across the junction (inside the series resistance). */
+  private cj?: Capacitor;
   constructor(public el: Element & { kind: 'D' }, private a: number, private ai: number, private k: number, tk = TNOM) {
     const m = el.model;
+    if (m.cj && m.cj > 0) this.cj = new Capacitor({ kind: 'C', name: `${el.name}#cj`, a: '', b: '', c: m.cj }, ai, k, false);
     this.vte = m.n * thermalVoltage(tk);
     this.is = satCurrent(m.is, m.n, tk, m.xti, m.eg);
     this.vcrit = this.vte * Math.log(this.vte / (Math.SQRT2 * this.is));
@@ -571,22 +576,30 @@ class Diode implements Device {
     const [cd, gd] = this.eval(vd);
     this.vd = vd; this.cd = cd; this.gd = gd;
     stampJ(c, this.ai, this.k, cd, gd, vd);
+    this.cj?.load(c);
   }
+  initTran(x: Float64Array) { this.cj?.initTran(x); }
+  accept(c: Ctx, x: Float64Array) { this.cj?.accept(c, x); }
+  resetHistory() { this.cj?.resetHistory(); }
+  lte(x: Float64Array, c: Ctx) { return this.cj ? this.cj.lte(x, c) : Infinity; }
   loadAC(c: AcCtx) {
     if (this.ai !== this.a) stampGc(c, this.a, this.ai, 1 / this.el.model.rs, 0);
     stampGc(c, this.ai, this.k, this.gd, 0);
+    this.cj?.loadAC(c);
   }
   currents(x: Float64Array) {
     const [i] = this.eval(V(x, this.ai) - V(x, this.k));
-    return [i, -i];
+    const ic = this.cj ? this.cj.currents()[0] : 0;
+    return [i + ic, -i - ic];
   }
   converged(x: Float64Array) {
     const vd = V(x, this.ai) - V(x, this.k);
     return near(this.eval(vd)[0], this.cd + this.gd * (vd - this.vd));
   }
-  acCurrents(re: Float64Array, im: Float64Array) {
+  acCurrents(re: Float64Array, im: Float64Array, w: number) {
     const [ar, ai] = Vc(re, im, this.ai), [kr, ki] = Vc(re, im, this.k);
-    const r = this.gd * (ar - kr), i = this.gd * (ai - ki);
+    const y = this.cj ? w * this.cj.el.c : 0;
+    const r = this.gd * (ar - kr) - y * (ai - ki), i = this.gd * (ai - ki) + y * (ar - kr);
     return [[r, i], [-r, -i]] as [number, number][];
   }
 }

@@ -140,6 +140,9 @@ const partDecks: [string, Spec[], SimSettings][] = [
     { type: 'dc', target: 'V1', param: 'value', start: '0', stop: '10', step: '0.2' }],
   ['TL431 regulator from a divider', [V(0, 'S'), R('470', 'S', 'K'), ['tl431', { value: 'TL431' }, { '1': 'F', '2': 'GND', '3': 'K' }], R('10k', 'K', 'F'), R('10k', 'F', 'GND')],
     { type: 'dc', target: 'V1', param: 'value', start: '0', stop: '15', step: '0.25' }],
+  // at 1 MHz the 15 pF junction capacitance (10.6 kΩ) carries as much as the 10 kΩ load
+  ['1N4007 junction capacitance at 1 MHz', [['vsin', { value: '5', freq: '1Meg' }, { '1': 'A', '2': 'GND' }], ['diode', { value: '1N4007' }, { '2': 'A', '1': 'K' }], R('10k', 'K', 'GND')],
+    { type: 'tran', stop: '5u', step: '5n' }],
   ['relay with flyback diode', [['vpulse', { value: '5', freq: '20', edge: '1m' }, { '1': 'C', '2': 'GND' }], ['diode', {}, { '1': 'C', '2': 'GND' }], V(12, 'COM'),
     R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND'), ['relay', {}, { '1': 'C', '2': 'GND', '3': 'COM', '4': 'NC', '5': 'NO' }]], { type: 'tran', stop: '100m', step: '20u' }],
 ];

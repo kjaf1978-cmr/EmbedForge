@@ -9,7 +9,7 @@ export interface NamedModel<T> { name: string; note: string; model: T }
 
 export const DIODES: NamedModel<DiodeModel>[] = [
   { name: '1N4148', note: 'small-signal switching diode, 100 V / 200 mA', model: { is: 2.52e-9, n: 1.752, rs: 0.568, bv: 100, ibv: 100e-6 } },
-  { name: '1N4007', note: 'rectifier diode, 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6 } },
+  { name: '1N4007', note: 'rectifier diode, 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6, cj: 15e-12 } },
   { name: '1N5819', note: 'Schottky diode, 40 V / 1 A, low forward voltage', model: { is: 31.7e-6, n: 1.373, rs: 0.051, bv: 40, ibv: 1e-3, xti: 2, eg: 0.69 } },
   // fitted to the datasheet forward curve: 0.32 V at 1 mA, 0.8 V at 100 mA
   { name: 'BAT54', note: 'small-signal Schottky diode, 30 V / 200 mA', model: { is: 9.7e-8, n: 1.34, rs: 3.2, bv: 30, ibv: 2e-6, xti: 2, eg: 0.69 } },
@@ -104,11 +104,11 @@ export const SHUNT_REFS: NamedModel<ShuntRefModel>[] = [
   { name: 'TLV431', note: 'low-voltage adjustable shunt regulator, 1.24 V reference, 1.24 to 6 V', model: { vref: 1.24 } },
 ];
 
-/** Bridge rectifiers: four identical diodes. */
+/** Bridge rectifiers: four identical diodes; cj: typical junction capacitance of each (datasheet, at 4 V). */
 export const BRIDGES: NamedModel<DiodeModel>[] = [
-  { name: 'DB107', note: 'bridge rectifier 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6 } },
-  { name: 'KBP206', note: 'bridge rectifier 600 V / 2 A', model: { is: 1.4e-8, n: 1.8, rs: 0.02, bv: 600, ibv: 5e-6 } },
-  { name: 'GBU8K', note: 'bridge rectifier 800 V / 8 A', model: { is: 5e-8, n: 1.8, rs: 0.008, bv: 800, ibv: 5e-6 } },
+  { name: 'DB107', note: 'bridge rectifier 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6, cj: 15e-12 } },
+  { name: 'KBP206', note: 'bridge rectifier 600 V / 2 A', model: { is: 1.4e-8, n: 1.8, rs: 0.02, bv: 600, ibv: 5e-6, cj: 25e-12 } },
+  { name: 'GBU8K', note: 'bridge rectifier 800 V / 8 A', model: { is: 5e-8, n: 1.8, rs: 0.008, bv: 800, ibv: 5e-6, cj: 55e-12 } },
 ];
 
 /** Op-amp macro model: single pole, rail clamps, output resistance. */
