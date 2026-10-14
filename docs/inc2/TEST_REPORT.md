@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - ~~signed the media~~ (0.2.3, done 14 October 2026, section 1a);
+  - ~~signed the media~~ (0.2.4, done 14 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - approved the gate.
 
@@ -26,7 +26,22 @@
 
 ## 1a. Signed releases (SEC-02, TEST-04)
 
-### 0.2.3 (current)
+### 0.2.4 (current)
+
+Signed by the owner on their own PC, 14 October 2026, from the signing kit "NETApps-signing-kit"
+of CI run [38556623808](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38556623808)
+(commit 2ea8bec). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `64e8a50c6e744d25aaa2bd35d34905576d3bfec77631ad15261d8f3679008d0d` |
+| ubuntu-x86_64 | 4 | `5e164a469bb89a6c523726a76c6de588870bfb3d9a43520b01cd7a483db05c44` |
+| windows-x86_64 | 1 | `baeabc40c2c5f81af2c6dd25ed5442f6d58382ac5622f5baa6f8c3f97821a535` |
+
+All three: PASS.
+
+### 0.2.3
 
 Signed by the owner on their own PC, 14 October 2026, from the signing kit "NETApps-signing-kit"
 of CI run [38464644649](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38464644649)
@@ -191,8 +206,8 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. **Sign 0.2.4** (signing kit "NETApps-signing-kit"). 0.2.3 is signed (section 1a); tags
-   **v0.2.2** (b035130) and **v0.2.3** (5b9f9fb) need a session that may push tags (see item 3).
+1. ~~Sign 0.2.4~~ done 14 October 2026 (section 1a). Tags **v0.2.2** (b035130), **v0.2.3**
+   (5b9f9fb) and **v0.2.4** (2ea8bec) need a session that may push tags (see item 3).
 2. **Your look at it:** install 0.2.4 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
 3. Carried over from Increment 1:
