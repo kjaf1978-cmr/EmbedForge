@@ -17,6 +17,28 @@ export const GMIN = 1e-12;
  *  The SPICE export sets the same value (.option rshunt). */
 export const GSHUNT = 1e-12;
 const RELTOL = 1e-3, VNTOL = 1e-6, ABSTOL = 1e-12;
+/** SPICE truncation-error tolerance factor and charge tolerance. */
+const TRTOL = 7, CHGTOL = 1e-14;
+
+/** Local truncation error control (SPICE CKTterr): the largest step for which the
+ *  integration error of a state q (charge or flux) stays within tolerance. `hist` holds the
+ *  last accepted (t, q); `tol` is the allowed error rate (current for a charge, voltage for a
+ *  flux). Trapezoidal steps use the third divided difference, backward Euler the second. */
+function lteStep(hist: [number, number][], t: number, q: number, h: number, method: 'be' | 'trap', tol: number): number {
+  const pts = [...hist, [t, q] as [number, number]];
+  const need = method === 'trap' ? 4 : 3;
+  if (pts.length < need) return Infinity;
+  const p = pts.slice(-need);
+  // divided differences
+  let d = p.map(([, y]) => y);
+  for (let o = 1; o < need; o++) d = d.slice(1).map((v, k) => (v - d[k]) / (p[k + o][0] - p[k][0]));
+  const dd = Math.abs(d[0]);
+  // error of the step: trap ≈ h³·q'''/12 = h³·dd/2, BE ≈ h²·q''/2 = h²·dd
+  const err = method === 'trap' ? (h ** 3 * dd) / 2 : h ** 2 * dd;
+  const allowed = TRTOL * tol * h;
+  if (!(err > 0)) return Infinity;
+  return method === 'trap' ? h * Math.sqrt(allowed / err) : (h * allowed) / err;
+}
 const MAX_EXP = 80;
 
 export class SimError extends Error {}
@@ -115,6 +137,10 @@ interface Device {
   acCurrents?(re: Float64Array, im: Float64Array, w: number): [number, number][];
   /** SPICE device convergence test: the linearised current agrees with the exact one at x. */
   converged?(x: Float64Array): boolean;
+  /** Largest step the integration error allows at the candidate solution x (reactive devices). */
+  lte?(x: Float64Array, c: Ctx): number;
+  /** Forgets the state history (after a breakpoint the derivatives jump). */
+  resetHistory?(): void;
   /** Devices with a discrete state (the 555 latch): would the solution x change it? */
   pending?(x: Float64Array): boolean;
   commitState?(x: Float64Array): void;
@@ -149,13 +175,23 @@ class Capacitor implements Device {
     stampG(c, this.a, this.b, g);
     rhs(c, this.a, ieq); rhs(c, this.b, -ieq);
   }
-  initTran(x: Float64Array) { this.vprev = V(x, this.a) - V(x, this.b); this.iprev = 0; this.inow = 0; }
+  private hist: [number, number][] = [];
+  initTran(x: Float64Array) { this.vprev = V(x, this.a) - V(x, this.b); this.iprev = 0; this.inow = 0; this.hist = [[0, this.el.c * this.vprev]]; }
   accept(c: Ctx, x: Float64Array) {
     if (c.mode === 'dc') { this.inow = 0; return; }
     const v = V(x, this.a) - V(x, this.b);
     const [g, ieq] = this.comp(c);
     this.inow = g * v - ieq;
     this.vprev = v; this.iprev = this.inow;
+    this.hist.push([c.t, this.el.c * v]);
+    if (this.hist.length > 3) this.hist.shift();
+  }
+  resetHistory() { this.hist = this.hist.slice(-1); }
+  lte(x: Float64Array, c: Ctx) {
+    const v = V(x, this.a) - V(x, this.b), q = this.el.c * v;
+    const [g, ieq] = this.comp(c), i = g * v - ieq;
+    const tol = Math.max(ABSTOL + RELTOL * Math.max(Math.abs(i), Math.abs(this.iprev)), (RELTOL * Math.max(Math.abs(q), Math.abs(this.el.c * this.vprev), CHGTOL)) / c.h);
+    return lteStep(this.hist, c.t, q, c.h, c.method, tol);
   }
   loadAC(c: AcCtx) { stampGc(c, this.a, this.b, 0, c.w * this.el.c); }
   currents() { return [this.inow, -this.inow]; }
@@ -216,8 +252,20 @@ class Inductor extends Branch {
     if (c.method === 'be') { const r = L / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, -r * this.iprev); }
     else { const r = (2 * L) / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, -r * this.iprev - this.vprev); }
   }
-  initTran(x: Float64Array) { this.iprev = x[this.k]; this.vprev = 0; }
-  accept(c: Ctx, x: Float64Array) { if (c.mode === 'tran') { this.iprev = x[this.k]; this.vprev = V(x, this.p) - V(x, this.q); } }
+  private hist: [number, number][] = [];
+  initTran(x: Float64Array) { this.iprev = x[this.k]; this.vprev = 0; this.hist = [[0, this.el.l * this.iprev]]; }
+  accept(c: Ctx, x: Float64Array) {
+    if (c.mode !== 'tran') return;
+    this.iprev = x[this.k]; this.vprev = V(x, this.p) - V(x, this.q);
+    this.hist.push([c.t, this.el.l * this.iprev]);
+    if (this.hist.length > 3) this.hist.shift();
+  }
+  resetHistory() { this.hist = this.hist.slice(-1); }
+  lte(x: Float64Array, c: Ctx) {
+    const i = x[this.k], v = V(x, this.p) - V(x, this.q);
+    const tol = Math.max(VNTOL + RELTOL * Math.max(Math.abs(v), Math.abs(this.vprev)), (RELTOL * Math.max(Math.abs(this.el.l * i), Math.abs(this.el.l * this.iprev), CHGTOL)) / c.h);
+    return lteStep(this.hist, c.t, this.el.l * i, c.h, c.method, tol);
+  }
   loadAC(c: AcCtx) {
     addc(c, this.p, this.k, 1, 0); addc(c, this.q, this.k, -1, 0); addc(c, this.k, this.p, 1, 0); addc(c, this.k, this.q, -1, 0);
     addc(c, this.k, this.k, 0, -c.w * this.el.l);
@@ -852,7 +900,13 @@ export class Engine {
     if (!(tstep > 0 && tstop > 0)) throw new SimError('transient: step and stop time must be > 0');
     this.warnings = [];
     let c = uic ? this.solveDc1({ t: 0, uic: true }) : this.solveDc({ t: 0 });
-    if (uic) for (const d of this.devices) d.commitState?.(c.x);
+    if (uic && this.devices.some((d) => d.pending?.(c.x))) {
+      // a discrete state set by the start values (a 555 triggered by its empty capacitor):
+      // solve t = 0 again with it, so the first point's voltages and currents agree
+      for (const d of this.devices) d.commitState?.(c.x);
+      this.x = c.x;
+      c = this.solveDc1({ t: 0, uic: true }, false);
+    }
     this.x = c.x;
     for (const d of this.devices) d.initTran?.(c.x);
     const out = this.newWaveforms();
@@ -868,7 +922,8 @@ export class Engine {
     }
     const sorted = [...bps].sort((a, b) => a - b);
     let bi = 0;
-    let t = 0, h = Math.min(hmax, sorted[0]) / 10, afterBreak = true;
+    // start with small steps: a switch-on (uic) or a source corner at t = 0 is often fast
+    let t = 0, h = Math.min(hmax, sorted[0]) / (uic ? 1000 : 10), afterBreak = true;
     const eps = tstop * 1e-12;
     while (t < tstop - eps) {
       while (bi < sorted.length && sorted[bi] <= t + eps) bi++;
@@ -881,6 +936,10 @@ export class Engine {
         if (h < hmin) throw new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence)`);
         continue;
       }
+      // truncation error: reject a step that is too long for the reactive parts
+      let hLte = Infinity;
+      for (const d of this.devices) if (d.lte) hLte = Math.min(hLte, d.lte(c.x, c));
+      if (hLte < 0.9 * hh && hh > hmin * 10) { h = Math.max(hLte * 0.9, hh / 8, hmin * 10); continue; }
       // a discrete state (555 latch) would change: find the instant to within hEvent first
       const flips = this.devices.filter((d) => d.pending?.(c.x));
       if (flips.length && hh > hEvent) { h = Math.max(hh / 4, hEvent); continue; }
@@ -891,8 +950,12 @@ export class Engine {
       if (out.x.length > maxPoints) throw new SimError(`transient: more than ${maxPoints} time points; use a larger step`);
       afterBreak = Math.abs(t - nb) <= eps;
       h = it <= 6 ? Math.min(hmax, hh * 2) : it > 20 ? hh / 2 : hh;
+      h = Math.min(h, Math.max(0.9 * hLte, hh / 8));
       if (flips.length) { for (const d of flips) d.commitState!(c.x); afterBreak = true; }
-      if (afterBreak) h = Math.min(h, hmax / 10); // restart small after a source corner or a state change
+      if (afterBreak) {
+        h = Math.min(h, hmax / 10); // restart small after a source corner or a state change
+        for (const d of this.devices) d.resetHistory?.();
+      }
     }
     return out;
   }

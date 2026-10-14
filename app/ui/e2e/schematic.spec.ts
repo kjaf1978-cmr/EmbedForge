@@ -94,6 +94,7 @@ test('SIM-03: holding the push-button switches the transistor and lights the LED
 
 async function chips(page: Page) { return (await page.locator('.op-chip text').allTextContents()).join(' '); }
 async function dragRange(page: Page, input: ReturnType<Page['getByLabel']>, to: number, check?: () => Promise<void>) {
+  await input.scrollIntoViewIfNeeded();
   const b = (await input.boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await page.mouse.down();
@@ -396,6 +397,25 @@ test('tolerance analysis (Monte Carlo): runs overlaid, nominal first', async ({ 
   const results = page.getByRole('region', { name: 'Waveform viewer' });
   await expect(results.getByRole('row', { name: /\|V\(OUT\)\| · nominal/ })).toBeVisible();
   await expect(results.getByRole('row', { name: /\|V\(OUT\)\| · run 5/ })).toBeVisible();
+});
+
+test('smoke analysis: an overloaded resistor is flagged in Stress and in Checks', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: LED with series resistor' }).click();
+  await page.keyboard.press('F5');
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Stress' }).click();
+  await expect(side.getByText('Every part within its ratings')).toBeVisible();
+  await expect(side.getByRole('row', { name: /D1 forward current/ })).toBeVisible();
+  // R1 at 10 Ω: about 300 mA through a 30 mA LED
+  await click(page, 60, -60);
+  const value = page.getByLabel('Resistance (Ω)');
+  await value.fill('10'); await value.press('Enter');
+  await page.keyboard.press('F5');
+  await side.getByRole('tab', { name: 'Stress' }).click();
+  await expect(side.getByText(/over the rating/)).toBeVisible();
+  await expect(side.locator('tr.stress-over', { hasText: 'D1' })).toBeVisible();
+  await side.getByRole('tab', { name: /Checks/ }).click();
+  await expect(side.getByText(/D1 forward current .* of its rating .*: over the maximum rating/)).toBeVisible();
 });
 
 test('ED-09: rule check markers and the Checks list', async ({ page }) => {

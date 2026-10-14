@@ -91,25 +91,25 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'resistor', name: 'Resistor', category: 'Passive', keywords: ['r', 'ohm', 'resistance'], prefix: 'R',
     description: 'Fixed resistor.', pins: two('1', '2'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -15 M 15 0 H 30'), path('M -15 -6 H 15 V 6 H -15 Z', 'bg')],
-    value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '1k' }, params: [],
+    value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '1k' }, params: [{ key: 'pmax', label: 'Power rating', kind: 'value', unit: 'W', default: '0.25', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'capacitor', name: 'Capacitor', category: 'Passive', keywords: ['c', 'cap', 'ceramic', 'farad'], prefix: 'C',
     description: 'Non-polarised capacitor (ceramic, film).', pins: two('1', '2'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -4 M 4 0 H 30 M -4 -12 V 12 M 4 -12 V 12', 'none', 2)],
-    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '100n' }, params: [],
+    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '100n' }, params: [{ key: 'vmax', label: 'Voltage rating', kind: 'value', unit: 'V', default: '50', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'capacitor_pol', name: 'Electrolytic capacitor', category: 'Passive', keywords: ['c', 'elko', 'polarised', 'polarized', 'electrolytic'], prefix: 'C',
     description: 'Polarised capacitor; pin 1 is positive.', pins: two('+', '−'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -4 M 6 0 H 30 M -4 -12 V 12', 'none', 2), path('M 9 -12 Q 3 0 9 12', 'none', 2), text(-12, -8, '+', 10)],
-    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '10u' }, params: [],
+    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '10u' }, params: [{ key: 'vmax', label: 'Voltage rating', kind: 'value', unit: 'V', default: '25', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'inductor', name: 'Inductor', category: 'Passive', keywords: ['l', 'coil', 'choke', 'henry'], prefix: 'L',
     description: 'Inductor (ideal, no series resistance).', pins: two('1', '2'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -20 A 5 5 0 0 1 -10 0 A 5 5 0 0 1 0 0 A 5 5 0 0 1 10 0 A 5 5 0 0 1 20 0 H 30')],
-    value: { key: 'value', label: 'Inductance', kind: 'value', unit: 'H', default: '10m' }, params: [],
+    value: { key: 'value', label: 'Inductance', kind: 'value', unit: 'H', default: '10m' }, params: [{ key: 'imax', label: 'Current rating', kind: 'value', unit: 'A', default: '1', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'transformer', name: 'Transformer', category: 'Passive', keywords: ['t', 'transformer', 'mains', 'isolation', 'coupled inductors', 'tr'], prefix: 'T',
@@ -172,7 +172,7 @@ export const SYMBOLS: SymbolDef[] = [
       return [path('M -30 0 H -15 M 15 0 H 30'), path(`M 0 -30 V -20 H ${ax} V -13`), path('M -15 -6 H 15 V 6 H -15 Z', 'bg'), arrowHead(ax, -14, ax, -7)];
     },
     value: { key: 'value', label: 'Resistance', kind: 'value', unit: 'Ω', default: '10k' },
-    params: [{ key: 'position', label: 'Wiper position', kind: 'value', unit: '%', default: '50', help: '0 % = at pin 1, 100 % = at pin 3', limits: { ge: 0, le: 100, text: 'must be from 0 to 100 %' } }],
+    params: [{ key: 'pmax', label: 'Power rating', kind: 'value', unit: 'W', default: '0.5', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }, { key: 'position', label: 'Wiper position', kind: 'value', unit: '%', default: '50', help: '0 % = at pin 1, 100 % = at pin 3', limits: { ge: 0, le: 100, text: 'must be from 0 to 100 %' } }],
   },
   {
     id: 'vdc', name: 'DC voltage source', category: 'Sources', keywords: ['v', 'supply', 'dc', 'power supply', 'voltage'], prefix: 'V',
@@ -346,7 +346,7 @@ export const SYMBOLS: SymbolDef[] = [
     description: 'On/off switch (SPST). Click it while simulating to toggle.', pins: two('1', '2'), ...H, simulated: true, interactive: 'toggle',
     gfx: (p) => [path('M -30 0 H -12 M 12 0 H 30'), circle(-12, 0, 2, 'bg'), circle(12, 0, 2, 'bg'),
       path(p.closed === 'true' ? 'M -11 -1 L 12 -3' : 'M -11 -1 L 9 -13', 'none', 2)],
-    value: { key: 'closed', label: 'Closed', kind: 'bool', default: 'false' }, params: [],
+    value: { key: 'closed', label: 'Closed', kind: 'bool', default: 'false' }, params: [{ key: 'imax', label: 'Current rating', kind: 'value', unit: 'A', default: '1', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'button', name: 'Push-button', category: 'Switches', keywords: ['button', 'push', 'tactile', 'momentary', 'key'], prefix: 'SW',
@@ -355,7 +355,7 @@ export const SYMBOLS: SymbolDef[] = [
       const y = p.pressed === 'true' ? -3 : -9;
       return [path('M -30 0 H -12 M 12 0 H 30'), circle(-12, 0, 2, 'bg'), circle(12, 0, 2, 'bg'), path(`M -14 ${y} H 14`, 'none', 2), path(`M 0 ${y} V ${y - 8} M -5 ${y - 8} H 5`)];
     },
-    value: { key: 'pressed', label: 'Pressed', kind: 'bool', default: 'false' }, params: [],
+    value: { key: 'pressed', label: 'Pressed', kind: 'bool', default: 'false' }, params: [{ key: 'imax', label: 'Current rating', kind: 'value', unit: 'A', default: '1', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'spdt', name: 'Changeover switch', category: 'Switches', keywords: ['spdt', 'changeover', 'selector', 'toggle'], prefix: 'SW',
@@ -364,7 +364,7 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 0, y: -22 }, valAt: { x: 0, y: 26 }, simulated: true, interactive: 'throw',
     gfx: (p) => [path('M -30 0 H -12 M 12 -10 H 30 M 12 10 H 30'), circle(-12, 0, 2, 'bg'), circle(12, -10, 2, 'bg'), circle(12, 10, 2, 'bg'),
       path(p.position === 'B' ? 'M -11 1 L 11 9' : 'M -11 -1 L 11 -9', 'none', 2)],
-    value: { key: 'position', label: 'Position', kind: 'select', options: opts(['A', 'B']), default: 'A' }, params: [],
+    value: { key: 'position', label: 'Position', kind: 'select', options: opts(['A', 'B']), default: 'A' }, params: [{ key: 'imax', label: 'Current rating', kind: 'value', unit: 'A', default: '1', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
   },
   {
     id: 'relay', name: 'Relay', category: 'Switches', keywords: ['k', 'relay', 'coil', 'contactor', 'changeover'], prefix: 'K',

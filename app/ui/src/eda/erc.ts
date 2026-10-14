@@ -11,7 +11,7 @@ export interface ErcIssue {
   id: string;
   severity: Severity;
   /** Requirement item the rule implements. */
-  rule: 'ED-09.a' | 'ED-09.b' | 'ED-09.c' | 'ED-09.d' | 'ED-09.e' | 'ED-03.f' | 'ED-08' | 'SIM-05' | 'net-name';
+  rule: 'ED-09.a' | 'ED-09.b' | 'ED-09.c' | 'ED-09.d' | 'ED-09.e' | 'ED-03.f' | 'ED-08' | 'SIM-05' | 'net-name' | 'stress';
   message: string;
   at: Pt | null;
   refs: string[];

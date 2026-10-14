@@ -282,12 +282,13 @@ EXAMPLES.push(
       b.part('gnd', 0, 40); b.part('gnd', 160, 30);
       b.wire([40, -20], [80, -20], [80, -30]); b.wire([40, 0], [80, 0], [80, -10]); b.wire([40, 20], [80, 20], [80, 10]);
       // three 100 Ω loads in star, their star point on the secondary neutral
-      b.part('resistor', 240, -70, { value: '100' }); b.part('resistor', 240, -10, { value: '100' }); b.part('resistor', 240, 50, { value: '100' });
+      // 100 Ω at 230 V: 530 W each, so they are heaters rated 1 kW (see the Stress tab)
+      b.part('resistor', 240, -70, { value: '100', pmax: '1k' }); b.part('resistor', 240, -10, { value: '100', pmax: '1k' }); b.part('resistor', 240, 50, { value: '100', pmax: '1k' });
       b.wire([160, -30], [180, -30], [180, -70], [210, -70]); b.wire([160, -10], [210, -10]); b.wire([160, 10], [180, 10], [180, 50], [210, 50]);
       b.wire([270, -70], [300, -70], [300, 50], [270, 50]); b.wire([270, -10], [300, -10]); b.wire([300, 50], [300, 80]); b.part('gnd', 300, 80);
       b.label('L1', 40, -20); b.label('U2', 190, -70);
       b.v(40, -20); b.v(200, -70);
-      b.sim({ type: 'tran', stop: '60m', step: '' });
+      b.sim({ type: 'tran', stop: '60m', step: '', start: 'zero' }); // switched on at t = 0
       return b.done();
     },
   },

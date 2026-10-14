@@ -236,6 +236,14 @@ function pinCurrents(net: SimNet, w: Waveforms, imag: boolean): Record<string, n
 
 const terms = terminals;
 
+/** Windings across an AC supply are shorts at DC: a transient from the operating point starts
+ *  with large DC currents that decay only slowly. Switching on (discharged start) is usually meant. */
+function switchOnHint(sheet: Sheet, a: Analysis): string[] {
+  if (a.type !== 'tran' || a.uic) return [];
+  const wound = sheet.parts.filter((p) => ['transformer', 'transformer3', 'motor1', 'motor3'].includes(p.sym)).map((p) => p.ref);
+  return wound.length ? [`${wound.join(', ')}: a transient from the DC operating point treats the windings as short circuits and starts with large DC currents. To switch on at t = 0, choose "discharged capacitors (power-on)".`] : [];
+}
+
 export function simulate(sheet: Sheet): SimResult | SimFailure {
   if (sheet.mc?.on) return simulateMonteCarlo(sheet);
   if (sheet.step?.on) return simulateStepped(sheet);
@@ -272,7 +280,7 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
     return {
       analysis: plan.analysis.type, xLabel: plan.xLabel, xUnit: plan.xUnit, x: w.x, v, vi: w.vi ? vi : undefined,
       i: pinCurrents(net, w, false), ii: w.ii ? pinCurrents(net, w, true) : undefined,
-      rails: net.rails, notSimulated: net.notSimulated, warnings: [...net.warnings, ...w.warnings], ms: performance.now() - t0,
+      rails: net.rails, notSimulated: net.notSimulated, warnings: [...net.warnings, ...w.warnings, ...switchOnHint(sheet, plan.analysis)], ms: performance.now() - t0,
     };
   } catch (e) {
     if (e instanceof SimError) return { error: e.message, errors: [] };

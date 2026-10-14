@@ -74,6 +74,9 @@ reference suite of circuits on every build: results agree within 1 % or 1 mV / 1
   torque; the SPD pin gives the speed. AC motors: the per-phase equivalent circuit at the slip
   you set (running state; no start-up). Servo: decodes 1 to 2 ms pulses and turns at the set
   speed; it has no SPICE equivalent.
+- Transformers and AC motors on an AC supply: start the transient with **discharged capacitors
+  (power-on)**. From the DC operating point their windings are short circuits, and the run would
+  start with large DC currents that take seconds to decay; the Simulation tab warns about it.
 - A power rail with no source on it is driven by an ideal supply at the voltage in its name
   (+5V → 5 V); the Simulation tab says so.
 

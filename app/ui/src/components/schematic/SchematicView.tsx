@@ -18,6 +18,7 @@ import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
 import { sweepTargets } from '../../eda/simnet';
 import { bomCsv, buildBom } from '../../eda/bom';
 import { importModel } from '../../eda/spicemodel';
+import { smoke } from '../../eda/smoke';
 import { BJTS, DIODES, MOSFETS, OPAMPS, ZENERS } from '../../eda/models';
 import { formatValue, parseValue, shortValue } from '../../eda/units';
 import { MAX_RUNS, schematicSpice, stepValues } from '../../sim/run';
@@ -135,7 +136,7 @@ export function SchematicView(props: Props) {
   const [kbCursor, setKbCursor] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'props' | 'sim' | 'erc' | 'nets' | 'bom'>('props');
+  const [tab, setTab] = useState<'props' | 'sim' | 'erc' | 'nets' | 'bom' | 'stress'>('props');
   const [result, setResult] = useState<SimOutcome | null>(null);
   const [running, setRunning] = useState(false);
   const [live, setLive] = useState(true);
@@ -170,7 +171,16 @@ export function SchematicView(props: Props) {
     return s;
   }, [sheet, drag, held, override]);
   const conn = useMemo(() => connectivity(shown), [shown]);
-  const issues = useMemo(() => erc(shown, conn), [shown, conn]);
+  const ercIssues = useMemo(() => erc(shown, conn), [shown, conn]);
+  const [derate, setDerate] = useState(80);
+  // stress check (smoke analysis) of the last result: overstressed parts become checks too
+  const okResult = result && !('error' in result) ? result : null;
+  const stress = useMemo(() => (okResult ? smoke(sheet, connectivity(sheet), okResult, derate) : null), [okResult, derate]);
+  const issues = useMemo(() => [...ercIssues, ...(stress?.rows ?? []).filter((r) => r.status !== 'ok').map((r, k): ErcIssue => {
+    const p = sheet.parts.find((x) => x.ref === r.ref);
+    return { id: `stress:${k}`, severity: r.status === 'over' ? 'error' : 'warning', rule: 'stress', refs: [r.ref], at: p ? { x: p.x, y: p.y } : null,
+      message: `${r.ref} ${r.what} ${formatValue(r.value, r.unit)} is ${Math.round(r.pct)} % of its rating (${formatValue(r.rating, r.unit)})${r.status === 'over' ? ': over the maximum rating' : `: above ${derate} %`}.` };
+  })], [ercIssues, stress]);
   const nErr = issues.filter((i) => i.severity === 'error').length, nWarn = issues.filter((i) => i.severity === 'warning').length;
 
   // ---- geometry helpers
@@ -1067,7 +1077,7 @@ export function SchematicView(props: Props) {
             </div>
           )}
           <div role="tablist" class="tabs">
-            {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist'], ['bom', 'Parts']] as const).map(([id, label]) => (
+            {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist'], ['bom', 'Parts'], ['stress', 'Stress']] as const).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} class={id === 'erc' && nErr ? 'has-err' : ''}>{label}</button>
             ))}
           </div>
@@ -1082,6 +1092,7 @@ export function SchematicView(props: Props) {
             setSel({ ...noSelection(), parts: ids });
             if (i.at) setView((v) => ({ ...v, x: i.at!.x - size.w / v.z / 2, y: i.at!.y - size.h / v.z / 2 }));
           }} />}
+          {tab === 'stress' && <StressPanel stress={stress} derate={derate} setDerate={setDerate} hasRun={!!okResult} onPick={(ref) => { const p = sheet.parts.find((x) => x.ref === ref); if (p) { setSel({ ...noSelection(), parts: [p.id] }); setTab('props'); } }} />}
           {tab === 'bom' && <BomPanel sheet={sheet} onExport={() => run('export-bom')} onPick={(ref) => { const p = sheet.parts.find((x) => x.ref === ref); if (p) { setSel({ ...noSelection(), parts: [p.id] }); setTab('props'); } }} />}
           {tab === 'nets' && <NetsPanel conn={conn} highlight={highlightNet} setHighlight={setHighlightNet} spice={spiceText} onSpice={() => setSpiceText(schematicSpice(sheet, props.name))} />}
         </aside>}
@@ -1531,8 +1542,6 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
           {field('Step', s.step, (v) => set({ ...s, step: v }, `Sweep step ${v}`), targets.find((t) => t.ref === s.target)?.unit ?? '')}
         </div>
       )}
-      <StepPanel sheet={sheet} apply={apply} />
-      <McPanel sheet={sheet} apply={apply} />
       <div class="row">
         <button class="primary" onClick={run} disabled={running}>{running ? 'Simulating…' : '▶ Simulate (F5)'}</button>
         <label><input type="checkbox" checked={live} onChange={(e) => setLive((e.target as HTMLInputElement).checked)} /> Update live</label>
@@ -1574,6 +1583,8 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
           {sheet.probes.map((p) => <li key={p.id}><span class="swatch" style={{ background: p.colour }} />{probeLabels.get(p.id)} <button aria-label={`Remove probe ${probeLabels.get(p.id)}`} onClick={() => onRemoveProbe(p.id)}>✕</button></li>)}
         </ul>
       </fieldset>
+      <StepPanel sheet={sheet} apply={apply} />
+      <McPanel sheet={sheet} apply={apply} />
       {op && !op.final && (
         <details open>
           <summary>Node voltages</summary>
@@ -1582,6 +1593,33 @@ function SimPanel({ sheet, apply, running, status, live, setLive, showValues, se
           </table>
         </details>
       )}
+    </div>
+  );
+}
+
+function StressPanel({ stress, derate, setDerate, hasRun, onPick }: { stress: ReturnType<typeof smoke> | null; derate: number; setDerate: (n: number) => void; hasRun: boolean; onPick: (ref: string) => void }) {
+  if (!hasRun || !stress) return <p class="small muted">Run a simulation (operating point, transient or DC sweep): the stress check compares every part's voltages, currents and power with its maximum ratings.</p>;
+  if (stress.note) return <p class="small">{stress.note}</p>;
+  const over = stress.rows.filter((r) => r.status === 'over').length, warn = stress.rows.filter((r) => r.status === 'derated').length;
+  return (
+    <div class="stress">
+      <div class="row wrap">
+        <strong class={over ? 's-fail' : warn ? 's-warn' : 's-pass'}>{over ? `${over} over the rating` : warn ? `${warn} above ${derate} %` : 'Every part within its ratings'}</strong>
+        <label>Warn above <input type="number" min={10} max={100} step={5} value={derate} style={{ width: '4.5em' }} onChange={(e) => setDerate(Math.min(100, Math.max(10, Number((e.target as HTMLInputElement).value) || 80)))} /> % of the rating</label>
+      </div>
+      <table class="plot-table">
+        <thead><tr><th>Part</th><th>Quantity</th><th>Value</th><th>Rating</th><th>% of rating</th></tr></thead>
+        <tbody>
+          {stress.rows.map((r, k) => (
+            <tr key={k} class={r.status === 'over' ? 'stress-over' : r.status === 'derated' ? 'stress-warn' : ''}>
+              <td><button class="link" onClick={() => onPick(r.ref)}>{r.ref}</button></td><td>{r.what}</td>
+              <td>{formatValue(r.value, r.unit)}</td><td>{formatValue(r.rating, r.unit)}</td>
+              <td><span class={r.status === 'over' ? 's-fail' : r.status === 'derated' ? 's-warn' : ''}>{Math.round(r.pct)} %</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="small muted">Peak values for voltages and currents; averages over the run for power and rectifier current. Ratings: datasheet absolute maximums of the built-in models (TO-92 and TO-220 in free air, no heatsink); passives use their rating properties.{stress.unrated.length ? ` No ratings for ${stress.unrated.join(', ')} (imported SPICE models).` : ''}</p>
     </div>
   );
 }

@@ -76,6 +76,8 @@ th, td { border: 1px solid var(--line); padding: 0.25em 0.45em; text-align: left
 .row { display: flex; gap: 0.6em; align-items: center; flex-wrap: wrap; }
 .diag { background: var(--panel); border: 1px solid var(--line); border-left-width: 5px; border-radius: 4px; padding: 0.4em 0.7em; margin: 0.5em 0; }
 .diag h3 { margin: 0.1em 0; font-size: 1em; }
+.stress-over td { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.stress-warn td { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .s-pass { border-left-color: var(--ok); } .s-warn { border-left-color: var(--warn); } .s-fail { border-left-color: var(--bad); } .s-not_yet_available { border-left-color: var(--na); }
 .status.s-pass, span.s-pass { color: var(--ok); } span.s-fail { color: var(--bad); } span.s-warn { color: var(--warn); }
 .remedy { color: var(--fg); font-weight: 600; }

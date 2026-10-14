@@ -125,8 +125,11 @@ describe('555 timer and regulators', () => {
     // frequency from the rising edges of OUT
     const rises: number[] = [];
     for (let i = 1; i < out.length; i++) if (out[i - 1] < 3.5 && out[i] >= 3.5) rises.push(r.x[i]);
-    // skip the first cycle, which starts from a discharged capacitor
-    const f = (rises.length - 2) / (rises[rises.length - 1] - rises[1]);
+    // the output starts high (the empty capacitor triggers the 555), so every rising edge
+    // ends a full low phase: the period is the time between rising edges
+    expect(out[0]).toBeGreaterThan(6);
+    expect(rises.length).toBeGreaterThanOrEqual(2);
+    const f = (rises.length - 1) / (rises[rises.length - 1] - rises[0]);
     const expected = 1.44 / ((10e3 + 2 * 68e3) * 10e-6);
     expect(Math.abs(f / expected - 1)).toBeLessThan(0.05);
   });
