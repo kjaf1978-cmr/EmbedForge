@@ -1258,13 +1258,15 @@ function FootprintField({ part, sheet, apply }: { part: Part; sheet: Sheet; appl
   const pad = Object.entries(cur.choice.pins).map(([pin, pads]) => `${symbolOf(part.sym).pins.find((q) => q.id === pin)?.name ?? pin} → ${pads.join(', ')}`).join(' · ');
   return (
     <div class="field">
+      {choices.length < 2 ? <span><span class="small muted">Footprint</span><br />{cur.fp.name}</span> : <>
       <label for={id}>Footprint</label>
-      <select id={id} value={cur.fp.id} disabled={choices.length < 2} onChange={(e) => {
+      <select id={id} value={cur.fp.id} onChange={(e) => {
         const v = (e.target as HTMLSelectElement).value;
         apply(setProps(sheet, part.id, { footprint: v === choices[0].footprint ? '' : v }), `${part.ref} footprint ${v}`);
       }}>
         {choices.map((c) => <option key={c.footprint} value={c.footprint}>{FOOTPRINTS[c.footprint].name}</option>)}
       </select>
+      </>}
       <span class="small muted">Pads: {pad}{cur.choice.note ? ` (${cur.choice.note})` : ''}</span>
     </div>
   );

@@ -60,7 +60,7 @@ export class DocsIndex {
 
   /** Every page, in reading order: the user guide, then the technical reference (tech-*). */
   list(): DocPage[] {
-    const guide = ['welcome', 'schematic', 'simulation', 'project-files', 'libraries', 'requirement-writing', 'navigator', 'keyboard', 'undo', 'appearance', 'versions', 'installation', 'host-check', 'diagnostics', 'glossary'];
+    const guide = ['welcome', 'schematic', 'simulation', 'pcb', 'project-files', 'libraries', 'requirement-writing', 'navigator', 'keyboard', 'undo', 'appearance', 'versions', 'installation', 'host-check', 'diagnostics', 'glossary'];
     const tech = ['tech-overview', 'tech-engine', 'tech-models', 'tech-analyses', 'tech-fft', 'tech-verification'];
     const rank = (id: string) => { const g = guide.indexOf(id), t = tech.indexOf(id); return id.startsWith('tech-') ? 1000 + (t < 0 ? 99 : t) : g < 0 ? 99 : g; };
     return [...this.pages.values()].sort((a, b) => rank(a.id) - rank(b.id) || a.title.localeCompare(b.title));

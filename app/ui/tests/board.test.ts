@@ -104,6 +104,13 @@ describe('ratsnest and copper connectivity', () => {
     const bottom = { ...board, tracks: [{ ...t('t3', 'OUT', out[0], out[1]), layer: 'B' as const }] };
     expect(ratsnest(pads, bottom).airwires.length).toBe(2);
   });
+  it('the two pads of a push-button contact are joined inside it: no air wire between them', () => {
+    const { sheet } = deck([['vdc', { value: '5' }, { '1': 'A', '2': 'GND' }], ['button', {}, { '1': 'A', '2': 'B' }], ['resistor', { value: '1k' }, { '1': 'B', '2': 'GND' }]]);
+    const board = syncBoard(sheet, newBoard()).board;
+    const r = ratsnest(boardPads(sheet, board), board);
+    // A: V1.+ to the button (one wire), B: the button to R (one wire), GND: V1.− to R
+    expect(r.airwires.map((a) => a.net).sort()).toEqual(['A', 'B', 'GND']);
+  });
   it('segment distance: crossing segments touch; parallel ones are their gap apart', () => {
     expect(segSegDist([0, 0], [10, 10], [0, 10], [10, 0])).toBe(0);
     near(segSegDist([0, 0], [10, 0], [0, 3], [10, 3]), 3);

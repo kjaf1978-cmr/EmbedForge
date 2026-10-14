@@ -248,3 +248,32 @@ input[aria-invalid='true'] { border-color: var(--bad); }
 .rotor-mark { stroke: var(--accent, #0a7); stroke-width: 2.5; fill: none; stroke-linecap: round; }
 .torque-arc { stroke: var(--accent, #0a7); stroke-width: 2; fill: none; stroke-linecap: round; opacity: 0.8; }
 .motion-text { font-size: 8px; fill: var(--accent, #0a7); pointer-events: none; }
+/* PCB view */
+.pcb-view { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.pcb-bar { padding: 4px 8px; gap: 6px; border-bottom: 1px solid var(--line, #ccc); }
+.pcb-main { display: flex; flex: 1; min-height: 0; }
+.pcb-canvas { flex: 1; min-width: 0; min-height: 360px; background: #1b2420; outline-offset: -2px; cursor: default; }
+.pcb-canvas.tool-route { cursor: crosshair; }
+.pcb-side { width: 300px; overflow: auto; padding: 8px; border-left: 1px solid var(--line, #ccc); }
+.pcb-board { fill: #23462f; stroke: #e7d27a; stroke-width: 0.15; }
+.pcb-hole { fill: #1b2420; stroke: #9aa; stroke-width: 0.1; }
+.pcb-layer.dim { opacity: 0.45; }
+.layer-F .pcb-pad, .pcb-track.layer-F, .layer-F .pcb-track { fill: #c8483a; stroke: #c8483a; }
+.layer-B .pcb-pad, .pcb-track.layer-B, .layer-B .pcb-track { fill: #3a78c8; stroke: #3a78c8; }
+.pcb-track { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pcb-track.is-sel { stroke: #ffe066 !important; }
+.pcb-track.ghost { opacity: 0.6; stroke-dasharray: 0.4 0.3; }
+.pcb-pad { stroke: none; }
+.pcb-drill { fill: #1b2420; }
+.pcb-via circle:first-child { fill: #b9b9b9; }
+.pcb-via.is-sel circle:first-child { fill: #ffe066; }
+.pcb-silk line, .pcb-silk circle { stroke: #f2f2f2; stroke-width: 0.15; fill: none; }
+.pcb-silk.bottom line, .pcb-silk.bottom circle { stroke: #b48ad6; }
+.pcb-silk.off line, .pcb-silk.off circle { stroke: #ffb347; }
+.pcb-silk.is-sel line, .pcb-silk.is-sel circle { stroke: #ffe066; }
+.pcb-courtyard { fill: none; stroke: #ffe066; stroke-width: 0.08; stroke-dasharray: 0.4 0.3; }
+.pcb-ref { font-size: 1.1px; fill: #f2f2f2; }
+.pcb-rats { stroke: #f0f0f0; stroke-width: 0.08; opacity: 0.8; }
+.pcb-short { fill: none; stroke: #ff3b3b; stroke-width: 0.3; }
+.pcb-start { max-width: 560px; padding: 16px; }
+.pcb-parts { list-style: none; padding: 0; }

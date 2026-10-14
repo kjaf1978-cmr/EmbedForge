@@ -60,7 +60,9 @@ export function newBoard(template = 'custom'): Board {
 }
 
 /** A pad on the board: its footprint pad moved to the placement, with its net. */
-export interface BoardPad { ref: string; pad: Pad; x: number; y: number; w: number; h: number; net: string | null; side: 'top' | 'bottom'; layers: Layer[] }
+/** `pin`: the symbol pin the pad belongs to; pads of one pin are joined inside the part (a
+ *  push-button's two pads per contact, a regulator's tab). */
+export interface BoardPad { ref: string; pad: Pad; x: number; y: number; w: number; h: number; net: string | null; side: 'top' | 'bottom'; layers: Layer[]; pin: string | null }
 
 /** Position of footprint point (px, py) for a placement (rotation counter-clockwise as seen
  *  from the top; a bottom-side part is mirrored left–right). */
@@ -78,8 +80,8 @@ export function boardPads(sheet: Sheet, board: Board, conn: Connectivity = conne
     if (!part) continue;
     const f = footprintOf(part);
     if (!f) continue;
-    const netOfPad = new Map<string, string | null>();
-    for (const [pin, pads] of Object.entries(f.choice.pins)) for (const pad of pads) netOfPad.set(pad, conn.pinNet.get(`${part.ref}.${pin}`) ?? null);
+    const netOfPad = new Map<string, string | null>(), pinOfPad = new Map<string, string>();
+    for (const [pin, pads] of Object.entries(f.choice.pins)) for (const pad of pads) { netOfPad.set(pad, conn.pinNet.get(`${part.ref}.${pin}`) ?? null); pinOfPad.set(pad, pin); }
     const rail = (part.props.value ?? '+5V').trim() || '+5V';
     for (const pad of f.choice.rail ?? []) netOfPad.set(pad, rail);
     for (const pad of f.choice.gnd ?? []) netOfPad.set(pad, GND_NET);
@@ -87,7 +89,7 @@ export function boardPads(sheet: Sheet, board: Board, conn: Connectivity = conne
     for (const pad of f.fp.pads) {
       const [x, y] = place(pl, pad.x, pad.y);
       const layers: Layer[] = pad.drill !== undefined ? ['F', 'B'] : [pl.side === 'top' ? 'F' : 'B'];
-      out.push({ ref: pl.ref, pad, x, y, w: turned ? pad.h : pad.w, h: turned ? pad.w : pad.h, net: netOfPad.get(pad.id) ?? null, side: pl.side, layers });
+      out.push({ ref: pl.ref, pad, x, y, w: turned ? pad.h : pad.w, h: turned ? pad.w : pad.h, net: netOfPad.get(pad.id) ?? null, side: pl.side, layers, pin: pinOfPad.get(pad.id) ?? null });
     }
   }
   return out;

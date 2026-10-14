@@ -212,9 +212,8 @@ test('every part: place it, change every property, simulate; every analysis and 
     const insp = side.locator('.inspector');
     await expect(insp.locator('h3')).toBeVisible();
     const fields = insp.locator('.field input, .field select');
-    const n = await fields.count();
-
-    for (let f = 0; f < n; f++) {
+    // the set of fields can change with a choice (a model with one footprint has no footprint list)
+    for (let f = 0; f < (await fields.count()); f++) {
       const el = fields.nth(f);
       const tag = await el.evaluate((e) => e.tagName.toLowerCase());
       const type = (await el.getAttribute('type')) ?? '';
@@ -396,6 +395,45 @@ test('playback: the DC motor turns with its torque, the servo horn with its angl
   await page.keyboard.press('F5');
   await side.getByRole('tab', { name: 'Simulation' }).click();
   await expect(canvas.getByText('45°')).toBeVisible();
+});
+
+test.describe(() => { test.use({ bypassCSP: true });
+test('PCB view: start a board, place parts with the keyboard, route a track, undo', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open example: Voltage divider' }).click();
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'PCB' }).click();
+  await page.getByRole('button', { name: 'Start the board' }).click();
+  const side = page.getByRole('complementary', { name: 'Board' });
+  const status = side.getByRole('status');
+  await expect(status).toContainText(/connections? to route/);
+  await expect(status).toContainText('not on the board yet');
+  expect(await axe(page)).toEqual([]);
+  const canvas = page.getByRole('application', { name: /PCB canvas/ });
+  // move every part up onto the board: select it in the list, then arrow keys (Shift: 4 steps)
+  const items = side.getByRole('list').getByRole('button');
+  const n = await items.count();
+  for (let k = 0; k < n; k++) {
+    await items.nth(k).click();
+    for (let j = 0; j < 7; j++) await canvas.press('Shift+ArrowUp');
+  }
+  await expect(status).not.toContainText('not on the board yet');
+  await items.first().click();
+  await canvas.press('r');
+  await expect(side.getByText(/· 90° ·/)).toBeVisible();
+  await page.keyboard.press('Control+z');
+  await expect(side.getByText(/· 0° ·/)).toBeVisible();
+  // route one connection: from a pad of a net to the other pad of that net
+  const before = Number((await status.textContent())!.match(/(\d+) connection/)![1]);
+  const net = await page.locator('[data-net]:not([data-net=""])').first().getAttribute('data-net');
+  const ends = page.locator(`[data-net="${net}"]`);
+  await canvas.press('x');
+  const a = (await ends.nth(0).boundingBox())!, b = (await ends.nth(1).boundingBox())!;
+  await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await expect(status).toContainText(before > 1 ? `${before - 1} connection` : 'Every connection is routed');
+  // saved with the project's undo history: undo removes the track
+  await page.keyboard.press('Control+z');
+  await expect(status).toContainText(`${before} connection`);
+});
 });
 
 test('FFT view: the spectrum of the amplifier output, with its THD', async ({ page }) => {

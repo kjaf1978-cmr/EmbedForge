@@ -11,6 +11,7 @@ import type { LibraryItem } from './core/library';
 import type { Backend, HostFinding, ProjectInfo, StartupStatus } from './backend';
 import { StartScreen } from './components/StartScreen';
 import { SchematicView, EDITOR_COMMANDS, type EditorApi } from './components/schematic/SchematicView';
+import { PcbView } from './components/pcb/PcbView';
 import { emptySheet, type Sheet } from './eda/schematic';
 import { fromFiles, toFiles } from './eda/project';
 import type { Example } from './eda/examples';
@@ -29,13 +30,13 @@ const DOCS: DocPage[] = Object.entries(docFiles).map(([path, body]) => ({
   body: expandCode(body).text,
 }));
 
-type View = 'start' | 'schematic' | 'project' | 'library' | 'docs' | 'diagnostics' | 'host' | 'settings';
+type View = 'start' | 'schematic' | 'pcb' | 'project' | 'library' | 'docs' | 'diagnostics' | 'host' | 'settings';
 const VIEW_TITLE: Record<View, string> = {
-  start: 'Start', schematic: 'Schematic', project: 'Traceability', library: 'Libraries', docs: 'Documentation', diagnostics: 'Self-diagnosis', host: 'Host check', settings: 'Settings',
+  start: 'Start', schematic: 'Schematic', pcb: 'PCB', project: 'Traceability', library: 'Libraries', docs: 'Documentation', diagnostics: 'Self-diagnosis', host: 'Host check', settings: 'Settings',
 };
 /** UI-23 context help: view → help page. */
 const HELP: Record<View, string> = {
-  start: 'welcome', schematic: 'schematic', project: 'navigator', library: 'libraries', docs: 'keyboard', diagnostics: 'diagnostics', host: 'host-check', settings: 'appearance',
+  start: 'welcome', schematic: 'schematic', pcb: 'pcb', project: 'navigator', library: 'libraries', docs: 'keyboard', diagnostics: 'diagnostics', host: 'host-check', settings: 'appearance',
 };
 const PANES = ['navigator', 'workspace', 'help'] as const;
 /** Schematic commands with an app-wide shortcut (they work wherever the focus is in the view). */
@@ -120,14 +121,14 @@ export function App({ backend }: { backend: Backend }) {
     setSettingsRaw(next);
     void backend.saveSettings(next);
   };
-  const activeUndo = () => (view === 'schematic' ? schUndo.current : undo);
+  const activeUndo = () => (view === 'schematic' || view === 'pcb' ? schUndo.current : undo);
 
   const [settings, setSettingsRaw] = useState<UiSettings>(DEFAULTS);
   const [view, setViewRaw] = useState<View>('start');
   const viewRef = useRef(view);
   viewRef.current = view;
   // the schematic editor needs the width: side panes close when it opens
-  const setView = (v: View) => { setViewRaw(v); if (v === 'schematic') { setShowNav(false); setShowHelp(false); } else if (v === 'start') setShowNav(false); else if (v === 'project' && !compactRef.current) setShowNav(true); };
+  const setView = (v: View) => { setViewRaw(v); if (v === 'schematic' || v === 'pcb') { setShowNav(false); setShowHelp(false); } else if (v === 'start') setShowNav(false); else if (v === 'project' && !compactRef.current) setShowNav(true); };
   const [docPage, setDocPage] = useState('welcome');
   const [palette, setPalette] = useState(false);
   const [compact, setCompact] = useState(window.innerWidth < 1500);
@@ -159,7 +160,7 @@ export function App({ backend }: { backend: Backend }) {
   // F0-24(d): in the compact layout the side panes are overlays, closed until asked for
   const compactRef = useRef(compact);
   compactRef.current = compact;
-  useEffect(() => { setShowNav(!compact && view === 'project'); setShowHelp(!compact && view !== 'schematic'); }, [compact]);
+  useEffect(() => { setShowNav(!compact && view === 'project'); setShowHelp(!compact && view !== 'schematic' && view !== 'pcb'); }, [compact]);
   useEffect(() => {
     const on = () => setCompact(window.innerWidth < 1500);
     window.addEventListener('resize', on);
@@ -211,6 +212,7 @@ export function App({ backend }: { backend: Backend }) {
     k.register({ id: 'toggle.help', title: 'Show/hide help pane', keys: 'Ctrl+Alt+B', category: 'Panes', run: () => setShowHelp((x) => !x) });
     k.register({ id: 'view.start', title: 'Start screen', category: 'View', run: open('start') });
     k.register({ id: 'view.schematic', title: 'Schematic editor', category: 'View', run: open('schematic') });
+    k.register({ id: 'view.pcb', title: 'PCB layout', category: 'View', run: open('pcb') });
     k.register({ id: 'project.new', title: 'New schematic', keys: 'Ctrl+N', category: 'Project', run: () => newSchematicRef.current() });
     k.register({ id: 'project.save', title: 'Save project', keys: 'Ctrl+S', category: 'Project', run: () => void saveRef.current() });
     k.register({ id: 'project.open', title: 'Open project or example (start screen)', keys: 'Ctrl+O', category: 'Project', run: open('start') });
@@ -299,8 +301,8 @@ export function App({ backend }: { backend: Backend }) {
       {!bannerClosed && <StartupBanner startup={startup} host={hostIssues} onOpen={(v) => setView(v)} onClose={() => setBannerClosed(true)} />}
       <div class="body">
         {showNav && navPane}
-        <main id="pane-workspace" class={`pane work${view === 'schematic' ? ' schematic-mode' : ''}`} aria-label={VIEW_TITLE[view]} tabIndex={-1}>
-          <h1 class="view-title" tabIndex={0}>{view === 'schematic' ? `Schematic · ${doc.name}${dirty ? ' (unsaved)' : ''}` : VIEW_TITLE[view]}</h1>
+        <main id="pane-workspace" class={`pane work${view === 'schematic' || view === 'pcb' ? ' schematic-mode' : ''}`} aria-label={VIEW_TITLE[view]} tabIndex={-1}>
+          <h1 class="view-title" tabIndex={0}>{view === 'schematic' || view === 'pcb' ? `${VIEW_TITLE[view]} · ${doc.name}${dirty ? ' (unsaved)' : ''}` : VIEW_TITLE[view]}</h1>
           {notes.length > 0 && (view === 'schematic' || view === 'start') && (
             <div class="banner" role="status">{notes.map((n) => <p key={n}>{n}</p>)}<button onClick={() => setNotes([])}>Dismiss</button></div>
           )}
@@ -311,6 +313,7 @@ export function App({ backend }: { backend: Backend }) {
                            exportFile={(name, data) => backend.exportFile(doc.id, name, data)}
                            prefs={settings.sch} setPrefs={setSchPrefs} />
           )}
+          {view === 'pcb' && <PcbView key={doc.key} sheet={doc.sheet} commit={commitSheet} announce={say} />}
           {view === 'project' && (<div class="split"><ArtefactView bus={bus} graph={graph} /><TraceView bus={bus} graph={graph} ids={artefactIds} /></div>)}
           {view === 'library' && <LibraryView seed={seed as unknown as Record<string, LibraryItem[]>} />}
           {view === 'docs' && <DocsView index={docs} pageId={docPage} onPage={setDocPage} />}
@@ -321,7 +324,7 @@ export function App({ backend }: { backend: Backend }) {
         {showHelp && helpPane}
       </div>
       <footer class="status" role="status" aria-label="Status bar">
-        <span>{view === 'schematic' ? `${doc.name}${dirty ? ' · unsaved changes' : doc.id ? ' · saved' : ''}` : 'ACC-02 sample · Draft'}</span>
+        <span>{view === 'schematic' || view === 'pcb' ? `${doc.name}${dirty ? ' · unsaved changes' : doc.id ? ' · saved' : ''}` : 'ACC-02 sample · Draft'}</span>
         <span>Highlight: {settings.highlightMode}{latency !== null ? ` · last ${latency.toFixed(0)} ms` : ''}</span>
         <span>{settings.mode === 'guided' ? 'Guided' : 'Expert'} mode</span>
         <span>{compact ? 'Compact layout' : 'Full layout'}</span>

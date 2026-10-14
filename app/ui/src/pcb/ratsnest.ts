@@ -52,7 +52,8 @@ export function islands(pads: BoardPad[], board: Board): Item[][] {
   const layersOf = (it: Item): Layer[] => (it.kind === 'pad' ? it.pad.layers : it.kind === 'track' ? [it.t.layer] : ['F', 'B']);
   const touch = (a: Item, b: Item): boolean => {
     if (!layersOf(a).some((l) => layersOf(b).includes(l))) return false;
-    if (a.kind === 'pad' && b.kind === 'pad') return false; // pads never overlap in a valid footprint
+    // pads of one pin are joined inside the part; pads never overlap in a valid footprint
+    if (a.kind === 'pad' && b.kind === 'pad') return a.pad.ref === b.pad.ref && a.pad.pin !== null && a.pad.pin === b.pad.pin;
     if (a.kind === 'track' || b.kind === 'track') {
       const [t, o] = a.kind === 'track' ? [a.t, b] : [(b as { t: Track }).t, a];
       for (const [p, q] of segments(t)) {
