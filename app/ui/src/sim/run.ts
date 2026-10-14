@@ -88,11 +88,14 @@ export const MAX_RUNS = 50;
 
 export interface Run { label: string; r: SimResult }
 
-/** Overlays runs on the x axis of the first (a transient is resampled to 2000 points). */
+/** Overlays runs on the x axis of the first (a transient on an even grid as fine as its finest run). */
 export function overlayRuns(runs: Run[], t0: number): SimResult {
   const first = runs[0].r;
+  // a transient: an even grid as fine as the finest run (2000 to 20000 steps), so fast detail
+  // (and the FFT of it) survives the overlay
+  const nGrid = Math.min(20000, Math.max(2000, ...runs.map(({ r }) => r.x.length - 1)));
   const grid = first.analysis === 'tran'
-    ? Array.from({ length: 2001 }, (_, k) => (first.x[first.x.length - 1] * k) / 2000)
+    ? Array.from({ length: nGrid + 1 }, (_, k) => (first.x[first.x.length - 1] * k) / nGrid)
     : first.x;
   const map = (r: SimResult, rec: Record<string, number[]> | undefined) =>
     rec ? Object.fromEntries(Object.entries(rec).map(([k, y]) => [k, resample(r.x, y, grid)])) : undefined;

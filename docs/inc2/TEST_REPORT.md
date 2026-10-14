@@ -199,6 +199,31 @@ Found and fixed on the way:
 - **Simulation tab:** Controls and Probes come before the sweep and tolerance sections, so the
   live controls stay in view.
 
+## 3e. FFT view accuracy check (owner request, 14 October 2026)
+
+Checked against three references; the checks are now unit tests (`tests/fft.test.ts`) and an
+ngspice test (`tests/sim.ngspice.test.ts`):
+
+| Check | Result |
+|---|---|
+| Our FFT against NumPy's FFT of the same samples | identical to 1e-14 V |
+| 2 V sine on a bin / between bins (1050 Hz, 100 Hz bins) | 2.0000 V / 1.9995 V (−0.002 dB) |
+| Square wave ±1 V, odd harmonics 4/(πn) | within 0.001 dB; THD 42.881 % (exact 42.879 %) |
+| Tone 40 dB below a 1 V tone | −40.00 dBV; leakage floor −120 dBV |
+| Diode clipper, harmonics 3 to 11 against ngspice's fft | within 0.01 dB (test limit 0.1 dB); even harmonics −164 dBc (ngspice −70 dBc, from its zero padding) |
+| Clipper amplitudes against a plain NumPy DFT of whole periods | equal to 4 decimals |
+
+Three defects found and fixed:
+- **Frequency between bins:** the frequency of a tone between bins was rounded to the nearest
+  bin (1050 Hz shown as 1100 Hz). It is now the centre of the main lobe (1050.1 Hz), and THD
+  looks for the harmonics at multiples of it.
+- **Aliasing:** the FFT always used 8192 points, so a long view aliased (a 10 kHz tone over 1 s
+  appeared at 1808 Hz). The length now follows the waveform's points in view, up to 2²⁰; beyond
+  that each sample averages its interval. The spectrum states its resolution and highest
+  frequency.
+- **Overlays:** parameter-sweep and Monte Carlo transients were resampled to 2001 points. They
+  now keep the finest run's resolution (up to 20 000 points).
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).

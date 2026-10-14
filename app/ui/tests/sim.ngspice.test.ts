@@ -174,3 +174,33 @@ describe.skipIf(!ok)('SIM-04 example schematics against ngspice', () => {
 describe.skipIf(ok)('SIM-04 reference suite against ngspice', () => {
   it.skip('ngspice is not installed here; CI runs this suite', () => {});
 });
+
+// FFT view against ngspice's fft (Hann window): harmonic levels relative to the fundamental of
+// a diode clipper. Main-lobe energies are compared, so ngspice's zero padding does not matter.
+describe.skipIf(!ok)('FFT view against ngspice fft', () => {
+  it('diode clipper: odd harmonics within 0.1 dB of ngspice; even harmonics absent', async () => {
+    const { spectrum, component } = await import('../src/sim/fft');
+    const d = { is: 2.52e-9, n: 1.752, rs: 0.568 };
+    const circuit = { elements: [
+      { kind: 'V', name: 'V1', p: 'in', n: '0', dc: 0, wave: { type: 'sin', vo: 0, va: 5, freq: 1e3 } },
+      { kind: 'R', name: 'R1', a: 'in', b: 'out', r: 1e3 },
+      { kind: 'D', name: 'D1', a: 'out', k: '0', model: d }, { kind: 'D', name: 'D2', a: '0', k: 'out', model: d },
+    ] } as const;
+    const dir = mkdtempSync(join(tmpdir(), 'ef-fft-'));
+    const out = join(dir, 'fft.txt');
+    const file = join(dir, 'c.cir');
+    writeFileSync(file, toSpice(circuit as never, { type: 'tran', tstep: 1e-6, tstop: 10e-3, tmax: 1e-6 },
+      ['.control', 'run', 'linearize v(out)', 'set specwindow=hanning', 'fft v(out)', 'set wr_singlescale', 'wrdata ' + out + ' mag(v(out))', '.endc']));
+    execFileSync('ngspice', ['-b', file], { stdio: 'pipe' });
+    const rows = readFileSync(out, 'utf8').trim().split('\n').map((l) => l.trim().split(/\s+/).map(Number));
+    const lobe = (h: number) => Math.sqrt(rows.filter(([f]) => Math.abs(f - h * 1000) <= 200).reduce((a, [, m]) => a + m * m, 0));
+    const w = new Engine(circuit as never).tran(1e-6, 10e-3);
+    const s = spectrum(w.x, w.v['out'], 0, 10e-3);
+    const ours = (h: number) => component(s, Math.round((h * 1000) / s.df) - 1).amp;
+    for (const h of [3, 5, 7, 9, 11]) {
+      const ng = 20 * Math.log10(lobe(h) / lobe(1)), me = 20 * Math.log10(ours(h) / ours(1));
+      expect(Math.abs(me - ng), `harmonic ${h}: ours ${me.toFixed(2)} dBc, ngspice ${ng.toFixed(2)} dBc`).toBeLessThan(0.1);
+    }
+    for (const h of [2, 4]) expect(20 * Math.log10(ours(h) / ours(1))).toBeLessThan(-100);
+  });
+});

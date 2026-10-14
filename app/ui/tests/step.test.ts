@@ -54,7 +54,7 @@ describe('parameter sweep runs', () => {
       { type: 'tran', stop: '40m', step: '' });
     sheet.step = step({ ref: refs[1], list: '1N4148 1N5819' });
     const r = simulate(sheet) as SimResult;
-    expect(r.x.length).toBe(2001);
+    expect(r.x.length).toBeGreaterThanOrEqual(2001);
     const peak = (k: number) => Math.max(...r.steps![k].v['OUT']);
     // the Schottky drops less
     expect(peak(1) - peak(0)).toBeGreaterThan(0.2);

@@ -125,6 +125,7 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
       f: specs[0].s.f,
       traces: specs.map(({ t, s }) => ({ id: `fft:${t.id}`, name: `FFT ${t.name}`, colour: t.colour, unit: `dB${t.unit}`, dashed: t.dashed, y: s.amp.map((a) => 20 * Math.log10(a || 1e-30)) })),
       thd: specs.map(({ t, s }) => ({ name: t.name, unit: t.unit, r: thd(s) })),
+      df: specs[0].s.df, fmax: specs[0].s.fmax, averaged: specs[0].s.averaged,
     };
   }, [showFft, canFft, traces, x, r0, r1]);
 
@@ -189,6 +190,7 @@ export function Plot({ x, xLabel, xUnit, log, traces, selected, onSelect, onRemo
       {fftData && (
         <section class="fft" aria-label="Spectrum">
           <h4 class="small">Spectrum of {formatValue(r0, 's')} to {formatValue(r1, 's')} (Hann window; amplitudes are peak values, 0 dBV = 1 V)</h4>
+          <p class="small muted">Resolution {formatValue(fftData.df, 'Hz')} (zoom out for finer), up to {formatValue(fftData.fmax, 'Hz')}{fftData.averaged ? '; the waveform has finer detail than the FFT holds, so each sample averages its interval (no aliasing; zoom in for higher frequencies)' : ''}. Amplitudes and frequencies of tones between bins are measured over the window's main lobe.</p>
           <Plot x={fftData.f} xLabel="Frequency" xUnit="Hz" log traces={fftData.traces} height={H} />
           <ul class="small">
             {fftData.thd.map(({ name, unit, r }) => r && <li key={name}>{name}: strongest component {formatValue(r.amp, unit)} at {formatValue(r.f0, 'Hz')}, THD {r.thd < 0.01 ? '< 0.01' : r.thd.toPrecision(3)} % (harmonics 2 to 10)</li>)}

@@ -71,6 +71,18 @@ The **FFT** button above a transient plot shows the spectrum of the visible rang
 the settled part first): Hann window, amplitudes as peak values in dBV or dBA, and per trace
 the strongest component with its total harmonic distortion (harmonics 2 to 10).
 
+Accuracy, checked against exact values, NumPy and ngspice's FFT on every build:
+- amplitudes within 0.01 dB, also for a tone between two frequency bins (the window's main lobe
+  is measured, not one bin), and frequencies to a fraction of a bin;
+- harmonic levels of a clipped sine within 0.1 dB of ngspice;
+- a tone 40 dB below another measured to 0.01 dB; leakage floor about −120 dB;
+- no aliasing: the FFT is as long as the waveform's points in view need (up to about a million).
+
+The resolution is 1 / (the time in view): show more periods for finer frequency steps. With
+only a few periods in view, a tone that is not a whole number of periods shows a small false
+distortion (about 0.06 % THD for 10.5 periods). The waveform itself is only as fine as the
+simulation's time step: for harmonics up to a frequency f, use a time step below 1 / (20 f).
+
 ## Models and accuracy
 
 The simulator is a SPICE-style engine built into NETApps (modified nodal analysis, the
