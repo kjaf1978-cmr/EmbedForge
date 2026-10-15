@@ -24,7 +24,7 @@ daylight.
 | Stabiliser | OUTPUT (green) | the load is connected | waiting for the restart delay (about 11 s) or cut off |
 | Stabiliser | FAULT (red) | the 230 V tap is outside 190 … 255 V: the output protection holds the load off | output in range |
 | Charger | CHARGING (green) | charge current above about 6 A flows | no or low charge current (night, weak sun, battery full) |
-| Charger | FAULT (red) | the independent overvoltage protection has tripped (the output went above 60.5 V): the battery and the array are cut off until the power is removed | normal |
+| Charger | FAULT (red) | the independent overvoltage protection has tripped (the output stayed above 57.6 V, 3.6 V per cell): the battery and the array are cut off until the power is removed | normal |
 
 Normal states: change-over with healthy mains: only ON MAINS. Change-over on generator: ON
 BACK-UP, and one red LED telling why the mains was rejected. Stabiliser: one or more yellow

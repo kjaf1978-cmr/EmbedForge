@@ -385,8 +385,8 @@ export interface ChargerOptions {
   g?: number; vbat?: number; stop?: string; comp?: { rf: string; cf: string }; temp?: number; timerC?: string; tbat?: number; theatsink?: number;
   /** Auxiliary supply voltage (in the product fed from the battery through a diode: 0 with a reversed battery). */
   aux?: number;
-  /** Reversed battery (fault case). */
-  batteryReversed?: boolean;
+  /** Reversed battery or PV array (fault cases). */
+  batteryReversed?: boolean; pvReversed?: boolean;
   /** The battery's BMS opens its contactor at this time (s), during charging (fault case). */
   bmsOpenAt?: number;
   /** Current-limit resistor from IREF to GND for small batteries (15k: 48 A for 100 Ah). */
@@ -406,14 +406,14 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const X = (k: number) => k * 110, Y = (k: number) => k * 110;
   nb.note('MPPT solar charger, one 3.7 kW unit: 9 × 410 Wp (3 in series, 3 strings) into a 48 V LiFePO4 battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH, film capacitors), a 100 A battery fuse and an ideal diode in the battery\'s negative lead.', X(0), Y(-1))
-    .note('Protections (DFMEA): reversed PV or battery, reverse current, battery cut off by its BMS (fast stop, TVS), independent overvoltage latch (Q1 shorted), battery 0 … 50 °C, heatsink 90 °C, surge varistor. LEDs: CHARGING, FAULT.', X(0), Y(-1.25))
+    .note('Protections (DFMEA): reversed PV or battery, reverse current, battery cut off by its BMS (fast stop, TVS), independent overvoltage latch at 57.6 V (Q1 shorted), battery 0 … 50 °C, heatsink 90 °C, surge varistor. LEDs: CHARGING, FAULT.', X(0), Y(-1.25))
     .note('Control from discrete parts: 555 ramp and LM393 PWM comparator, IR2184-type driver with bootstrap supply; average current-mode control: an inner current loop, its reference (80 A at most) lowered through transistors by the MPPT loop (PV held at 0.826 × its open-circuit voltage, sampled every 10 s) and the CV loop (battery at most 56.6 V, 3.54 V per cell).', X(0), Y(-0.75))
     .note('Sizing (LiFePO4 48 V, charge ≤ 0.5 C): 5 kWh / 100 Ah: 1 unit with RLIM 15k (48 A). 10 kWh: 1 unit (80 A). 15 kWh: 2 units. 20 kWh: 2 units. 30 kWh / 600 Ah: 3 units (240 A, 0.4 C). Each unit has its own 3.7 kWp array (about 16 kWh a day in the tropics) and connects to the battery bus through its fuse; the ideal diodes keep units from feeding each other.', X(0), Y(-0.5));
   // power stage
   // PV input: varistor against surges from the array (type 3; the array needs its own DC SPD),
   // and QPV in the negative lead: on only while the PV is connected the right way round (its
   // gate is fed from PV+), so a reversed array is blocked; the fault latch turns it off too
-  nb.part('PV', 'pv', X(0), Y(1), { value: '410 Wp, 108 half-cells mono', ns: '3', np: '3', g: String(g) }, { '1': 'PVP', '2': 'PVN' })
+  nb.part('PV', 'pv', X(0), Y(1), { value: '410 Wp, 108 half-cells mono', ns: '3', np: '3', g: String(g) }, o.pvReversed ? { '1': 'PVN', '2': 'PVP' } : { '1': 'PVP', '2': 'PVN' })
     .part('RVPV', 'mov', X(-1), Y(1), { value: '14D201K' }, { '1': 'PVP', '2': 'PVN' })
     .part('QPV', 'nmos', X(0), Y(2.5), { value: 'IRFP4668', heatsink: HS }, { '1': 'GPV', '2': 'PVN', '3': 'GND' })
     .part('RGPV', 'resistor', X(-1), Y(2.5), { value: '100k' }, { '1': 'PVP', '2': 'GPV' })
@@ -481,13 +481,14 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RREF', 'resistor', X(8), Y(1), { value: '1k' }, { '1': 'V12', '2': 'VREF' })
     .part('U1', 'tl431', X(9), Y(1), { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' });
   // protections with their own reference (U14), independent of the control: the overvoltage
-  // latch (60.5 V: Q1 shorted, or the control failed) opens QB2 and QPV and stays tripped until
+  // latch (57.6 V, 3.6 V per cell, below the BMS cut-off: Q1 shorted, or the control failed) opens QB2 and QPV and stays tripped until
   // the power is removed; the fast stop (58.9 V) holds the PWM low while the output is too high
   nb.part('RREF2', 'resistor', X(9), Y(0), { value: '1k' }, { '1': 'V12', '2': 'VREF2' })
     .part('U14', 'tl431', X(10), Y(0), { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' })
-    .part('ROV1', 'resistor', X(11), Y(0), { value: '237k' }, { '1': 'VO', '2': 'VOS2' })
-    .part('ROV2', 'resistor', X(12), Y(0), { value: '10.2k' }, { '1': 'VOS2', '2': 'GND' }, 1)
-    .part('COV', 'capacitor', X(12.5), Y(0), { value: '10n', vmax: '50' }, { '1': 'VOS2', '2': 'GND' }, 1)
+    .part('ROV1', 'resistor', X(11), Y(0), { value: '221k' }, { '1': 'VO', '2': 'VOS2' })
+    .part('ROV2', 'resistor', X(12), Y(0), { value: '10k' }, { '1': 'VOS2', '2': 'GND' }, 1)
+    // 45 ms: a spike when the BMS opens is the fast stop's job; a lasting overvoltage latches
+    .part('COV', 'capacitor', X(12.5), Y(0), { value: '4.7u', vmax: '50' }, { '1': 'VOS2', '2': 'GND' }, 1)
     .part('U13', 'comparator', X(11), Y(1), { value: 'LM393' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT', '8': 'V12', '4': 'GND' })
     .part('RFLT', 'resistor', X(12), Y(1), { value: '10k' }, { '1': 'V12', '2': 'FLT' }, 1)
     .part('DLAT', 'diode', X(12), Y(1.6), { value: '1N4148' }, { '2': 'FLT', '1': 'LAT' })
