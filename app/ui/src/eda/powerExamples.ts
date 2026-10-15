@@ -487,8 +487,13 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('U14', 'tl431', X(10), Y(0), { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' })
     .part('ROV1', 'resistor', X(11), Y(0), { value: '221k' }, { '1': 'VO', '2': 'VOS2' })
     .part('ROV2', 'resistor', X(12), Y(0), { value: '10k' }, { '1': 'VOS2', '2': 'GND' }, 1)
-    // 45 ms: a spike when the BMS opens is the fast stop's job; a lasting overvoltage latches
-    .part('COV', 'capacitor', X(12.5), Y(0), { value: '4.7u', vmax: '50' }, { '1': 'VOS2', '2': 'GND' }, 1)
+    // 10 ms filter; armed only while charge current flows (QNC holds VOS2 low otherwise): a
+    // shorted Q1 drives current into the battery, while after a BMS cut-off the output
+    // capacitors merely keep their charge, which must not latch the charger off
+    .part('COV', 'capacitor', X(12.5), Y(0), { value: '1u', vmax: '50' }, { '1': 'VOS2', '2': 'GND' }, 1)
+    .part('RNC', 'resistor', X(13), Y(0.6), { value: '10k' }, { '1': 'VOS2', '2': 'CNC' })
+    .part('QNC', 'npn', X(14), Y(0.6), { value: 'BC547B' }, { '1': 'BNC', '2': 'CNC', '3': 'GND' })
+    .part('RBNC', 'resistor', X(15), Y(0.6), { value: '47k' }, { '1': 'BDN', '2': 'BNC' })
     .part('U13', 'comparator', X(11), Y(1), { value: 'LM393' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT', '8': 'V12', '4': 'GND' })
     .part('RFLT', 'resistor', X(12), Y(1), { value: '10k' }, { '1': 'V12', '2': 'FLT' }, 1)
     .part('DLAT', 'diode', X(12), Y(1.6), { value: '1N4148' }, { '2': 'FLT', '1': 'LAT' })
