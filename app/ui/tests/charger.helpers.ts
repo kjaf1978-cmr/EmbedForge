@@ -5,9 +5,7 @@ import { simulate, type SimResult } from '../src/sim/run';
 import { erc } from '../src/eda/erc';
 import { deck } from './deck';
 import { connectivity } from '../src/eda/connectivity';
-import type { Sheet } from '../src/eda/schematic';
 
-const netOf = (sheet: Sheet, ref: string, pin: string) => connectivity(sheet).pinNet.get(`${ref}.${pin}`) ?? '';
 
 /** Mean of y over x > t0 (trapezoidal). */
 const mean = (x: number[], y: number[], t0: number) => {
@@ -27,9 +25,14 @@ function arrayMpp(g: number, temp = 25): { p: number; v: number } {
   return best;
 }
 
+// let the reporter's pending task update be answered before the worker blocks for minutes
+// (otherwise vitest reports "Timeout calling onTaskUpdate")
+const settle = () => new Promise((r) => setTimeout(r, 500));
+
 /** Steady state of the last 5 ms: PV power and voltage, battery current and voltage. */
-function run(o: Parameters<typeof mpptCharger>[0], stop = 0.09) {
+async function run(o: Parameters<typeof mpptCharger>[0], stop = 0.09) {
   const { sheet, nb } = mpptCharger({ stop: String(stop), ...o });
+  await settle();
   const r = simulate(sheet) as SimResult;
   expect('error' in r ? r.error : '').toBe('');
   const t0 = stop - 0.005, pv = r.v['PVP'], ipv = r.i[`${nb.refOf(sheet, 'PV')}.1`], ib = r.i[`${nb.refOf(sheet, 'BAT')}.1`];
@@ -48,8 +51,7 @@ export function chargerTests(part: number) {
   // cells at 25 °C, and on a hot tropical roof at 65 °C
   for (const [g, temp, k] of [[1000, 25, 1], [500, 25, 1], [200, 25, 2], [1000, 65, 2], [300, 65, 2]] as const) {
     T(k)(`${g} W/m², cells at ${temp} °C: the array works at ≥ 97 % of its maximum power; ≥ 93 % reaches the battery`, async () => {
-      await new Promise((r) => setTimeout(r, 0));
-      const mpp = arrayMpp(g, temp), s = run({ g, temp });
+      const mpp = arrayMpp(g, temp), s = await run({ g, temp });
       expect(s.ppv / mpp.p).toBeGreaterThan(0.97);
       expect((s.ibat * s.vbat) / s.ppv).toBeGreaterThan(0.93);
       expect(s.ipeak).toBeLessThan(110);
@@ -57,13 +59,15 @@ export function chargerTests(part: number) {
   }
   T(3)('hot case (1000 W/m², 65 °C air and cells): every power semiconductor stays below Tj 125 °C on its heatsink', async () => {
     const { sheet, nb } = mpptCharger({ temp: 65 });
+    await settle();
     const r = simulate(sheet) as SimResult;
     expect('error' in r ? r.error : '').toBe('');
     // loss in the steady state (the last 10 ms), junction-to-case from the datasheet, 1.5 K/W case to air
+    const conn = connectivity(sheet);
     const loss = (key: string, pins: string[]) => {
-      const ref = nb.refOf(sheet, key), part = sheet.parts.find((p) => p.ref === ref)!;
-      const v = (pin: string) => r.v[[...Object.keys(r.v)].find((n) => n === netOf(sheet, ref, pin))!];
-      return mean(r.x, r.x.map((_, k) => pins.reduce((a, pin) => a + v(pin)[k] * r.i[`${ref}.${pin}`][k], 0)), 0.06) + 0 * part.x;
+      const ref = nb.refOf(sheet, key);
+      const w = pins.map((pin) => ({ v: r.v[conn.pinNet.get(`${ref}.${pin}`) ?? ''], i: r.i[`${ref}.${pin}`] }));
+      return mean(r.x, r.x.map((_, k) => w.reduce((a, { v, i }) => a + (v ? v[k] * i[k] : 0), 0)), 0.08);
     };
     const rows = [['Q1', ['1', '2', '3'], 0.29], ['D1', ['1', '2'], 0.6], ['QB', ['1', '2', '3'], 0.29], ['QB2', ['1', '2', '3'], 0.29], ['QPV', ['1', '2', '3'], 0.29], ['QPV2', ['1', '2', '3'], 0.29]] as const;
     for (const [key, pins, rjc] of rows) {
@@ -73,12 +77,12 @@ export function chargerTests(part: number) {
     }
   }, 600_000);
   T(3)('a deeply discharged battery (44 V): the charge current is limited to 80 A', async () => {
-    const s = run({ vbat: 44 });
+    const s = await run({ vbat: 44 });
     expect(s.ibat).toBeLessThan(82);
     expect(s.ibat).toBeGreaterThan(75);
   }, 600_000);
   T(1)('a nearly full battery (56.4 V open-circuit): the battery is held at 56.6 V, the current tapers', async () => {
-    const s = run({ vbat: 56.4 });
+    const s = await run({ vbat: 56.4 });
     expect(s.vbat).toBeLessThan(56.8);
     expect(s.vbat).toBeGreaterThan(56.4);
     expect(s.ibat).toBeLessThan(15);

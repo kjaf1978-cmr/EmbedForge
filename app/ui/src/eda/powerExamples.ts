@@ -799,4 +799,10 @@ export const POWER_EXAMPLES: Example[] = [
     tryThis: 'Simulate at 230 V: the output OUT is the input. Set the input source V1 to 255 (180 V r.m.s.) or 382 (270 V) and simulate: another tap is chosen and OUT stays within about ±6 % of 230 V. Watch SF cross the ladder voltages N1 … N6.',
     build: () => stabiliser().sheet,
   },
+  {
+    id: 'mppt-charger', title: 'MPPT solar charger for a 48 V LiFePO₄ battery (3.7 kW)', level: 'advanced',
+    summary: 'A 9-module PV array (3 × 3 × 410 Wp, Voc up to 120 V) charges a 16-cell LiFePO₄ battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH): fractional-Voc maximum power point tracking, 80 A current limit, 56.6 V constant voltage, battery temperature window, heatsink cut-off, reverse-polarity blocking on both sides and an independent latched overvoltage protection. Analogue control only: LM358, TL072, TL431, 555, gate driver.',
+    tryThis: 'Simulate (90 ms): the battery current I(BAT.1) rises to about 70 A at 1000 W/m², the PV voltage PVP settles near the maximum power point. Set the PV irradiance g to 500 and simulate again; set the battery source to 56.4 V and watch the current taper at 56.6 V.',
+    build: () => mpptCharger().sheet,
+  },
 ];

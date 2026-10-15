@@ -4,14 +4,18 @@ import { erc } from '../src/eda/erc';
 import { simulate, schematicSpice, type SimResult } from '../src/sim/run';
 import { connectivity, netAt } from '../src/eda/connectivity';
 import { addWire, copySelection, deleteSelection, hitTest, mirrorSelection, moveSelection, paste, placePart, rotateSelection, noSelection } from '../src/eda/editor';
-import { emptySheet, pinPositions } from '../src/eda/schematic';
+import { emptySheet, pinPositions, type Sheet } from '../src/eda/schematic';
 import { fromFiles, toFiles } from '../src/eda/project';
 import { buildNetlist } from '../src/eda/netlist';
+
+// the charger's 90 ms run takes minutes; its steady state is tested in charger*.test.ts, here the
+// start-up (10 ms) is enough to show that it connects and simulates
+const short = (s: Sheet, id: string): Sheet => (id === 'mppt-charger' ? { ...s, sim: { ...s.sim, stop: '10m' } as Sheet['sim'] } : s);
 
 describe('examples (UI-24)', () => {
   for (const ex of EXAMPLES) {
     it(`${ex.id}: connected, ERC clean, simulates`, () => {
-      const s = ex.build();
+      const s = short(ex.build(), ex.id);
       const issues = erc(s).filter((i) => i.severity !== 'info');
       expect(issues.map((i) => i.message)).toEqual([]);
       const r = simulate(s);
