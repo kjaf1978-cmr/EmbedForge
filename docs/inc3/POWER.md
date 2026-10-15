@@ -31,6 +31,8 @@ verified first; each design then gets its PCB layout with the Increment 3 tools.
 | P7 | Inverters: 12/24/48 V DC to 230 V 1-phase and 3 × 400/230 V: HF DC-DC stage (full bridge, ferrite transformer, rectifier) to a DC bus, SPWM full bridge or 3-phase IGBT bridge, LC filter; ratings 5–30 kW by paralleled devices; parallel units with droop current sharing | Output voltage, frequency, THD (FFT), load step, stress check of every device |
 | P8 | PCB layouts of these designs with the Increment 3 tools (power tracks per IPC-2221, clearances for mains voltage) | DRC |
 
+Order (decision D21, 15 October 2026): P1–P4, then P6, P7, P5, P8.
+
 High-power designs are simulated as circuits (switching transients over a few mains periods);
 thermal design (heatsinks) is given as calculations, not simulated.
 
