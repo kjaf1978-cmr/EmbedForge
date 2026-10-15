@@ -387,7 +387,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     }
     case 'ntc': {
       // R(T) = R25·exp(B·(1/T − 1/T25)) with T25 = 298.15 K
-      const tk = temp + 273.15, r = Math.max(v('value', 'resistance') * Math.exp(v('beta', 'B value') * (1 / tk - 1 / 298.15)), 1e-6);
+      const tk = (p.props.temp?.trim() ? v('temp', 'sensed temperature') : temp) + 273.15, r = Math.max(v('value', 'resistance') * Math.exp(v('beta', 'B value') * (1 / tk - 1 / 298.15)), 1e-6);
       out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r });
       break;
     }

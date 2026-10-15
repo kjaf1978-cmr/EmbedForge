@@ -4,6 +4,10 @@ import { mpptCharger } from '../src/eda/powerExamples';
 import { simulate, type SimResult } from '../src/sim/run';
 import { erc } from '../src/eda/erc';
 import { deck } from './deck';
+import { connectivity } from '../src/eda/connectivity';
+import type { Sheet } from '../src/eda/schematic';
+
+const netOf = (sheet: Sheet, ref: string, pin: string) => connectivity(sheet).pinNet.get(`${ref}.${pin}`) ?? '';
 
 /** Mean of y over x > t0 (trapezoidal). */
 const mean = (x: number[], y: number[], t0: number) => {
@@ -49,6 +53,23 @@ describe('MPPT solar charger (one 3.7 kW unit)', () => {
       expect(s.ipeak).toBeLessThan(110);
     }, 600_000);
   }
+  it('hot case (1000 W/m², 65 °C air and cells): every power semiconductor stays below Tj 125 °C on its heatsink', async () => {
+    const { sheet, nb } = mpptCharger({ temp: 65 });
+    const r = simulate(sheet) as SimResult;
+    expect('error' in r ? r.error : '').toBe('');
+    // loss in the steady state (the last 10 ms), junction-to-case from the datasheet, 1.5 K/W case to air
+    const loss = (key: string, pins: string[]) => {
+      const ref = nb.refOf(sheet, key), part = sheet.parts.find((p) => p.ref === ref)!;
+      const v = (pin: string) => r.v[[...Object.keys(r.v)].find((n) => n === netOf(sheet, ref, pin))!];
+      return mean(r.x, r.x.map((_, k) => pins.reduce((a, pin) => a + v(pin)[k] * r.i[`${ref}.${pin}`][k], 0)), 0.06) + 0 * part.x;
+    };
+    const rows = [['Q1', ['1', '2', '3'], 0.29], ['D1', ['1', '2'], 0.6], ['QB', ['1', '2', '3'], 0.29], ['QB2', ['1', '2', '3'], 0.29], ['QPV', ['1', '2', '3'], 0.29]] as const;
+    for (const [key, pins, rjc] of rows) {
+      const p = loss(key, [...pins]), tj = 65 + p * (rjc + 1.5);
+      expect(p).toBeGreaterThan(0);
+      expect(tj, `${key}: ${p.toFixed(1)} W, Tj ${tj.toFixed(0)} °C`).toBeLessThan(125);
+    }
+  }, 600_000);
   it('a deeply discharged battery (44 V): the charge current is limited to 80 A', async () => {
     const s = run({ vbat: 44 });
     expect(s.ibat).toBeLessThan(82);

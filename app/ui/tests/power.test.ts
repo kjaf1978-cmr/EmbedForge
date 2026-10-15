@@ -39,4 +39,21 @@ describe('single-phase change-over with voltage protection', () => {
       }
     }, 120_000);
   }
+  it('coil supply at 18 V (below the 20 V lockout): both contactors stay open', async () => {
+    const { sheet, nb } = changeover1(String(230 * Math.SQRT2), undefined, '0.6', { v24: 18 });
+    const r = simulate({ ...sheet, step: undefined }) as SimResult;
+    expect('error' in r ? r.error : '').toBe('');
+    for (const key of ['K1', 'K2']) expect(rms(r.x, r.i[`${nb.refOf(sheet, key)}.1`], 0.3)).toBeLessThan(0.01);
+  }, 120_000);
+  it('transfer on a fault (230 → 270 V): the back-up closes only after the dead time', async () => {
+    const { sheet, nb } = changeover1(String(230 * Math.SQRT2), { to: [270], at: 0.6 });
+    const r = simulate({ ...sheet, step: undefined }) as SimResult;
+    expect('error' in r ? r.error : '').toBe('');
+    const k1 = r.i[`${nb.refOf(sheet, 'K1')}.1`], k2 = r.i[`${nb.refOf(sheet, 'K2')}.1`];
+    let off = 0, on = Infinity;
+    r.x.forEach((t, k) => { if (Math.abs(k1[k]) > 0.05) off = t; });
+    r.x.forEach((t, k) => { if (t > off && Math.abs(k2[k]) > 0.05 && on === Infinity) on = t; });
+    expect(off).toBeGreaterThan(0.6);
+    expect(on - off).toBeGreaterThan(0.04);
+  }, 120_000);
 });

@@ -7,7 +7,7 @@
 import { symbolOf } from './symbols';
 import { CONTACTORS, GDTS, VARISTORS } from './models';
 import { parseValue } from './units';
-import type { Sheet } from './schematic';
+import { sheetTemp, type Sheet } from './schematic';
 import type { Connectivity } from './connectivity';
 import type { SimResult } from '../sim/run';
 
@@ -29,7 +29,7 @@ export interface Stress {
 const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>> = {
   diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 }, STTH6003: { If: 60, Vr: 300, P: 3.5 } },
   // TVS: 1 W steady state, 400 W peak pulse (10/1000 µs)
-  tvs: { '*': { P: 1, Ppk: 400 } },
+  tvs: { '*': { P: 1, Ppk: 400 }, '5KP64A': { P: 8, Ppk: 5000 } },
   bridge: { DB107: { If: 1, Vr: 1000 }, KBP206: { If: 2, Vr: 600 }, GBU8K: { If: 8, Vr: 800 } },
   // IGBTs: collector current at 100 °C case; power in free air (TO-247)
   igbt: { IKW30N60T: { Vce: 600, Ic: 30, Vge: 20, P: 3.5 }, IKW40N120T2: { Vce: 1200, Ic: 40, Vge: 20, P: 3.5 }, 'generic 600 V 20 A': { Vce: 600, Ic: 20, Vge: 20, P: 3.5 } },
@@ -41,14 +41,25 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   led: { '*': { If: 0.03, Vr: 5 } },
   npn: { '2N3904': { Vce: 40, Ic: 0.2, P: 0.625 }, BC547B: { Vce: 45, Ic: 0.1, P: 0.5 }, '2N2222A': { Vce: 40, Ic: 0.8, P: 0.5 }, BD139: { Vce: 80, Ic: 1.5, P: 1.25 } },
   pnp: { '2N3906': { Vce: 40, Ic: 0.2, P: 0.625 }, BC557B: { Vce: 45, Ic: 0.1, P: 0.5 }, BD140: { Vce: 80, Ic: 1.5, P: 1.25 } },
-  nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 }, AO3400: { Vds: 30, Id: 5.8, Vgs: 12, P: 1.4 }, IRF540N: { Vds: 100, Id: 33, Vgs: 20, P: 2 } },
+  nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 }, AO3400: { Vds: 30, Id: 5.8, Vgs: 12, P: 1.4 }, IRF540N: { Vds: 100, Id: 33, Vgs: 20, P: 2 },
+    IRFP4468: { Vds: 100, Id: 195, Vgs: 20, P: 3.5 }, IRFP4110: { Vds: 100, Id: 120, Vgs: 20, P: 3.5 }, IRFB4115: { Vds: 150, Id: 104, Vgs: 20, P: 2.4 }, IPW65R041: { Vds: 650, Id: 68, Vgs: 20, P: 3.5 }, IRFP4668: { Vds: 200, Id: 130, Vgs: 30, P: 3.5 } },
   pmos: { BS250: { Vds: 45, Id: 0.23, Vgs: 20, P: 0.83 }, IRF9540N: { Vds: 100, Id: 23, Vgs: 20, P: 2 }, AO3401: { Vds: 30, Id: 4, Vgs: 12, P: 1.4 } },
   opamp: { generic: { Vs: 36, Iout: 0.025 }, LM358: { Vs: 32, Iout: 0.03 }, TL072: { Vs: 36, Iout: 0.025 }, LM324: { Vs: 32, Iout: 0.03 }, MCP6002: { Vs: 6, Iout: 0.023 }, NE5532: { Vs: 44, Iout: 0.038 } },
   regulator: { '7805': { Vin: 35, Iout: 1, P: 2 }, '7809': { Vin: 35, Iout: 1, P: 2 }, '7812': { Vin: 35, Iout: 1, P: 2 }, 'AMS1117-3.3': { Vin: 15, Iout: 1, P: 0.8 }, 'AMS1117-5.0': { Vin: 15, Iout: 1, P: 0.8 },
     'MCP1700-3.3': { Vin: 6, Iout: 0.25, P: 0.5 }, L78L05: { Vin: 30, Iout: 0.1, P: 0.7 } },
   lm317: { LM317: { Vin: 40, Iout: 1.5, P: 2 } },
   timer555: { NE555: { Vcc: 16, Iout: 0.2, P: 0.6 } },
-  relay: { '*': { I: 10 } },
+  relay: { '*': { I: 10 }, '12 V 30 A': { I: 30 } },
+};
+
+/** Junction temperature limit (°C) and junction-to-case thermal resistance (K/W) of power
+ *  semiconductors (datasheets). With a heatsink (part property, case to air) the power rating is
+ *  (Tj,max − Ta)/(RthJC + heatsink), Ta the simulation temperature. */
+export const THERMAL: Record<string, { tj: number; rjc: number }> = {
+  IRFP4468: { tj: 175, rjc: 0.29 }, IRFP4110: { tj: 175, rjc: 0.4 }, IRFB4115: { tj: 175, rjc: 0.45 }, IRFP4668: { tj: 175, rjc: 0.29 }, IPW65R041: { tj: 150, rjc: 0.33 },
+  IRLZ44N: { tj: 175, rjc: 1.4 }, IRF540N: { tj: 175, rjc: 1.15 }, IRF9540N: { tj: 175, rjc: 1.2 },
+  IKW30N60T: { tj: 175, rjc: 0.5 }, IKW40N120T2: { tj: 175, rjc: 0.31 }, 'generic 600 V 20 A': { tj: 150, rjc: 0.8 },
+  STTH6003: { tj: 175, rjc: 0.6 }, SS34: { tj: 150, rjc: 15 }, GBU8K: { tj: 150, rjc: 2.2 }, KBP206: { tj: 150, rjc: 8 },
 };
 
 const UNIT: Record<Quantity, 'W' | 'V' | 'A' | 'J'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A', Ipk: 'A', E: 'J', Vb: 'V' };
@@ -79,6 +90,7 @@ function energyOf(x: number[], p: number[]): number {
 export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 80): { rows: Stress[]; unrated: string[]; note: string | null } {
   if (r.analysis === 'ac') return { rows: [], unrated: [], note: 'The stress check needs an operating point, a transient or a DC sweep (an AC analysis has no real voltages and currents).' };
   const tran = r.analysis === 'tran';
+  const tsim = sheetTemp(sheet), ta = typeof tsim === 'number' ? tsim : 27;
   const zero = r.x.map(() => 0);
   const rows: Stress[] = [];
   const unrated: string[] = [];
@@ -97,6 +109,9 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
     };
     const model = p.props.spice?.trim() ? null : RATINGS[p.sym]?.[p.props[s.value.key] ?? ''] ?? RATINGS[p.sym]?.['*'];
     const P = (pins: string[]) => mean(r.x, power(pins), tran);
+    // with a heatsink, the power a part may dissipate follows from its junction temperature limit
+    const th = THERMAL[p.props[s.value.key] ?? ''], hs = prop('heatsink');
+    const pRating = (free: number | undefined) => (th && hs > 0 ? (th.tj - ta) / (th.rjc + hs) : free);
     const energy = (pins: string[]) => (tran ? energyOf(r.x, power(pins)) : 0);
     switch (p.sym) {
       case 'resistor': add('P', P(['1', '2']), prop('pmax')); break;
@@ -116,7 +131,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         const ia = iPin('2');
         if (model.If) add('If', p.sym === 'led' ? maxOf(ia) : mean(r.x, ia.map((v) => Math.max(v, 0)), tran), model.If);
         if (model.Vr) add('Vr', maxOf(vAcross('1', '2')), model.Vr);
-        if (model.P) add('P', P(['1', '2']), model.P);
+        if (model.P) add('P', P(['1', '2']), pRating(model.P));
         break;
       }
       case 'npn': case 'pnp': {
@@ -126,7 +141,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       }
       case 'nmos': case 'pmos': {
         if (!model) { unrated.push(p.ref); break; }
-        add('Vds', peak(vAcross('2', '3')), model.Vds); add('Id', peak(iPin('2')), model.Id); add('Vgs', peak(vAcross('1', '3')), model.Vgs); add('P', P(['1', '2', '3']), model.P);
+        add('Vds', peak(vAcross('2', '3')), model.Vds); add('Id', peak(iPin('2')), model.Id); add('Vgs', peak(vAcross('1', '3')), model.Vgs); add('P', P(['1', '2', '3']), pRating(model.P));
         break;
       }
       case 'opamp': if (model) { add('Vs', peak(vAcross('7', '4')), model.Vs); add('Iout', peak(iPin('6')), model.Iout); } break;
@@ -142,7 +157,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       case 'fuse': { const i = iPin('1'); add('Irms', Math.sqrt(mean(r.x, i.map((v) => v * v), tran)), prop('value')); break; }
       case 'tvs': if (model) { add('P', P(['1', '2']), model.P); add('Ppk', maxOf(power(['1', '2'])), model.Ppk); } break;
       case 'bridge': if (model) { add('If', mean(r.x, iPin('3').map((v) => Math.max(-v, 0)), tran), model.If); add('Vr', peak(vAcross('3', '4')), model.Vr); } break;
-      case 'igbt': if (model) { add('Vce', peak(vAcross('2', '3')), model.Vce); add('Ic', peak(iPin('2')), model.Ic); add('Vge', peak(vAcross('1', '3')), model.Vge); add('P', P(['1', '2', '3']), model.P); } break;
+      case 'igbt': if (model) { add('Vce', peak(vAcross('2', '3')), model.Vce); add('Ic', peak(iPin('2')), model.Ic); add('Vge', peak(vAcross('1', '3')), model.Vge); add('P', P(['1', '2', '3']), pRating(model.P)); } break;
       case 'opto': if (model) {
         add('If', maxOf(iPin('1')), model.If); add('Vr', maxOf(vAcross('2', '1')), model.Vr);
         add('Vce', peak(vAcross('4', '3')), model.Vce); add('Ic', peak(iPin('4')), model.Ic); add('P', P(['4', '3']), model.P);

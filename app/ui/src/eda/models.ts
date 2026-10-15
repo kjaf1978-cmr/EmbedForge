@@ -30,6 +30,8 @@ const tvs = (name: string, vrwm: number, vbr: number, vc: number, ipp: number): 
 ];
 export const TVS: NamedModel<TvsModel>[] = [
   ...tvs('SMAJ5.0', 5, 6.7, 9.2, 43.5), ...tvs('SMAJ12', 12, 14, 19.9, 20.1), ...tvs('SMAJ24', 24, 28.1, 38.9, 10.3), ...tvs('SMAJ33', 33, 38.7, 53.3, 7.5),
+  // 5 kW (10/1000 µs), P600 case: absorbs the inductor energy of a converter when its battery is cut off
+  { name: '5KP64A', note: 'TVS diode 5 kW (P600), unidirectional: stand-off 64 V, breakdown 71.1 V, clamps at 103 V with 48.5 A', model: { vrwm: 64, vbr: 71.1, vc: 103, ipp: 48.5, bidirectional: false } },
 ];
 
 /** The junction of a TVS: breakdown at VBR with 10 mA, series resistance (VC − VBR)/IPP. */
@@ -160,6 +162,7 @@ export const RELAYS: NamedModel<RelayModel>[] = [
   { name: '5 V', note: '5 V coil, 70 Ω (about 70 mA), changeover contact', model: { vcoil: 5, rcoil: 70, lcoil: 0.14 } },
   { name: '12 V', note: '12 V coil, 400 Ω (30 mA), changeover contact', model: { vcoil: 12, rcoil: 400, lcoil: 0.8 } },
   { name: '24 V', note: '24 V coil, 1.6 kΩ (15 mA), changeover contact', model: { vcoil: 24, rcoil: 1600, lcoil: 3.2 } },
+  { name: '12 V 30 A', note: '12 V coil, 160 Ω (75 mA, 0.9 W), changeover contact 30 A / 250 V AC (power relay, AgSnO2): mains loads with inrush', model: { vcoil: 12, rcoil: 160, lcoil: 0.4 } },
 ];
 
 // ---- power and installation parts (decision D20) -------------------------------------------
@@ -175,6 +178,7 @@ export const VARISTORS: NamedModel<VaristorModel>[] = [
   { name: '20D471K', note: 'Ø 20 mm disc, 300 V AC, clamps 775 V at 100 A, 10 kA, 270 J', model: { vn: 470, vc: 775, ic: 100, imax: 10000, energy: 270, vac: 300 } },
   { name: '14D431K', note: 'Ø 14 mm disc, 275 V AC (430 V at 1 mA), clamps 710 V at 50 A, 6 kA, 125 J', model: { vn: 430, vc: 710, ic: 50, imax: 6000, energy: 125, vac: 275 } },
   { name: '14D681K', note: 'Ø 14 mm disc, 420 V AC, for 400 V line voltage: clamps 1120 V at 50 A, 6 kA, 190 J', model: { vn: 680, vc: 1120, ic: 50, imax: 6000, energy: 190, vac: 420 } },
+  { name: '14D201K', note: 'Ø 14 mm disc, 130 V AC / 170 V DC (200 V at 1 mA), clamps 340 V at 50 A, 6 kA, 60 J: inputs of PV chargers up to 150 V', model: { vn: 200, vc: 340, ic: 50, imax: 6000, energy: 60, vac: 130 } },
   { name: '14D121K', note: 'Ø 14 mm disc, 75 V AC / 100 V DC (120 V at 1 mA), clamps 200 V at 50 A, 4.5 kA, 30 J', model: { vn: 120, vc: 200, ic: 50, imax: 4500, energy: 30, vac: 75 } },
   { name: 'SPD-T2 275', note: 'surge protective device type 2, 275 V AC, In 20 kA, Imax 40 kA (8/20 µs), Up ≤ 1.3 kV: a 40 kA MOV block', model: { vn: 430, vc: 1300, ic: 20000, imax: 40000, energy: 1200, vac: 275 } },
   { name: 'SPD-T2 PV 1000', note: 'surge protective device type 2 for PV, 1000 V DC, In 20 kA, Imax 40 kA, Up ≤ 3.8 kV: MOV blocks in series', model: { vn: 1250, vc: 3800, ic: 20000, imax: 40000, energy: 2400, vac: 700 } },
@@ -206,6 +210,8 @@ const ctr = (ac3: number, coil: 'dc' | 'ac', vcoil: number, rcoil: number, lcoil
 export const CONTACTORS: NamedModel<ContactorModel>[] = [
   ctr(9, 'ac', 230, 600, 20), ctr(18, 'ac', 230, 450, 16), ctr(32, 'ac', 230, 300, 12), ctr(65, 'ac', 230, 150, 6), ctr(95, 'ac', 230, 100, 4),
   ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
+  // DC power contactor for battery circuits (pole 1–2 only; rated current on DC, not AC-3)
+  { name: '150 A DC, coil 12 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation, inverter pre-charge bypass); coil 12 V DC, 12 Ω', model: { ac3: 150, coil: 'dc', vcoil: 12, rcoil: 12, lcoil: 0.05 } },
 ];
 
 /** Comparators with open-collector outputs. */
@@ -271,6 +277,7 @@ export const POWER_MOSFETS: NamedModel<MosModel>[] = [
   // Crss (typical, at the datasheet test voltage; the real ones fall as the voltage rises)
   { name: 'IRFP4468', note: 'N-channel 100 V / 195 A (TO-247), RDS(on) ≈ 2.0 mΩ: 24–48 V inverter and charger bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 71, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 19460e-12, cgd: 520e-12, cds: 530e-12 } },
   { name: 'IRFP4110', note: 'N-channel 100 V / 120 A (TO-247), RDS(on) ≈ 3.7 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 39, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 9370e-12, cgd: 250e-12, cds: 420e-12 } },
+  { name: 'IRFP4668', note: 'N-channel 200 V / 130 A (TO-247), RDS(on) ≈ 8 mΩ: PV chargers up to 150 V Voc with surge margin (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 17.9, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 10560e-12, cgd: 160e-12, cds: 650e-12 } },
   { name: 'IRFB4115', note: 'N-channel 150 V / 104 A (TO-220), RDS(on) ≈ 9.3 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 15.4, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 5165e-12, cgd: 105e-12, cds: 385e-12 } },
   { name: 'IPW65R041', note: 'N-channel 650 V / 68 A superjunction (TO-247), RDS(on) ≈ 41 mΩ: 400 V bus bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.5, kp: 3.8, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 8380e-12, cgd: 20e-12, cds: 230e-12 } },
 ];

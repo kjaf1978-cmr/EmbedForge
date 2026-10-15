@@ -12,8 +12,9 @@ export const E6 = [1.0, 1.5, 2.2, 3.3, 4.7, 6.8];
 export const E96 = Array.from({ length: 96 }, (_, i) => Number(Math.pow(10, i / 96).toPrecision(3)));
 /** Potentiometers and trimmers: the 1-2-5 steps beside E6 (1k, 2k, 2.2k, 4.7k, 5k, 10k …). */
 const POT = [...new Set([...E6, 2.0, 5.0])].sort((a, b) => a - b);
-/** Fuse ratings (R10 steps of the IEC 60127 and UL 248 ranges), in A. */
-export const FUSE_A = [0.05, 0.063, 0.08, 0.1, 0.125, 0.16, 0.2, 0.25, 0.315, 0.4, 0.5, 0.63, 0.8, 1, 1.25, 1.6, 2, 2.5, 3.15, 4, 5, 6.3, 8, 10, 12, 15, 16, 20, 25, 30, 32, 35, 40, 50, 63];
+/** Fuse ratings (R10 steps of the IEC 60127 and UL 248 ranges; above 63 A the NH, ANL and MEGA
+ *  battery and DC fuse ranges), in A. */
+export const FUSE_A = [0.05, 0.063, 0.08, 0.1, 0.125, 0.16, 0.2, 0.25, 0.315, 0.4, 0.5, 0.63, 0.8, 1, 1.25, 1.6, 2, 2.5, 3.15, 4, 5, 6.3, 8, 10, 12, 15, 16, 20, 25, 30, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 250];
 /** Resistor power ratings in W (film and metal-oxide through-hole, chip, wirewound, aluminium-housed, braking and load resistors). */
 export const RES_W = [0.063, 0.1, 0.125, 0.25, 0.4, 0.5, 0.6, 0.75, 1, 2, 3, 5, 7, 10, 15, 20, 25, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000];
 /** Capacitor voltage ratings in V. */

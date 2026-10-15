@@ -18,10 +18,11 @@ import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
 import { sweepTargets } from '../../eda/simnet';
 import { bomCsv, buildBom } from '../../eda/bom';
 import { importModel } from '../../eda/spicemodel';
+import { reliability } from '../../eda/reliability';
 import { smoke } from '../../eda/smoke';
 import { BJTS, DIODES, MOSFETS, OPAMPS, ZENERS } from '../../eda/models';
 import { formatValue, parseValue, shortValue } from '../../eda/units';
-import { MAX_RUNS, schematicSpice, stepValues } from '../../sim/run';
+import { MAX_RUNS, schematicSpice, stepValues, type SimResult } from '../../sim/run';
 import type { SimClient, SimOutcome } from '../../sim/client';
 import { toCsv } from '../../sim/measure';
 import { motionAt, shownTorque, type Motion } from '../../sim/motion';
@@ -143,7 +144,8 @@ export function SchematicView(props: Props) {
   const [kbCursor, setKbCursor] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'props' | 'sim' | 'erc' | 'nets' | 'bom' | 'stress'>('props');
+  const [tab, setTab] = useState<'props' | 'sim' | 'erc' | 'nets' | 'bom' | 'stress' | 'rel'>('props');
+  const [ambient, setAmbient] = useState(45);
   const [result, setResult] = useState<SimOutcome | null>(null);
   const [running, setRunning] = useState(false);
   const [live, setLive] = useState(true);
@@ -1117,7 +1119,7 @@ export function SchematicView(props: Props) {
             </div>
           )}
           <div role="tablist" class="tabs">
-            {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist'], ['bom', 'Parts'], ['stress', 'Stress']] as const).map(([id, label]) => (
+            {([['props', 'Properties'], ['sim', 'Simulation'], ['erc', `Checks${nErr + nWarn ? ` (${nErr + nWarn})` : ''}`], ['nets', 'Netlist'], ['bom', 'Parts'], ['stress', 'Stress'], ['rel', 'Reliability']] as const).map(([id, label]) => (
               <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} class={id === 'erc' && nErr ? 'has-err' : ''}>{label}</button>
             ))}
           </div>
@@ -1133,6 +1135,7 @@ export function SchematicView(props: Props) {
             setSel({ ...noSelection(), parts: ids });
             if (i.at) setView((v) => ({ ...v, x: i.at!.x - size.w / v.z / 2, y: i.at!.y - size.h / v.z / 2 }));
           }} />}
+          {tab === 'rel' && <ReliabilityPanel sheet={sheet} result={okResult} ambient={ambient} setAmbient={setAmbient} onPick={(ref) => { const p = sheet.parts.find((x) => x.ref === ref); if (p) { setSel({ ...noSelection(), parts: [p.id] }); setTab('props'); } }} />}
           {tab === 'stress' && <StressPanel stress={stress} derate={derate} setDerate={setDerate} hasRun={!!okResult} onPick={(ref) => { const p = sheet.parts.find((x) => x.ref === ref); if (p) { setSel({ ...noSelection(), parts: [p.id] }); setTab('props'); } }} />}
           {tab === 'bom' && <BomPanel sheet={sheet} onExport={() => run('export-bom')} onPick={(ref) => { const p = sheet.parts.find((x) => x.ref === ref); if (p) { setSel({ ...noSelection(), parts: [p.id] }); setTab('props'); } }} />}
           {tab === 'nets' && <NetsPanel conn={conn} highlight={highlightNet} setHighlight={setHighlightNet} spice={spiceText} onSpice={() => setSpiceText(schematicSpice(sheet, props.name))} />}
@@ -1712,6 +1715,40 @@ function StressPanel({ stress, derate, setDerate, hasRun, onPick }: { stress: Re
         </tbody>
       </table>
       <p class="small muted">Peak values for voltages and currents; averages over the run for power and rectifier current. Ratings: datasheet absolute maximums of the built-in models (TO-92 and TO-220 in free air, no heatsink); passives use their rating properties.{stress.unrated.length ? ` No ratings for ${stress.unrated.join(', ')} (imported SPICE models).` : ''}</p>
+    </div>
+  );
+}
+
+function ReliabilityPanel({ sheet, result, ambient, setAmbient, onPick }: { sheet: Sheet; result: SimResult | null; ambient: number; setAmbient: (n: number) => void; onPick: (ref: string) => void }) {
+  const rel = useMemo(() => reliability(sheet, ambient, result ?? undefined), [sheet, result, ambient]);
+  if (!rel.rows.length) return <p class="small muted">No parts of a product on the sheet (sources, batteries, PV modules and motors are outside the prediction).</p>;
+  const years = rel.mtbfYears;
+  return (
+    <div class="stress">
+      <div class="row wrap">
+        <strong class={years >= 5 ? 's-pass' : 's-fail'}>MTBF {years >= 1000 ? '> 1000' : years.toFixed(years < 10 ? 1 : 0)} years ({Math.round(rel.fit)} FIT)</strong>
+        <label>Ambient <input type="number" min={-20} max={85} step={5} value={ambient} style={{ width: '4.5em' }} onChange={(e) => setAmbient(Math.min(85, Math.max(-20, Number((e.target as HTMLInputElement).value) || 45)))} /> °C</label>
+      </div>
+      <p class="small muted">Random failures, parts-count method (IEC 61709 / SN 29500 style): reference failure rates at 40 °C, Arrhenius temperature factor, stress factor from the last simulation{result ? '' : ' (none yet: no stress factors, no self-heating)'}, environment factor {rel.piE} (ground fixed), {rel.joints} solder joints. Indicative rates: replace them with the manufacturers' data for a product.</p>
+      <table class="plot-table">
+        <thead><tr><th>Part</th><th>Kind</th><th>At</th><th>FIT</th></tr></thead>
+        <tbody>
+          {rel.rows.slice(0, 12).map((r) => (
+            <tr key={r.ref}><td><button class="link" onClick={() => onPick(r.ref)}>{r.ref}</button></td><td>{r.what}</td><td>{Math.round(r.temp)} °C</td><td>{r.fit.toFixed(1)}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      {rel.wear.length > 0 && <>
+        <p class="small"><strong>Wear-out and planned maintenance</strong></p>
+        <table class="plot-table">
+          <thead><tr><th>Part</th><th>Wears by</th><th>Life</th><th>Maintenance</th></tr></thead>
+          <tbody>
+            {rel.wear.map((w) => (
+              <tr key={w.ref} class={w.years < 5 ? 'stress-over' : ''}><td><button class="link" onClick={() => onPick(w.ref)}>{w.ref}</button></td><td>{w.what}</td><td>{w.years >= 100 ? '> 100' : w.years.toFixed(1)} years</td><td>{w.action}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </>}
     </div>
   );
 }

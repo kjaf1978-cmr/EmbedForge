@@ -39,7 +39,7 @@ const FET: Record<string, FootprintChoice> = {
   IRLZ44N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF9540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
   AO3400: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), AO3401: legs('SOT-23', ['1', '3', '2'], 'G-S-D'),
   IRFP4468: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4110: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IPW65R041: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
-  IRFB4115: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
+  IRFB4115: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4668: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
 };
 // regulators: symbol pins 1 IN, 2 GND, 3 OUT
 const REG: Record<string, FootprintChoice> = {
@@ -90,7 +90,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     }
     case 'zener': return [map('D_DO-35', { 1: '1', 2: '2' })];
     case 'led': return [map('LED_D5.0', { 1: '1', 2: '2' }, { note: 'pad 1 (square) is the cathode, the short leg' })];
-    case 'tvs': return [map('D_SMA', { 1: '1', 2: '2' }, { note: v.endsWith('CA') ? 'bidirectional: either way round' : 'pad 1 (band) is the cathode, on the protected line' })];
+    case 'tvs': return [map(v.startsWith('5KP') ? 'D_P600' : 'D_SMA', { 1: '1', 2: '2' }, { note: v.endsWith('CA') ? 'bidirectional: either way round' : 'pad 1 (band) is the cathode, on the protected line' })];
     case 'bridge': return [map('Bridge_Inline_4', { 3: '1', 1: '2', 2: '3', 4: '4' }, { note: 'inline + ~ ~ −: check the marking on the body' })];
     case 'npn': case 'pnp': return [BJT[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C')];
     case 'nmos': case 'pmos': return [FET[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D')];

@@ -91,6 +91,11 @@ function servoHorn(deg: number): Gfx {
   return path(`M 4 -8 L ${x.toFixed(1)} ${y.toFixed(1)}`, 'none', 2);
 }
 const H = { refAt: { x: 0, y: -14 }, valAt: { x: 0, y: 18 } };
+/** Heatsink of a power semiconductor: thermal resistance from its case to the air (pad and
+ *  heatsink together). Empty: the part stands in free air. The stress check then rates its power
+ *  from the junction temperature limit. */
+const HEATSINK: ParamDef = { key: 'heatsink', label: 'Heatsink (case to air)', kind: 'value', unit: 'K/W', default: '', help: 'Thermal resistance from the case to the surrounding air, with the insulating pad (e.g. 0.5 K/W pad + 1.2 K/W heatsink = 1.7). Empty: no heatsink.' };
+
 const VV = { refAt: { x: 22, y: -6 }, valAt: { x: 22, y: 8 } };
 
 const RAIL: ParamDef = { key: 'value', label: 'Supply rail', kind: 'text', default: '+5V', help: 'the gate is supplied from this rail (hidden supply pins, as on most schematics); thresholds are half of it' };
@@ -299,6 +304,7 @@ export const SYMBOLS: SymbolDef[] = [
     params: [
       { key: 'beta', label: 'B value', kind: 'value', unit: 'K', default: '3950', help: 'B25/85 from the datasheet (typically 3000 to 4500 K)', limits: { gt: 0, le: 20000, text: 'must be above 0 and at most 20 000 K' } },
       { key: 'pmax', label: 'Power rating', kind: 'value', unit: 'W', default: '0.5', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'temp', label: 'Sensed temperature', kind: 'value', unit: '°C', default: '', help: 'Empty: the simulation temperature. Set it for a sensor on something hotter or colder than the air, such as a battery or a heatsink.' },
     ],
   },
   {
@@ -314,7 +320,7 @@ export const SYMBOLS: SymbolDef[] = [
     description: 'Diode; current flows from anode (left) to cathode (bar).',
     pins: [{ id: '2', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '1', name: 'K', x: 30, y: 0, type: 'passive' }], ...H, simulated: true,
     gfx: () => [path('M -30 0 H -8 M 8 0 H 30 M 8 -9 V 9', 'none', 2), path('M -8 -9 L 8 0 L -8 9 Z', fg)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(DIODES.map((m) => m.name)), default: '1N4148' }, params: [{ key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(DIODES.map((m) => m.name)), default: '1N4148' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'zener', name: 'Zener diode', category: 'Semiconductors', keywords: ['z', 'zener', 'reference', 'regulator'], prefix: 'D',
@@ -359,7 +365,7 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -10 M -10 -12 V 12', 'none', 2), path('M -4 -14 V -7 M -4 -3 V 3 M -4 7 V 14', 'none', 2),
       path('M -4 -11 H 10 V -30 M -4 11 H 10 V 30 M 10 0 V 11'), path('M 10 0 H 2'), arrowHead(10, 0, -3, 0, 6, 3)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'nmos').map((m) => m.name)), default: '2N7000' }, params: [{ key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'nmos').map((m) => m.name)), default: '2N7000' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'pmos', name: 'P-channel MOSFET', category: 'Semiconductors', keywords: ['m', 'mosfet', 'fet', 'transistor', 'high side', 'bs250'], prefix: 'Q',
@@ -368,7 +374,7 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -10 M -10 -12 V 12', 'none', 2), path('M -4 -14 V -7 M -4 -3 V 3 M -4 7 V 14', 'none', 2),
       path('M -4 -11 H 10 V -30 M -4 11 H 10 V 30 M 10 0 V -11'), path('M -3 0 H 4'), arrowHead(-4, 0, 9, 0, 6, 3)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'pmos').map((m) => m.name)), default: 'BS250' }, params: [{ key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'pmos').map((m) => m.name)), default: 'BS250' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'tvs', name: 'TVS diode', category: 'Semiconductors', keywords: ['d', 'tvs', 'transient', 'suppressor', 'esd', 'surge', 'protection', 'smaj', 'transil'], prefix: 'D',
@@ -397,7 +403,7 @@ export const SYMBOLS: SymbolDef[] = [
     gfx: (p) => [circle(2, 0, 20), path('M -30 0 H -12 M -12 -10 V 10', 'none', 2), path('M -7 -12 V 12', 'none', 2),
       path('M -7 -6 L 10 -18 V -30 M -7 6 L 10 18 V 30'), arrowHead(-7, 6, 7, 15.6),
       ...(findModel(IGBTS, p.value ?? '').model.diode ? [path('M 10 -24 H 26 V 24 H 10'), path('M 20 6 H 32 L 26 -4 Z', fg), path('M 20 -4 H 32')] : [])],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(IGBTS.map((m) => m.name)), default: 'IKW30N60T' }, params: [],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(IGBTS.map((m) => m.name)), default: 'IKW30N60T' }, params: [HEATSINK, ],
   },
   {
     id: 'opto', name: 'Optocoupler', category: 'Semiconductors', keywords: ['u', 'opto', 'optocoupler', 'optoisolator', 'pc817', 'isolation', 'phototransistor'], prefix: 'U',
