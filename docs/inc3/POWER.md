@@ -93,3 +93,38 @@ right tap is chosen and the output is V_in·230/tap within 2 % and within 230 V 
 (215 … 246 V over 140 … 300 V). The load is connected only after the delay and never sees
 more than 253 V. A sag from 230 to 195 V while running steps down a tap and the output
 recovers. The stress check is clean at 140 V (largest input current) and 226 V.
+
+### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
+
+Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a
+48 V (16-cell LiFePO₄) battery. A 20 kHz buck converter: IRFP4668 (200 V) on a heatsink,
+STTH6003 freewheeling diode, 56 µH, film capacitors on both sides (no electrolytics in the
+power path, FF-01), half-bridge gate driver with bootstrap. Analogue control from LM358,
+LM393, TL072, TL431 and 555 parts:
+
+- **MPPT, fractional Voc:** every 10 s the converter stops for 50 ms, the open-circuit voltage
+  is held on a sample-and-hold (2N7000, 1 µF film, TL072) and 0.826 × Voc is the set point
+  of the PV voltage loop. A first design that held a constant PV voltage lost 10 % of the power
+  on a hot roof (65 °C cells); fractional Voc follows the temperature.
+- **Charge control:** average current-mode control, an inner current loop; outer loops pull the current reference down for
+  the PV voltage (MPPT), the battery voltage (CV 56.6 V, 3.54 V per cell) and the current
+  limit (80 A, or less with a resistor RLIM for small batteries: table in the example's notes).
+- **Protections (each tested as a fault):** PV reversed (back-to-back MOSFETs in the PV lead),
+  battery reversed (MOSFET in the battery lead with gate drive from the right polarity only),
+  reverse current at night (ideal diode in the negative lead), Q1 shorted (independent
+  overvoltage latch at 57.6 V cuts the array and the battery off; FAULT LED), BMS opens while
+  charging (fast stop within one period; output held below 62 V by a 5KP64A TVS), battery
+  outside 0 … 50 °C and heatsink above 90 °C (NTC windows), open or shorted NTC (no charging).
+
+Verified (tests/charger.test.ts, charger2, charger3, charger.faults):
+
+| Condition | Result |
+|---|---|
+| 1000, 500, 200 W/m² at 25 °C; 1000, 300 W/m² at 65 °C | array at ≥ 97 % of its maximum power; ≥ 93 % reaches the battery; inductor peak < 110 A |
+| deeply discharged battery (44 V) | 75 … 82 A (limit 80 A) |
+| nearly full battery (56.4 V) | held at 56.4 … 56.8 V, current < 15 A |
+| hot case: 1000 W/m², 65 °C air and cells | every power semiconductor below Tj 125 °C on its heatsink |
+| 7 DFMEA fault cases (above) | the protection acts as designed |
+
+Larger batteries (10–30 kWh) use several units in parallel, one array each; the outputs are
+blocked against reverse current, so they share without interaction.

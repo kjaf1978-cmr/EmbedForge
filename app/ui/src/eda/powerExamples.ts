@@ -394,8 +394,8 @@ export interface ChargerOptions {
 }
 
 /** Solar battery charger, one 3.7 kW unit: PV array (3 strings of 3 × 410 Wp) → buck converter
- *  → 48 V LiFePO4 battery (16 cells). Analogue control: the PV voltage is held at the array's
- *  maximum-power voltage (constant-voltage MPPT), the battery voltage limited to 56.6 V
+ *  → 48 V LiFePO4 battery (16 cells). Analogue control: the PV voltage is held at 0.826 × the
+ *  array's open-circuit voltage, sampled every 10 s (fractional-Voc MPPT), the battery voltage limited to 56.6 V
  *  (3.54 V per cell) and the charge current to 80 A; the lowest of the three error amplifiers
  *  sets the duty cycle. */
 export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
@@ -801,7 +801,7 @@ export const POWER_EXAMPLES: Example[] = [
   },
   {
     id: 'mppt-charger', title: 'MPPT solar charger for a 48 V LiFePO₄ battery (3.7 kW)', level: 'advanced',
-    summary: 'A 9-module PV array (3 × 3 × 410 Wp, Voc up to 120 V) charges a 16-cell LiFePO₄ battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH): fractional-Voc maximum power point tracking, 80 A current limit, 56.6 V constant voltage, battery temperature window, heatsink cut-off, reverse-polarity blocking on both sides and an independent latched overvoltage protection. Analogue control only: LM358, TL072, TL431, 555, gate driver.',
+    summary: 'A 9-module PV array (3 × 3 × 410 Wp, Voc up to 120 V) charges a 16-cell LiFePO₄ battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH): fractional-Voc maximum power point tracking, 80 A current limit, 56.6 V constant voltage, battery temperature window, heatsink cut-off, reverse-polarity blocking on both sides and an independent latched overvoltage protection. Analogue control only: LM358, LM393, TL072, TL431, 555, gate driver.',
     tryThis: 'Simulate (90 ms): the battery current I(BAT.1) rises to about 70 A at 1000 W/m², the PV voltage PVP settles near the maximum power point. Set the PV irradiance g to 500 and simulate again; set the battery source to 56.4 V and watch the current taper at 56.6 V.',
     build: () => mpptCharger().sheet,
   },

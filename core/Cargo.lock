@@ -89,7 +89,7 @@ dependencies = [
 
 [[package]]
 name = "ef-cm"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-schema",
  "git2",
@@ -104,7 +104,7 @@ dependencies = [
 
 [[package]]
 name = "ef-diag"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-cm",
  "ef-host",
@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "ef-helper"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-cm",
  "ef-host",
@@ -132,7 +132,7 @@ dependencies = [
 
 [[package]]
 name = "ef-host"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "serde",
  "serde_json",
@@ -141,7 +141,7 @@ dependencies = [
 
 [[package]]
 name = "ef-install"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-cm",
  "ef-diag",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "ef-integrity"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-cm",
  "minisign",
@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "ef-pack"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-cm",
  "ef-integrity",
@@ -191,7 +191,7 @@ dependencies = [
 
 [[package]]
 name = "ef-release"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "ef-cm",
  "ef-integrity",
@@ -205,7 +205,7 @@ dependencies = [
 
 [[package]]
 name = "ef-schema"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "serde",
  "serde_json",

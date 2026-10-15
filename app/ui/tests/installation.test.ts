@@ -155,7 +155,7 @@ describe('half-bridge gate driver', () => {
 });
 
 describe('power MOSFETs', () => {
-  const rds: Record<string, number> = { IRFP4468: 2.0e-3, IRFP4110: 3.7e-3, IRFB4115: 9.3e-3, IPW65R041: 41e-3 };
+  const rds: Record<string, number> = { IRFP4468: 2.0e-3, IRFP4110: 3.7e-3, IRFB4115: 9.3e-3, IPW65R041: 41e-3, IRFP4668: 8.0e-3 };
   for (const m of POWER_MOSFETS) it(`${m.name}: RDS(on) ≈ ${rds[m.name] * 1e3} mΩ at VGS 10 V`, () => {
     const { v } = run([V(10, 'G'), I(10, 'D'), ['nmos', { value: m.name }, { '1': 'G', '2': 'D', '3': 'GND' }]]);
     near(v('D') / 10, rds[m.name], 0.1 * rds[m.name]);

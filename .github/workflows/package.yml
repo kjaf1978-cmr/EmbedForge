@@ -125,7 +125,7 @@ jobs:
       - name: Install (system-wide; the runner is an administrator), VAPP-04/05, uninstall
         run: |
           export EMBEDFORGE_DEV_TRUSTED_KEY=$(tail -n 1 out/medium.work/dev.pub)
-          out/medium/NETApps-Setup-0.2.7-x64.exe install --yes --allow-unsupported-host --accept webview2-runtime --medium out/medium
+          out/medium/NETApps-Setup-0.2.8-x64.exe install --yes --allow-unsupported-host --accept webview2-runtime --medium out/medium
           T="$PROGRAMFILES/EmbedForge"
           "$T/embedforge-app/bin/embedforge-setup.exe" vapp --no-app --package out/usb-update --target "$T"
           reg query 'HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\EmbedForge'
@@ -184,7 +184,7 @@ jobs:
         run: rustup toolchain install stable --profile minimal && rustup default stable
       - name: Release build of the app, installer and helper
         run: packaging/stage-app.sh out/staging
-      - name: Kit part (the WebView2 runtime is not bundled in 0.2.7)
+      - name: Kit part (the WebView2 runtime is not bundled in 0.2.8)
         run: packaging/build-medium.sh windows-x86_64 out/medium --staged out/staging --allow-missing --kit-dir out/kit/windows-x86_64
       - name: embedforge-sign.exe
         run: |
@@ -228,4 +228,4 @@ jobs:
       - name: Ubuntu medium (signed)
         run: packaging/build-medium.sh ubuntu-x86_64 out/medium-ubuntu --key "$EF_RELEASE_KEY"
       - name: exFAT image
-        run: sudo packaging/medium/make-image.sh out/medium-ubuntu out/NETApps-0.2.7-ubuntu-x86_64.img
+        run: sudo packaging/medium/make-image.sh out/medium-ubuntu out/NETApps-0.2.8-ubuntu-x86_64.img

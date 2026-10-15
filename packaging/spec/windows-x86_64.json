@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.7",
+  "app_version": "0.2.8",
   "os": "windows",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.8",
+          "date": "2026-10-15",
+          "text": "Power examples with a design FMEA (D20–D23): the mains change-over (1P and 3P+N) and the voltage stabiliser are reworked against foreseeable failures (coil-supply lockout, dead time, contact snubbers, an independent output cut-off, surge arresters). New example: MPPT solar charger for a 48 V LiFePO4 battery (3.7 kW) with fractional-Voc tracking, current and voltage limits, battery and heatsink temperature protection, reverse-polarity blocking and a latched overvoltage cut-off. New Reliability tab: predicted MTBF and wear-out plan. New help page: power designs diagnostics, maintenance and FAQ. Power MOSFETs and diodes have their capacitances; heatsinks in the stress check; faster simulation (ordered sparse solver)."
+        },
         {
           "version": "0.2.7",
           "date": "2026-10-15",
@@ -74,8 +79,8 @@
   ],
   "files": [
     {
-      "path": "NETApps-Setup-0.2.7-x64.exe",
-      "from": "files/NETApps-Setup-0.2.7-x64.exe",
+      "path": "NETApps-Setup-0.2.8-x64.exe",
+      "from": "files/NETApps-Setup-0.2.8-x64.exe",
       "role": "bootstrap"
     },
     {
@@ -89,8 +94,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.7-source.tar.gz",
-      "from": "files/source/embedforge-0.2.7-source.tar.gz",
+      "path": "source/embedforge-0.2.8-source.tar.gz",
+      "from": "files/source/embedforge-0.2.8-source.tar.gz",
       "role": "source"
     },
     {
