@@ -29,9 +29,10 @@ verified first; each design then gets its PCB layout with the Increment 3 tools.
 | P5 | Surge and lightning protection: SPD type 1/2/3 coordination (GDT, MOV), earthing and equipotential bonding, mains house compared with PV house (DC-side SPDs, array earthing) | 8/20 µs and 1.2/50 µs surges: let-through voltage at the appliance |
 | P6 | Solar battery charger: PV array, synchronous buck converter, MPPT (fractional-Voc, analogue), CC/CV charge control, 48 V battery model; 5–30 kWh, parallel units | Charge current and voltage limits; MPPT tracking; stress check |
 | P7 | Inverters: 12/24/48 V DC to 230 V 1-phase and 3 × 400/230 V: HF DC-DC stage (full bridge, ferrite transformer, rectifier) to a DC bus, SPWM full bridge or 3-phase IGBT bridge, LC filter; ratings 5–30 kW by paralleled devices; parallel units with droop current sharing | Output voltage, frequency, THD (FFT), load step, stress check of every device |
+| P9 | Agricultural and industrial designs (D24): irrigation up to 64 channels with soil-moisture sensors (microcontroller sequencing, discrete sensor interfaces and valve drivers); pump control; borehole pump from tank level with overflow detection (discrete); electric grass/brush trimmer with its sensors and protections; block moulding machine (system design, motors, vibration, hydraulics, safety circuits, microcontroller sequence) | Function, protections and DFMEA fault tests per design |
 | P8 | PCB layouts of these designs with the Increment 3 tools (power tracks per IPC-2221, clearances for mains voltage) | DRC |
 
-Order (decision D21, 15 October 2026): P1–P4, then P6, P7, P5, P8.
+Order (decisions D21, D24, 15 October 2026): P1–P4, then P6, P7, P5, P9, P8.
 
 High-power designs are simulated as circuits (switching transients over a few mains periods);
 thermal design (heatsinks) is given as calculations, not simulated.
