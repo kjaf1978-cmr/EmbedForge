@@ -1,0 +1,63 @@
+// Worked example of the power track (D20): the MPPT solar battery charger.
+import { describe, expect, it } from 'vitest';
+import { mpptCharger } from '../src/eda/powerExamples';
+import { simulate, type SimResult } from '../src/sim/run';
+import { erc } from '../src/eda/erc';
+import { deck } from './deck';
+
+/** Mean of y over x > t0 (trapezoidal). */
+const mean = (x: number[], y: number[], t0: number) => {
+  let s = 0, T = 0;
+  for (let k = 1; k < x.length; k++) if (x[k] > t0) { const h = x[k] - x[k - 1]; s += (h * (y[k] + y[k - 1])) / 2; T += h; }
+  return s / T;
+};
+
+/** Maximum power of the charger's PV array at irradiance g: a DC sweep of the same model. */
+function arrayMpp(g: number, temp = 25): { p: number; v: number } {
+  const { sheet, refs } = deck([['pv', { value: '410 Wp, 108 half-cells mono', ns: '3', np: '3', g: String(g) }, { '1': 'P', '2': 'GND' }], ['vdc', { value: '90' }, { '1': 'P', '2': 'GND' }]],
+    { type: 'dc', target: '', param: 'value', start: '70', stop: '110', step: '0.1' });
+  const r = simulate({ ...sheet, temp: String(temp), sim: { type: 'dc', target: refs[1], param: 'value', start: '70', stop: '110', step: '0.1' } }) as SimResult;
+  const i = r.i[`${refs[1]}.1`];
+  let best = { p: 0, v: 0 };
+  r.x.forEach((v, k) => { const p = v * i[k]; if (p > best.p) best = { p, v }; });
+  return best;
+}
+
+/** Steady state of the last 5 ms: PV power and voltage, battery current and voltage. */
+function run(o: Parameters<typeof mpptCharger>[0], stop = 0.07) {
+  const { sheet, nb } = mpptCharger({ stop: String(stop), ...o });
+  const r = simulate(sheet) as SimResult;
+  expect('error' in r ? r.error : '').toBe('');
+  const t0 = stop - 0.005, pv = r.v['PVP'], ipv = r.i[`${nb.refOf(sheet, 'PV')}.1`], ib = r.i[`${nb.refOf(sheet, 'BAT')}.1`];
+  return {
+    r, ppv: -mean(r.x, pv.map((v, k) => v * ipv[k]), t0), vpv: mean(r.x, pv, t0), ibat: mean(r.x, ib, t0), vbat: mean(r.x, r.v['VO'], t0),
+    ipeak: r.i[`${nb.refOf(sheet, 'L1')}.1`].reduce((m, v) => Math.max(m, Math.abs(v)), 0),
+  };
+}
+
+describe('MPPT solar charger (one 3.7 kW unit)', () => {
+  it('ERC clean', () => {
+    expect(erc(mpptCharger().sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
+  });
+  // cells at 25 °C, and on a hot tropical roof at 65 °C
+  for (const [g, temp] of [[1000, 25], [500, 25], [200, 25], [1000, 65], [300, 65]] as const) {
+    it(`${g} W/m², cells at ${temp} °C: the array works at ≥ 97 % of its maximum power; ≥ 93 % reaches the battery`, async () => {
+      await new Promise((r) => setTimeout(r, 0));
+      const mpp = arrayMpp(g, temp), s = run({ g, temp });
+      expect(s.ppv / mpp.p).toBeGreaterThan(0.97);
+      expect((s.ibat * s.vbat) / s.ppv).toBeGreaterThan(0.93);
+      expect(s.ipeak).toBeLessThan(110);
+    }, 600_000);
+  }
+  it('a deeply discharged battery (44 V): the charge current is limited to 80 A', async () => {
+    const s = run({ vbat: 44 });
+    expect(s.ibat).toBeLessThan(82);
+    expect(s.ibat).toBeGreaterThan(75);
+  }, 600_000);
+  it('a nearly full battery (56.4 V open-circuit): the battery is held at 56.6 V, the current tapers', async () => {
+    const s = run({ vbat: 56.4 });
+    expect(s.vbat).toBeLessThan(56.8);
+    expect(s.vbat).toBeGreaterThan(56.4);
+    expect(s.ibat).toBeLessThan(15);
+  }, 600_000);
+});

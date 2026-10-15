@@ -19,7 +19,9 @@ export type Wave =
  *  down instead of meeting an open circuit. */
 export interface DiodeModel { is: number; n: number; rs: number; bv?: number; ibv?: number; xti?: number; eg?: number; cj?: number }
 export interface BjtModel { type: 'npn' | 'pnp'; is: number; bf: number; br: number; nf: number; nr: number; vaf?: number; var?: number; xti?: number; eg?: number }
-export interface MosModel { type: 'nmos' | 'pmos'; vto: number; kp: number; lambda: number; w: number; l: number; is: number }
+/** cgs, cgd, cds: constant terminal capacitances (F) of a power MOSFET (datasheet Ciss − Crss,
+ *  Crss, Coss − Crss); the part adds them as capacitors beside the transistor. */
+export interface MosModel { type: 'nmos' | 'pmos'; vto: number; kp: number; lambda: number; w: number; l: number; is: number; cgs?: number; cgd?: number; cds?: number }
 
 export type Element =
   /** tc1, tc2: temperature coefficients (1/K, 1/K²): r(T) = r·(1 + tc1·ΔT + tc2·ΔT²), ΔT from 27 °C. */

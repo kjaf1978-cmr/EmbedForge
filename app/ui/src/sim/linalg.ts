@@ -1,8 +1,13 @@
-// Dense LU solvers with partial pivoting. Circuits within the DATA-04 limits (≤ 120 nets) give
-// matrices of at most a few hundred unknowns, where dense LU is fast and simple.
+// LU solvers on dense storage with threshold partial pivoting. Circuits within the DATA-04 limits
+// give matrices of at most a few hundred unknowns; the elimination skips zeros, and a
+// fill-reducing order (minimum degree) keeps the factors sparse for the larger power designs.
 
 /** Solves A·x = b in place (A is n×n row-major and is destroyed). Returns false when singular. */
+const PIV_REL = 1e-3;
+let colsBuf = new Int32Array(0);
 export function solveReal(A: Float64Array, b: Float64Array, n: number): boolean {
+  if (colsBuf.length < n) colsBuf = new Int32Array(n);
+  const cols = colsBuf;
   for (let k = 0; k < n; k++) {
     let p = k;
     let max = Math.abs(A[k * n + k]);
@@ -11,17 +16,23 @@ export function solveReal(A: Float64Array, b: Float64Array, n: number): boolean 
       if (v > max) { max = v; p = i; }
     }
     if (!(max > 1e-300)) return false;
+    // threshold pivoting (as SPICE): keep the diagonal unless it is much smaller than the
+    // largest entry, so the fill-reducing order is kept
+    if (Math.abs(A[k * n + k]) >= PIV_REL * max) p = k;
     if (p !== k) {
       for (let j = k; j < n; j++) { const t = A[k * n + j]; A[k * n + j] = A[p * n + j]; A[p * n + j] = t; }
       const t = b[k]; b[k] = b[p]; b[p] = t;
     }
-    const piv = A[k * n + k];
+    const piv = A[k * n + k], rk = k * n;
+    // circuit matrices are sparse: update only the columns where the pivot row is non-zero
+    let m = 0;
+    for (let j = k + 1; j < n; j++) if (A[rk + j] !== 0) cols[m++] = j;
     for (let i = k + 1; i < n; i++) {
       const f = A[i * n + k] / piv;
       if (f === 0) continue;
       A[i * n + k] = 0;
-      const ri = i * n, rk = k * n;
-      for (let j = k + 1; j < n; j++) A[ri + j] -= f * A[rk + j];
+      const ri = i * n;
+      for (let q = 0; q < m; q++) { const j = cols[q]; A[ri + j] -= f * A[rk + j]; }
       b[i] -= f * b[k];
     }
   }
@@ -81,5 +92,36 @@ export function solveComplex(Ar: Float64Array, Ai: Float64Array, br: Float64Arra
     br[i] = (sr * pr + si * pi) / d;
     bi[i] = (si * pr - sr * pi) / d;
   }
+  return true;
+}
+
+/** A fill-reducing order of the unknowns (greedy minimum degree on the symmetric pattern of A):
+ *  eliminating them in this order keeps the LU factors of a circuit matrix sparse. */
+export function minDegreeOrder(A: Float64Array, n: number): Int32Array {
+  const adj: Set<number>[] = Array.from({ length: n }, () => new Set<number>());
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j && (A[i * n + j] !== 0 || A[j * n + i] !== 0)) adj[i].add(j);
+  const done = new Uint8Array(n), order = new Int32Array(n);
+  for (let k = 0; k < n; k++) {
+    let best = -1, deg = Infinity;
+    for (let v = 0; v < n; v++) if (!done[v] && adj[v].size < deg) { deg = adj[v].size; best = v; }
+    order[k] = best; done[best] = 1;
+    // eliminating best joins its neighbours into a clique
+    const nb = [...adj[best]];
+    for (const a of nb) { adj[a].delete(best); for (const c of nb) if (c !== a) adj[a].add(c); }
+    adj[best].clear();
+  }
+  return order;
+}
+
+/** solveReal on the unknowns taken in the order `perm` (a symmetric permutation of A). */
+export function solveRealOrdered(A: Float64Array, b: Float64Array, n: number, perm: Int32Array): boolean {
+  const Ap = new Float64Array(n * n), bp = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const ri = perm[i] * n, rp = i * n;
+    for (let j = 0; j < n; j++) Ap[rp + j] = A[ri + perm[j]];
+    bp[i] = b[perm[i]];
+  }
+  if (!solveReal(Ap, bp, n)) return false;
+  for (let i = 0; i < n; i++) b[perm[i]] = bp[i];
   return true;
 }

@@ -8,7 +8,7 @@
 // signal around the operating point.
 
 import { breakpoints, opValue, terminals, waveAt, type BjtModel, type Circuit, type DiodeModel, type Element, type MosModel } from './circuit';
-import { solveComplex, solveReal } from './linalg';
+import { minDegreeOrder, solveComplex, solveRealOrdered } from './linalg';
 
 /** Nominal temperature in kelvin (27 °C, SPICE TNOM): model parameters are given at it. */
 export const TNOM = 300.15;
@@ -1037,6 +1037,8 @@ export class Engine {
   }
 
   /** Newton–Raphson from c.x; returns the iteration count or −1 when it did not converge. */
+  private order?: Int32Array;
+  private orderMode?: Ctx['mode'];
   private newton(c: Ctx, maxIter: number, initJct: boolean): number {
     let x = c.x;
     for (let it = 1; it <= maxIter; it++) {
@@ -1044,7 +1046,9 @@ export class Engine {
       c.init = initJct && it === 1;
       this.assemble(c);
       const b = c.z.slice();
-      if (!solveReal(c.A.slice(), b, c.n)) return -1;
+      // the fill-reducing order is found once per analysis mode, from the first matrix
+      if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; }
+      if (!solveRealOrdered(c.A, b, c.n, this.order)) return -1;
       for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) return -1;
       let conv = !c.noncon && !c.init;
       if (conv) {

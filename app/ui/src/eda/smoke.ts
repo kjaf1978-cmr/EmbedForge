@@ -27,7 +27,7 @@ export interface Stress {
 
 /** Absolute maximum ratings of the built-in models (datasheets; TO-92/TO-220 in free air). */
 const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>> = {
-  diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 } },
+  diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 }, STTH6003: { If: 60, Vr: 300, P: 3.5 } },
   // TVS: 1 W steady state, 400 W peak pulse (10/1000 µs)
   tvs: { '*': { P: 1, Ppk: 400 } },
   bridge: { DB107: { If: 1, Vr: 1000 }, KBP206: { If: 2, Vr: 600 }, GBU8K: { If: 8, Vr: 800 } },

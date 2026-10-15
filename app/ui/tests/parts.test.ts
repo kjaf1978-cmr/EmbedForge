@@ -85,7 +85,7 @@ describe('sources', () => {
 });
 
 describe('semiconductors, every model', () => {
-  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35] };
+  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35], STTH6003: [0.3, 0.6] };
   for (const m of DIODES) it(`diode ${m.name}: conducts forward, blocks reverse`, () => {
     const f = run([V(5, 'A'), R('1k', 'A', 'K'), ['diode', { value: m.name }, { '2': 'K', '1': 'GND' }]]);
     expect(f.v('K')).toBeGreaterThan(fwd[m.name][0]); expect(f.v('K')).toBeLessThan(fwd[m.name][1]);

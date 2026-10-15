@@ -284,6 +284,132 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '0.6', ladder = S
   return { sheet: nb.done(), nb };
 }
 
+/** Options of the MPPT charger. `g`: irradiance (W/m²); `vbat`: battery open-circuit voltage;
+ *  `comp`: compensation of the three error amplifiers (R in series with C in the feedback). */
+export interface ChargerOptions { g?: number; vbat?: number; stop?: string; comp?: { rf: string; cf: string }; temp?: number; timerC?: string }
+
+/** Solar battery charger, one 3.7 kW unit: PV array (3 strings of 3 × 410 Wp) → buck converter
+ *  → 48 V LiFePO4 battery (16 cells). Analogue control: the PV voltage is held at the array's
+ *  maximum-power voltage (constant-voltage MPPT), the battery voltage limited to 56.6 V
+ *  (3.54 V per cell) and the charge current to 80 A; the lowest of the three error amplifiers
+ *  sets the duty cycle. */
+export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
+  const g = o.g ?? 1000, vbat = o.vbat ?? 52;
+  const nb = new NB();
+  const X = (k: number) => k * 110, Y = (k: number) => k * 110;
+  nb.note('MPPT solar charger, one 3.7 kW unit: 9 × 410 Wp (3 in series, 3 strings) into a 48 V LiFePO4 battery through a 20 kHz buck converter (IRFB4115, STTH6003, 56 µH) and an output blocking diode.', X(0), Y(-1))
+    .note('Control from discrete parts: 555 ramp and LM393 PWM comparator, IR2184-type driver with bootstrap supply; average current-mode control: an inner current loop, its reference (80 A at most) lowered through transistors by the MPPT loop (PV held at 0.826 × its open-circuit voltage, sampled every 10 s) and the CV loop (battery at most 56.6 V, 3.54 V per cell).', X(0), Y(-0.75))
+    .note('Units are paralleled on the battery (each with its own PV array); see the sizing table in the help.', X(0), Y(-0.5));
+  // power stage
+  nb.part('PV', 'pv', X(0), Y(1), { value: '410 Wp, 108 half-cells mono', ns: '3', np: '3', g: String(g) }, { '1': 'PVP', '2': 'GND' })
+    .part('CIN', 'capacitor_pol', X(1), Y(1), { value: '1.5m', vmax: '160' }, { '1': 'PVP', '2': 'GND' })
+    .part('Q1', 'nmos', X(2), Y(1), { value: 'IRFB4115' }, { '1': 'G1', '2': 'PVP', '3': 'SW' })
+    .part('D1', 'diode', X(3), Y(2), { value: 'STTH6003' }, { '1': 'SW', '2': 'GND' }, 1)
+    // snubber: damps the ringing of L1 with the diode's capacitance in discontinuous conduction
+    .part('RSN', 'resistor', X(2), Y(2.5), { value: '220', pmax: '1' }, { '1': 'SW', '2': 'SNB' })
+    .part('CSN', 'capacitor', X(2), Y(3.2), { value: '1n', vmax: '630' }, { '1': 'SNB', '2': 'GND' }, 1)
+    .part('L1', 'inductor', X(3), Y(1), { value: '56u' }, { '1': 'SW', '2': 'VL' })
+    .part('COUT', 'capacitor_pol', X(4), Y(2), { value: '470u', vmax: '100' }, { '1': 'VL', '2': 'GND' })
+    // output blocking diode: no current from the battery back into the converter (through L1
+    // and Q1's body diode into CIN: 200 A when the battery is connected, a drain into the array
+    // at night), no inrush into COUT, and a reversed battery is blocked
+    .part('DO', 'diode', X(4), Y(1), { value: 'STTH6003' }, { '2': 'VL', '1': 'VO' })
+    .part('BAT', 'battery', X(5), Y(1), { value: String(vbat), rint: '0.02' }, { '1': 'VO', '2': 'BN' })
+    .part('RSH', 'resistor', X(5), Y(2.5), { value: '1m', pmax: '10' }, { '1': 'BN', '2': 'GND' }, 1);
+  // supply and reference
+  nb.part('V12', 'vdc', X(7), Y(1), { value: '12' }, { '1': 'V12', '2': 'GND' })
+    .part('RREF', 'resistor', X(8), Y(1), { value: '1k' }, { '1': 'V12', '2': 'VREF' })
+    .part('U1', 'tl431', X(9), Y(1), { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' });
+  // sensing: PV voltage (2.5 V at 93.8 V), battery voltage (2.5 V at 56.6 V), current (×31)
+  nb.part('RP1', 'resistor', X(0), Y(4), { value: '365k' }, { '1': 'PVP', '2': 'VPS' })
+    .part('RP2', 'resistor', X(1), Y(4), { value: '10k' }, { '1': 'VPS', '2': 'GND' }, 1)
+    .part('CP', 'capacitor', X(2), Y(4), { value: '10n', vmax: '50' }, { '1': 'VPS', '2': 'GND' }, 1)
+    .part('RV1', 'resistor', X(3), Y(4), { value: '232k' }, { '1': 'VO', '2': 'VBS' })
+    .part('RV2', 'resistor', X(4), Y(4), { value: '10.7k' }, { '1': 'VBS', '2': 'GND' }, 1)
+    .part('CV', 'capacitor', X(5), Y(4), { value: '10n', vmax: '50' }, { '1': 'VBS', '2': 'GND' }, 1)
+    .part('U2', 'opamp', X(6), Y(4), { value: 'LM358' }, { '3': 'BN', '2': 'IFB', '6': 'ISA', '7': 'V12', '4': 'GND' })
+    .part('RI1', 'resistor', X(7), Y(4.5), { value: '1k' }, { '1': 'IFB', '2': 'GND' }, 1)
+    .part('RI2', 'resistor', X(7), Y(3.5), { value: '30k' }, { '1': 'ISA', '2': 'IFB' });
+  // average current-mode control. The current reference IREF is pulled up to VREF (2.5 V =
+  // 80 A: the current limit is the reference itself); the MPPT and CV amplifiers lower it, each
+  // through an NPN transistor that can pull it down to its saturation voltage (a diode would
+  // leave 0.6 V, 20 A, that weak sun could not supply). The transistor inverts, so the
+  // amplifier's feedback (PI: R + C from IREF) goes to its + input. The current amplifier sets
+  // VCMD, the duty-cycle command.
+  nb.part('RIR', 'resistor', X(9), Y(5), { value: '10k' }, { '1': 'VREF', '2': 'IREF' }, 1);
+  const outer = [
+    // IREF falls when the PV voltage falls below its set point, or the battery rises above its own
+    { k: 'MP', inR: 'VSET', minus: 'VPS', rf: o.comp?.rf ?? '39k', cf: o.comp?.cf ?? '100n' },
+    { k: 'CV', inR: 'VBS', minus: 'VREF', rf: '470k', cf: '10n' },
+  ];
+  outer.forEach((e, i) => {
+    const x = X(3 * i), y = Y(6);
+    nb.part(`U${3 + i}`, 'opamp', x, y, { value: 'LM358' }, { '3': `N${e.k}`, '2': e.minus, '6': `E${e.k}`, '7': 'V12', '4': 'GND' })
+      .part(`RI${e.k}`, 'resistor', x, y + Y(1), { value: '10k' }, { '1': e.inR, '2': `N${e.k}` })
+      .part(`RF${e.k}`, 'resistor', x + X(1), y + Y(1), { value: e.rf }, { '1': `N${e.k}`, '2': `F${e.k}` })
+      .part(`CF${e.k}`, 'capacitor', x + X(2), y + Y(1), { value: e.cf, vmax: '50' }, { '1': `F${e.k}`, '2': 'IREF' })
+      .part(`RB${e.k}`, 'resistor', x + X(1), y, { value: '10k' }, { '1': `E${e.k}`, '2': `B${e.k}` })
+      .part(`RBE${e.k}`, 'resistor', x + X(1), y - Y(0.6), { value: '47k' }, { '1': `B${e.k}`, '2': 'GND' }, 1)
+      .part(`Q${e.k}`, 'npn', x + X(2), y, { value: 'BC547B' }, { '1': `B${e.k}`, '2': 'IREF', '3': 'GND' });
+  });
+  nb.part('U5', 'opamp', X(6), Y(6), { value: 'LM358' }, { '3': 'IREF', '2': 'NI', '6': 'VCMD', '7': 'V12', '4': 'GND' })
+    .part('RII', 'resistor', X(6), Y(7), { value: '10k' }, { '1': 'ISA', '2': 'NI' })
+    .part('RFI', 'resistor', X(7), Y(7), { value: '10k' }, { '1': 'NI', '2': 'FI' })
+    .part('CFI', 'capacitor', X(8), Y(7), { value: '100n', vmax: '50' }, { '1': 'FI', '2': 'VCMD' });
+  // fractional open-circuit-voltage MPPT: the converter pauses (at power-on for 50 ms, then for
+  // 49 ms every 10.4 s), the array's open-circuit voltage is sampled onto CH and the PV held at
+  // 0.826 of it. Vmp/Voc of the array stays within 0.81 … 0.845 from 25 to 65 °C and 200 to
+  // 1000 W/m², so at least 99.5 % of the available power is taken; a fixed voltage set point
+  // would lose up to half of it on a hot roof
+  nb.part('RPOR', 'resistor', X(0), Y(12), { value: '1M' }, { '1': 'V12', '2': 'POR' })
+    .part('CPOR', 'capacitor', X(1), Y(12), { value: '220n', vmax: '25' }, { '1': 'POR', '2': 'GND' }, 1)
+    .part('U9', 'comparator', X(2), Y(12), { value: 'LM393' }, { '3': 'POR', '2': 'VREF', '1': 'RUN', '8': 'V12', '4': 'GND' })
+    .part('RRUN', 'resistor', X(3), Y(11.5), { value: '10k' }, { '1': 'V12', '2': 'RUN' }, 1)
+    .part('U10', 'timer555', X(4.5), Y(12.5), { value: 'NE555' }, { '8': 'V12', '4': 'V12', '7': 'TD', '6': 'TT', '2': 'TT', '3': 'TOUT', '5': 'TCTL', '1': 'GND' })
+    .part('RTA', 'resistor', X(5.5), Y(12), { value: '3.01M' }, { '1': 'V12', '2': 'TD' })
+    .part('RTB', 'resistor', X(5.5), Y(13), { value: '15k' }, { '1': 'TD', '2': 'TT' })
+    .part('CTT', 'capacitor', X(6.5), Y(13), { value: o.timerC ?? '4.7u', vmax: '50' }, { '1': 'TT', '2': 'GND' }, 1)
+    .part('CTC', 'capacitor', X(6.5), Y(12), { value: '10n', vmax: '50' }, { '1': 'TCTL', '2': 'GND' }, 1)
+    .part('DRUN', 'diode', X(4), Y(11), { value: '1N4148' }, { '2': 'RUN', '1': 'TOUT' })
+    // SMP high during a pause: sample, and hold the current reference at zero
+    .part('RQP', 'resistor', X(7.5), Y(11.5), { value: '10k' }, { '1': 'RUN', '2': 'BP' })
+    .part('QP', 'npn', X(8.5), Y(11.5), { value: 'BC547B' }, { '1': 'BP', '2': 'SMP', '3': 'GND' })
+    .part('RSMP', 'resistor', X(8.5), Y(10.5), { value: '10k' }, { '1': 'V12', '2': 'SMP' }, 1)
+    .part('RQZ', 'resistor', X(9.5), Y(11.5), { value: '10k' }, { '1': 'SMP', '2': 'BZ' })
+    .part('QZ', 'npn', X(10.5), Y(11.5), { value: 'BC547B' }, { '1': 'BZ', '2': 'IREF', '3': 'GND' })
+    // sample and hold: the body diode of QS is reverse-biased while the PV runs below Voc
+    .part('QS', 'nmos', X(7.5), Y(13), { value: '2N7000' }, { '1': 'SMP', '2': 'CH', '3': 'VPS' })
+    .part('CH', 'capacitor', X(8.5), Y(13.5), { value: '1u', vmax: '50' }, { '1': 'CH', '2': 'GND' }, 1)
+    .part('U11', 'opamp', X(9.5), Y(13), { value: 'TL072' }, { '3': 'CH', '2': 'VOCH', '6': 'VOCH', '7': 'V12', '4': 'GND' })
+    .part('RSET1', 'resistor', X(10.5), Y(13), { value: '2.1k' }, { '1': 'VOCH', '2': 'VSET' })
+    .part('RSET2', 'resistor', X(11.5), Y(13), { value: '10k' }, { '1': 'VSET', '2': 'GND' }, 1);
+  // PWM and driver
+  // soft start of the current reference (IREF at most SS + 0.6 V): the current loop stays in
+  // control from the start, so its integrator cannot wind up and overshoot when it is released
+  nb.part('DSS', 'diode', X(10), Y(6), { value: '1N4148' }, { '2': 'IREF', '1': 'SS' })
+    .part('RSS', 'resistor', X(11), Y(6), { value: '4.7k' }, { '1': 'V12', '2': 'SS' }, 1)
+    .part('CSS', 'capacitor', X(11), Y(7), { value: '1u', vmax: '25' }, { '1': 'SS', '2': 'GND' }, 1)
+    // the ramp stops during a pause (RESET = RUN), and DPW holds the driver input low: a reset
+    // ramp sits at 0 V, which the comparator would read as full duty
+    .part('U6', 'timer555', X(0), Y(9.5), { value: 'NE555' }, { '8': 'V12', '4': 'RUN', '7': 'DIS', '6': 'RAMP', '2': 'RAMP', '3': 'OSC', '5': 'CTL', '1': 'GND' })
+    .part('RA', 'resistor', X(1), Y(9), { value: '6.8k' }, { '1': 'V12', '2': 'DIS' })
+    .part('RB', 'resistor', X(1), Y(10), { value: '330' }, { '1': 'DIS', '2': 'RAMP' })
+    .part('CT', 'capacitor', X(2), Y(10), { value: '10n', vmax: '50' }, { '1': 'RAMP', '2': 'GND' }, 1)
+    .part('CCT', 'capacitor', X(2), Y(9), { value: '10n', vmax: '50' }, { '1': 'CTL', '2': 'GND' }, 1)
+    .part('U7', 'comparator', X(3.5), Y(9.5), { value: 'LM393' }, { '3': 'VCMD', '2': 'RAMP', '1': 'PWM', '8': 'V12', '4': 'GND' })
+    .part('RPW', 'resistor', X(4.5), Y(9), { value: '4.7k' }, { '1': 'V12', '2': 'PWM' }, 1)
+    .part('DPW', 'diode', X(4.5), Y(10), { value: '1N4148' }, { '2': 'PWM', '1': 'RUN' })
+    .part('U8', 'hbdriver', X(6), Y(9.5), { value: 'IR2184-type 600 V' }, { '1': 'PWM', '8': 'V12', '3': 'GND', '7': 'VB', '6': 'HO', '5': 'SW', '4': 'LO' })
+    .part('DB', 'diode', X(7), Y(8.5), { value: '1N4007' }, { '2': 'V12', '1': 'VB' })
+    .part('CB', 'capacitor', X(8), Y(9), { value: '1u', vmax: '25' }, { '1': 'VB', '2': 'SW' }, 1)
+    .part('RG', 'resistor', X(8), Y(10), { value: '10' }, { '1': 'HO', '2': 'G1' });
+  nb.v('PVP').v('VO').v('VCMD').i('L1', '1').i('BAT', '1');
+  nb.sim({ type: 'tran', stop: o.stop ?? '70m', step: '5u', start: 'zero' });
+  const sheet = nb.done();
+  if (o.temp !== undefined) sheet.temp = String(o.temp);
+  return { sheet, nb };
+}
+
 export const POWER_EXAMPLES: Example[] = [
   {
     id: 'changeover-1p', title: 'Mains / back-up change-over with voltage protection (single-phase)', level: 'advanced',

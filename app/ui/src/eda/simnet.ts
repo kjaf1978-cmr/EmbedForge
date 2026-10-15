@@ -528,7 +528,15 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'npn': case 'pnp': out.push({ kind: 'Q', name: ref, c: pin['2'], b: pin['1'], e: pin['3'], model: custom<BjtModel>() ?? findModel(BJTS.filter((m) => m.model.type === s.id), p.props.value).model }); break;
-    case 'nmos': case 'pmos': out.push({ kind: 'M', name: ref, d: pin['2'], g: pin['1'], s: pin['3'], model: custom<MosModel>() ?? findModel(MOSFETS.filter((m) => m.model.type === s.id), p.props.value).model }); break;
+    case 'nmos': case 'pmos': {
+      const m = custom<MosModel>() ?? findModel(MOSFETS.filter((x) => x.model.type === s.id), p.props.value).model;
+      out.push({ kind: 'M', name: ref, d: pin['2'], g: pin['1'], s: pin['3'], model: m });
+      // power MOSFETs: their capacitances set the switching edges with the gate resistor
+      if (m.cgs) out.push({ kind: 'C', name: `${ref}_CGS`, a: pin['1'], b: pin['3'], c: m.cgs });
+      if (m.cgd) out.push({ kind: 'C', name: `${ref}_CGD`, a: pin['1'], b: pin['2'], c: m.cgd });
+      if (m.cds) out.push({ kind: 'C', name: `${ref}_CDS`, a: pin['2'], b: pin['3'], c: m.cds });
+      break;
+    }
     case 'opamp': {
       const m = findModel(OPAMPS, p.props.value).model;
       const inp = pin['3'], inn = pin['2'], o = pin['6'], vp = pin['7'], vn = pin['4'];

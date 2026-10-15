@@ -15,6 +15,8 @@ export const DIODES: NamedModel<DiodeModel>[] = [
   { name: 'BAT54', note: 'small-signal Schottky diode, 30 V / 200 mA', model: { is: 9.7e-8, n: 1.34, rs: 3.2, bv: 30, ibv: 2e-6, xti: 2, eg: 0.69 } },
   // 0.5 V at 3 A
   { name: 'SS34', note: 'power Schottky diode, 40 V / 3 A (SMC)', model: { is: 5.5e-6, n: 1.2, rs: 0.03, bv: 40, ibv: 0.5e-3, xti: 2, eg: 0.69 } },
+  // fitted to the datasheet forward curve at 25 °C: 0.95 V at 30 A, 1.15 V at 60 A
+  { name: 'STTH6003', note: 'ultrafast power rectifier, 300 V / 60 A (TO-247): freewheeling diode of converters', model: { is: 2.05e-7, n: 1.6, rs: 0.0057, bv: 300, ibv: 1e-4, cj: 100e-12 } },
 ];
 
 /** Transient voltage suppressors (SMAJ family, 400 W peak pulse): breakdown at the nominal VBR
@@ -265,11 +267,12 @@ export const GATE_DRIVERS: NamedModel<{ ron: number; dead: number; vbmax: number
 
 /** Power semiconductors for inverters and chargers (datasheet ratings). */
 export const POWER_MOSFETS: NamedModel<MosModel>[] = [
-  // RDS(on) = 1/(KP·(VGS − VTO)) at VGS = 10 V
-  { name: 'IRFP4468', note: 'N-channel 100 V / 195 A (TO-247), RDS(on) ≈ 2.0 mΩ: 24–48 V inverter and charger bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 71, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
-  { name: 'IRFP4110', note: 'N-channel 100 V / 120 A (TO-247), RDS(on) ≈ 3.7 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 39, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
-  { name: 'IRFB4115', note: 'N-channel 150 V / 104 A (TO-220), RDS(on) ≈ 9.3 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 15.4, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
-  { name: 'IPW65R041', note: 'N-channel 650 V / 68 A superjunction (TO-247), RDS(on) ≈ 41 mΩ: 400 V bus bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.5, kp: 3.8, lambda: 0.002, w: 1, l: 1, is: 1e-11 } },
+  // RDS(on) = 1/(KP·(VGS − VTO)) at VGS = 10 V; capacitances from the datasheet Ciss, Coss and
+  // Crss (typical, at the datasheet test voltage; the real ones fall as the voltage rises)
+  { name: 'IRFP4468', note: 'N-channel 100 V / 195 A (TO-247), RDS(on) ≈ 2.0 mΩ: 24–48 V inverter and charger bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 71, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 19460e-12, cgd: 520e-12, cds: 530e-12 } },
+  { name: 'IRFP4110', note: 'N-channel 100 V / 120 A (TO-247), RDS(on) ≈ 3.7 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 39, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 9370e-12, cgd: 250e-12, cds: 420e-12 } },
+  { name: 'IRFB4115', note: 'N-channel 150 V / 104 A (TO-220), RDS(on) ≈ 9.3 mΩ (approximate level-1 model)', model: { type: 'nmos', vto: 3.0, kp: 15.4, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 5165e-12, cgd: 105e-12, cds: 385e-12 } },
+  { name: 'IPW65R041', note: 'N-channel 650 V / 68 A superjunction (TO-247), RDS(on) ≈ 41 mΩ: 400 V bus bridges (approximate level-1 model)', model: { type: 'nmos', vto: 3.5, kp: 3.8, lambda: 0.002, w: 1, l: 1, is: 1e-11, cgs: 8380e-12, cgd: 20e-12, cds: 230e-12 } },
 ];
 MOSFETS.push(...POWER_MOSFETS);
 
