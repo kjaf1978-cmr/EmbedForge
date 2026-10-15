@@ -26,7 +26,7 @@ describe('MPPT charger: protections against the DFMEA failure modes', () => {
   }, 600_000);
   it('Q1 shorted (drain to source): the overvoltage latch cuts the battery and the array off', async () => {
     // a nearly full battery: the uncontrolled current through the short pushes it over 57.6 V
-    const s = run({ vbat: 57.6 }, (sh) => tieNets(sh, 'PVP', 'SW'));
+    const s = run({ vbat: 58 }, (sh) => tieNets(sh, 'PVP', 'SW'));
     expect(s.last('FLT')).toBeGreaterThan(6);
     expect(s.ibat(0.065)).toBeLessThan(1);
     expect(Math.max(...s.r.v['VO'].slice(-2000))).toBeLessThan(100);

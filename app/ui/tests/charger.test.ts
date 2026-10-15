@@ -63,7 +63,7 @@ describe('MPPT solar charger (one 3.7 kW unit)', () => {
       const v = (pin: string) => r.v[[...Object.keys(r.v)].find((n) => n === netOf(sheet, ref, pin))!];
       return mean(r.x, r.x.map((_, k) => pins.reduce((a, pin) => a + v(pin)[k] * r.i[`${ref}.${pin}`][k], 0)), 0.06) + 0 * part.x;
     };
-    const rows = [['Q1', ['1', '2', '3'], 0.29], ['D1', ['1', '2'], 0.6], ['QB', ['1', '2', '3'], 0.29], ['QB2', ['1', '2', '3'], 0.29], ['QPV', ['1', '2', '3'], 0.29]] as const;
+    const rows = [['Q1', ['1', '2', '3'], 0.29], ['D1', ['1', '2'], 0.6], ['QB', ['1', '2', '3'], 0.29], ['QB2', ['1', '2', '3'], 0.29], ['QPV', ['1', '2', '3'], 0.29], ['QPV2', ['1', '2', '3'], 0.29]] as const;
     for (const [key, pins, rjc] of rows) {
       const p = loss(key, [...pins]), tj = 65 + p * (rjc + 1.5);
       expect(p).toBeGreaterThan(0);

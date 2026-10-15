@@ -415,11 +415,15 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   // gate is fed from PV+), so a reversed array is blocked; the fault latch turns it off too
   nb.part('PV', 'pv', X(0), Y(1), { value: '410 Wp, 108 half-cells mono', ns: '3', np: '3', g: String(g) }, o.pvReversed ? { '1': 'PVN', '2': 'PVP' } : { '1': 'PVP', '2': 'PVN' })
     .part('RVPV', 'mov', X(-1), Y(1), { value: '14D201K' }, { '1': 'PVP', '2': 'PVN' })
-    .part('QPV', 'nmos', X(0), Y(2.5), { value: 'IRFP4668', heatsink: HS }, { '1': 'GPV', '2': 'PVN', '3': 'GND' })
-    .part('RGPV', 'resistor', X(-1), Y(2.5), { value: '100k' }, { '1': 'PVP', '2': 'GPV' })
-    .part('DZPV', 'zener', X(-1), Y(3.2), { value: 'BZX55C12' }, { '1': 'GPV', '2': 'GND' }, 1)
-    .part('RFP', 'resistor', X(1), Y(3.2), { value: '10k' }, { '1': 'FLT', '2': 'BFP' })
-    .part('QFP', 'npn', X(1), Y(2.5), { value: 'BC547B' }, { '1': 'BFP', '2': 'GPV', '3': 'GND' })
+    // QPV2, back to back with QPV (common source SPV): QPV blocks a reversed array, QPV2 lets
+    // the fault latch cut a correctly connected one off too
+    .part('QPV', 'nmos', X(0), Y(2.5), { value: 'IRFP4668', heatsink: HS }, { '1': 'GPV', '2': 'PVN', '3': 'SPV' })
+    .part('QPV2', 'nmos', X(0), Y(3.5), { value: 'IRFP4668', heatsink: HS }, { '1': 'GPV', '2': 'GND', '3': 'SPV' })
+    .part('RGPV', 'resistor', X(-1), Y(2.5), { value: '470k' }, { '1': 'PVP', '2': 'GPV' })
+    .part('DZPV', 'zener', X(-1), Y(3.2), { value: 'BZX55C12' }, { '1': 'GPV', '2': 'SPV' }, 1)
+    // on a fault the optocoupler holds the gates at SPV: SPV floats against GND until the
+    // FETs conduct, so a transistor driven from the GND-referenced fault line would hold them off
+    .part('OPV', 'opto', X(1), Y(2.8), { value: 'PC817' }, { '1': 'FLT2', '2': 'LFA2', '4': 'GPV', '3': 'SPV' })
     // input capacitors: film (no electrolyte to dry out in a hot enclosure), 4 × 47 µF / 250 V
     .part('CIN1', 'capacitor', X(1), Y(1), { value: '47u', vmax: '250' }, { '1': 'PVP', '2': 'GND' }, 1)
     .part('CIN2', 'capacitor', X(1.3), Y(1), { value: '47u', vmax: '250' }, { '1': 'PVP', '2': 'GND' }, 1)
@@ -442,7 +446,8 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     // tripped; then its body diode blocks the charge current too and the battery is cut off
     .part('QB2', 'nmos', X(5), Y(3.5), { value: 'IRFP4468', heatsink: HS }, { '1': 'GB2', '2': 'BNB', '3': 'BN' })
     .part('QD2', 'pnp', X(6), Y(4.2), { value: 'BD140' }, { '1': 'BQ2', '2': 'GD2', '3': 'V12' })
-    .part('RBQ2', 'resistor', X(7), Y(4.2), { value: '10k' }, { '1': 'FLT', '2': 'BQ2' })
+    .part('RBQ2', 'resistor', X(7), Y(4.2), { value: '47k' }, { '1': 'FLT', '2': 'BQ2' })
+    .part('RBEQ2', 'resistor', X(7), Y(4.8), { value: '10k' }, { '1': 'V12', '2': 'BQ2' }, 1)
     .part('RGD2', 'resistor', X(6), Y(4.9), { value: '47k' }, { '1': 'GD2', '2': 'GB2' })
     .part('RGS2', 'resistor', X(5), Y(4.9), { value: '100k' }, { '1': 'GB2', '2': 'BN' }, 1)
     .part('DZB2', 'zener', X(5.5), Y(4.9), { value: 'BZX55C12' }, { '1': 'GB2', '2': 'BN' }, 1)
@@ -461,7 +466,9 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     // turn QB on there and let the battery discharge into COUT (2 kA). Off: RGS holds the gate
     // at the source; on: QD (80 V PNP) charges it through 47k (1 mA while BN is still 52 V low), DZB clamps it to 12 V
     .part('U12', 'comparator', X(7.5), Y(2.5), { value: 'LM393' }, { '3': 'ITH', '2': 'ISF', '1': 'BDN', '8': 'V12', '4': 'GND' })
-    .part('RBU', 'resistor', X(8.5), Y(1.5), { value: '47k' }, { '1': 'V12', '2': 'BDN' }, 1)
+    .part('RBU', 'resistor', X(8.5), Y(1.5), { value: '10k' }, { '1': 'V12', '2': 'BDN' }, 1)
+    // base–emitter resistor: QD stays off whenever it is not driven (a load on BDN must not turn it on)
+    .part('RBEQ', 'resistor', X(9.5), Y(1.3), { value: '10k' }, { '1': 'V12', '2': 'BQD' }, 1)
     .part('RBD', 'resistor', X(8.5), Y(2), { value: '10k' }, { '1': 'BDN', '2': 'BQD' })
     .part('QD', 'pnp', X(9.5), Y(2), { value: 'BD140' }, { '1': 'BQD', '2': 'GD', '3': 'V12' })
     .part('RGD', 'resistor', X(10.5), Y(2), { value: '47k' }, { '1': 'GD', '2': 'GB' })
@@ -493,21 +500,29 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('COV', 'capacitor', X(12.5), Y(0), { value: '1u', vmax: '50' }, { '1': 'VOS2', '2': 'GND' }, 1)
     .part('RNC', 'resistor', X(13), Y(0.6), { value: '10k' }, { '1': 'VOS2', '2': 'CNC' })
     .part('QNC', 'npn', X(14), Y(0.6), { value: 'BC547B' }, { '1': 'BNC', '2': 'CNC', '3': 'GND' })
-    .part('RBNC', 'resistor', X(15), Y(0.6), { value: '47k' }, { '1': 'BDN', '2': 'BNC' })
+    .part('RBNC', 'resistor', X(15), Y(0.6), { value: '100k' }, { '1': 'BDN', '2': 'BNC' })
+    // once latched, QNL keeps QNC off, so the disarming cannot release the latch
+    .part('QNL', 'npn', X(15), Y(1.2), { value: 'BC547B' }, { '1': 'BNL', '2': 'BNC', '3': 'GND' })
+    .part('RBNL', 'resistor', X(16), Y(1.2), { value: '100k' }, { '1': 'FLT2', '2': 'BNL' })
     .part('U13', 'comparator', X(11), Y(1), { value: 'LM393' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT', '8': 'V12', '4': 'GND' })
-    .part('RFLT', 'resistor', X(12), Y(1), { value: '10k' }, { '1': 'V12', '2': 'FLT' }, 1)
+    .part('RFLT', 'resistor', X(12), Y(1), { value: '4.7k' }, { '1': 'V12', '2': 'FLT' }, 1)
     .part('DLAT', 'diode', X(12), Y(1.6), { value: '1N4148' }, { '2': 'FLT', '1': 'LAT' })
-    .part('RLAT', 'resistor', X(12.5), Y(1.6), { value: '10k' }, { '1': 'LAT', '2': 'VOS2' })
+    .part('RLAT', 'resistor', X(12.5), Y(1.6), { value: '47k' }, { '1': 'LAT', '2': 'VOS2' })
     .part('RFS1', 'resistor', X(11), Y(-1), { value: '226k' }, { '1': 'VO', '2': 'VOS3' })
     .part('RFS2', 'resistor', X(12), Y(-1), { value: '10k' }, { '1': 'VOS3', '2': 'GND' }, 1)
     .part('U15', 'comparator', X(13), Y(-1), { value: 'LM393' }, { '3': 'VREF', '2': 'VOS3', '1': 'PWM', '8': 'V12', '4': 'GND' })
     // diagnostics: CHARGING (green, QB conducting) and FAULT (red, the latch has tripped)
-    .part('LEDC', 'led', X(9), Y(1.6), { value: 'green' }, { '2': 'V12', '1': 'LCA' })
-    .part('RLC', 'resistor', X(9), Y(2.2), { value: '4.7k' }, { '1': 'LCA', '2': 'BDN' })
-    .part('RLF', 'resistor', X(13), Y(1), { value: '47k' }, { '1': 'FLT', '2': 'BLF' })
-    .part('QLF', 'npn', X(13), Y(1.6), { value: 'BC547B' }, { '1': 'BLF', '2': 'LFK', '3': 'GND' })
-    .part('LEDF', 'led', X(13.5), Y(2.2), { value: 'red' }, { '2': 'LFA', '1': 'LFK' })
-    .part('RLF2', 'resistor', X(14), Y(1.6), { value: '4.7k' }, { '1': 'V12', '2': 'LFA' })
+    // the CHARGING LED on QB's gate drive: on BDN it pulled the comparator's high level down to
+    // 10 V, which turned QD on and QB with it, defeating the reverse-current block (found by
+    // the reversed-array test)
+    .part('LEDC', 'led', X(9), Y(1.6), { value: 'green' }, { '2': 'GD', '1': 'LCA' })
+    .part('RLC', 'resistor', X(9), Y(2.2), { value: '4.7k' }, { '1': 'LCA', '2': 'BN' })
+    // a second comparator of U13 drives the optocoupler and the FAULT LED in series, so the
+    // fault line FLT itself carries no load (a loaded pull-up kept QD2, and QB2, on)
+    .part('U13B', 'comparator', X(13), Y(1), { value: 'LM393' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT2', '8': 'V12', '4': 'GND' })
+    .part('RFL2', 'resistor', X(13.5), Y(0.4), { value: '2.2k' }, { '1': 'V12', '2': 'FLT2' }, 1)
+    .part('LEDF', 'led', X(13.5), Y(2.2), { value: 'red' }, { '2': 'LFA2', '1': 'LFK' })
+    .part('RLF2', 'resistor', X(14), Y(2.2), { value: '1k' }, { '1': 'LFK', '2': 'GND' }, 1)
     // temperature: charging only with the battery between 0 and 50 °C (LiFePO4 must not be
     // charged below 0 °C), and the heatsink below 90 °C. The comparators pull the current
     // reference to zero; an open sensor wire reads as too cold, a shorted one as too hot, so a
