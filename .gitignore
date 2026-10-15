@@ -5,3 +5,4 @@ app/ui/test-results/
 app/ui/playwright-report/
 app/src-tauri/target/
 app/src-tauri/gen/
+app/ui/tests/tmp/
