@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.6",
+  "app_version": "0.2.7",
   "os": "ubuntu",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.6",
+      "version": "0.2.7",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.7",
+          "date": "2026-10-15",
+          "text": "Power and installation (Increment 3 track D20): new parts: contactors, circuit breakers (B/C/D curves, RCD), varistors, gas discharge tubes, PV modules, tapped autotransformer, comparators (LM339/LM393), half-bridge gate driver, surge test sources. Values and ratings follow the catalogue series (E-series resistors, standard power and voltage ratings) with a rule check and quick fix. New examples: mains / back-up change-over with voltage protection (single-phase and 3P+N with phase loss and asymmetry detection), relay-switched mains voltage stabiliser. PCB view (first part): board outline and templates, footprints, ratsnest, placement and manual routing. Rectifier diodes have their junction capacitance; sine sources have a delay."
+        },
         {
           "version": "0.2.6",
           "date": "2026-10-14",
@@ -107,8 +112,8 @@
   ],
   "files": [
     {
-      "path": "embedforge-setup_0.2.6_amd64.deb",
-      "from": "files/embedforge-setup_0.2.6_amd64.deb",
+      "path": "embedforge-setup_0.2.7_amd64.deb",
+      "from": "files/embedforge-setup_0.2.7_amd64.deb",
       "role": "bootstrap"
     },
     {
@@ -122,8 +127,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.6-source.tar.gz",
-      "from": "files/source/embedforge-0.2.6-source.tar.gz",
+      "path": "source/embedforge-0.2.7-source.tar.gz",
+      "from": "files/source/embedforge-0.2.7-source.tar.gz",
       "role": "source"
     },
     {
