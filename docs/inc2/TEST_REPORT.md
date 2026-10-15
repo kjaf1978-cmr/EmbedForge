@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - signed the media (0.2.6: kit pending; 0.2.5 signed 14 October 2026, section 1a);
+  - signed the media (0.2.6 signed 15 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - ~~approved the gate~~ (decision D19, 14 October 2026: approved; Increment 3 started).
 
@@ -26,7 +26,22 @@
 
 ## 1a. Signed releases (SEC-02, TEST-04)
 
-### 0.2.5 (current)
+### 0.2.6 (current)
+
+Signed by the owner on their own PC, 15 October 2026, from the signing kit "NETApps-signing-kit"
+of CI run [38629508536](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38629508536)
+(commit ef73979). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `0db7cf1c401a93692ed4927a58629f4677cf60a1bfed7d90cf1b2b77b006b002` |
+| ubuntu-x86_64 | 4 | `bb588dde214218f837c138c213c36870c2cd535b4da2453ae1021f095a687c0c` |
+| windows-x86_64 | 1 | `18d61f964ca0b059427fc85485590315e93d160e06cc264a9b58285ba962f1da` |
+
+All three: PASS.
+
+### 0.2.5
 
 Signed by the owner on their own PC, 14 October 2026, from the signing kit "NETApps-signing-kit"
 of CI run [38622393138](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38622393138)
@@ -273,8 +288,8 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. ~~Sign 0.2.5~~ done 14 October 2026 (section 1a). Tags **v0.2.2** (b035130), **v0.2.3**
-   (5b9f9fb), **v0.2.4** (2ea8bec) and **v0.2.5** (5cb9bf0) need a session that may push tags
+1. ~~Sign 0.2.6~~ done 15 October 2026 (section 1a). Tags **v0.2.2** (b035130), **v0.2.3**
+   (5b9f9fb), **v0.2.4** (2ea8bec), **v0.2.5** (5cb9bf0) and **v0.2.6** (ef73979) need a session that may push tags
    (see item 3).
 2. **Your look at it:** install 0.2.6 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
