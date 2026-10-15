@@ -28,7 +28,7 @@ function arrayMpp(g: number, temp = 25): { p: number; v: number } {
 }
 
 /** Steady state of the last 5 ms: PV power and voltage, battery current and voltage. */
-function run(o: Parameters<typeof mpptCharger>[0], stop = 0.07) {
+function run(o: Parameters<typeof mpptCharger>[0], stop = 0.09) {
   const { sheet, nb } = mpptCharger({ stop: String(stop), ...o });
   const r = simulate(sheet) as SimResult;
   expect('error' in r ? r.error : '').toBe('');

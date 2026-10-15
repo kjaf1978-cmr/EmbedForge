@@ -558,7 +558,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   if (o.rlim) nb.part('RLIM', 'resistor', X(10), Y(5), { value: o.rlim }, { '1': 'IREF', '2': 'GND' }, 1);
   const outer = [
     // IREF falls when the PV voltage falls below its set point, or the battery rises above its own
-    { k: 'MP', inR: 'VSET', minus: 'VPS', rf: o.comp?.rf ?? '4.7k', cf: o.comp?.cf ?? '820n' },
+    { k: 'MP', inR: 'VSET', minus: 'VPS', rf: o.comp?.rf ?? '4.7k', cf: o.comp?.cf ?? '220n' },
     { k: 'CV', inR: 'VBS', minus: 'VREF', rf: '470k', cf: '10n' },
   ];
   outer.forEach((e, i) => {
@@ -623,7 +623,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CB', 'capacitor', X(8), Y(9), { value: '1u', vmax: '25' }, { '1': 'VB', '2': 'SW' }, 1)
     .part('RG', 'resistor', X(8), Y(10), { value: '10' }, { '1': 'HO', '2': 'G1' });
   nb.v('PVP').v('VO').v('VCMD').i('L1', '1').i('BAT', '1');
-  nb.sim({ type: 'tran', stop: o.stop ?? '70m', step: '5u', start: 'zero' });
+  nb.sim({ type: 'tran', stop: o.stop ?? '90m', step: '5u', start: 'zero' });
   const sheet = nb.done();
   if (o.temp !== undefined) sheet.temp = String(o.temp);
   return { sheet, nb };
