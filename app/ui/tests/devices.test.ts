@@ -99,3 +99,19 @@ describe('capacitor initial voltage (IC=)', () => {
     near(w.v.a[k], 5 * Math.exp(-w.x[k] / 1e-3), 0.02);
   });
 });
+
+describe('thinned transient output (a long switching run)', () => {
+  it('keeps one point per print step while the solver steps finely, with the same result', () => {
+    // a 20 kHz square into an RC: the solver needs small steps at every edge
+    const c: Circuit = { elements: [
+      { kind: 'V', name: 'V1', p: 's', n: '0', dc: 0, wave: { type: 'pulse', v1: 0, v2: 10, td: 0, tr: 1e-7, tf: 1e-7, pw: 25e-6, per: 50e-6 } },
+      { kind: 'R', name: 'R1', a: 's', b: 'a', r: 1e3 }, { kind: 'C', name: 'C1', a: 'a', b: '0', c: 1e-6 }] };
+    const full = new Engine(c).tran(10e-6, 5e-3, 10e-6);
+    const thin = new Engine(c).tran(10e-6, 5e-3, 10e-6, 200000, false, true);
+    expect(thin.x.length).toBeLessThan(full.x.length);
+    expect(thin.x.length).toBeLessThanOrEqual(5e-3 / 10e-6 + 2);
+    for (let k = 1; k < thin.x.length - 1; k++) expect(thin.x[k] - thin.x[k - 1]).toBeGreaterThan(10e-6 * 0.999);
+    near(thin.x[thin.x.length - 1], 5e-3, 1e-9);
+    near(thin.v.a[thin.x.length - 1], full.v.a[full.x.length - 1], 1e-6);
+  });
+});

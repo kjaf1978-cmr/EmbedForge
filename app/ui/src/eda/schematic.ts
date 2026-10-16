@@ -36,7 +36,7 @@ export type Probe =
 
 export type SimSettings =
   | { type: 'op' }
-  | { type: 'tran'; stop: string; step: string; /** 'zero': capacitors start discharged (SPICE uic) */ start?: 'op' | 'zero' }
+  | { type: 'tran'; stop: string; step: string; /** 'zero': capacitors start discharged (SPICE uic) */ start?: 'op' | 'zero'; /** a long switching run: store one point per step only (the solver still takes its own) */ thin?: boolean }
   | { type: 'ac'; fstart: string; fstop: string; perDecade: string; probeIsDb?: boolean }
   | { type: 'dc'; target: string; param: string; start: string; stop: string; step: string };
 

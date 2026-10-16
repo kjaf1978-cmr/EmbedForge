@@ -185,13 +185,13 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   // is high, RSQ to H otherwise. VME = VMID + the DC servo's correction: the square's mean, and
   // with it the sine's DC, follows VME
   nb.block('sine')
-    .part('RH1', 'resistor', -700, 960, { value: '10k' }, { '1': 'VMID', '2': 'HP' })
-    .part('RH2', 'resistor', -700, 1060, { value: '10k' }, { '1': 'VAH', '2': 'HP' })
-    .part('RVA1', 'resistor', -820, 1160, { value: '10k' }, { '1': 'VA', '2': 'VAH' }, 1)
-    .part('RVA2', 'resistor', -820, 1260, { value: '10k' }, { '1': 'VAH', '2': 'GND' }, 1)
-    // H: non-inverting gain 2 of the mean of VMID and VA/2 → VMID + VA/2
+    // H = 1.5 × (2·VMID + VA)/3 = VMID + VA/2: a weighted sum straight into the high-impedance
+    // input (a 10k VA/2 divider here was loaded by the sum and gave H = VMID + 1.5 V with VA = 0:
+    // the bridge started at 45 % modulation and the OV latch tripped, found in simulation)
+    .part('RH1', 'resistor', -700, 960, { value: '100k' }, { '1': 'VMID', '2': 'HP' })
+    .part('RH2', 'resistor', -700, 1060, { value: '200k' }, { '1': 'VA', '2': 'HP' })
     .part('UH', 'opamp', -560, 1000, { value: 'TL074', pkg: 'SIG1' }, { '3': 'HP', '2': 'HN', '6': 'H', '7': V, '4': 'GND' })
-    .part('RHF', 'resistor', -560, 900, { value: '10k' }, { '1': 'HN', '2': 'H' })
+    .part('RHF', 'resistor', -560, 900, { value: '4.99k' }, { '1': 'HN', '2': 'H' })
     .part('RHG', 'resistor', -660, 1140, { value: '10k' }, { '1': 'HN', '2': 'GND' }, 1)
     // L: H mirrored about VMID (inverting, gain 1, around VMID)
     .part('UL', 'opamp', -400, 1150, { value: 'TL074', pkg: 'SIG1' }, { '3': 'VME', '2': 'LN', '6': 'L', '7': V, '4': 'GND' })
@@ -276,7 +276,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   // ---- voltage loop: the output's rectified average (sense transformer, bridge, 10k / 1 µF:
   // about 9 ms; a peak detector here decayed in 180 ms and the start-up overshot to 370 V peak,
   // found in simulation) against the soft-start reference VSS (22 ms); PI amplifier (P 0.47,
-  // integral 45 /s) → VA, clamped at 3.3 V (full modulation)
+  // integral 45 /s) → VA, clamped at 3.3 V (full modulation) through 1k, stiff against the 200k summer
   nb.block('voltage loop')
     .part('TRS', 'transformer', -1300, 1950, SENSE_TR, { '1': 'OUTL', '2': 'GND', '3': 'SAO', '4': 'SBO' })
     .part('RSO', 'resistor', -1180, 2050, { value: '220' }, { '1': 'SAO', '2': 'SNO' }, 1)
@@ -298,7 +298,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // VA rested at 0.8 V and the start jumped to 207 V while the reference was at 16 %: found in
     // simulation)
     .part('QEA', 'nmos', -40, 1760, { value: '2N7000' }, { '1': 'ENN', '2': 'FEA', '3': 'VAO' })
-    .part('RVA', 'resistor', -120, 1950, { value: '10k' }, { '1': 'VAO', '2': 'VA' })
+    .part('RVA', 'resistor', -120, 1950, { value: '1k' }, { '1': 'VAO', '2': 'VA' })
     .part('DZVA', 'zener', -20, 2050, { value: 'BZX55C3V3' }, { '1': 'VA', '2': 'GND' }, 1);
 
   // ---- independent output overvoltage (own sense transformer and reference, latched): EN low
@@ -324,7 +324,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('CDP', 'capacitor', 1300, 2050, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
-  nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero' });
+  nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
   const sheet = nb.done();
   if (o.temp !== undefined) sheet.temp = String(o.temp);
   return { sheet, nb };

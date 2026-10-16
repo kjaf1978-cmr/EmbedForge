@@ -9,7 +9,7 @@ import { GMIN, GSHUNT } from './engine';
 export type Analysis =
   | { type: 'op' }
   | { type: 'dc'; source: string; start: number; stop: number; step: number }
-  | { type: 'tran'; tstep: number; tstop: number; tmax?: number; uic?: boolean }
+  | { type: 'tran'; tstep: number; tstop: number; tmax?: number; uic?: boolean; /** store at most one point per tstep (the solver still takes its own steps) */ thin?: boolean }
   | { type: 'ac'; perDecade: number; fstart: number; fstop: number };
 
 /** SPICE node names: letters, digits and _ only; "0" is ground. */

@@ -645,7 +645,7 @@ export function planAnalysis(sim: SimSettings, sheet: Sheet, errors: string[]): 
       if (!(stop > 0)) errors.push('Stop time must be greater than 0');
       if (!(step > 0)) step = stop / 1000;
       if (stop / step > 100000) errors.push('More than 100 000 time steps: use a larger time step');
-      return { analysis: { type: 'tran', tstep: step, tstop: stop, uic: sim.start === 'zero' }, xLabel: 'Time', xUnit: 's' };
+      return { analysis: { type: 'tran', tstep: step, tstop: stop, uic: sim.start === 'zero', thin: sim.thin }, xLabel: 'Time', xUnit: 's' };
     }
     case 'ac': {
       const f0 = val(sim.fstart, 'Start frequency'), f1 = val(sim.fstop, 'Stop frequency'), pd = val(sim.perDecade, 'Points per decade');

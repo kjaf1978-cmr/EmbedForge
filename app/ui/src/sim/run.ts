@@ -317,7 +317,7 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
         w = { x: [0], v: Object.fromEntries(Object.entries(r.v).map(([k, v]) => [k, [v]])), i: Object.fromEntries(Object.entries(r.i).map(([k, v]) => [k, v.map((x) => [x])])), warnings: r.warnings };
         break;
       }
-      case 'tran': w = eng.tran(plan.analysis.tstep, plan.analysis.tstop, undefined, 200000, !!plan.analysis.uic); break;
+      case 'tran': w = eng.tran(plan.analysis.tstep, plan.analysis.tstop, undefined, 200000, !!plan.analysis.uic, !!plan.analysis.thin); break;
       case 'ac': w = eng.ac(plan.points!); break;
       case 'dc': {
         const el = eng.element(plan.sweep!.element) as (Element & { kind: 'V' | 'I' }) | (Element & { kind: 'R' });

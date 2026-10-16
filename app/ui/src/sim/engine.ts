@@ -1186,7 +1186,7 @@ export class Engine {
   }
 
   /** Transient analysis from 0 to tstop; tstep is the output resolution and the largest step. */
-  tran(tstep: number, tstop: number, tmax?: number, maxPoints = 200000, uic = false): Waveforms {
+  tran(tstep: number, tstop: number, tmax?: number, maxPoints = 200000, uic = false, thin = false): Waveforms {
     if (!(tstep > 0 && tstop > 0)) throw new SimError('transient: step and stop time must be > 0');
     this.warnings = [];
     let c = uic ? this.solveDc1({ t: 0, uic: true }) : this.solveDc({ t: 0 });
@@ -1236,7 +1236,8 @@ export class Engine {
       this.x = c.x;
       for (const d of this.devices) d.accept?.(c, c.x);
       t += hh;
-      this.record(c, out, t);
+      // thin: keep a point only once a print step has passed since the last one kept
+      if (!thin || t - out.x[out.x.length - 1] >= tstep * (1 - 1e-9) || t >= tstop - eps) this.record(c, out, t);
       if (out.x.length > maxPoints) throw new SimError(`transient: more than ${maxPoints} time points; use a larger step`);
       afterBreak = Math.abs(t - nb) <= eps;
       h = it <= 6 ? Math.min(hmax, hh * 2) : it > 20 ? hh / 2 : hh;
