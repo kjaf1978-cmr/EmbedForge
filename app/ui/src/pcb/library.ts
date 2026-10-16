@@ -106,7 +106,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'pv': return [same('TerminalBlock_1x2', pins, 'PV cable (via MC4 connectors): + and −')];
     case 'autotransformer': return [map('TerminalBlock_1x8', { N: '1', T1: '2', T2: '3', T3: '4', T4: '5', T5: '6', T6: '7', T7: '8' }, { note: 'off-board autotransformer: N, T1 … T7' })];
     case 'comparator': return v === 'LM339' ? [map('DIP-14', { 3: '5', 2: '4', 1: '2', 8: '3', 4: '12' }, { note: 'comparator 1 of the LM339; tie the inputs of the unused ones to GND' })] : [same('DIP-8', pins, 'comparator A of the LM393'), same('SOIC-8', pins)];
-    case 'hbdriver': return [map('DIP-8', { 1: '1', 8: ['8', '2'], 3: '3', 4: '4', 5: '5', 6: '6', 7: '7' }, { note: 'IR2184 pin-out; SD (pin 2) tied to VCC' })];
+    case 'hbdriver': return [map('DIP-8', { 1: '1', 2: '2', 8: '8', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7' }, { note: 'IR2184 pin-out; SD (pin 2) low turns both outputs off: wire it to VCC when unused' })];
     case 'vsurge': case 'isurge': return [same('PinHeader_1x2', pins, 'test generator: not a part of the board')];
     case 'opto': return [same('DIP-4', pins, '1 A, 2 K, 3 E, 4 C')];
     case 'opamp': return OPAMP[v] ?? OPAMP.generic;

@@ -44,6 +44,8 @@ describe('smoke analysis (stress check)', () => {
     const { sheet } = deck([['vsin', { value: '1', ac: '1' }, { '1': 'A', '2': 'GND' }], ['resistor', {}, { '1': 'A', '2': 'GND' }]], { type: 'ac', fstart: '10', fstop: '1k', perDecade: '5' });
     expect(smoke(sheet, connectivity(sheet), simulate(sheet) as SimResult).note).toMatch(/AC analysis/);
     for (const ex of EXAMPLES) {
+      // the inverter's runs take 10 to 30 minutes: its stress check is in inverter.test.ts (LONG)
+      if (ex.id === 'inverter-lf') continue;
       const b = ex.build();
       // the charger's 90 ms run takes minutes: its start-up here, its steady state in charger*.test.ts (hot case)
       const s = ex.id === 'mppt-charger' ? { ...b, sim: { ...b.sim, stop: '10m' } as typeof b.sim } : ex.id === 'stabiliser' ? { ...b, sim: { ...b.sim, stop: '1' } as typeof b.sim } : ex.id.startsWith('changeover') ? { ...b, sim: { ...b.sim, stop: '0.5' } as typeof b.sim } : b;

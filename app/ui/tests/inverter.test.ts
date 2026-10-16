@@ -55,7 +55,7 @@ describe('50 Hz-transformer inverter: DFMEA failure modes', () => {
 describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs)', () => {
   it('I-1 connecting the battery: the bus charges through 22 Ω (no inrush), the contactor closes above 91 % of the battery, then the bridge is released', async () => {
     const s = await run({ stop: '24m' });
-    const ibat = s.cur('BAT', '1').map(Math.abs), kClose = s.x.findIndex((_, k) => s.r.v['BKA'][k] < 0.3);
+    const ibat = s.cur('BAT', '1').map(Math.abs), kClose = s.x.findIndex((t, k) => t > 1e-3 && s.r.v['BKA'][k] < 0.3); // after the control supply is up
     expect(kClose).toBeGreaterThan(0);
     // before the contactor closes: the pre-charge resistor limits the current to 52 V / 22 Ω
     expect(s.max(ibat.slice(0, kClose))).toBeLessThan(2.6);
@@ -75,7 +75,8 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   ] as [string, InverterLfOptions][]) {
     it(`${what}: the bridge stays stopped`, async () => {
       const s = await run({ ...o, precharged: true, stop: '24m' });
-      expect(s.min(s.r.v['BKA'], 0.02)).toBeLessThan(0.3); // the contactor has closed
+      // the contactor has closed (at 41 V its 48 V coil gets 40.3 V, below the 85 % pull-in)
+      if ((o.vbat ?? 52) > 42) expect(s.min(s.r.v['BKA'], 0.02)).toBeLessThan(0.3);
       expect(s.max(s.r.v['EN'])).toBeLessThan(1);
       expect(s.max(s.r.v['OUTL'].map(Math.abs))).toBeLessThan(1);
     }, 600_000);

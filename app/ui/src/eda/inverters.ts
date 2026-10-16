@@ -42,7 +42,7 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99' };
 export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const V = 'V12';
-  nb.wired = { rails: [V], labelled: ['BF', 'AXA', 'VME', 'BUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'ISA', 'OUTL', 'VBS', 'Q50', 'KEN', 'STOP'] };
+  nb.wired = { rails: [V], labelled: ['BF', 'AXA', 'VME', 'BUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'ISA', 'OUTL', 'VBS', 'Q50', 'KEN', 'STOP', 'SD'] };
   nb.para('INVERTER, one 5 kW unit, 50 Hz transformer type: 48 V LiFePO4 battery (16 cells, 42 … 58.4 V) to 230 V 50 Hz. MOSFET full bridge (3 × IRFP4468 per switch) with unipolar sine PWM at 20 kHz; 50 Hz transformer 27.5/230 V 5 kVA; its leakage inductance and a 10 µF X2 capacitor filter the output. Surge: twice the rated current for motor starts, cycle by cycle limited.', -1400, -420)
     .para('Protections (DFMEA section 5): pre-charge before the battery contactor closes (a reversed battery closes nothing); cycle-by-cycle current limit; battery low cut-out 42 V (restart 47 V) and high cut-out 61 V; heatsink above 90 °C; output overvoltage from its own sense transformer and reference (latched). Every fault stops the bridge and the soft start begins again when it clears.', -1400, -340);
 
@@ -79,7 +79,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
         .part(`QL${leg}${k + 1}`, 'nmos', x, 40, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${leg}${k + 1}`, '2': `SW${leg}`, '3': 'SRC' })
         .part(`RGL${leg}${k + 1}`, 'resistor', x - 60, 120, { value: '4.7' }, { '1': `EL${leg}`, '2': `GL${leg}${k + 1}` });
     }
-    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': `SW${leg}`, '4': `LO${leg}` })
+    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '2': 'SD', '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': `SW${leg}`, '4': `LO${leg}` })
       .part(`DB${leg}`, 'diode', x0 + 240, 250, { value: '1N4148' }, { '2': V, '1': `VB${leg}` })
       .part(`CBS${leg}`, 'capacitor', x0 + 300, 330, { value: '2.2u', vmax: '25' }, { '1': `VB${leg}`, '2': `SW${leg}` }, 1)
       // high-side buffer between VB and SW, low-side buffer between 12 V and ground
@@ -165,15 +165,17 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('CDC1', 'capacitor', 120, 840, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   // ---- heatsink temperature: EN low above 90 °C (NTC 10k at 25 °C on the heatsink), with its
-  // own output THN and about 3 °C hysteresis
+  // own output THN and 3 °C hysteresis: trips at 90.7 °C, restarts at 87.5 °C (the NTC divider
+  // moves only 6 mV/°C there: a 100k feedback lifted the threshold by 0.29 V, out of the NTC's
+  // reach, and the cut-out never tripped: found in simulation)
   nb.block('thermal')
     .part('RTH', 'ntc', 500, 620, { value: '10k', temp: String(o.theatsink ?? 50) }, { '1': 'VREF', '2': 'NHS' }, 1)
     .part('RTHB', 'resistor', 500, 740, { value: '10k' }, { '1': 'NHS', '2': 'GND' }, 1)
-    .part('RT90', 'resistor', 620, 620, { value: '3.74k' }, { '1': 'VREF', '2': 'T90' }, 1)
+    .part('RT90', 'resistor', 620, 620, { value: '3.92k' }, { '1': 'VREF', '2': 'T90' }, 1)
     .part('RT90B', 'resistor', 620, 740, { value: '40.2k' }, { '1': 'T90', '2': 'GND' }, 1)
     .part('UTH', 'comparator', 760, 680, { value: 'LM339', pkg: 'CMP1' }, { '3': 'T90', '2': 'NHS', '1': 'THN', '8': V, '4': 'GND' })
     .part('RTHN', 'resistor', 860, 600, { value: '10k' }, { '1': V, '2': 'THN' }, 1)
-    .part('RTHH', 'resistor', 760, 800, { value: '100k' }, { '1': 'THN', '2': 'T90' })
+    .part('RTHH', 'resistor', 760, 800, { value: '2.2M' }, { '1': 'THN', '2': 'T90' })
     .part('DTH', 'diode', 860, 800, { value: '1N4148' }, { '2': 'EN', '1': 'THN' });
 
   // ---- 50 Hz: 555 at 200 Hz and both flip-flops of a CD4013 (÷4): an exact 50 % square Q50
@@ -253,17 +255,21 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RPA', 'resistor', -750, 1420, { value: '4.7k' }, { '1': V, '2': 'INA' }, 1)
     .part('UPB', 'comparator', -650, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SINEB', '2': 'TRI', '1': 'INB', '8': V, '4': 'GND' })
     .part('RPB', 'resistor', -550, 1420, { value: '4.7k' }, { '1': V, '2': 'INB' }, 1)
-    // STOP (EN low, or an overcurrent) pulls both driver inputs to ground with a FET each: a
-    // comparator output and a diode would leave about 1.3 V, above the driver's 0.8 V low level
-    .part('QIA', 'nmos', -750, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'INA', '3': 'GND' })
-    .part('QIB', 'nmos', -550, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'INB', '3': 'GND' })
+    // STOP (EN low, or an overcurrent) pulls both drivers' SD low with QSD: all four switches
+    // off, so a fault current returns to the bus through the body diodes, where the shunt sees
+    // it (inputs held low turned both low sides on: a short-circuit current freewheeled past the
+    // shunt and rose every PWM period, to 215 kA in simulation). CSTP holds STOP for 25 µs after
+    // an overcurrent: the bridge stays off for about half a PWM period
+    .part('QSD', 'nmos', -750, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'SD', '3': 'GND' })
+    .part('RSD', 'resistor', -950, 1700, { value: '10k' }, { '1': V, '2': 'SD' }, 1)
     .part('DSE', 'diode', -650, 1700, { value: '1N4148' }, { '2': 'ENN', '1': 'STOP' })
     .part('RSTP', 'resistor', -450, 1720, { value: '100k' }, { '1': 'STOP', '2': 'GND' }, 1)
+    .part('CSTP', 'capacitor', -550, 1720, { value: '150p', vmax: '50' }, { '1': 'STOP', '2': 'GND' }, 1)
     .part('CDC2', 'capacitor', -450, 1600, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   // ---- cycle-by-cycle current limit: ISA = VMID-referred ×24 of the shunt; outside ± 1.44 V
-  // (±300 A in the bridge: twice the rated peak) OCP or OCN goes high and STOP holds both
-  // driver inputs low for the moment
+  // (±300 A in the bridge: twice the rated peak) OCP or OCN goes high and STOP turns all four
+  // switches off for at least 25 µs
   nb.block('current')
     .part('UI', 'opamp', -250, 1500, { value: 'LM358', pkg: 'AMP' }, { '3': 'VIB', '2': 'NIS', '6': 'ISA', '7': V, '4': 'GND' })
     .part('RIB1', 'resistor', -350, 1400, { value: '24k' }, { '1': 'VMID', '2': 'VIB' }, 1)
@@ -334,7 +340,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RBFL', 'resistor', 1220, 1880, { value: '10k' }, { '1': 'FLT', '2': 'BFL' })
     .part('QFL', 'npn', 1320, 1950, { value: 'BC547B' }, { '1': 'BFL', '2': 'EN', '3': 'GND' })
     .part('LFLT', 'led', 1220, 2060, { colour: 'red' }, { '2': 'FLT', '1': 'LFA' }, 1)
-    .part('RLF', 'resistor', 1220, 2170, { value: '1k' }, { '1': 'LFA', '2': 'GND' }, 1)
+    .part('RLF', 'resistor', 1220, 2170, { value: '4.7k' }, { '1': 'LFA', '2': 'GND' }, 1)
     .part('CDP', 'capacitor', 1300, 2050, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');

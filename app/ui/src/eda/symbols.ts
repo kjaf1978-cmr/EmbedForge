@@ -457,12 +457,12 @@ export const SYMBOLS: SymbolDef[] = [
   },
   {
     id: 'hbdriver', name: 'Half-bridge gate driver', category: 'Integrated circuits', keywords: ['u', 'gate driver', 'half bridge', 'bootstrap', 'ir2184', 'ir2110', 'mosfet driver', 'igbt driver', 'inverter'], prefix: 'U',
-    description: 'Half-bridge gate driver (IR2184 pin-out: 1 IN, 3 COM, 4 LO, 5 VS, 6 HO, 7 VB, 8 VCC): HO (between VB and VS, supplied by a bootstrap diode and capacitor) follows IN, LO the inverse, with a dead time of 0.5 µs between them. Logic high above 3.3 V.',
-    pins: [{ id: '1', name: 'IN', x: -40, y: 0, type: 'input' }, { id: '8', name: 'VCC', x: -20, y: -40, type: 'power_in' }, { id: '3', name: 'COM', x: -20, y: 40, type: 'power_in' },
+    description: 'Half-bridge gate driver (IR2184 pin-out: 1 IN, 2 SD, 3 COM, 4 LO, 5 VS, 6 HO, 7 VB, 8 VCC): HO (between VB and VS, supplied by a bootstrap diode and capacitor) follows IN, LO the inverse, with a dead time of 0.5 µs between them. Logic high above 3.3 V. SD (optional) low turns both outputs off.',
+    pins: [{ id: '1', name: 'IN', x: -40, y: 0, type: 'input' }, { id: '2', name: 'SD', x: -40, y: 20, type: 'input', optional: true }, { id: '8', name: 'VCC', x: -20, y: -40, type: 'power_in' }, { id: '3', name: 'COM', x: -20, y: 40, type: 'power_in' },
       { id: '7', name: 'VB', x: 40, y: -30, type: 'power_in' }, { id: '6', name: 'HO', x: 40, y: -10, type: 'output' }, { id: '5', name: 'VS', x: 40, y: 10, type: 'passive' }, { id: '4', name: 'LO', x: 40, y: 30, type: 'output', optional: true }],
     refAt: { x: 0, y: -46 }, valAt: { x: 12, y: 50 }, simulated: true,
-    gfx: () => [path('M -40 0 H -26 M -20 -40 V -34 M -20 40 V 34 M 26 -30 H 40 M 26 -10 H 40 M 26 10 H 40 M 26 30 H 40'), path('M -26 -34 H 26 V 34 H -26 Z', 'bg'),
-      text(-16, 3, 'IN', 6), text(-20, -27, 'VCC', 5), text(-20, 31, 'COM', 5), text(18, -27, 'VB', 5), text(18, -7, 'HO', 5), text(18, 13, 'VS', 5), text(18, 33, 'LO', 5)],
+    gfx: () => [path('M -40 0 H -26 M -40 20 H -26 M -20 -40 V -34 M -20 40 V 34 M 26 -30 H 40 M 26 -10 H 40 M 26 10 H 40 M 26 30 H 40'), path('M -26 -34 H 26 V 34 H -26 Z', 'bg'),
+      text(-16, 3, 'IN', 6), text(-16, 23, 'SD', 5), text(-20, -27, 'VCC', 5), text(-20, 31, 'COM', 5), text(18, -27, 'VB', 5), text(18, -7, 'HO', 5), text(18, 13, 'VS', 5), text(18, 33, 'LO', 5)],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(GATE_DRIVERS.map((m) => m.name)), default: GATE_DRIVERS[0].name }, params: [],
   },
   {

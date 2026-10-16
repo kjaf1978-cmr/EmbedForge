@@ -26,7 +26,7 @@ export interface MosModel { type: 'nmos' | 'pmos'; vto: number; kp: number; lamb
 export type Element =
   /** tc1, tc2: temperature coefficients (1/K, 1/K²): r(T) = r·(1 + tc1·ΔT + tc2·ΔT²), ΔT from 27 °C. */
   | { kind: 'R'; name: string; a: string; b: string; r: number; tc1?: number; tc2?: number }
-  | { kind: 'C'; name: string; a: string; b: string; c: number; /** start voltage of a uic transient */ ic?: number }
+  | { kind: 'C'; name: string; a: string; b: string; c: number; /** start voltage of a uic transient */ ic?: number; /** a device's own capacitance: not held at a power-on start (it follows the circuit) */ free?: boolean }
   | { kind: 'L'; name: string; a: string; b: string; l: number }
   /** Voltage source: v(p) − v(n) = value. Branch current flows from p through the source to n. */
   | { kind: 'V'; name: string; p: string; n: string; dc: number; wave?: Wave; acMag?: number; acPhase?: number }

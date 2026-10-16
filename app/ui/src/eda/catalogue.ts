@@ -33,6 +33,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '32 A, coil 24 V DC': e('LC1DT32BD + LADN01', 'Schneider Electric', 'contactor 4 NO, 32 A AC-1 (resistive and mixed loads), coil 24 V DC, with 1 NC auxiliary block; for motor loads above 7.5 kW use a 40 A AC-3 frame', 165, undefined, 'live',
       [{ distributor: 'RS', sku: '608-9914', url: 'https://at.rs-online.com/web/p/schutze/6089914' }, { distributor: 'RS (LADN01)', sku: '018-7891' }],
       'single-phase design: ABB ESB40-20N-01 (2 NO, 40 A AC-1, 24 V AC/DC) with EH04-11N auxiliary, about €70–90 at wholesale'),
+    '150 A DC, coil 48 V': e('DC contactor 150 A, 48 V DC coil, 1 NO auxiliary (e.g. Albright SW180 series)', 'Albright / TE Connectivity', 'single-pole DC contactor, 150 A continuous at 60 V DC, 48 V DC coil, normally-open auxiliary contact (EN feedback)', 95, 70, 'estimate', [{ distributor: 'battery-systems distributor' }], 'order the 48 V coil and the auxiliary-contact option; check the breaking rating at 58 V DC'),
   },
   breaker1: { 'C10 A': e('S201-C10', 'ABB', 'miniature circuit breaker 1-pole, C 10 A, 6 kA', 8, 5, 'live', [{ distributor: 'electrical wholesale' }]) },
   breaker2: { 'C32 A': e('S201-C32NA', 'ABB', 'miniature circuit breaker 1P+N, C 32 A, 6 kA', 35, 25, 'estimate', [{ distributor: 'electrical wholesale' }]) },
@@ -47,6 +48,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     IRFP4668: e('IRFP4668PBFXKMA1', 'Infineon', 'MOSFET N 200 V 130 A, TO-247 (successor of IRFP4668PBF, end of life)', 4.75, 3.0, 'live', [{ distributor: 'Digi-Key' }, { distributor: 'LCSC', sku: 'C2921' }, { distributor: 'Farnell', sku: '1684526' }]),
     IRFP4468: e('IRFP4468PBFXKMA1', 'Infineon', 'MOSFET N 100 V 195 A, TO-247 (successor of IRFP4468PBF, end of life)', 5.1, 3.0, 'live', [{ distributor: 'Digi-Key', sku: 'IRFP4468PBF-ND' }, { distributor: 'LCSC', sku: 'C2919' }]),
     IRLZ44N: e('IRLZ44NPBF', 'Infineon', 'MOSFET N logic level 55 V 47 A, TO-220', 1.85, 0.75, 'live', [{ distributor: 'Mouser' }, { distributor: 'LCSC', sku: 'C38774' }]),
+    IRF540N: e('IRF540NPBF', 'Infineon', 'MOSFET N 100 V 33 A, TO-220 (contactor coil switch)', 1.2, 0.55, 'estimate', any('TO-220')),
     '2N7000': e('2N7000', 'onsemi', 'MOSFET N 60 V 200 mA, TO-92', 0.2, 0.06, 'estimate', any('TO-92')),
   },
   diode: {
@@ -55,6 +57,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '1N4148': e('1N4148', 'various', 'signal diode 100 V 200 mA, DO-35', 0.06, 0.015, 'estimate', any('DO-35')),
   },
   zener: {
+    BZX55C3V3: e('BZX55C3V3', 'Vishay', 'Zener diode 3.3 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C12: e('BZX55C12', 'Vishay', 'Zener diode 12 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C13: e('BZX55C13', 'Vishay', 'Zener diode 13 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
   },
@@ -69,8 +72,10 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     LM358: e('LM358P', 'Texas Instruments', 'dual op-amp, DIP-8', 0.35, 0.12, 'estimate', any('DIP-8')),
     TL071: e('TL071CP', 'Texas Instruments', 'single JFET op-amp, DIP-8', 0.6, 0.25, 'estimate', any('DIP-8')),
     TL072: e('TL072CP', 'Texas Instruments', 'dual JFET op-amp, DIP-8', 0.7, 0.3, 'estimate', any('DIP-8')),
+    TL074: e('TL074CN', 'Texas Instruments', 'quad JFET op-amp, DIP-14', 0.6, 0.3, 'estimate', any('DIP-14')),
   },
   tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V, TO-92', 0.3, 0.1, 'estimate', any('TO-92')) },
+  dff: { any: e('CD4013BE', 'Texas Instruments', 'dual D flip-flop, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')) },
   timer555: { NE555: e('NE555P', 'Texas Instruments', 'timer, DIP-8', 0.35, 0.12, 'estimate', any('DIP-8')) },
   opto: { PC817: e('PC817X1NSZ1B', 'Sharp', 'optocoupler, transistor output, DIP-4', 0.3, 0.1, 'estimate', any('DIP-4')) },
   lm317: { LM317HV: e('LM317HVT/NOPB', 'Texas Instruments', 'adjustable regulator, 60 V input–output, 1.5 A, TO-220', 2.2, 1.26, 'live', [{ distributor: 'Mouser', sku: '926-LM317HVT/NOPB' }, { distributor: 'RS', sku: '197-7244' }], 'on a heatsink of 8 K/W: Fischer SK 76 37,5 SA (RS 221-2176), about €3.50') },
@@ -94,6 +99,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
 /** Transformers by turns ratio (their value). */
 const TRANSFORMERS: Record<string, CatalogueEntry> = {
   '0.052': e('VB 1,0/1/12', 'Block', 'PCB transformer 230 V / 12 V, 1 VA (sense)', 7.2, 7.2, 'live', [{ distributor: 'RS', sku: '074-8411', url: 'https://es.rs-online.com/web/p/transformadores-de-pcb/0748411' }]),
+  '8.36': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 5 kVA, 50 Hz, 27.5 V / 230 V, leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 480, 320, 'estimate', [{ distributor: 'transformer winder' }]),
   '0.13': e('FL 24/24 (or Hahn BV EI 482 series)', 'Block / Hahn', 'PCB transformer 230 V / 24 V, 25 VA, short-circuit proof (control supply)', 22, 16, 'estimate', [{ distributor: 'Bürklin / Reichelt' }]),
 };
 
@@ -116,6 +122,7 @@ function capacitor(value: string, vmax: number, pol: boolean): CatalogueEntry {
 
 function resistor(value: string, pmax: number): CatalogueEntry {
   const r = parseValue(value) ?? 0;
+  if (r > 0 && r < 0.5e-3) return e(`busbar shunt ${value}Ω, 10 W, 1 % (e.g. Isabellenhütte BVR series)`, 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %, four-terminal`, 9, 6, 'estimate', [{ distributor: 'RS / Isabellenhütte' }]);
   if (r > 0 && r <= 0.01) return e('BVN-M-R001-1.0', 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %`, 4, 2.5, 'estimate', [{ distributor: 'RS', sku: '193-0103' }]);
   if (pmax >= 1) return e(`metal film ${value}Ω 1 W, 1 % (e.g. Vishay PR01)`, 'Vishay / Yageo', `resistor ${value}Ω, ${pmax} W`, 0.12, 0.05, 'estimate', any('axial 1 W'));
   return e(`metal film ${value}Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)`, 'Vishay / Yageo', `resistor ${value}Ω, 0207, 1 %`, 0.08, 0.02, 'estimate', any('0207 1 %'));
@@ -145,6 +152,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
+    case 'dff': return BY_VALUE.dff.any; // its value is the supply rail
     default: return BY_VALUE[line.sym]?.[v] ?? null;
   }
 }

@@ -1003,7 +1003,7 @@ export class Engine {
       const ix = (s: string) => node(s);
       switch (e.kind) {
         case 'R': this.devices.push(new Resistor(e, ix(e.a), ix(e.b), tk - TNOM)); break;
-        case 'C': this.devices.push(new Capacitor(e, ix(e.a), ix(e.b))); break;
+        case 'C': this.devices.push(new Capacitor(e, ix(e.a), ix(e.b), !e.free)); break;
         case 'L': this.devices.push(new Inductor(e, ix(e.a), ix(e.b), br())); break;
         case 'V': this.devices.push(new VSource(e, ix(e.p), ix(e.n), br())); this.breaks.push({ wave: e }); break;
         case 'I': this.devices.push(new ISource(e, ix(e.p), ix(e.n))); this.breaks.push({ wave: e }); break;
@@ -1077,6 +1077,20 @@ export class Engine {
   private orderMode?: Ctx['mode'];
   private solver?: SparseSolver;
   private Abuf?: Float64Array;
+  /** The unknown farthest from convergence after the last failed Newton solution. */
+  private noConv = '';
+  private worstUnknown(x: Float64Array, b: Float64Array): string {
+    let worst = -1, ratio = 0;
+    for (let i = 0; i < b.length; i++) {
+      const r = Math.abs(b[i] - x[i]) / (RELTOL * Math.max(Math.abs(b[i]), Math.abs(x[i])) + (i < this.nNodes ? VNTOL : ABSTOL));
+      if (r > ratio) { ratio = r; worst = i; }
+    }
+    if (worst < 0) return '';
+    if (worst < this.nNodes) for (const [name, k] of this.nodeIndex) if (k === worst) return `node ${name.replace(/#.*/, '')}`;
+    for (const d of this.devices) if ((d as { branch?: number }).branch === worst) return `current of ${d.el.name.replace(/_.*/, '')}`;
+    return '';
+  }
+
   private newton(c: Ctx, maxIter: number, initJct: boolean): number {
     let x = c.x;
     for (let it = 1; it <= maxIter; it++) {
@@ -1088,13 +1102,19 @@ export class Engine {
       if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; this.solver = new SparseSolver(this.order); }
       if (!this.solver!.solve(c.A, b, c.pat)) return -1;
       for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) return -1;
-      let conv = !c.noncon && !c.init;
+      let conv = !c.noncon && !c.init, vconv = conv;
       if (conv) {
         for (let i = 0; i < c.n; i++) {
           const tol = RELTOL * Math.max(Math.abs(b[i]), Math.abs(x[i])) + (i < this.nNodes ? VNTOL : ABSTOL);
-          if (Math.abs(b[i] - x[i]) > tol) { conv = false; break; }
+          if (Math.abs(b[i] - x[i]) > tol) { conv = false; if (i < this.nNodes) { vconv = false; break; } }
         }
       }
+      // the last iteration: every node voltage has settled and only a branch current still moves
+      // (a sub-µA base current at a comparator's switching edge cycling against the 1 pA
+      // tolerance: the step size shrank to nothing, found in the inverter): accept the point
+      if (!conv && vconv && c.mode === 'tran' && it === maxIter) for (const d of this.devices) if (d.converged && !d.converged(b)) { vconv = false; break; }
+      if (!conv && vconv && c.mode === 'tran' && it === maxIter) { x = b; c.x = x; this.assemble(c); return it; }
+      if (!conv && it === maxIter) this.noConv = this.worstUnknown(x, b);
       if (conv) for (const d of this.devices) if (d.converged && !d.converged(b)) { conv = false; break; }
       x = b;
       c.x = x;
@@ -1227,10 +1247,12 @@ export class Engine {
       const nb = sorted[bi] ?? tstop;
       const hh = Math.min(h, nb - t);
       c = this.ctx({ mode: 'tran', t: t + hh, h: hh, method: afterBreak || damp ? 'be' : 'trap', x: this.x });
-      const it = this.newton(c, 50, false);
+      // 100 iterations: a comparator output transistor entering saturation creeps tens of mV per
+      // iteration and needed more than 50 (the step then shrank until the matrix lost precision)
+      const it = this.newton(c, 100, false);
       if (it < 0) {
         h = hh / 8;
-        if (h < hmin) throw new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence)`);
+        if (h < hmin) throw new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence${this.noConv ? `, last at the ${this.noConv}` : ''})`);
         continue;
       }
       // truncation error: reject a step that is too long for the reactive parts

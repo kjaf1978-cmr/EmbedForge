@@ -150,7 +150,10 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       case 'regulator': case 'lm317': {
         if (!model) break;
         const [vin, g, vo] = p.sym === 'lm317' ? ['3', '1', '2'] : ['1', '2', '3'];
-        add('Vin', peak(p.sym === 'lm317' ? vAcross(vin, vo) : vAcross(vin, g)), model.Vin); add('Iout', peak(iPin(vo)), model.Iout); add('P', P([vin, g, vo]), pRating(model.P));
+        add('Vin', peak(p.sym === 'lm317' ? vAcross(vin, vo) : vAcross(vin, g)), model.Vin);
+        // its rated current is a continuous one: the average (charging the output capacitors at
+        // power-on it meets its own current limit for a moment, which is not an overload)
+        add('Iout', tran ? mean(r.x, iPin(vo).map(Math.abs), tran) : peak(iPin(vo)), model.Iout); add('P', P([vin, g, vo]), pRating(model.P));
         break;
       }
       case 'timer555': if (model) { add('Vcc', peak(vAcross('8', '1')), model.Vcc); add('Iout', peak(iPin('3')), model.Iout); add('P', P(['1', '2', '3', '4', '5', '6', '7', '8']), model.P); } break;

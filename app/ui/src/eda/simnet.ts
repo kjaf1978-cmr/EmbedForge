@@ -365,6 +365,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'hbdriver': {
       const m = findModel(GATE_DRIVERS, p.props.value).model;
       const [inp, vcc, com, vb, ho, vs, lo] = [pin['1'], pin['8'], pin['3'], pin['7'], pin['6'], pin['5'], pin['4']];
+      const sd = pin['2']?.startsWith('nc_') ? undefined : pin['2']; // optional: unconnected, the driver runs
       // the input (0/5 V), delayed by an RC; HO is on above 3.7 V of it and LO below 1.3 V, so
       // after either edge both are off for τ·(ln 4 − ln(5/3.65)) = 1.07·τ: τ from the dead time
       const u0 = `${ref}#u0`, u = `${ref}#u`, tau = m.dead / 1.07;
@@ -372,12 +373,19 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'E', name: `${ref}_EIN`, p: u0, n: com, cp: inp, cn: com, gain: 1 },
         { kind: 'R', name: `${ref}_RD`, a: u0, b: u, r: 1e3 },
         { kind: 'C', name: `${ref}_CD`, a: u, b: com, c: tau / 1e3 },
-        { kind: 'S', name: `${ref}_SHU`, p: vb, n: ho, cp: u, cn: com, vt: 3.7, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SHU`, p: sd ? `${ref}#hs` : vb, n: ho, cp: u, cn: com, vt: 3.7, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'S', name: `${ref}_SHD`, p: ho, n: vs, cp: com, cn: u, vt: -3.6, vh: 0.05, ron: m.ron, roff: 1e9 },
-        { kind: 'S', name: `${ref}_SLU`, p: vcc, n: lo, cp: com, cn: u, vt: -1.3, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SLU`, p: sd ? `${ref}#ls` : vcc, n: lo, cp: com, cn: u, vt: -1.3, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'S', name: `${ref}_SLD`, p: lo, n: com, cp: u, cn: com, vt: 1.4, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'R', name: `${ref}_RQ`, a: vcc, b: com, r: 15e3 },
         { kind: 'R', name: `${ref}_RBQ`, a: vb, b: vs, r: 150e3 },
+      );
+      // SD low (below 1.75 V; the IR2184's 0.8/2.7 V levels): both outputs off at once
+      if (sd) out.push(
+        { kind: 'S', name: `${ref}_SSH`, p: vb, n: `${ref}#hs`, cp: sd, cn: com, vt: 1.75, vh: 0.05, ron: 0.01, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SSL`, p: vcc, n: `${ref}#ls`, cp: sd, cn: com, vt: 1.75, vh: 0.05, ron: 0.01, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SHO`, p: ho, n: vs, cp: com, cn: sd, vt: -1.75, vh: 0.05, ron: m.ron, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SLO`, p: lo, n: com, cp: com, cn: sd, vt: -1.75, vh: 0.05, ron: m.ron, roff: 1e9 },
       );
       break;
     }
@@ -551,9 +559,11 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       const m = custom<MosModel>() ?? findModel(MOSFETS.filter((x) => x.model.type === s.id), p.props.value).model;
       out.push({ kind: 'M', name: ref, d: pin['2'], g: pin['1'], s: pin['3'], model: m });
       // power MOSFETs: their capacitances set the switching edges with the gate resistor
-      if (m.cgs) out.push({ kind: 'C', name: `${ref}_CGS`, a: pin['1'], b: pin['3'], c: m.cgs });
-      if (m.cgd) out.push({ kind: 'C', name: `${ref}_CGD`, a: pin['1'], b: pin['2'], c: m.cgd });
-      if (m.cds) out.push({ kind: 'C', name: `${ref}_CDS`, a: pin['2'], b: pin['3'], c: m.cds });
+      // free (the MOSFET's own capacitances): a power-on start held them at 0 V, and with a
+      // charged bus that shorted every MOSFET (205 kA at t = 0 in the inverter)
+      if (m.cgs) out.push({ kind: 'C', name: `${ref}_CGS`, a: pin['1'], b: pin['3'], c: m.cgs, free: true });
+      if (m.cgd) out.push({ kind: 'C', name: `${ref}_CGD`, a: pin['1'], b: pin['2'], c: m.cgd, free: true });
+      if (m.cds) out.push({ kind: 'C', name: `${ref}_CDS`, a: pin['2'], b: pin['3'], c: m.cds, free: true });
       break;
     }
     case 'opamp': {
@@ -563,7 +573,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       const gm = 1e-3, r1 = m.gain / gm, fp = m.gbw / m.gain;
       // sharp clamp diodes (N = 0.1): their drop stays between 50 and 90 mV from 1 µA to 1 A
       // of overdrive, so the output stops railDrop from each rail and never beyond a rail
-      const dm = { is: 1e-15, n: 0.1, rs: 1 }; // rs: unpowered, the two clamps overlap: 1 Ω bounds the current between them
+      const dm = { is: 1e-15, n: 0.1, rs: 0 };
       const clamp = Math.max(m.railDrop + 0.07, 0), clampLow = Math.max((m.railDropLow ?? m.railDrop) + 0.07, 0);
       out.push(
         { kind: 'R', name: `${ref}_RIN`, a: inp, b: inn, r: m.rin },
@@ -572,10 +582,13 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'C', name: `${ref}_C1`, a: n1, b: '0', c: 1 / (2 * Math.PI * r1 * fp) },
         // the clamps follow the rails through buffers: their current returns to ground, not into
         // a supply pin (a saturated amplifier fed its own unpowered rail: found in simulation)
-        { kind: 'E', name: `${ref}_ERH`, p: rh, n: '0', cp: vp, cn: '0', gain: 1 },
+        // (1 Ω each: unpowered, the two clamps overlap; it bounds the current between them)
+        { kind: 'E', name: `${ref}_ERH`, p: `${rh}0`, n: '0', cp: vp, cn: '0', gain: 1 },
+        { kind: 'R', name: `${ref}_RRH`, a: `${rh}0`, b: rh, r: 1 },
         { kind: 'V', name: `${ref}_VH`, p: rh, n: nh, dc: clamp },
         { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm, fixedTemp: true },
-        { kind: 'E', name: `${ref}_ERL`, p: rl, n: '0', cp: vn, cn: '0', gain: 1 },
+        { kind: 'E', name: `${ref}_ERL`, p: `${rl}0`, n: '0', cp: vn, cn: '0', gain: 1 },
+        { kind: 'R', name: `${ref}_RRL`, a: `${rl}0`, b: rl, r: 1 },
         { kind: 'V', name: `${ref}_VL`, p: nl, n: rl, dc: clampLow },
         { kind: 'D', name: `${ref}_DL`, a: nl, k: n1, model: dm, fixedTemp: true },
         { kind: 'E', name: `${ref}_EO`, p: oi, n: '0', cp: n1, cn: '0', gain: 1 },
