@@ -212,25 +212,25 @@ export const EXAMPLES: Example[] = [
 EXAMPLES.push(
   {
     id: 'blinker555', title: '555 LED blinker', level: 'intermediate',
-    summary: 'A 555 timer in astable mode charges C1 through R1 and R2 and discharges it through R2: the LED blinks at f = 1.44 / ((R1 + 2·R2)·C1) ≈ 1 Hz.',
-    tryThis: 'Look at THR: the capacitor swings between 3 V and 6 V (1/3 and 2/3 of 9 V). Change R2 to 33k and simulate again: the blinking gets about twice as fast.',
+    summary: 'A 555 timer in astable mode charges C2 through R1 and R3 and discharges it through R3: the LED blinks at f = 1.44 / ((R1 + 2·R3)·C2) ≈ 1 Hz.',
+    tryThis: 'Look at THR: the capacitor swings between 3 V and 6 V (1/3 and 2/3 of 9 V). Change R3 to 33k and simulate again: the blinking gets about twice as fast.',
     build: () => {
       const b = new B();
       b.part('timer555', 100, 0);
       b.part('power', 90, -80, { value: '+9V' });
-      b.part('power', 20, -120, { value: '+9V' });
-      b.part('resistor', 20, -80, { value: '10k' }, 1);
-      b.part('resistor', 20, 10, { value: '68k' }, 1);
+      b.part('power', -10, -120, { value: '+9V' });
+      b.part('resistor', -10, -80, { value: '10k' }, 1);
+      b.part('resistor', -10, 10, { value: '68k' }, 1);
       b.part('capacitor_pol', 50, 70, { value: '10u' }, 1);
-      b.part('capacitor', 160, 50, { value: '10n' }, 1);
-      b.part('resistor', 200, 0, { value: '330' });
-      const d = b.part('led', 230, 30, { colour: 'red' }, 1);
-      b.part('gnd', 50, 130); b.part('gnd', 160, 110); b.part('gnd', 100, 80); b.part('gnd', 230, 90);
+      b.part('capacitor', 190, 60, { value: '10n' }, 1);
+      b.part('resistor', 240, 0, { value: '330' });
+      const d = b.part('led', 270, 30, { colour: 'red' }, 1);
+      b.part('gnd', 50, 130); b.part('gnd', 190, 120); b.part('gnd', 100, 80); b.part('gnd', 270, 90);
       b.wire([90, -80], [90, -50]); b.wire([110, -50], [110, -60], [90, -60]);
-      b.wire([20, -120], [20, -110]); b.wire([20, -50], [20, -20], [60, -20]);
-      b.wire([60, 0], [50, 0], [50, 40]); b.wire([60, 20], [50, 20]); b.wire([20, 40], [50, 40]);
-      b.wire([50, 100], [50, 130]); b.wire([140, 20], [160, 20]); b.wire([160, 80], [160, 110]); b.wire([100, 50], [100, 80]);
-      b.wire([140, 0], [170, 0]); b.wire([230, 60], [230, 90]);
+      b.wire([-10, -120], [-10, -110]); b.wire([-10, -50], [-10, -20], [60, -20]);
+      b.wire([60, 0], [50, 0], [50, 40]); b.wire([60, 20], [50, 20]); b.wire([-10, 40], [50, 40]);
+      b.wire([50, 100], [50, 130]); b.wire([140, 20], [190, 20], [190, 30]); b.wire([190, 90], [190, 120]); b.wire([100, 50], [100, 80]);
+      b.wire([140, 0], [210, 0]); b.wire([270, 60], [270, 90]);
       b.label('THR', 50, 10); b.label('OUT', 150, 0);
       b.v(50, 30); b.v(160, 0); b.i(d, '2');
       b.sim({ type: 'tran', stop: '3', step: '1m', start: 'zero' });

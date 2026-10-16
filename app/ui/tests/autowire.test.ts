@@ -2,7 +2,7 @@
 // designs are real drawings (wires, no overlapping parts, terminals, packages).
 import { describe, expect, it } from 'vitest';
 import { autowire, pinPartition } from '../src/eda/autowire';
-import { stabiliser } from '../src/eda/powerExamples';
+import { changeover1, changeover3, mpptCharger, stabiliser } from '../src/eda/powerExamples';
 import { buildBom } from '../src/eda/bom';
 import { erc } from '../src/eda/erc';
 import { partBounds, pinPositions } from '../src/eda/schematic';
@@ -62,5 +62,19 @@ describe('the stabiliser is a real circuit diagram (D28)', () => {
   it('the 12 V control supply is part of the design (no ideal source inside the product)', () => {
     expect(sheet.parts.filter((p) => p.sym === 'vdc')).toEqual([]);
     expect(sheet.parts.some((p) => p.sym === 'lm317' && p.props.value === 'LM317HV')).toBe(true);
+  });
+});
+
+describe('every power design is a real circuit diagram (D28)', () => {
+  const designs: [string, () => Sheet][] = [['change-over 1P', () => changeover1().sheet], ['change-over 3P+N', () => changeover3().sheet], ['stabiliser', () => stabiliser().sheet], ['MPPT charger', () => mpptCharger().sheet]];
+  for (const [name, build] of designs) it(`${name}: wired, no label on a pin, no overlapping parts, ERC clean, no ideal supply inside`, () => {
+    const sheet = build();
+    expect(sheet.wires.length).toBeGreaterThan(300);
+    const pins = new Set(sheet.parts.filter((p) => !symbolOf(p.sym).power).flatMap((p) => pinPositions(p).map((q) => `${q.at.x},${q.at.y}`)));
+    expect(sheet.labels.filter((l) => !l.note && pins.has(`${l.x},${l.y}`)).map((l) => l.name)).toEqual([]);
+    expect(overlaps(sheet)).toEqual([]);
+    expect(erc(sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
+    expect(sheet.parts.filter((p) => p.sym === 'vdc').map((p) => p.ref)).toEqual([]);
+    expect(sheet.parts.filter((p) => p.sym === 'terminal').length).toBeGreaterThanOrEqual(4);
   });
 });

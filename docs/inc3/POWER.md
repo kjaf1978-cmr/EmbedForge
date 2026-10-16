@@ -123,6 +123,39 @@ discharged the delay capacitor (16 mA allowed): a 2.2k in the discharge path and
 FAULT LED bring it to 13 mA. The simulation engine now solves with a sparse LU (lists of the
 non-zeros per row and column), about twice as fast for the power designs.
 
+### The other power designs redrawn (D28) and the design document (D29)
+
+The change-overs (1P and 3P+N) and the MPPT charger are drawn the same way as the stabiliser:
+wired blocks, power symbols, terminals, packages as bought, no overlapping parts (tests).
+
+- **Change-overs:** the 24 V control supply is built from both sources (a 230/27 V transformer
+  and bridge on each, in parallel, then the LM317HV), so the controller runs on whichever
+  source is present. Product timing in the drawing: return delay 10 µF, dead time 680 nF; the
+  tests use 100 nF and 68 nF.
+- **MPPT charger:** the 12 V auxiliary supply comes from the PV input (22k, BZX55C13, MJE340
+  emitter follower, 100 µF), so it is alive whenever there is sun. The battery switch QB2 now
+  takes its gate drive from the battery terminal through 470k / 1M, a zener and the
+  optocoupler OPB; with the earlier drive from the auxiliary rail, a reversed battery could
+  draw 32 A through the body diode. The FAULT latch is reset by opening the PV isolator (at
+  night it resets by itself).
+- **Rails:** a rail counts as driven when a regulator output is on its net. Before, the
+  simulation could treat a drawn rail as an ideal source. All tests were run again after
+  this fix.
+
+**Design document (D29):** Export → "Design document (.pdf)" or "(Word .docx)" gives:
+- the description
+- the schematic as vector graphics: an A3 overview, then enlarged tiles A1, A2 …, printable
+  at any scale
+- the costed bill of materials: manufacturer part number, distributors with order numbers,
+  and the price for 1 and for 100 pieces
+- the reliability prediction
+- the design's DFMEA, maintenance and FAQ at the end
+
+The Parts tab shows the same catalogue columns and the total, and its CSV export includes
+them. Prices are estimates as of October 2026, not live quotes (each line says so); check
+them with the distributor before ordering. The battery fuse is a Class T 160 V DC
+(JJN-100), not a 32 V automotive fuse.
+
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a

@@ -46,7 +46,7 @@ describe('smoke analysis (stress check)', () => {
     for (const ex of EXAMPLES) {
       const b = ex.build();
       // the charger's 90 ms run takes minutes: its start-up here, its steady state in charger*.test.ts (hot case)
-      const s = ex.id === 'mppt-charger' ? { ...b, sim: { ...b.sim, stop: '10m' } as typeof b.sim } : ex.id === 'stabiliser' ? { ...b, sim: { ...b.sim, stop: '1' } as typeof b.sim } : b;
+      const s = ex.id === 'mppt-charger' ? { ...b, sim: { ...b.sim, stop: '10m' } as typeof b.sim } : ex.id === 'stabiliser' ? { ...b, sim: { ...b.sim, stop: '1' } as typeof b.sim } : ex.id.startsWith('changeover') ? { ...b, sim: { ...b.sim, stop: '0.5' } as typeof b.sim } : b;
       if (s.sim.type === 'ac') continue;
       const res = smoke(s, connectivity(s), simulate(s) as SimResult);
       expect(res.rows.filter((r) => r.status === 'over').map((r) => `${r.ref} ${r.what} ${Math.round(r.pct)} %`), ex.id).toEqual([]);

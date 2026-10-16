@@ -24,7 +24,7 @@ daylight.
 | Stabiliser | OUTPUT (green) | the load is connected | waiting for the restart delay (about 8 s) or cut off |
 | Stabiliser | FAULT (red) | the 230 V tap is outside 190 … 255 V: the output protection holds the load off | output in range |
 | Charger | CHARGING (green) | charge current above about 6 A flows | no or low charge current (night, weak sun, battery full) |
-| Charger | FAULT (red) | the independent overvoltage protection has tripped (the output stayed above 57.6 V, 3.6 V per cell): the battery and the array are cut off until the power is removed | normal |
+| Charger | FAULT (red) | the independent overvoltage protection has tripped (the output stayed above 57.6 V, 3.6 V per cell): the battery and the array are cut off until the array's voltage disappears (at night, or with the PV isolator open for 1 minute); with a fault that persists it trips again at the next start | normal |
 
 Normal states: change-over with healthy mains: only ON MAINS. Change-over on generator: ON
 BACK-UP, and one red LED telling why the mains was rejected. Stabiliser: one or more yellow
@@ -95,7 +95,7 @@ very unstable supply; the 30 A relays are rated for more than 4 million changes.
 
 **The charger does not charge although the sun is shining.** Check in order: battery
 temperature (no charging below 0 °C or above 50 °C), heatsink temperature (stop above
-90 °C), FAULT LED (overvoltage latch: switch the battery and PV off for 1 minute), PV polarity
+90 °C), FAULT LED (overvoltage latch: open the PV isolator for 1 minute; the control is supplied from the array, so the latch also resets at night), PV polarity
 and voltage, battery fuse (100 A). An open or shorted battery temperature sensor also stops
 the charging, on purpose.
 
@@ -120,6 +120,6 @@ interaction. Size them from the table in the example's notes.
 "Planned maintenance". Film capacitors are used where electrolytics would dry out in a hot
 climate.
 
-**How long does a unit last?** The predicted MTBF at 45 °C is 70 to 116 years for random
+**How long does a unit last?** The predicted MTBF at 45 °C is 80 to 115 years for random
 failures (Reliability tab in the app); in practice the installation (terminals, water,
 insects, surges) decides, which is why the inspections above matter.

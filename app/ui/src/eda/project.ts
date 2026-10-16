@@ -38,6 +38,7 @@ export function toFiles(name: string, sheet: Sheet): ProjectFiles {
           ...(sheet.step ? { step: sheet.step } : {}),
           ...(sheet.mc ? { mc: sheet.mc } : {}),
           ...(sheet.temp ? { temp: sheet.temp } : {}),
+          ...(sheet.info ? { info: sheet.info } : {}),
         },
         ...(sheet.board ? { pcb: sheet.board } : {}),
       },
@@ -79,6 +80,7 @@ export function fromFiles(files: Partial<ProjectFiles>): Loaded {
   if (geo.step) sheet.step = geo.step as Sheet['step'];
   if (geo.mc) sheet.mc = geo.mc as Sheet['mc'];
   if (typeof geo.temp === 'string') sheet.temp = geo.temp;
+  if (geo.info && typeof geo.info === 'object') sheet.info = geo.info as Sheet['info'];
   if (views?.pcb && typeof views.pcb === 'object') sheet.board = views.pcb as Sheet['board'];
   if (net) {
     const d = diffNetlist(net as Netlist, buildNetlist(sheet));

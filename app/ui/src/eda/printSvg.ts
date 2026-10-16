@@ -18,11 +18,11 @@ function gfxSvg(g: Gfx): string {
 }
 
 /** The sheet as SVG; `title` goes into a title block at the bottom right. */
-export function sheetSvg(sheet: Sheet, title = ''): string {
+export function sheetSvg(sheet: Sheet, title = '', view?: { x0: number; y0: number; w: number; h: number }): string {
   const conn = connectivity(sheet);
   const b = sheetBounds(sheet) ?? { x0: -100, y0: -100, x1: 100, y1: 100 };
-  const pad = 40, tb = title ? 40 : 0;
-  const x0 = b.x0 - pad, y0 = b.y0 - pad, w = b.x1 - b.x0 + 2 * pad, h = b.y1 - b.y0 + 2 * pad + tb;
+  const pad = 40, tb = title && !view ? 40 : 0;
+  const x0 = view?.x0 ?? b.x0 - pad, y0 = view?.y0 ?? b.y0 - pad, w = view?.w ?? b.x1 - b.x0 + 2 * pad, h = view?.h ?? b.y1 - b.y0 + 2 * pad + tb;
   const out: string[] = [];
   out.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}" font-family="Arial, Helvetica, sans-serif">`);
@@ -47,7 +47,7 @@ export function sheetSvg(sheet: Sheet, title = ''): string {
     if (l.note) out.push(`<text x="${l.x}" y="${l.y - 2}" font-size="10" fill="${NOTE}">${esc(l.name)}</text>`);
     else out.push(`<rect x="${l.x - 1.5}" y="${l.y - 1.5}" width="3" height="3" fill="${LABEL}"/><text x="${l.x + 3}" y="${l.y - 4}" font-size="8" fill="${LABEL}">${esc(l.name)}</text>`);
   }
-  if (title) {
+  if (tb) {
     const tx = x0 + w - 320, ty = y0 + h - tb;
     out.push(`<rect x="${tx}" y="${ty}" width="310" height="${tb - 8}" fill="none" stroke="${INK}"/><text x="${tx + 8}" y="${ty + 20}" font-size="12" fill="${INK}">${esc(title)}</text>`);
   }

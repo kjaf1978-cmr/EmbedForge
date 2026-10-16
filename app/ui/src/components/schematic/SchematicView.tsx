@@ -16,7 +16,27 @@ import { connectivity, netAt } from '../../eda/connectivity';
 import { erc, type ErcIssue } from '../../eda/erc';
 import { buildNetlist, describeDiff, diffNetlist } from '../../eda/netlist';
 import { sweepTargets } from '../../eda/simnet';
-import { bomCsv, buildBom } from '../../eda/bom';
+import { buildBom } from '../../eda/bom';
+import { costedBom, costedCsv, PRICE_NOTE } from '../../eda/catalogue';
+import fontRegularUrl from 'dejavu-fonts-ttf/ttf/DejaVuSans.ttf?url';
+import fontBoldUrl from 'dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf?url';
+
+declare const __APP_VERSION__: string;
+const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '';
+const fetchBytes = async (url: string) => new Uint8Array(await (await fetch(url)).arrayBuffer());
+/** An SVG drawn on a canvas as PNG: the fallback image of the Word document's vector pages. */
+async function svgToPng(svg: string, width: number, height: number): Promise<Uint8Array> {
+  // a data: URL (the app's content security policy allows data: images, not blob: ones)
+  const url = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+  {
+    const img = new Image();
+    await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('SVG image')); img.src = url; });
+    const cv = document.createElement('canvas'); cv.width = width; cv.height = height;
+    const g = cv.getContext('2d')!; g.fillStyle = '#ffffff'; g.fillRect(0, 0, width, height); g.drawImage(img, 0, 0, width, height);
+    const blob: Blob | null = await new Promise((res) => cv.toBlob(res, 'image/png'));
+    return new Uint8Array(await blob!.arrayBuffer());
+  }
+}
 import { importModel } from '../../eda/spicemodel';
 import { reliability } from '../../eda/reliability';
 import { smoke } from '../../eda/smoke';
@@ -72,6 +92,8 @@ export const EDITOR_COMMANDS: { id: string; title: string; key: string }[] = [
   { id: 'export-png', title: 'Export schematic as PNG', key: '' },
   { id: 'export-spice', title: 'Export SPICE netlist', key: '' },
   { id: 'export-bom', title: 'Export bill of materials (CSV)', key: '' },
+  { id: 'export-doc-pdf', title: 'Export design document (PDF)', key: '' },
+  { id: 'export-doc-docx', title: 'Export design document (Word)', key: '' },
   { id: 'print', title: 'Print schematic', key: '' },
   { id: 'escape', title: 'Cancel tool / clear selection', key: 'Esc' },
   { id: 'layout-below', title: 'Layout: results below the schematic (tile horizontally)', key: 'Ctrl+Alt+↓' },
@@ -463,6 +485,8 @@ export function SchematicView(props: Props) {
       case 'export-png': void exportPng(); break;
       case 'export-spice': void exportSpice(); break;
       case 'export-bom': void exportBom(); break;
+      case 'export-doc-pdf': void exportDoc('pdf'); break;
+      case 'export-doc-docx': void exportDoc('docx'); break;
       case 'print': window.print(); break;
       case 'escape':
         if (wirePts.length) setWirePts([]);
@@ -864,7 +888,22 @@ export function SchematicView(props: Props) {
   };
   const exportBom = async () => {
     setTab('bom');
-    await report(props.exportFile(`${baseName}-bom.csv`, bomCsv(buildBom(sheet)), 'text/csv'));
+    await report(props.exportFile(`${baseName}-bom.csv`, costedCsv(costedBom(buildBom(sheet)).lines), 'text/csv'));
+  };
+  // design document (D29): description, vector schematic, costed parts list, documentation
+  const exportDoc = async (kind: 'pdf' | 'docx') => {
+    announce('Preparing the design document…');
+    try {
+      const { designDoc } = await import('../../eda/designDoc');
+      const doc = designDoc(sheet, props.name || 'Schematic', APP_VERSION);
+      if (kind === 'pdf') {
+        const [{ designPdf }, regular, bold] = await Promise.all([import('../../eda/docPdf'), fetchBytes(fontRegularUrl), fetchBytes(fontBoldUrl)]);
+        await report(props.exportFile(`${baseName}-design.pdf`, await designPdf(doc, { regular, bold }), 'application/pdf'));
+      } else {
+        const { designDocx } = await import('../../eda/docDocx');
+        await report(props.exportFile(`${baseName}-design.docx`, await designDocx(doc, svgToPng), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+      }
+    } catch (e) { announce(`Design document failed: ${(e as Error).message}`); }
   };
   const exportSpice = async () => {
     const t = schematicSpice(sheet, props.name || 'NETApps schematic');
@@ -978,6 +1017,8 @@ export function SchematicView(props: Props) {
             <button onClick={() => run('export-png')}>Schematic as PNG</button>
             <button onClick={() => run('export-spice')}>SPICE netlist (.cir)</button>
             <button onClick={() => run('export-bom')}>Bill of materials (.csv)</button>
+            <button onClick={() => run('export-doc-pdf')}>Design document (.pdf)</button>
+            <button onClick={() => run('export-doc-docx')}>Design document (Word .docx)</button>
             <button onClick={() => void exportCsv()} disabled={!ok || ok.analysis === 'op'}>Waveforms as CSV</button>
             <button onClick={() => run('print')}>Print…</button>
           </div>
@@ -1754,25 +1795,29 @@ function ReliabilityPanel({ sheet, result, ambient, setAmbient, onPick }: { shee
 }
 
 function BomPanel({ sheet, onExport, onPick }: { sheet: Sheet; onExport: () => void; onPick: (ref: string) => void }) {
-  const lines = useMemo(() => buildBom(sheet), [sheet]);
+  const costed = useMemo(() => costedBom(buildBom(sheet)), [sheet]);
+  const lines = costed.lines;
   if (!lines.length) return <p class="small muted">No parts yet.</p>;
   const total = lines.reduce((a, l) => a + l.qty, 0);
   return (
     <div class="bom">
-      <div class="row"><strong>{total} parts, {lines.length} lines</strong><button onClick={onExport}>Export CSV</button></div>
+      <div class="row"><strong>{total} parts, {lines.length} lines · components € {costed.total.toFixed(2)}{costed.missing ? ` (${costed.missing} lines without a price)` : ''}</strong><button onClick={onExport}>Export CSV</button></div>
       <table class="plot-table">
-        <thead><tr><th>Qty</th><th>References</th><th>Part</th><th>Value</th><th>Details</th></tr></thead>
+        <thead><tr><th>Qty</th><th>References</th><th>Part</th><th>Value</th><th>Details</th><th>Manufacturer and part number</th><th>Where to buy</th><th>€ each</th><th>€ total</th></tr></thead>
         <tbody>
           {lines.map((l) => (
             <tr key={l.refs.join(' ')}>
               <td>{l.qty}</td>
               <td>{l.refs.map((r, k) => <span key={r}>{k ? ', ' : ''}<button class="link" onClick={() => onPick(r)}>{r}</button></span>)}</td>
               <td>{l.part}</td><td>{l.value}</td><td class="small">{l.details}</td>
+              <td class="small">{l.cat ? `${l.cat.maker}: ${l.cat.mpn}` : '—'}</td>
+              <td class="small">{l.cat ? l.cat.offers.map((o) => (o.sku ? `${o.distributor} ${o.sku}` : o.distributor)).join('; ') : '—'}</td>
+              <td>{l.unit === null ? '—' : l.unit.toFixed(2)}{l.cat?.basis === 'estimate' ? '*' : ''}</td><td>{l.total === null ? '—' : l.total.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p class="small muted">Generic library parts: the parts catalogue with manufacturer part numbers arrives in Increment 6.</p>
+      <p class="small muted">{PRICE_NOTE} * estimate. Test-bench parts (sources, loads, PV array, battery) are not listed. Export the design document (PDF or Word) from the Export menu.</p>
     </div>
   );
 }

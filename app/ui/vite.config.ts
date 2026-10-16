@@ -9,7 +9,8 @@ export default defineConfig({
   plugins: [preact()],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   clearScreen: false,
-  server: { port: 1420, strictPort: true },
+  // the design documents include the project's DFMEA and reliability texts from ../../docs
+  server: { port: 1420, strictPort: true, fs: { allow: ['.', '../../docs'] } },
   build: { target: 'es2022', outDir: 'dist', assetsInlineLimit: 0 },
   test: { environment: 'jsdom', include: ['tests/**/*.test.ts'] },
 });

@@ -35,10 +35,14 @@ Use: change-over 20 transfers a day; stabiliser 200 tap changes a day (a very un
 
 | Design | Parts | Solder joints | FIT at 45 °C | MTBF at 45 °C | MTBF at 50 °C |
 |---|---|---|---|---|---|
-| Change-over 1P | 77 | 206 | 988 | 116 years | 96 years |
-| Change-over 3P+N | 115 | 323 | 1604 | 71 years | 59 years |
-| Stabiliser 1 kVA | 131 | 333 | 1252 | 91 years | 77 years |
-| MPPT charger 3.7 kW | 135 | 341 | 1392 | 82 years | 65 years |
+| Change-over 1P | 105 | 262 | 995 | 115 years | 97 years |
+| Change-over 3P+N | 146 | 362 | 1335 | 85 years | 72 years |
+| Stabiliser 1 kVA | 158 | 377 | 1123 | 102 years | 87 years |
+| MPPT charger 3.7 kW | 159 | 381 | 1420 | 80 years | 64 years |
+
+The figures are for the wired product drawings (D28): the auxiliary supplies, protection and
+terminals are counted, the test-bench parts (sources, loads, battery model) are not, and parts
+of one multi-unit package (LM339, LM393, LM358) share one package failure rate and its joints.
 
 Every design exceeds the required 5 years by more than ten times, also at 50 °C. The largest
 contributors are the contactors and breakers (change-over), the autotransformer and the

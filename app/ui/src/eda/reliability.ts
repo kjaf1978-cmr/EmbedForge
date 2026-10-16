@@ -108,7 +108,7 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
   const wear: WearItem[] = [];
   for (const p of sheet.parts) {
     const s = symbolOf(p.sym);
-    if (s.power || OUTSIDE.has(p.sym)) continue;
+    if (s.power || OUTSIDE.has(p.sym) || p.props.scope === 'test') continue;
     const model = p.props[s.value.key] ?? '';
     const th = THERMAL[model];
     const cls = th && (p.sym === 'nmos' || p.sym === 'pmos' || p.sym === 'diode' || p.sym === 'igbt') ? POWER_DEVICE : CLASS[p.sym] ?? LOGIC;
@@ -129,7 +129,8 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
       wear.push({ ref: p.ref, what: 'electrolytic capacitor, 105 °C 10 000 h', life: `${Math.round(hours).toLocaleString('en')} h`, years, action: years >= 15 ? 'none in the product life' : `replace every ${Math.floor(years * 0.8)} years` });
     }
     if (p.sym === 'relay' || p.sym === 'contactor') {
-      const ops = usage.opsPerDay?.[p.ref] ?? 20, life = usage.contactLife?.[p.ref] ?? (p.sym === 'contactor' ? 1e6 : 1e5);
+      // the design states a part's use (props opsday, life) where it differs from the default
+      const ops = usage.opsPerDay?.[p.ref] ?? (Number(p.props.opsday) || 20), life = usage.contactLife?.[p.ref] ?? (Number(p.props.life) || (p.sym === 'contactor' ? 1e6 : 1e5));
       const years = life / (ops * 365);
       wear.push({ ref: p.ref, what: `${p.sym} contacts, ${life.toLocaleString('en')} operations at their load, ${ops} a day`, life: `${life.toLocaleString('en')} operations`, years, action: years >= 15 ? 'none in the product life; check contacts at each service' : `replace every ${Math.max(1, Math.floor(years * 0.8))} years` });
     }
@@ -140,7 +141,7 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
   }
   const piE = usage.piE ?? 2;
   const seenPkg = new Set<string>();
-  const joints = sheet.parts.filter((p) => !symbolOf(p.sym).power && !OUTSIDE.has(p.sym)).reduce((a, p) => {
+  const joints = sheet.parts.filter((p) => !symbolOf(p.sym).power && !OUTSIDE.has(p.sym) && p.props.scope !== 'test').reduce((a, p) => {
     if (!p.props.pkg) return a + symbolOf(p.sym).pins.length;
     const k = packageRef(p);
     if (seenPkg.has(k)) return a;

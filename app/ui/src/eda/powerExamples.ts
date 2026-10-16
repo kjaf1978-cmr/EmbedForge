@@ -10,6 +10,9 @@ import type { Example } from './examples';
 
 const COLOURS = ['#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e', '#17becf'];
 
+/** Blocks that hold the test bench: their parts are marked scope=test (not in the product's BOM). */
+const TEST_BLOCKS = new Set(['bench', 'load', 'battery']);
+
 /** Netlist-style sheet builder: parts at given positions, nets as labels on their pins. */
 export class NB {
   s = emptySheet();
@@ -20,10 +23,13 @@ export class NB {
   private blocks = new Map<string, string>();
   /** When set, `done()` draws the circuit with wires (autowire) instead of labels on every pin. */
   wired: AutowireOptions | null = null;
+  /** Connections the drawing could not wire (they are joined by labels instead). */
+  unrouted: string[] = [];
   block(name: string): this { this.cur = name; return this; }
   /** Places a part; `key` names it for probes and sweeps (its reference comes from annotation). */
   part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0, mirror = false): this {
-    const r = placePart(this.s, sym, { x, y }, rot, mirror, props);
+    // parts of the test bench (sources, loads, the array, the battery) are not part of the product
+    const r = placePart(this.s, sym, { x, y }, rot, mirror, TEST_BLOCKS.has(this.cur) ? { ...props, scope: 'test' } : props);
     this.s = r.sheet;
     this.ids.set(key, r.id);
     this.blocks.set(r.id, this.cur);
@@ -71,7 +77,7 @@ export class NB {
   /** The annotated sheet, with an optional parameter sweep of a part property (by key). */
   done(step?: { key: string; param?: string; list: string }): Sheet {
     let s = annotate(this.s);
-    if (this.wired) s = autowire(s, { ...this.wired, block: (p) => this.blocks.get(p.id) ?? '' }).sheet;
+    if (this.wired) { const w = autowire(s, { ...this.wired, block: (p) => this.blocks.get(p.id) ?? '' }); s = w.sheet; this.unrouted = w.failed; }
     if (step) {
       const ref = s.parts.find((p) => p.id === this.ids.get(step.key))!.ref;
       const sw: StepSweep = { on: true, ref, param: step.param ?? 'value', mode: 'list', list: step.list, start: '', stop: '', step: '' };
@@ -482,7 +488,8 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
       .part(`D${n}`, 'diode', x + 170, 330, { value: '1N4148' }, { '2': `K${n}`, '1': V }, 3)
       // 30 A relays for a 4.5 A load: contact wear, the main field failure of stabilisers, falls
       // with about the square of the margin (more than 1 million operations here)
-      .part(`K${n}`, 'relay', x + 220, 330, { value: '12 V 30 A' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
+      // a weak tropical grid: 200 tap changes a day; 4.4 million operations at a 4.5 A load
+      .part(`K${n}`, 'relay', x + 220, 330, { value: '12 V 30 A', opsday: '200', life: '4400000' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
       // diagnostics: an LED beside each coil shows which relay is energised
       .part(`LK${n}`, 'led', x + 120, 250, { colour: 'yellow' }, { '2': V, '1': `LKA${n}` }, 1)
       .part(`RLK${n}`, 'resistor', x + 120, 340, { value: '2.2k' }, { '1': `LKA${n}`, '2': `K${n}` }, 1)
@@ -515,7 +522,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RBD', 'resistor', 2970, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3000, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
     .part('DD', 'diode', 3050, 410, { value: '1N4148' }, { '2': 'KD', '1': V }, 3)
-    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A' }, { '1': V, '2': 'KD', '3': 'T5', '5': 'OUT' })
+    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KD', '3': 'T5', '5': 'OUT' })
     .part('LKO', 'led', 3190, 280, { colour: 'green' }, { '2': V, '1': 'LKOA' }, 1)
     .part('RLKO', 'resistor', 3190, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
     .part('X4', 'terminal', 3380, 600, { value: 'L out' }, { '1': 'OUT' }, 2)
@@ -566,8 +573,6 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
 /** `tbat`, `theatsink`: temperatures of the battery and the heatsink at their NTC sensors (°C). */
 export interface ChargerOptions {
   g?: number; vbat?: number; stop?: string; comp?: { rf: string; cf: string }; temp?: number; timerC?: string; tbat?: number; theatsink?: number;
-  /** Auxiliary supply voltage (in the product fed from the battery through a diode: 0 with a reversed battery). */
-  aux?: number;
   /** Reversed battery or PV array (fault cases). */
   batteryReversed?: boolean; pvReversed?: boolean;
   /** The battery's BMS opens its contactor at this time (s), during charging (fault case). */
@@ -588,7 +593,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   const HS = '1.5';
   const nb = new NB();
   // V12: the 12 V control supply (from the PV input); VREF, VREF2: control and protection references
-  nb.wired = { rails: ['V12'], labelled: ['PVP', 'VREF', 'VREF2', 'VO', 'BN', 'BF', 'BDN', 'FLT', 'FLT2', 'LFA2', 'GPV', 'SPV', 'ISA', 'ISF', 'IREF', 'VPS', 'VBS', 'VSET', 'RUN', 'PWM', 'SW', 'G1', 'VCMD', 'GD', 'GB', 'GB2', 'NBT'] };
+  nb.wired = { rails: ['V12'], labelled: ['PVP', 'VREF', 'VREF2', 'VO', 'BN', 'BF', 'BDN', 'FLT', 'FLT2', 'LFA2', 'GPV', 'SPV', 'ISA', 'ISF', 'IREF', 'VPS', 'VBS', 'VSET', 'RUN', 'PWM', 'SW', 'G1', 'VCMD', 'GD', 'GB', 'GB2', 'NBT', 'LFB', 'BATP'] };
   nb.para('MPPT SOLAR CHARGER, one 3.7 kW unit: 9 × 410 Wp (3 in series, 3 strings) into a 48 V LiFePO4 battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH, film capacitors), a 100 A battery fuse and an ideal diode in the battery\'s negative lead. The control is supplied from the PV input (it works whenever there is sun to convert).', -1600, -300)
     .para('Control from discrete parts: 555 ramp and LM393 PWM comparator, IR2184-type driver with bootstrap; average current-mode control: an inner current loop, its reference (80 A at most) lowered by the MPPT loop (PV held at 0.826 × its open-circuit voltage, sampled every 10 s) and the CV loop (battery at most 56.6 V, 3.54 V per cell).', -100, -300)
     .para('Protections (DFMEA): reversed PV or battery, reverse current, battery cut off by its BMS (fast stop, TVS), independent overvoltage latch at 57.6 V (Q1 shorted), battery 0 … 50 °C, heatsink 90 °C, surge varistor. LEDs: CHARGING, FAULT. Sizing: 5 kWh: RLIM 15k (48 A); 10 kWh: 1 unit; 15–20 kWh: 2 units; 30 kWh: 3 units, each with its own array and battery fuse.', 1400, -300);
@@ -657,12 +662,13 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   // BN, which sits up to 52 V below GND while the output capacitors are still empty: a gate
   // driven against GND would turn QB on there and let the battery discharge into COUT)
   nb.block('bdrive')
-    .part('QD2', 'pnp', 300, 760, { value: 'BD140' }, { '1': 'BQ2', '2': 'GD2', '3': 'V12' })
-    .part('RBQ2', 'resistor', 180, 760, { value: '47k' }, { '1': 'FLT', '2': 'BQ2' })
-    .part('RBEQ2', 'resistor', 250, 690, { value: '10k' }, { '1': 'V12', '2': 'BQ2' }, 1)
-    .part('RGD2', 'resistor', 310, 850, { value: '47k' }, { '1': 'GD2', '2': 'GB2' }, 1)
-    .part('RGS2', 'resistor', 380, 940, { value: '100k' }, { '1': 'GB2', '2': 'BN' }, 1)
-    .part('DZB2', 'zener', 450, 940, { value: 'BZX55C12' }, { '1': 'GB2', '2': 'BN' }, 3)
+    // QB2's gate is fed from the battery's own + terminal: a battery connected the wrong way
+    // round can never turn it on, whatever the control does; on a fault the second
+    // optocoupler (in series with the first and the FAULT LED) holds the gate at the source
+    .part('RGB2', 'resistor', 300, 760, { value: '470k' }, { '1': o.bmsOpenAt ? 'BMSI' : 'BATP', '2': 'GB2' }, 1)
+    .part('RGS2', 'resistor', 380, 860, { value: '1M' }, { '1': 'GB2', '2': 'BN' }, 1)
+    .part('DZB2', 'zener', 450, 860, { value: 'BZX55C12' }, { '1': 'GB2', '2': 'BN' }, 3)
+    .part('OPB', 'opto', 600, 860, { value: 'PC817' }, { '1': 'LFA2', '2': 'LFB', '4': 'GB2', '3': 'BN' }, 0, true)
     // QB on above about 6 A: the current filtered over 1 ms, so the switching ripple does not toggle it
     .part('RIF', 'resistor', -600, 800, { value: '10k' }, { '1': 'ISA', '2': 'ISF' })
     .part('CIF', 'capacitor', -520, 870, { value: '100n', vmax: '50' }, { '1': 'ISF', '2': 'GND' }, 1)
@@ -699,7 +705,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     // shorted Q1 drives current into the battery, while after a BMS cut-off the output
     // capacitors merely keep their charge, which must not latch the charger off
     .part('COV', 'capacitor', 900, 1320, { value: '1u', vmax: '50' }, { '1': 'VOS2', '2': 'GND' }, 1)
-    .part('RNC', 'resistor', 830, 1450, { value: '10k' }, { '1': 'VOS2', '2': 'CNC' }, 1)
+    .part('RNC', 'resistor', 690, 1450, { value: '10k' }, { '1': 'VOS2', '2': 'CNC' }, 1)
     .part('QNC', 'npn', 880, 1560, { value: 'BC547B' }, { '1': 'BNC', '2': 'CNC', '3': 'GND' })
     .part('RBNC', 'resistor', 760, 1560, { value: '100k' }, { '1': 'BDN', '2': 'BNC' })
     // once latched, QNL keeps QNC off, so the disarming cannot release the latch
@@ -708,12 +714,12 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('U13', 'comparator', 1080, 1260, { value: 'LM393', pkg: 'PROT1' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT', '8': 'V12', '4': 'GND' })
     .part('RFLT', 'resistor', 1170, 1200, { value: '4.7k' }, { '1': 'V12', '2': 'FLT' }, 1)
     .part('DLAT', 'diode', 1080, 1370, { value: '1N4148' }, { '2': 'FLT', '1': 'LAT' }, 2)
-    .part('RLAT', 'resistor', 960, 1370, { value: '47k' }, { '1': 'LAT', '2': 'VOS2' })
+    .part('RLAT', 'resistor', 960, 1370, { value: '47k' }, { '1': 'VOS2', '2': 'LAT' })
     // a second comparator of U13 drives the optocoupler and the FAULT LED in series, so the
     // fault line FLT itself carries no load (a loaded pull-up kept QD2, and QB2, on)
     .part('U13B', 'comparator', 1080, 1500, { value: 'LM393', pkg: 'PROT1' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT2', '8': 'V12', '4': 'GND' })
     .part('RFL2', 'resistor', 1170, 1440, { value: '2.2k' }, { '1': 'V12', '2': 'FLT2' }, 1)
-    .part('LEDF', 'led', 1250, 1560, { colour: 'red' }, { '2': 'LFA2', '1': 'LFK' }, 1)
+    .part('LEDF', 'led', 1250, 1560, { colour: 'red' }, { '2': 'LFB', '1': 'LFK' }, 1)
     .part('RLF2', 'resistor', 1250, 1650, { value: '1k' }, { '1': 'LFK', '2': 'GND' }, 1)
     .part('RFS1', 'resistor', 1350, 1250, { value: '226k' }, { '1': 'VO', '2': 'VOS3' })
     .part('RFS2', 'resistor', 1430, 1320, { value: '10k' }, { '1': 'VOS3', '2': 'GND' }, 1)
@@ -992,29 +998,35 @@ export function inverter1(o: InverterOptions = {}): { sheet: Sheet; nb: NB } {
   return { sheet, nb };
 }
 
+/** The sheet of a power example with its design information (title, summary, documentation). */
+function withInfo(sheet: Sheet, id: string, docs: string[]): Sheet {
+  const ex = POWER_EXAMPLES.find((e) => e.id === id)!;
+  return { ...sheet, info: { title: ex.title, summary: ex.summary, docs } };
+}
+
 export const POWER_EXAMPLES: Example[] = [
   {
     id: 'changeover-1p', title: 'Mains / back-up change-over with voltage protection (single-phase)', level: 'advanced',
     summary: 'The load runs from the mains while it stays within 195–253 V, otherwise from a back-up source (generator or inverter). Designed from catalogue parts: sense transformer, bridge, LM393 window comparator, TL431 reference, MOSFET drivers and two interlocked 24 V DC contactors.',
     tryThis: 'Simulate: the parameter sweep runs the mains at 180, 230 and 270 V. At 230 V K1 connects the mains (I(K1.1)); at 180 and 270 V K2 connects the back-up. Change the mains source to 340 (240 V) to see it stay on the mains.',
-    build: () => changeover1().sheet,
+    build: () => withInfo(changeover1().sheet, 'changeover-1p', ['dfmea:2. Change-over', 'reliability', 'help:power-maintenance']),
   },
   {
     id: 'changeover-3p', title: 'Mains / back-up change-over with phase monitoring (3P+N)', level: 'advanced',
     summary: 'A three-phase load runs from the mains while every phase stays within 195–253 V and none is more than about 10 % below the highest; a lost phase, an over- or undervoltage or an asymmetry switches it to a three-phase back-up source. Four-pole contactors switch L1, L2, L3 and N; nine LM339 comparators watch the three phases.',
     tryThis: 'Simulate: K1 connects the mains (I(K1.1)). Set the L3 source V3 to 254 (180 V r.m.s.) or to 0 (phase lost) and simulate again: K2 takes over. Set it to 286 (202 V): inside the voltage window, but 12 % below the other phases, so the asymmetry trips.',
-    build: () => changeover3().sheet,
+    build: () => withInfo(changeover3().sheet, 'changeover-3p', ['dfmea:2. Change-over', 'reliability', 'help:power-maintenance']),
   },
   {
     id: 'stabiliser', title: 'Mains voltage stabiliser, relay-switched taps (1 kVA)', level: 'advanced',
     summary: 'Keeps a 1 kVA load near 230 V for inputs of 140–300 V: the input is switched to one of seven autotransformer taps by a chain of six 12 V relays under LM339 comparator control. Drawn as the product: screw terminals, breaker and surge arrester, a 12 V control supply from the mains (transformer, bridge, LM317HV), the tap relays with contact snubbers, an output relay with a restart delay, and an independent output protection. The test supply and load are drawn outside the product.',
     tryThis: 'Simulate (9 s of circuit time, 2–3 minutes): the restart delay holds the output off for about 8 s, then OUT follows the input through the 230 V tap. Set the input source V1 to 255 (180 V r.m.s.) or 382 (270 V): another tap is chosen and OUT stays within about ±6 % of 230 V. Watch SF cross the thresholds N1 … N6.',
-    build: () => stabiliser().sheet,
+    build: () => withInfo(stabiliser().sheet, 'stabiliser', ['dfmea:3. Mains voltage stabiliser', 'reliability', 'help:power-maintenance']),
   },
   {
     id: 'mppt-charger', title: 'MPPT solar charger for a 48 V LiFePO₄ battery (3.7 kW)', level: 'advanced',
     summary: 'A 9-module PV array (3 × 3 × 410 Wp, Voc up to 120 V) charges a 16-cell LiFePO₄ battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH): fractional-Voc maximum power point tracking, 80 A current limit, 56.6 V constant voltage, battery temperature window, heatsink cut-off, reverse-polarity blocking on both sides and an independent latched overvoltage protection. Analogue control only: LM358, LM393, TL072, TL431, 555, gate driver.',
     tryThis: 'Simulate (90 ms): the battery current I(BAT.1) rises to about 70 A at 1000 W/m², the PV voltage PVP settles near the maximum power point. Set the PV irradiance g to 500 and simulate again; set the battery source to 56.4 V and watch the current taper at 56.6 V.',
-    build: () => mpptCharger().sheet,
+    build: () => withInfo(mpptCharger().sheet, 'mppt-charger', ['dfmea:4. MPPT solar charger', 'reliability', 'help:power-maintenance']),
   },
 ];

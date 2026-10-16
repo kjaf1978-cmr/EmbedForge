@@ -649,3 +649,22 @@ test('layout: results beside or below, splitter, maximise, panels (LTspice-style
   await expect(page.getByRole('complementary', { name: 'Part library' })).toBeVisible();
   await expect(results).toHaveCount(0);                       // below and nothing to show
 });
+
+test('D29: design document of a power example as PDF and Word, with the costed parts list', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.getByRole('button', { name: 'Open example: Mains voltage stabiliser, relay-switched taps (1 kVA)' }).click();
+  const side = page.getByRole('complementary', { name: 'Properties and simulation' });
+  await side.getByRole('tab', { name: 'Parts' }).click();
+  await expect(side.getByText(/components € \d+\.\d\d/)).toBeVisible();
+  await expect(side.getByRole('row', { name: /LM339.*Texas Instruments: LM339N/ })).toBeVisible();
+  for (const [item, ext, magic] of [['Design document (.pdf)', '.pdf', [0x25, 0x50, 0x44, 0x46]], ['Design document (Word .docx)', '.docx', [0x50, 0x4b, 0x03, 0x04]]] as const) {
+    const dl = page.waitForEvent('download', { timeout: 90_000 });
+    await page.getByText('Export', { exact: true }).click();
+    await page.getByRole('button', { name: item }).click();
+    const d = await dl.catch(async (e) => { throw new Error(`${e}; status: ${await page.getByRole('status', { name: 'Status bar' }).textContent()}`); });
+    expect(d.suggestedFilename()).toMatch(new RegExp(`-design\\${ext}$`));
+    const buf = readFileSync(await d.path());
+    expect([...buf.subarray(0, 4)]).toEqual([...magic]);
+    expect(buf.length).toBeGreaterThan(100_000);
+  }
+});

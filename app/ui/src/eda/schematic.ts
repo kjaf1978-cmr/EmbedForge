@@ -95,7 +95,12 @@ export interface Sheet {
   temp?: string;
   /** The printed circuit board made from this schematic (Increment 3), once started. */
   board?: Board;
+  /** What the design is, for its design document (D29): title, summary and the documentation
+   *  that belongs to it (help pages and DFMEA sections by id). */
+  info?: DesignInfo;
 }
+
+export interface DesignInfo { title?: string; summary?: string; docs?: string[] }
 
 /** Stepped-property reference of the circuit temperature in a parameter sweep. */
 export const TEMP_REF = '@TEMP';

@@ -21,8 +21,8 @@ describe('MPPT charger: protections against the DFMEA failure modes', () => {
     expect(s.ibat(0.05)).toBeLessThan(0.5);
     expect(Math.abs(rms(s.r.x, s.at('PV', '1'), 0.05))).toBeLessThan(0.5);
   }, 600_000);
-  it('battery connected the wrong way round (the auxiliary supply, fed from it through a diode, stays off): blocked by QB2', async () => {
-    const s = await run({ batteryReversed: true, aux: 0, stop: '20m' });
+  it('battery connected the wrong way round while the array supplies the control: QB2 (gate fed from the battery + terminal) stays off', async () => {
+    const s = await run({ batteryReversed: true, stop: '20m' });
     expect(s.ibat(0)).toBeLessThan(1);
   }, 600_000);
   it('Q1 shorted (drain to source): the overvoltage latch cuts the battery and the array off', async () => {
