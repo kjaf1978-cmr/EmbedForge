@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.8",
+  "app_version": "0.2.9",
   "os": "windows",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.8",
+      "version": "0.2.9",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.2.9",
+          "date": "2026-10-16",
+          "text": "Power designs drawn as real, wired circuit diagrams (D28): change-over 1P and 3P+N, voltage stabiliser and MPPT charger with their terminals, control supplies built from real parts, IC packages as bought and no overlapping parts; the charger's battery switch no longer conducts with a reversed battery. New design document export (D29): Export > Design document as PDF or Word, with the description, the vector schematic (A3 overview and enlarged tiles), the bill of materials with manufacturer part numbers, distributors, order numbers and indicative prices, the reliability prediction, the DFMEA, maintenance and FAQ. The Parts tab shows the catalogue data and the total cost."
+        },
         {
           "version": "0.2.8",
           "date": "2026-10-15",
@@ -79,8 +84,8 @@
   ],
   "files": [
     {
-      "path": "NETApps-Setup-0.2.8-x64.exe",
-      "from": "files/NETApps-Setup-0.2.8-x64.exe",
+      "path": "NETApps-Setup-0.2.9-x64.exe",
+      "from": "files/NETApps-Setup-0.2.9-x64.exe",
       "role": "bootstrap"
     },
     {
@@ -94,8 +99,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.8-source.tar.gz",
-      "from": "files/source/embedforge-0.2.8-source.tar.gz",
+      "path": "source/embedforge-0.2.9-source.tar.gz",
+      "from": "files/source/embedforge-0.2.9-source.tar.gz",
       "role": "source"
     },
     {

@@ -19,9 +19,9 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 743 passed, 19 skipped (0.2.8: the charger tests are split over three files that skip each other's cases) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 770 passed, 19 skipped (0.2.9; the charger tests are split over three files that skip each other's cases) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 42 passed (0.2.8); 41 passed, 3 consecutive runs (0.2.6) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 1a. Signed releases (SEC-02, TEST-04)
