@@ -30,7 +30,7 @@ const legs = (footprint: string, order: [string, string, string], note?: string)
 // bipolar transistors: symbol pins 1 B, 2 C, 3 E
 const BJT: Record<string, FootprintChoice> = {
   '2N3904': legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C'), BC547B: legs('TO-92_Wide', ['2', '1', '3'], 'C-B-E'), '2N2222A': legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C (PN2222A)'),
-  BD139: legs('TO-126_Vertical', ['3', '2', '1'], 'E-C-B'), MJE340: legs('TO-126_Vertical', ['3', '2', '1'], 'E-C-B'), '2N3906': legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C'), BC557B: legs('TO-92_Wide', ['2', '1', '3'], 'C-B-E'),
+  BD139: legs('TO-126_Vertical', ['3', '2', '1'], 'E-C-B'), D44H11: legs('TO-220_Vertical', ['1', '2', '3'], 'B-C-E'), D45H11: legs('TO-220_Vertical', ['1', '2', '3'], 'B-C-E'), MJE340: legs('TO-126_Vertical', ['3', '2', '1'], 'E-C-B'), '2N3906': legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C'), BC557B: legs('TO-92_Wide', ['2', '1', '3'], 'C-B-E'),
   BD140: legs('TO-126_Vertical', ['3', '2', '1'], 'E-C-B'),
 };
 // MOSFETs: symbol pins 1 G, 2 D, 3 S

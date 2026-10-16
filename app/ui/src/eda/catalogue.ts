@@ -75,11 +75,12 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   opto: { PC817: e('PC817X1NSZ1B', 'Sharp', 'optocoupler, transistor output, DIP-4', 0.3, 0.1, 'estimate', any('DIP-4')) },
   lm317: { LM317HV: e('LM317HVT/NOPB', 'Texas Instruments', 'adjustable regulator, 60 V input–output, 1.5 A, TO-220', 2.2, 1.26, 'live', [{ distributor: 'Mouser', sku: '926-LM317HVT/NOPB' }, { distributor: 'RS', sku: '197-7244' }], 'on a heatsink of 8 K/W: Fischer SK 76 37,5 SA (RS 221-2176), about €3.50') },
   npn: {
+    D44H11: e('D44H11G', 'onsemi', 'NPN 80 V 10 A switching, TO-220', 0.95, 0.45, 'estimate', any('TO-220')),
     BD139: e('BD139-16', 'STMicroelectronics', 'NPN 80 V 1.5 A, TO-126', 0.45, 0.2, 'estimate', any('TO-126')),
     BC547B: e('BC547B', 'onsemi', 'NPN 45 V 100 mA, TO-92', 0.1, 0.03, 'estimate', any('TO-92')),
     MJE340: e('MJE340G', 'onsemi', 'NPN 300 V 0.5 A, TO-126 (on the heatsink, insulated)', 0.84, 0.35, 'live', [{ distributor: 'Mouser', sku: '863-MJE340G' }, { distributor: 'LCSC', sku: 'C898406' }, { distributor: 'RS', sku: '046-4205' }]),
   },
-  pnp: { BD140: e('BD140-16', 'STMicroelectronics', 'PNP 80 V 1.5 A, TO-126', 0.45, 0.2, 'estimate', any('TO-126')) },
+  pnp: { BD140: e('BD140-16', 'STMicroelectronics', 'PNP 80 V 1.5 A, TO-126', 0.45, 0.2, 'estimate', any('TO-126')), D45H11: e('D45H11G', 'onsemi', 'PNP 80 V 10 A switching, TO-220', 0.95, 0.45, 'estimate', any('TO-220')) },
   led: {
     green: e('5 mm green LED, 20 mA', 'Kingbright (e.g. L-53GD)', 'LED 5 mm green, diffused', 0.12, 0.04, 'estimate', any('5 mm LED')),
     yellow: e('5 mm yellow LED, 20 mA', 'Kingbright (e.g. L-53YD)', 'LED 5 mm yellow, diffused', 0.12, 0.04, 'estimate', any('5 mm LED')),

@@ -67,6 +67,8 @@ export const BJTS: NamedModel<BjtModel>[] = [
   { name: 'BC557B', note: 'PNP general purpose, 45 V / 100 mA', model: { type: 'pnp', is: 1.02e-14, bf: 290, br: 4, nf: 1, nr: 1, vaf: 40 } },
   { name: 'BD139', note: 'NPN medium power, 80 V / 1.5 A (TO-126, approximate)', model: { type: 'npn', is: 2.1e-13, bf: 100, br: 5, nf: 1, nr: 1, vaf: 100 } },
   { name: 'BD140', note: 'PNP medium power, 80 V / 1.5 A (TO-126, approximate)', model: { type: 'pnp', is: 2.1e-13, bf: 100, br: 5, nf: 1, nr: 1, vaf: 100 } },
+  { name: 'D44H11', note: 'NPN power switching, 80 V / 10 A (20 A peak), fT 50 MHz (TO-220, approximate): gate buffers of MOSFET banks', model: { type: 'npn', is: 1e-12, bf: 60, br: 5, nf: 1, nr: 1, vaf: 100 } },
+  { name: 'D45H11', note: 'PNP power switching, 80 V / 10 A (20 A peak), fT 40 MHz (TO-220, approximate): gate buffers of MOSFET banks', model: { type: 'pnp', is: 1e-12, bf: 60, br: 5, nf: 1, nr: 1, vaf: 100 } },
   { name: 'MJE340', note: 'NPN high voltage, 300 V / 0.5 A, hFE 30–240 (TO-126, approximate)', model: { type: 'npn', is: 1e-13, bf: 80, br: 3, nf: 1, nr: 1, vaf: 200 } },
 ];
 

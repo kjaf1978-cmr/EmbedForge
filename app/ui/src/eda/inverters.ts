@@ -55,37 +55,44 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.block('bus');
   for (let k = 0; k < 6; k++) nb.part(`CB${k + 1}`, 'capacitor', -600 + 70 * k, -60, { value: '47u', vmax: '100' }, { '1': 'BUS', '2': 'GND' }, 1);
 
-  // ---- full bridge: 3 MOSFETs per switch, a gate resistor each; the drivers' outputs held off
-  // by 10k while the 12 V is missing
+  // ---- full bridge: 3 MOSFETs per switch, a gate resistor each. A D44H11/D45H11 emitter
+  // follower per switch drives the three gates (58 nF): the driver alone (10 Ω) would turn them
+  // off in 0.9 µs, longer than its 0.5 µs dead time, and the leg would shoot through (found in
+  // simulation: 617 A). 10k hold the gates off while the 12 V is missing
   nb.block('bridge');
-  ([['A', -150], ['B', 450]] as const).forEach(([leg, x0]) => {
+  ([['A', -150], ['B', 650]] as const).forEach(([leg, x0]) => {
     for (let k = 0; k < 3; k++) {
       const x = x0 + 120 * k;
       nb.part(`QH${leg}${k + 1}`, 'nmos', x, -160, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GH${leg}${k + 1}`, '2': 'BUS', '3': `SW${leg}` })
-        .part(`RGH${leg}${k + 1}`, 'resistor', x - 60, -240, { value: '4.7' }, { '1': `HO${leg}`, '2': `GH${leg}${k + 1}` })
+        .part(`RGH${leg}${k + 1}`, 'resistor', x - 60, -240, { value: '4.7' }, { '1': `EH${leg}`, '2': `GH${leg}${k + 1}` })
         .part(`QL${leg}${k + 1}`, 'nmos', x, 40, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${leg}${k + 1}`, '2': `SW${leg}`, '3': 'SRC' })
-        .part(`RGL${leg}${k + 1}`, 'resistor', x - 60, 120, { value: '4.7' }, { '1': `LO${leg}`, '2': `GL${leg}${k + 1}` });
+        .part(`RGL${leg}${k + 1}`, 'resistor', x - 60, 120, { value: '4.7' }, { '1': `EL${leg}`, '2': `GL${leg}${k + 1}` });
     }
-    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 260, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': `SW${leg}`, '4': `LO${leg}` })
-      .part(`DB${leg}`, 'diode', x0 + 240, 180, { value: '1N4148' }, { '2': V, '1': `VB${leg}` })
-      .part(`CBS${leg}`, 'capacitor', x0 + 300, 260, { value: '2.2u', vmax: '25' }, { '1': `VB${leg}`, '2': `SW${leg}` }, 1)
-      .part(`RHS${leg}`, 'resistor', x0 + 360, 200, { value: '10k' }, { '1': `HO${leg}`, '2': `SW${leg}` }, 1)
-      .part(`RLS${leg}`, 'resistor', x0 + 360, 320, { value: '10k' }, { '1': `LO${leg}`, '2': 'GND' }, 1)
-      .part(`CDD${leg}`, 'capacitor', x0 + 20, 340, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
+    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': `SW${leg}`, '4': `LO${leg}` })
+      .part(`DB${leg}`, 'diode', x0 + 240, 250, { value: '1N4148' }, { '2': V, '1': `VB${leg}` })
+      .part(`CBS${leg}`, 'capacitor', x0 + 300, 330, { value: '2.2u', vmax: '25' }, { '1': `VB${leg}`, '2': `SW${leg}` }, 1)
+      // high-side buffer between VB and SW, low-side buffer between 12 V and ground
+      .part(`QBH${leg}`, 'npn', x0 + 400, -260, { value: 'D44H11' }, { '1': `HO${leg}`, '2': `VB${leg}`, '3': `EH${leg}` })
+      .part(`QBHP${leg}`, 'pnp', x0 + 400, -140, { value: 'D45H11' }, { '1': `HO${leg}`, '2': `SW${leg}`, '3': `EH${leg}` })
+      .part(`QBL${leg}`, 'npn', x0 + 400, 60, { value: 'D44H11' }, { '1': `LO${leg}`, '2': V, '3': `EL${leg}` })
+      .part(`QBLP${leg}`, 'pnp', x0 + 400, 180, { value: 'D45H11' }, { '1': `LO${leg}`, '2': 'GND', '3': `EL${leg}` })
+      .part(`RHS${leg}`, 'resistor', x0 + 500, -200, { value: '10k' }, { '1': `EH${leg}`, '2': `SW${leg}` }, 1)
+      .part(`RLS${leg}`, 'resistor', x0 + 500, 120, { value: '10k' }, { '1': `EL${leg}`, '2': 'GND' }, 1)
+      .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
   });
   // current shunt in the bridge return (both directions)
-  nb.part('RSH', 'resistor', 300, 140, { value: '0.2m', pmax: '10' }, { '1': 'SRC', '2': 'GND' }, 1);
+  nb.part('RSH', 'resistor', 500, 260, { value: '0.2m', pmax: '10' }, { '1': 'SRC', '2': 'GND' }, 1);
 
   // ---- transformer, output filter, surge protection, output terminals
   nb.block('output')
-    .part('TR1', 'transformer', 1000, -60, { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999' }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
-    .part('COUT', 'capacitor', 1150, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
-    .part('RVO', 'mov', 1250, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
-    .part('X3', 'terminal', 1400, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
-    .part('X4', 'terminal', 1400, -80, { value: 'N out' }, { '1': 'GND' }, 2)
-    .part('X5', 'terminal', 1400, -20, { value: 'PE' }, { '1': 'GND' }, 2);
-  if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 1500, -220)
-    .part('RLOAD', 'resistor', 1550, -60, { value: o.load ?? '10.7', pmax: '1.5k' }, { '1': 'OUTL', '2': 'GND' }, 1);
+    .part('TR1', 'transformer', 1400, -60, { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999' }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
+    .part('COUT', 'capacitor', 1550, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
+    .part('RVO', 'mov', 1650, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
+    .part('X3', 'terminal', 1800, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
+    .part('X4', 'terminal', 1800, -80, { value: 'N out' }, { '1': 'GND' }, 2)
+    .part('X5', 'terminal', 1800, -20, { value: 'PE' }, { '1': 'GND' }, 2);
+  if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 1900, -220)
+    .part('RLOAD', 'resistor', 1950, -60, { value: o.load ?? '10.7', pmax: '1.5k' }, { '1': 'OUTL', '2': 'GND' }, 1);
 
   // ---- 12 V control supply from the battery (after the fuse; a diode against reversal)
   nb.block('aux')
