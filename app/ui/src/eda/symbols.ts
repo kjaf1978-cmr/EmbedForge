@@ -157,13 +157,13 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'capacitor', name: 'Capacitor', category: 'Passive', keywords: ['c', 'cap', 'ceramic', 'farad'], prefix: 'C',
     description: 'Non-polarised capacitor (ceramic, film).', pins: two('1', '2'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -4 M 4 0 H 30 M -4 -12 V 12 M 4 -12 V 12', 'none', 2)],
-    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '100n' }, params: [{ key: 'vmax', label: 'Voltage rating', kind: 'value', unit: 'V', default: '50', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
+    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '100n' }, params: [{ key: 'vmax', label: 'Voltage rating', kind: 'value', unit: 'V', default: '50', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }, { key: 'ic', label: 'Initial voltage', kind: 'value', unit: 'V', default: '', help: 'only for a transient that starts with discharged capacitors ("zero"): the capacitor starts at this voltage instead of 0 V (SPICE IC=)' }],
   },
   {
     id: 'capacitor_pol', name: 'Electrolytic capacitor', category: 'Passive', keywords: ['c', 'elko', 'polarised', 'polarized', 'electrolytic'], prefix: 'C',
     description: 'Polarised capacitor; pin 1 is positive.', pins: two('+', '−'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -4 M 6 0 H 30 M -4 -12 V 12', 'none', 2), path('M 9 -12 Q 3 0 9 12', 'none', 2), text(-12, -8, '+', 10)],
-    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '10u' }, params: [{ key: 'vmax', label: 'Voltage rating', kind: 'value', unit: 'V', default: '25', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
+    value: { key: 'value', label: 'Capacitance', kind: 'value', unit: 'F', default: '10u' }, params: [{ key: 'vmax', label: 'Voltage rating', kind: 'value', unit: 'V', default: '25', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }, { key: 'ic', label: 'Initial voltage', kind: 'value', unit: 'V', default: '', help: 'only for a transient that starts with discharged capacitors ("zero"): the capacitor starts at this voltage instead of 0 V (SPICE IC=)' }],
   },
   {
     id: 'inductor', name: 'Inductor', category: 'Passive', keywords: ['l', 'coil', 'choke', 'henry'], prefix: 'L',

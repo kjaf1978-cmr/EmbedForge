@@ -225,7 +225,11 @@ class Capacitor implements Device {
     const g = (2 * C) / c.h; return [g, g * this.vprev + this.iprev];
   }
   load(c: Ctx) {
-    if (c.mode === 'dc') { if (c.uic && this.heldAtStart) stampG(c, this.a, this.b, 1e4); return; }
+    if (c.mode === 'dc') {
+      // a power-on start holds it at 0 V, or at its initial voltage (SPICE IC=)
+      if (c.uic && this.heldAtStart) { stampG(c, this.a, this.b, 1e4); const ic = this.el.ic ?? 0; if (ic) { rhs(c, this.a, 1e4 * ic); rhs(c, this.b, -1e4 * ic); } }
+      return;
+    }
     const [g, ieq] = this.comp(c); // i = g·v − ieq
     stampG(c, this.a, this.b, g);
     rhs(c, this.a, ieq); rhs(c, this.b, -ieq);

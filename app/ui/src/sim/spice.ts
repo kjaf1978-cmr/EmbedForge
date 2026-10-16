@@ -50,7 +50,7 @@ export function elementLine(e: Element, models: Map<string, string>, temp?: numb
   const tc = (m: { xti?: number; eg?: number }) => `${m.xti !== undefined ? ` XTI=${n(m.xti)}` : ''}${m.eg !== undefined ? ` EG=${n(m.eg)}` : ''}`;
   switch (e.kind) {
     case 'R': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.r)}${e.tc1 ? ` tc1=${n(e.tc1)}` : ''}${e.tc2 ? ` tc2=${n(e.tc2)}` : ''}`;
-    case 'C': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.c)}`;
+    case 'C': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.c)}${e.ic !== undefined ? ` IC=${n(e.ic)}` : ''}`;
     case 'L': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.l)}`;
     case 'V': return `${nm} ${N(e.p)} ${N(e.n)} ${wave(e.dc, e.wave)}${ac(e)}`;
     case 'I': return `${nm} ${N(e.p)} ${N(e.n)} ${wave(e.dc, e.wave)}${ac(e)}`;

@@ -172,7 +172,12 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       out.push({ kind: 'R', name: ref, a: pin['1'], b: pin['2'], r: Math.max(v('value', 'resistance'), 1e-6), ...(tc ? { tc1: tc * 1e-6 } : {}) });
       break;
     }
-    case 'capacitor': case 'capacitor_pol': out.push({ kind: 'C', name: ref, a: pin['1'], b: pin['2'], c: v('value', 'capacitance') }); break;
+    case 'capacitor': case 'capacitor_pol': {
+      const ic = p.props.ic?.trim() ? parseValue(p.props.ic) : null;
+      if (p.props.ic?.trim() && ic === null) errors.push(`${p.ref}: the initial voltage is not a number`);
+      out.push({ kind: 'C', name: ref, a: pin['1'], b: pin['2'], c: v('value', 'capacitance'), ...(ic !== null ? { ic } : {}) });
+      break;
+    }
     case 'inductor': out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') }); break;
     case 'transformer': {
       const ratio = v('value', 'turns ratio'), lp = v('lp', 'primary inductance'), k = v('k', 'coupling');

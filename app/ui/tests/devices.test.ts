@@ -89,3 +89,13 @@ describe('surge waveforms', () => {
     void linearPoints;
   });
 });
+
+describe('capacitor initial voltage (IC=)', () => {
+  it('a power-on start holds it at its initial voltage instead of 0 V: an RC discharges from it', () => {
+    const c: Circuit = { elements: [{ kind: 'C', name: 'C1', a: 'a', b: '0', c: 1e-6, ic: 5 }, { kind: 'R', name: 'R1', a: 'a', b: '0', r: 1e3 }] };
+    const w = new Engine(c).tran(10e-6, 3e-3, 10e-6, 200000, true);
+    near(w.v.a[0], 5, 1e-3);
+    const k = w.x.findIndex((t) => t >= 1e-3);
+    near(w.v.a[k], 5 * Math.exp(-w.x[k] / 1e-3), 0.02);
+  });
+});
