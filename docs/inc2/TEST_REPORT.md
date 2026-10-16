@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - signed the media (0.2.8 signed 16 October 2026, section 1a);
+  - signed the media (0.2.9 signed 16 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - ~~approved the gate~~ (decision D19, 14 October 2026: approved; Increment 3 started).
 
@@ -26,7 +26,22 @@
 
 ## 1a. Signed releases (SEC-02, TEST-04)
 
-### 0.2.8 (current)
+### 0.2.9 (current)
+
+Signed by the owner on their own PC, 16 October 2026, from the signing kit "NETApps-signing-kit"
+of CI run [38907996230](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38907996230)
+(commit 0a72a51). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `127794c3a6846fed86349ced3acab914efd69fe892613482156fc1c35ef38ffd` |
+| ubuntu-x86_64 | 4 | `fac2c11f168328cc69ecb94ac6606aa311de109bfa400616e119043af4362139` |
+| windows-x86_64 | 1 | `3523b5aa6aaf8a2d6f6a2dddfd18adff356d4e8046b0df567664582eeaa24329` |
+
+All three: PASS.
+
+### 0.2.8
 
 Signed by the owner on their own PC, 16 October 2026, from the signing kit "NETApps-signing-kit"
 of CI run [38823996549](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38823996549)
