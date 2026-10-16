@@ -7,6 +7,9 @@ import { smoke } from '../src/eda/smoke';
 import { connectivity } from '../src/eda/connectivity';
 import { rms } from './power3.helpers';
 
+/** Test timing: return delay 0.1 s and dead time 47 ms (the product's 10.5 s and 0.47 s scaled down). */
+const T = { returnC: '100n', deadC: '68n' };
+
 describe('single-phase change-over with voltage protection', () => {
   it('ERC clean; every part buyable; within its ratings at 230 V', () => {
     const { sheet } = changeover1();
@@ -23,7 +26,7 @@ describe('single-phase change-over with voltage protection', () => {
     const what = step ? `mains stepping from ${vrms} to ${step.to[0]} V` : `mains at ${vrms} V from start-up`;
     it(`${what}: the load runs from the ${src}; never both contactors closed`, async () => {
       await new Promise((r) => setTimeout(r, 0)); // let the worker answer its RPC between long simulations
-      const { sheet, nb } = changeover1(String(vrms * Math.SQRT2), step);
+      const { sheet, nb } = changeover1(String(vrms * Math.SQRT2), step, '1.2', T);
       const r = simulate({ ...sheet, step: undefined }) as SimResult;
       expect('error' in r ? r.error : '').toBe('');
       const k1 = r.i[`${nb.refOf(sheet, 'K1')}.1`], k2 = r.i[`${nb.refOf(sheet, 'K2')}.1`];
@@ -40,13 +43,13 @@ describe('single-phase change-over with voltage protection', () => {
     }, 120_000);
   }
   it('coil supply at 18 V (below the 20 V lockout): both contactors stay open', async () => {
-    const { sheet, nb } = changeover1(String(230 * Math.SQRT2), undefined, '0.6', { v24: 18 });
+    const { sheet, nb } = changeover1(String(230 * Math.SQRT2), undefined, '0.6', { ...T, v24: 18 });
     const r = simulate({ ...sheet, step: undefined }) as SimResult;
     expect('error' in r ? r.error : '').toBe('');
     for (const key of ['K1', 'K2']) expect(rms(r.x, r.i[`${nb.refOf(sheet, key)}.1`], 0.3)).toBeLessThan(0.01);
   }, 120_000);
   it('transfer on a fault (230 → 270 V): the back-up closes only after the dead time', async () => {
-    const { sheet, nb } = changeover1(String(230 * Math.SQRT2), { to: [270], at: 0.6 });
+    const { sheet, nb } = changeover1(String(230 * Math.SQRT2), { to: [270], at: 0.6 }, '1.2', T);
     const r = simulate({ ...sheet, step: undefined }) as SimResult;
     expect('error' in r ? r.error : '').toBe('');
     const k1 = r.i[`${nb.refOf(sheet, 'K1')}.1`], k2 = r.i[`${nb.refOf(sheet, 'K2')}.1`];

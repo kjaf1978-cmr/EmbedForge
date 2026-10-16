@@ -90,11 +90,25 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
   // rails named by power symbols but driven by no voltage source get an ideal supply
   const driven = new Set<string>();
   for (const e of elements) if (e.kind === 'V') { driven.add(e.p); driven.add(e.n); }
+  // a regulator's output (a power output pin of a part) drives its rail too
+  const byRef = new Map(sheet.parts.map((p) => [p.ref, p]));
+  const powerOut = (rp: string) => {
+    const i = rp.lastIndexOf('.'), part = byRef.get(rp.slice(0, i));
+    return !!part && symbolOf(part.sym).pins.find((q) => q.id === rp.slice(i + 1))?.type === 'power_out';
+  };
+  const supplyIn = (rp: string) => {
+    const i = rp.lastIndexOf('.'), part = byRef.get(rp.slice(0, i));
+    const t = part && symbolOf(part.sym).pins.find((q) => q.id === rp.slice(i + 1))?.type;
+    return t === 'power_in' || t === 'input';
+  };
   for (const n of conn.nets) {
     if (n.name === GND_NET || !n.power.length) continue;
     const node = netNode.get(n.name)!;
-    if (driven.has(node)) continue;
+    if (driven.has(node) || n.pins.some(powerOut)) continue;
     const v = railVoltage(n.name);
+    // a rail whose name gives no voltage is driven by the circuit (an emitter follower…); it
+    // floats only when every pin on it is a supply input
+    if (v === null && !n.pins.every(supplyIn)) continue;
     if (v === null) { warnings.push(`Rail ${n.name} has no voltage source and its name gives no voltage: it floats. Name it like +5V or add a source.`); continue; }
     elements.push({ kind: 'V', name: `RAIL_${n.name}`, p: node, n: '0', dc: v });
     rails.push({ net: n.name, volts: v });

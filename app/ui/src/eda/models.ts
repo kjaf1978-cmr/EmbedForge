@@ -39,7 +39,7 @@ export function tvsJunction(m: TvsModel, vbr = m.vbr): DiodeModel {
   return { is: 1e-12, n: 1, rs: (m.vc - m.vbr) / m.ipp, bv: vbr, ibv: 10e-3 };
 }
 
-export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12]] as [string, number][])
+export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13]] as [string, number][])
   .map(([name, v]) => ({ name, note: `Zener diode ${v} V, 500 mW`, model: { is: 1e-14, n: 1, rs: 2, bv: v, ibv: 5e-3 } }));
 
 /** LED model from its forward voltage at 20 mA (N = 1.9, RS = 5 Ω). The junction voltage of
@@ -67,6 +67,7 @@ export const BJTS: NamedModel<BjtModel>[] = [
   { name: 'BC557B', note: 'PNP general purpose, 45 V / 100 mA', model: { type: 'pnp', is: 1.02e-14, bf: 290, br: 4, nf: 1, nr: 1, vaf: 40 } },
   { name: 'BD139', note: 'NPN medium power, 80 V / 1.5 A (TO-126, approximate)', model: { type: 'npn', is: 2.1e-13, bf: 100, br: 5, nf: 1, nr: 1, vaf: 100 } },
   { name: 'BD140', note: 'PNP medium power, 80 V / 1.5 A (TO-126, approximate)', model: { type: 'pnp', is: 2.1e-13, bf: 100, br: 5, nf: 1, nr: 1, vaf: 100 } },
+  { name: 'MJE340', note: 'NPN high voltage, 300 V / 0.5 A, hFE 30–240 (TO-126, approximate)', model: { type: 'npn', is: 1e-13, bf: 80, br: 3, nf: 1, nr: 1, vaf: 200 } },
 ];
 
 /** Level-1 MOSFETs: VTO and KP fitted so that VGS(th) and RDS(on) match the datasheet roughly. */

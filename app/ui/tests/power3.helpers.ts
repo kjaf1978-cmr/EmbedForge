@@ -19,7 +19,7 @@ export function run3(cases: Case[]) {
     const what = step ? `${ph.join(' / ')} V stepping to ${step.to.join(' / ')} V` : `${ph.join(' / ')} V from start-up`;
     it(`${what} (${why}): the load runs from the ${src}; never both contactors closed`, async () => {
       await new Promise((r) => setTimeout(r, 0)); // let the worker answer its RPC between long simulations
-      const { sheet, nb } = changeover3(ph, step, step ? '0.7' : '0.5');
+      const { sheet, nb } = changeover3(ph, step, step ? '0.7' : '0.5', { returnC: '100n', deadC: '68n' });
       const r = simulate(sheet) as SimResult;
       expect('error' in r ? r.error : '').toBe('');
       const k1 = r.i[`${nb.refOf(sheet, 'K1')}.1`], k2 = r.i[`${nb.refOf(sheet, 'K2')}.1`];

@@ -348,7 +348,7 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '1', name: 'B', x: -30, y: 0, type: 'input' }, { id: '2', name: 'C', x: 10, y: -30, type: 'passive' }, { id: '3', name: 'E', x: 10, y: 30, type: 'passive' }],
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -6 M -6 -12 V 12', 'none', 2), path('M -6 -5 L 10 -18 V -30 M -6 5 L 10 18 V 30'), arrowHead(-6, 5, 7, 15.6)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'npn').map((m) => m.name)), default: '2N3904' }, params: [{ key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'npn').map((m) => m.name)), default: '2N3904' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'pnp', name: 'PNP transistor', category: 'Semiconductors', keywords: ['q', 'bjt', 'transistor', 'bc557', '2n3906'], prefix: 'Q',
@@ -356,7 +356,7 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '1', name: 'B', x: -30, y: 0, type: 'input' }, { id: '2', name: 'C', x: 10, y: 30, type: 'passive' }, { id: '3', name: 'E', x: 10, y: -30, type: 'passive' }],
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -6 M -6 -12 V 12', 'none', 2), path('M -6 -5 L 10 -18 V -30 M -6 5 L 10 18 V 30'), arrowHead(10, -18, -3, -7.4)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'pnp').map((m) => m.name)), default: '2N3906' }, params: [{ key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'pnp').map((m) => m.name)), default: '2N3906' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'nmos', name: 'N-channel MOSFET', category: 'Semiconductors', keywords: ['m', 'mosfet', 'fet', 'transistor', '2n7000', 'irlz44n', 'logic level'], prefix: 'Q',
