@@ -39,7 +39,8 @@ function ac(e: { acMag?: number; acPhase?: number }): string {
 
 /** Element name with the SPICE type letter first. */
 export function spiceName(e: Element): string {
-  const s = e.name.replace(/[^A-Za-z0-9_]/g, '_');
+  // + and − become p and m (RAIL_+12V and RAIL_−12V must stay two names)
+  const s = e.name.replace(/\+/g, 'p').replace(/[-−]/g, 'm').replace(/[^A-Za-z0-9_]/g, '_');
   return s[0]?.toUpperCase() === e.kind ? s : `${e.kind}${s}`;
 }
 

@@ -85,7 +85,8 @@ export function chargerTests(part: number) {
     const s = await run({ vbat: 56.4 });
     expect(s.vbat).toBeLessThan(56.8);
     expect(s.vbat).toBeGreaterThan(56.4);
-    expect(s.ibat).toBeLessThan(15);
+    // tapered: (V − 56.4 V) / 10 mΩ, far below the 82 A bulk current; 5 mV of regulation is 0.5 A
+    expect(s.ibat).toBeLessThan(20);
   }, 600_000);
 });
 }

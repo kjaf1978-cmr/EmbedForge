@@ -186,6 +186,9 @@ interface Device {
   lte?(x: Float64Array, c: Ctx): number;
   /** Forgets the state history (after a breakpoint the derivatives jump). */
   resetHistory?(): void;
+  /** Trapezoidal ringing: the current has flipped sign at a similar size on the last steps
+   *  (a stiff loop the step has outgrown); the next step is then a backward-Euler one. */
+  rings?(): boolean;
   /** Devices with a discrete state (the 555 latch): would the solution x change it? */
   pending?(x: Float64Array): boolean;
   commitState?(x: Float64Array): void;
@@ -241,11 +244,15 @@ class Capacitor implements Device {
     const v = V(x, this.a) - V(x, this.b);
     const [g, ieq] = this.comp(c);
     this.inow = g * v - ieq;
+    const flip = c.method === 'trap' && this.inow * this.iprev < 0 && Math.abs(this.inow) > 1e-6 && Math.abs(this.inow) < 2 * Math.abs(this.iprev) && Math.abs(this.iprev) < 2 * Math.abs(this.inow);
+    this.ring = flip ? this.ring + 1 : 0;
     this.vprev = v; this.iprev = this.inow;
     this.hist.push([c.t, this.el.c * v]);
     if (this.hist.length > 3) this.hist.shift();
   }
   resetHistory() { this.hist = this.hist.slice(-1); }
+  private ring = 0;
+  rings() { if (this.ring < 3) return false; this.ring = 0; return true; }
   lte(x: Float64Array, c: Ctx) {
     const v = V(x, this.a) - V(x, this.b), q = this.el.c * v;
     const [g, ieq] = this.comp(c), i = g * v - ieq;
@@ -1213,13 +1220,13 @@ export class Engine {
     const sorted = [...bps].sort((a, b) => a - b);
     let bi = 0;
     // start with small steps: a switch-on (uic) or a source corner at t = 0 is often fast
-    let t = 0, h = Math.min(hmax, sorted[0]) / (uic ? 1000 : 10), afterBreak = true;
+    let t = 0, h = Math.min(hmax, sorted[0]) / (uic ? 1000 : 10), afterBreak = true, damp = false;
     const eps = tstop * 1e-12;
     while (t < tstop - eps) {
       while (bi < sorted.length && sorted[bi] <= t + eps) bi++;
       const nb = sorted[bi] ?? tstop;
       const hh = Math.min(h, nb - t);
-      c = this.ctx({ mode: 'tran', t: t + hh, h: hh, method: afterBreak ? 'be' : 'trap', x: this.x });
+      c = this.ctx({ mode: 'tran', t: t + hh, h: hh, method: afterBreak || damp ? 'be' : 'trap', x: this.x });
       const it = this.newton(c, 50, false);
       if (it < 0) {
         h = hh / 8;
@@ -1243,6 +1250,9 @@ export class Engine {
       h = it <= 6 ? Math.min(hmax, hh * 2) : it > 20 ? hh / 2 : hh;
       h = Math.min(h, Math.max(0.9 * hLte, hh / 8));
       if (flips.length) { for (const d of flips) d.commitState!(c.x); afterBreak = true; }
+      // trapezoidal ringing (a stiff loop the step has outgrown: a capacitor's current flips
+      // sign every step): one backward-Euler step at the same size damps it
+      damp = !afterBreak && this.devices.some((d) => d.rings?.());
       if (afterBreak) {
         h = Math.min(h, hmax / 10); // restart small after a source corner or a state change
         for (const d of this.devices) d.resetHistory?.();

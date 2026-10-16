@@ -559,20 +559,24 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'opamp': {
       const m = findModel(OPAMPS, p.props.value).model;
       const inp = pin['3'], inn = pin['2'], o = pin['6'], vp = pin['7'], vn = pin['4'];
-      const n1 = `${ref}#n1`, nh = `${ref}#nh`, nl = `${ref}#nl`, oi = `${ref}#oi`;
+      const n1 = `${ref}#n1`, nh = `${ref}#nh`, nl = `${ref}#nl`, oi = `${ref}#oi`, rh = `${ref}#rh`, rl = `${ref}#rl`;
       const gm = 1e-3, r1 = m.gain / gm, fp = m.gbw / m.gain;
       // sharp clamp diodes (N = 0.1): their drop stays between 50 and 90 mV from 1 µA to 1 A
       // of overdrive, so the output stops railDrop from each rail and never beyond a rail
-      const dm = { is: 1e-15, n: 0.1, rs: 0 };
+      const dm = { is: 1e-15, n: 0.1, rs: 1 }; // rs: unpowered, the two clamps overlap: 1 Ω bounds the current between them
       const clamp = Math.max(m.railDrop + 0.07, 0), clampLow = Math.max((m.railDropLow ?? m.railDrop) + 0.07, 0);
       out.push(
         { kind: 'R', name: `${ref}_RIN`, a: inp, b: inn, r: m.rin },
         { kind: 'G', name: `${ref}_G1`, p: '0', n: n1, cp: inp, cn: inn, gm },
         { kind: 'R', name: `${ref}_R1`, a: n1, b: '0', r: r1 },
         { kind: 'C', name: `${ref}_C1`, a: n1, b: '0', c: 1 / (2 * Math.PI * r1 * fp) },
-        { kind: 'V', name: `${ref}_VH`, p: vp, n: nh, dc: clamp },
+        // the clamps follow the rails through buffers: their current returns to ground, not into
+        // a supply pin (a saturated amplifier fed its own unpowered rail: found in simulation)
+        { kind: 'E', name: `${ref}_ERH`, p: rh, n: '0', cp: vp, cn: '0', gain: 1 },
+        { kind: 'V', name: `${ref}_VH`, p: rh, n: nh, dc: clamp },
         { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm, fixedTemp: true },
-        { kind: 'V', name: `${ref}_VL`, p: nl, n: vn, dc: clampLow },
+        { kind: 'E', name: `${ref}_ERL`, p: rl, n: '0', cp: vn, cn: '0', gain: 1 },
+        { kind: 'V', name: `${ref}_VL`, p: nl, n: rl, dc: clampLow },
         { kind: 'D', name: `${ref}_DL`, a: nl, k: n1, model: dm, fixedTemp: true },
         { kind: 'E', name: `${ref}_EO`, p: oi, n: '0', cp: n1, cn: '0', gain: 1 },
         { kind: 'R', name: `${ref}_RO`, a: oi, b: o, r: m.rout },

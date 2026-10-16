@@ -12,6 +12,12 @@ export interface InverterLfOptions {
   /** Tests: the bus capacitors start charged to the battery voltage (the pre-charge itself has
    *  its own test), so a run reaches the output sooner. */
   precharged?: boolean;
+  /** Tests: a smaller soft-start capacitor (the product's 220 nF ramps in about 0.1 s). */
+  softC?: string;
+  /** Tests: the battery connected the wrong way round (DFMEA I-2). */
+  reversed?: boolean;
+  /** Tests: the voltage loop's sense transformer sees nothing (winding open, DFMEA I-10). */
+  senseOpen?: boolean;
 }
 
 /** The sense transformer of the voltage loop and of the independent protection: a 1 VA 230/12 V
@@ -42,7 +48,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
 
   // ---- battery (test bench) and the battery input
   nb.block('battery').note('TEST BENCH (not part of the product): the battery', -1400, -220)
-    .part('BAT', 'battery', -1350, -100, { value: String(o.vbat ?? 52), rint: '0.01' }, { '1': 'BP', '2': 'GND' }, 1);
+    .part('BAT', 'battery', -1350, -100, { value: String(o.vbat ?? 52), rint: '0.01' }, o.reversed ? { '1': 'GND', '2': 'BP' } : { '1': 'BP', '2': 'GND' }, 1);
   nb.block('dcin')
     .part('X1', 'terminal', -1200, -160, { value: 'BAT+' }, { '1': 'BP' })
     // the battery negative is the control ground (bonded to PE with the output's N)
@@ -229,12 +235,14 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('CDI', 'capacitor', 1200, 900, { value: '10u', vmax: '25' }, { '1': 'NDC', '2': 'VME' })
     .part('QDC', 'nmos', 1350, 950, { value: '2N7000' }, { '1': 'ENN', '2': 'VME', '3': 'NDC' });
 
-  // ---- 20 kHz triangle: integrator (15k / 3.3 nF) and a comparator Schmitt trigger (1k
-  // pull-up: its square swings about VMID ± 5.8 V, the triangle VMID ± 1.5 V). An op-amp as the
-  // Schmitt trigger slewed rail to rail every 25 µs (it set most of the simulation's steps)
+  // ---- 20 kHz triangle: integrator (13.3k / 3.3 nF) and a comparator Schmitt trigger (1k
+  // pull-up: its square swings about VMID ± 5.8 V, the triangle VMID ± 1.5 V): 21.9 kHz from the
+  // RC, 20 kHz with the LM339's response time at each turn (15k gave 17.7 kHz in simulation).
+  // An op-amp as the Schmitt trigger slewed rail to rail every 25 µs (it set most of the
+  // simulation's steps)
   nb.block('pwm')
     .part('UTI', 'opamp', -1300, 1500, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NTI', '6': 'TRI', '7': V, '4': 'GND' })
-    .part('RTI', 'resistor', -1420, 1420, { value: '15k' }, { '1': 'SQT', '2': 'NTI' })
+    .part('RTI', 'resistor', -1420, 1420, { value: '13.3k' }, { '1': 'SQT', '2': 'NTI' })
     .part('CTI', 'capacitor', -1300, 1400, { value: '3.3n', vmax: '50' }, { '1': 'NTI', '2': 'TRI' })
     .part('UST', 'comparator', -1100, 1500, { value: 'LM339', pkg: 'CMP1' }, { '3': 'PST', '2': 'VMID', '1': 'SQT', '8': V, '4': 'GND' })
     .part('RSTU', 'resistor', -1000, 1400, { value: '1k' }, { '1': V, '2': 'SQT' }, 1)
@@ -278,16 +286,19 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   // found in simulation) against the soft-start reference VSS (22 ms); PI amplifier (P 0.47,
   // integral 45 /s) → VA, clamped at 3.3 V (full modulation) through 1k, stiff against the 200k summer
   nb.block('voltage loop')
-    .part('TRS', 'transformer', -1300, 1950, SENSE_TR, { '1': 'OUTL', '2': 'GND', '3': 'SAO', '4': 'SBO' })
+    .part('TRS', 'transformer', -1300, 1950, SENSE_TR, { '1': o.senseOpen ? 'GND' : 'OUTL', '2': 'GND', '3': 'SAO', '4': 'SBO' })
     .part('RSO', 'resistor', -1180, 2050, { value: '220' }, { '1': 'SAO', '2': 'SNO' }, 1)
     .part('CSO', 'capacitor', -1180, 2150, { value: '100n', vmax: '63' }, { '1': 'SNO', '2': 'SBO' }, 1)
     .part('BRO', 'bridge', -1050, 1950, { value: 'DB107' }, { '1': 'SAO', '2': 'SBO', '3': 'VRO', '4': 'GND' })
+    // RLO keeps the bridge conducting all the cycle: without a load it fed CVO only near the
+    // peaks and the sense read 1.35 × high (the output settled at 171 V, found in simulation)
+    .part('RLO', 'resistor', -980, 2050, { value: '1k', pmax: '0.25' }, { '1': 'VRO', '2': 'GND' }, 1)
     .part('RAV', 'resistor', -920, 1950, { value: '10k' }, { '1': 'VRO', '2': 'VSO' })
     .part('CVO', 'capacitor', -820, 2050, { value: '1u', vmax: '35' }, { '1': 'VSO', '2': 'GND' }, 1)
     .part('RVO1', 'resistor', -720, 1950, { value: '57.6k' }, { '1': 'VSO', '2': 'SO' })
-    .part('RVO2', 'resistor', -620, 2050, { value: '24.3k' }, { '1': 'SO', '2': 'GND' }, 1)
+    .part('RVO2', 'resistor', -620, 2050, { value: '25.5k' }, { '1': 'SO', '2': 'GND' }, 1)
     .part('RSS', 'resistor', -560, 1880, { value: '100k' }, { '1': 'VREF', '2': 'VSS' }, 1)
-    .part('CSS', 'capacitor', -480, 2000, { value: '220n', vmax: '50' }, { '1': 'VSS', '2': 'GND' }, 1)
+    .part('CSS', 'capacitor', -480, 2000, { value: o.softC ?? '220n', vmax: '50' }, { '1': 'VSS', '2': 'GND' }, 1)
     .part('QSS', 'npn', -400, 2080, { value: 'BC547B' }, { '1': 'BSS', '2': 'VSS', '3': 'GND' })
     .part('RQS', 'resistor', -400, 2200, { value: '10k' }, { '1': 'ENN', '2': 'BSS' })
     .part('UEA', 'opamp', -260, 1950, { value: 'LM358', pkg: 'AMP' }, { '3': 'VSS', '2': 'NEA', '6': 'VAO', '7': V, '4': 'GND' })
@@ -302,7 +313,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('DZVA', 'zener', -20, 2050, { value: 'BZX55C3V3' }, { '1': 'VA', '2': 'GND' }, 1);
 
   // ---- independent output overvoltage (own sense transformer and reference, latched): EN low
-  // above 265 V; once tripped it holds itself until the battery is disconnected
+  // above 262 V (2.5 V at SP); once tripped it holds itself until the battery is disconnected
   nb.block('protection')
     .part('TRS2', 'transformer', 150, 1950, SENSE_TR, { '1': 'OUTL', '2': 'GND', '3': 'SAP', '4': 'SBP' })
     .part('RSP', 'resistor', 270, 2050, { value: '220' }, { '1': 'SAP', '2': 'SNP' }, 1)
@@ -310,13 +321,16 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('BRP', 'bridge', 400, 1950, { value: 'DB107' }, { '1': 'SAP', '2': 'SBP', '3': 'VSP', '4': 'GND' })
     .part('CVP', 'capacitor', 530, 2050, { value: '2.2u', vmax: '35' }, { '1': 'VSP', '2': 'GND' }, 1)
     .part('RVP1', 'resistor', 650, 1950, { value: '68k' }, { '1': 'VSP', '2': 'SP' })
-    .part('RVP2', 'resistor', 750, 2050, { value: '11.5k' }, { '1': 'SP', '2': 'GND' }, 1)
+    .part('RVP2', 'resistor', 750, 2050, { value: '11.0k' }, { '1': 'SP', '2': 'GND' }, 1)
     .part('RREF2', 'resistor', 850, 1850, { value: '2.2k' }, { '1': V, '2': 'VREF2' }, 1)
     .part('UREF2', 'tl431', 850, 1980, { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' }, 3)
     .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': 'VREF2', '1': 'FLT', '8': V, '4': 'GND' })
-    .part('RFLT', 'resistor', 1100, 1850, { value: '4.7k' }, { '1': V, '2': 'FLT' }, 1)
+    .part('RFLT', 'resistor', 1100, 1850, { value: '2.2k' }, { '1': V, '2': 'FLT' }, 1)
+    // the latch: FLT high (7.3 V with the LED and QFL's base) holds SP at 3.5 V through DLAT and
+    // RLAT with the sense at zero (4.7k and 47k held only 0.6 V: the trip released itself when
+    // CVP had discharged, found in simulation)
     .part('DLAT', 'diode', 1100, 2050, { value: '1N4148' }, { '2': 'FLT', '1': 'LAT' })
-    .part('RLAT', 'resistor', 1000, 2120, { value: '47k' }, { '1': 'LAT', '2': 'SP' })
+    .part('RLAT', 'resistor', 1000, 2120, { value: '10k' }, { '1': 'LAT', '2': 'SP' })
     .part('RBFL', 'resistor', 1220, 1880, { value: '10k' }, { '1': 'FLT', '2': 'BFL' })
     .part('QFL', 'npn', 1320, 1950, { value: 'BC547B' }, { '1': 'BFL', '2': 'EN', '3': 'GND' })
     .part('LFLT', 'led', 1220, 2060, { colour: 'red' }, { '2': 'FLT', '1': 'LFA' }, 1)
