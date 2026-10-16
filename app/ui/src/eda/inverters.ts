@@ -31,7 +31,7 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99' };
 export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const V = 'V12';
-  nb.wired = { rails: [V], labelled: ['BF', 'AXA', 'VME', 'BUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'ISA', 'OUTL', 'VBS', 'Q50', 'KEN'] };
+  nb.wired = { rails: [V], labelled: ['BF', 'AXA', 'VME', 'BUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'ISA', 'OUTL', 'VBS', 'Q50', 'KEN', 'STOP'] };
   nb.para('INVERTER, one 5 kW unit, 50 Hz transformer type: 48 V LiFePO4 battery (16 cells, 42 … 58.4 V) to 230 V 50 Hz. MOSFET full bridge (3 × IRFP4468 per switch) with unipolar sine PWM at 20 kHz; 50 Hz transformer 27.5/230 V 5 kVA; its leakage inductance and a 10 µF X2 capacitor filter the output. Surge: twice the rated current for motor starts, cycle by cycle limited.', -1400, -420)
     .para('Protections (DFMEA section 5): pre-charge before the battery contactor closes (a reversed battery closes nothing); cycle-by-cycle current limit; battery low cut-out 42 V (restart 47 V) and high cut-out 61 V; heatsink above 90 °C; output overvoltage from its own sense transformer and reference (latched). Every fault stops the bridge and the soft start begins again when it clears.', -1400, -340);
 
@@ -225,13 +225,17 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RPA', 'resistor', -750, 1420, { value: '4.7k' }, { '1': V, '2': 'INA' }, 1)
     .part('UPB', 'comparator', -650, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SINEB', '2': 'TRI', '1': 'INB', '8': V, '4': 'GND' })
     .part('RPB', 'resistor', -550, 1420, { value: '4.7k' }, { '1': V, '2': 'INB' }, 1)
-    // EN low holds both driver inputs low
-    .part('DENA', 'diode', -750, 1600, { value: '1N4148' }, { '2': 'INA', '1': 'EN' })
-    .part('DENB', 'diode', -550, 1600, { value: '1N4148' }, { '2': 'INB', '1': 'EN' })
+    // STOP (EN low, or an overcurrent) pulls both driver inputs to ground with a FET each: a
+    // comparator output and a diode would leave about 1.3 V, above the driver's 0.8 V low level
+    .part('QIA', 'nmos', -750, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'INA', '3': 'GND' })
+    .part('QIB', 'nmos', -550, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'INB', '3': 'GND' })
+    .part('DSE', 'diode', -650, 1700, { value: '1N4148' }, { '2': 'ENN', '1': 'STOP' })
+    .part('RSTP', 'resistor', -450, 1720, { value: '100k' }, { '1': 'STOP', '2': 'GND' }, 1)
     .part('CDC2', 'capacitor', -450, 1600, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   // ---- cycle-by-cycle current limit: ISA = VMID-referred ×24 of the shunt; outside ± 1.44 V
-  // (±300 A in the bridge: twice the rated peak) both driver inputs are held low for the moment
+  // (±300 A in the bridge: twice the rated peak) OCP or OCN goes high and STOP holds both
+  // driver inputs low for the moment
   nb.block('current')
     .part('UI', 'opamp', -250, 1500, { value: 'LM358', pkg: 'AMP' }, { '3': 'VIB', '2': 'NIS', '6': 'ISA', '7': V, '4': 'GND' })
     .part('RIB1', 'resistor', -350, 1400, { value: '24k' }, { '1': 'VMID', '2': 'VIB' }, 1)
@@ -241,11 +245,12 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('ROC1', 'resistor', 0, 1400, { value: '3.83k' }, { '1': V, '2': 'OCH' }, 1)
     .part('ROC2', 'resistor', 0, 1500, { value: '2.37k' }, { '1': 'OCH', '2': 'OCL' }, 1)
     .part('ROC3', 'resistor', 0, 1600, { value: '3.83k' }, { '1': 'OCL', '2': 'GND' }, 1)
-    .part('UOC1', 'comparator', 150, 1450, { value: 'LM339', pkg: 'CMP2' }, { '3': 'ISA', '2': 'OCL', '1': 'OC', '8': V, '4': 'GND' })
-    .part('UOC2', 'comparator', 150, 1600, { value: 'LM339', pkg: 'CMP2' }, { '3': 'OCH', '2': 'ISA', '1': 'OC', '8': V, '4': 'GND' })
-    .part('ROC', 'resistor', 280, 1400, { value: '10k' }, { '1': V, '2': 'OC' }, 1)
-    .part('DOCA', 'diode', 380, 1450, { value: '1N4148' }, { '2': 'INA', '1': 'OC' })
-    .part('DOCB', 'diode', 380, 1550, { value: '1N4148' }, { '2': 'INB', '1': 'OC' })
+    .part('UOC1', 'comparator', 150, 1450, { value: 'LM339', pkg: 'CMP2' }, { '3': 'ISA', '2': 'OCH', '1': 'OCP', '8': V, '4': 'GND' })
+    .part('UOC2', 'comparator', 150, 1600, { value: 'LM339', pkg: 'CMP2' }, { '3': 'OCL', '2': 'ISA', '1': 'OCN', '8': V, '4': 'GND' })
+    .part('ROCP', 'resistor', 280, 1400, { value: '10k' }, { '1': V, '2': 'OCP' }, 1)
+    .part('ROCN', 'resistor', 280, 1550, { value: '10k' }, { '1': V, '2': 'OCN' }, 1)
+    .part('DSP', 'diode', 380, 1450, { value: '1N4148' }, { '2': 'OCP', '1': 'STOP' })
+    .part('DSN', 'diode', 380, 1600, { value: '1N4148' }, { '2': 'OCN', '1': 'STOP' })
     .part('CDA', 'capacitor', -150, 1400, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   // ---- voltage loop: output sensed (transformer, bridge, filter) against the soft-start

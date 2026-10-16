@@ -77,8 +77,13 @@ const MAX_EXP = 80;
 
 export class SimError extends Error {}
 
+/** The positions of the matrix that any device has ever written (index i·n + j), so the matrix
+ *  is cleared and handed to the solver by its non-zeros instead of all n² entries. */
+export interface Pattern { mark: Uint8Array; list: Int32Array; len: number }
+
 interface Ctx {
   A: Float64Array; z: Float64Array; x: Float64Array; n: number;
+  pat?: Pattern;
   mode: 'dc' | 'tran';
   t: number; h: number; method: 'be' | 'trap';
   srcScale: number;
@@ -91,7 +96,13 @@ interface Ctx {
 
 interface AcCtx { Ar: Float64Array; Ai: Float64Array; br: Float64Array; bi: Float64Array; n: number; w: number }
 
-function add(c: { A: Float64Array; n: number }, i: number, j: number, v: number) { if (i >= 0 && j >= 0) c.A[i * c.n + j] += v; }
+function add(c: { A: Float64Array; n: number; pat?: Pattern }, i: number, j: number, v: number) {
+  if (i < 0 || j < 0) return;
+  const k = i * c.n + j;
+  c.A[k] += v;
+  const p = c.pat;
+  if (p !== undefined && p.mark[k] === 0) { p.mark[k] = 1; p.list[p.len++] = k; }
+}
 function addc(c: AcCtx, i: number, j: number, re: number, im: number) { if (i >= 0 && j >= 0) { c.Ar[i * c.n + j] += re; c.Ai[i * c.n + j] += im; } }
 function rhs(c: { z: Float64Array }, i: number, v: number) { if (i >= 0) c.z[i] += v; }
 const V = (x: Float64Array, i: number) => (i >= 0 ? x[i] : 0);
@@ -1026,14 +1037,27 @@ export class Engine {
   private ctx(over: Partial<Ctx>): Ctx {
     return {
       // one matrix buffer for every context: it is filled by assemble() before each use
-      A: this.Abuf && this.Abuf.length === this.n * this.n ? this.Abuf : (this.Abuf = new Float64Array(this.n * this.n)), z: new Float64Array(this.n), x: this.x, n: this.n,
+      A: this.matrix(), pat: this.pat, z: new Float64Array(this.n), x: this.x, n: this.n,
       mode: 'dc', t: 0, h: 0, method: 'be', srcScale: 1, gshunt: 0, init: false, noncon: false, uic: false, ...over,
     };
   }
 
+  /** The shared matrix buffer and its pattern (every context fills it in assemble()). */
+  private matrix(): Float64Array {
+    if (!this.Abuf || this.Abuf.length !== this.n * this.n) {
+      this.Abuf = new Float64Array(this.n * this.n);
+      this.pat = { mark: new Uint8Array(this.n * this.n), list: new Int32Array(this.n * this.n), len: 0 };
+    }
+    return this.Abuf;
+  }
+  private pat?: Pattern;
+
   private assemble(c: Ctx) {
-    c.A.fill(0); c.z.fill(0); c.noncon = false;
-    for (let i = 0; i < this.nNodes; i++) c.A[i * c.n + i] += GSHUNT + c.gshunt;
+    const p = c.pat;
+    // every non-zero was written through add(): clearing the pattern clears the matrix
+    if (p) { const A = c.A, l = p.list; for (let q = 0; q < p.len; q++) A[l[q]] = 0; } else c.A.fill(0);
+    c.z.fill(0); c.noncon = false;
+    for (let i = 0; i < this.nNodes; i++) add(c, i, i, GSHUNT + c.gshunt);
     for (const d of this.devices) d.load(c);
   }
 
@@ -1051,7 +1075,7 @@ export class Engine {
       const b = c.z.slice();
       // the fill-reducing order is found once per analysis mode, from the first matrix
       if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; this.solver = new SparseSolver(this.order); }
-      if (!this.solver!.solve(c.A, b)) return -1;
+      if (!this.solver!.solve(c.A, b, c.pat)) return -1;
       for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) return -1;
       let conv = !c.noncon && !c.init;
       if (conv) {

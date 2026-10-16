@@ -163,8 +163,27 @@ export class SparseSolver {
     if (this.colLen[j] === a.length) { const b = new Int32Array(a.length * 2); b.set(a); this.colRows[j] = a = b; }
     a[this.colLen[j]++] = i;
   }
-  /** Solves A·x = b (A is n×n row-major, unchanged); x replaces b. False when singular. */
-  solve(A: Float64Array, b: Float64Array): boolean {
+  // the pattern's entries grouped by (reordered) row: index into A and column, per row
+  private patLen = -1;
+  private pRowStart = new Int32Array(0);
+  private pIdx = new Int32Array(0);
+  private pCol = new Int32Array(0);
+  private groupPattern(pat: { list: Int32Array; len: number }) {
+    const n = this.n, inv = this.inv, cnt = new Int32Array(n + 1);
+    for (let q = 0; q < pat.len; q++) cnt[inv[(pat.list[q] / n) | 0] + 1]++;
+    for (let i = 0; i < n; i++) cnt[i + 1] += cnt[i];
+    this.pRowStart = cnt.slice();
+    this.pIdx = new Int32Array(pat.len); this.pCol = new Int32Array(pat.len);
+    const fill = cnt.slice();
+    for (let q = 0; q < pat.len; q++) {
+      const k = pat.list[q], r = inv[(k / n) | 0], at = fill[r]++;
+      this.pIdx[at] = k; this.pCol[at] = inv[k % n];
+    }
+    this.patLen = pat.len;
+  }
+  /** Solves A·x = b (A is n×n row-major, unchanged); x replaces b. False when singular.
+   *  With `pat`, the positions of every non-zero of A: only those are read. */
+  solve(A: Float64Array, b: Float64Array, pat?: { list: Int32Array; len: number }): boolean {
     const n = this.n, W = this.W, mark = this.mark, perm = this.perm, inv = this.inv;
     // clear what the last solve left
     for (let r = 0; r < n; r++) {
@@ -173,7 +192,21 @@ export class SparseSolver {
       this.rowLen[r] = 0; this.colLen[r] = 0;
     }
     // load in the fill-reducing order
-    for (let i = 0; i < n; i++) {
+    if (pat) {
+      if (pat.len !== this.patLen) this.groupPattern(pat);
+      const rs = this.pRowStart, pi = this.pIdx, pc = this.pCol;
+      for (let i = 0; i < n; i++) {
+        const base = i * n;
+        for (let q = rs[i]; q < rs[i + 1]; q++) {
+          const v = A[pi[q]];
+          if (v === 0) continue;
+          const j = pc[q];
+          W[base + j] = v; mark[base + j] = 1;
+          this.pushRow(i, j); this.pushCol(j, i);
+        }
+        this.bb[i] = b[perm[i]]; this.alive[i] = 1;
+      }
+    } else for (let i = 0; i < n; i++) {
       const src = perm[i] * n, base = i * n;
       for (let c = 0; c < n; c++) {
         const v = A[src + c];

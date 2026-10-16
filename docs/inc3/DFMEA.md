@@ -2,8 +2,8 @@
 
 Design failure mode and effects analysis of the worked examples of the power track:
 change-over 1P (`changeover-1p`), change-over 3P+N (`changeover-3p`), mains voltage stabiliser
-(`stabiliser`) and MPPT solar charger (`mppt-charger`). The inverters (P7) get theirs when
-they are designed.
+(`stabiliser`), MPPT solar charger (`mppt-charger`) and the inverters (P7, D30): section 5 the
+50 Hz transformer type; the high-frequency type follows.
 
 ## 1. Method
 
@@ -104,7 +104,29 @@ array or the people around them.
 | M-15 | Diagnosis | — | — | LEDs CHARGING and FAULT; FAQ in the help | 4 | 3 | 3 | L | review |
 | M-16 | PV connector arcing, ground fault | Fire on the PV side (FF-50, FF-51) | Installation | **Open (installation):** DC isolator and DC SPD at the array, same-brand connectors, ground-fault fuse; listed in the installation guide | 9 | 3 | 7 | **H** | open |
 
-## 5. Open actions (not yet closed by design or test)
+## 5. Inverter, 50 Hz transformer type (5 kW unit, 48 V LiFePO4) — in design
+
+Function: 230 V ± 5 %, 50 Hz ± 1 %, sine with THD below 5 % from a 42 … 58.4 V battery, 5 kW
+continuous and twice the rated current for motor starts; never harm the battery, the loads or
+the people around them. Field root causes: FIELD_FAILURES.md section 5 (FF 5.1 … 5.7).
+
+| # | Failure mode | Effect | Cause | Design action | S | O | D | AP | Verified by |
+|---|---|---|---|---|---|---|---|---|---|
+| I-1 | Inrush when the battery is connected | Spark, pitted terminals, BMS trips (FF 5.3) | Empty bus capacitors | Pre-charge through 22 Ω 25 W and a diode; the 150 A contactor closes only above 91 % of the battery (comparator with hysteresis) | 6 | 2 | 2 | L | to do: connection test |
+| I-2 | Battery connected the wrong way round | Bridge body diodes short the battery, fire (FF-17) | Installer | Pre-charge diode blocks; contactor coil and control fed after the input diode DAUX (QK's body diode cannot energise the coil); measuring dividers after DAUX (no negative input voltage); class T fuse as the last line | 9 | 3 | 2 | L | to do: reversed battery |
+| I-3 | Shoot-through in a leg | MOSFETs destroyed (FF 5.1.4) | Dead time, driver undervoltage, noise | IR2184 drivers with fixed dead time and undervoltage lockout; 10k gate–source resistors hold the gates off while the 12 V is missing; driver inputs held at 0 V by FETs while stopped (a diode would leave 1.3 V, above the driver's 0.8 V low level: found in simulation) | 9 | 2 | 3 | L | stress check; to do: start-up |
+| I-4 | Overload, short circuit, motor start | MOSFETs destroyed (FF 5.1.1) | Loads draw 3–7 × at start | Cycle-by-cycle limit at twice the rated peak (window comparator on the shunt, < 2 µs, both legs held off for the rest of the PWM period) | 9 | 3 | 2 | L | to do: short circuit, motor start |
+| I-5 | Transformer DC saturation | Current rises every cycle until the bridge fails (FF 5.1.6) | Unequal half-cycles (switch, comparator, dead-time asymmetry); 0.25 % is enough for 20 A through the 3 mΩ primary | Sine reference without DC by construction (square VME ± VA/2, no coupling capacitor); DC servo: JFET differential integrator holds the primary's mean voltage at zero | 9 | 2 | 2 | L | to do: mean primary current |
+| I-6 | Unequal sharing of paralleled MOSFETs | One device overloaded (FF 5.1.2) | Gate oscillation, layout | Gate resistor per device (4.7 Ω); three devices per switch with 2.6 × margin at the rated current; layout symmetry (PFMEA) | 7 | 3 | 4 | M | stress check per device |
+| I-7 | Avalanche at turn-off | MOSFET damage (FF 5.1.3) | Leakage and wiring inductance | 100 V MOSFETs on a 58.4 V maximum bus (58 %); film bus capacitors at the bridge; peak V(DS) below 80 V in the stress check | 8 | 3 | 3 | L | to do: stress check at 58.4 V |
+| I-8 | Deep discharge, restart at low battery | Battery damage, chattering (FF 5.4) | No hysteresis | Low cut-out 42 V, restart only above 47 V (any fault restarts only above 47 V) | 6 | 3 | 2 | L | to do: battery window |
+| I-9 | Overvoltage of the battery side | MOSFETs and capacitors stressed | Charger fault, BMS open | High cut-out 61 V with hysteresis | 7 | 2 | 2 | L | to do: battery window |
+| I-10 | Output overvoltage | Loads destroyed | Voltage loop or its sense open | Independent overvoltage (own sense transformer, own TL431, LM393 of its own), latched until the battery is disconnected; FAULT LED | 9 | 2 | 2 | L | to do: sense transformer open |
+| I-11 | Heatsink overtemperature | Device failure (FF 5.7) | Dust, fan-less hot climate, sustained overload | No fan; NTC on the heatsink stops the bridge above 90 °C with 3 °C hysteresis | 7 | 3 | 2 | L | to do: heatsink 95 °C |
+| I-12 | Hum and audible whine | Complaints, transformer stress | PWM in the audible range | 20 kHz PWM | 3 | 2 | 3 | L | analysis |
+| I-13 | Parallel and three-phase operation | Circulating current, units fight (FF 5.6) | Phase or amplitude mismatch | Planned (P7c): shared reference sine and fault line (no sync, no output); droop sharing | 8 | — | — | — | open (P7c) |
+
+## 6. Open actions (not yet closed by design or test)
 
 | # | Design | Action | AP |
 |---|---|---|---|
@@ -115,7 +137,7 @@ array or the people around them.
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
 | all | all | Layouts (P8): creepage for pollution degree 3, coating keep-outs, power tracks per IPC-2221 | M |
 
-## 6. How to keep this DFMEA current
+## 7. How to keep this DFMEA current
 
 Every design change re-runs the tests named above (they are part of the unit suite). A new
 failure mode found in the field or in a test is added here with its root cause, its action
