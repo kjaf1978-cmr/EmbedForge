@@ -206,22 +206,44 @@ export function valueText(p: Part): string {
 }
 
 /** Re-numbers references by position, top to bottom then left to right (UI-08 (e)). */
+/** Units per package of the multi-unit ICs: parts with the same `pkg` property are the units
+ *  of one IC (U3A, U3B…), counted once in the parts list. */
+export const PACKAGE_UNITS: Record<string, number> = { LM339: 4, LM393: 2, LM358: 2, TL072: 2, TL074: 4, LM324: 4 };
+/** Package pin count of the multi-unit ICs (for the solder joints of the reliability count). */
+export const PACKAGE_PINS: Record<string, number> = { LM339: 14, LM393: 8, LM358: 8, TL072: 8, TL074: 14, LM324: 14 };
+
 export function annotate(sheet: Sheet): Sheet {
   const parts = sheet.parts.map((p) => ({ ...p }));
-  const groups = new Map<string, Part[]>();
+  const groups = new Map<string, Part[][]>();
+  // a package's units share one number: they are numbered as one entity, at the first unit
+  const pkgs = new Map<string, Part[]>();
   for (const p of parts) {
     const pre = symbolOf(p.sym).prefix;
-    groups.set(pre, [...(groups.get(pre) ?? []), p]);
+    const k = p.props.pkg;
+    if (k) {
+      const id = `${pre}|${k}`;
+      const list = pkgs.get(id);
+      if (list) { list.push(p); continue; }
+      const nl = [p];
+      pkgs.set(id, nl);
+      groups.set(pre, [...(groups.get(pre) ?? []), nl]);
+    } else groups.set(pre, [...(groups.get(pre) ?? []), [p]]);
   }
+  const pos = (u: Part[]) => u.reduce((a, b) => (b.y < a.y || (b.y === a.y && b.x < a.x) ? b : a));
   for (const [pre, list] of groups) {
-    list.sort((a, b) => a.y - b.y || a.x - b.x);
-    list.forEach((p, i) => {
-      const r = pre === '#PWR' ? `#PWR${String(i + 1).padStart(2, '0')}` : `${pre}${i + 1}`;
-      p.ref = r;
+    list.sort((a, b) => pos(a).y - pos(b).y || pos(a).x - pos(b).x);
+    list.forEach((units, i) => {
+      const base = pre === '#PWR' ? `#PWR${String(i + 1).padStart(2, '0')}` : `${pre}${i + 1}`;
+      if (units.length === 1 && !units[0].props.pkg) { units[0].ref = base; return; }
+      // units in the order they were placed: A, B, C, D
+      units.forEach((u, k) => { u.ref = `${base}${String.fromCharCode(65 + k)}`; });
     });
   }
   return { ...sheet, parts };
 }
+
+/** The package reference of a part: U3 for the unit U3B, else the part's own reference. */
+export const packageRef = (p: Part): string => (p.props.pkg ? p.ref.replace(/[A-Z]$/, '') : p.ref);
 
 /** Removes zero-length wires and exact duplicates. */
 export function cleanWires(wires: Wire[]): Wire[] {

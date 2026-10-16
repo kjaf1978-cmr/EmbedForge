@@ -21,7 +21,7 @@ daylight.
 | Change-over | OVERVOLTAGE (red) | a phase of the mains is above 253 V (or, after a trip, above 245 V) | no overvoltage |
 | Change-over | UNDERVOLTAGE (red) | a phase is below 195 V, missing, or more than about 10 % below the others (3P+N) | no undervoltage |
 | Stabiliser | one yellow LED per tap relay | that relay is energised; the lowest LED that is on is the tap in use | — |
-| Stabiliser | OUTPUT (green) | the load is connected | waiting for the restart delay (about 11 s) or cut off |
+| Stabiliser | OUTPUT (green) | the load is connected | waiting for the restart delay (about 8 s) or cut off |
 | Stabiliser | FAULT (red) | the 230 V tap is outside 190 … 255 V: the output protection holds the load off | output in range |
 | Charger | CHARGING (green) | charge current above about 6 A flows | no or low charge current (night, weak sun, battery full) |
 | Charger | FAULT (red) | the independent overvoltage protection has tripped (the output stayed above 57.6 V, 3.6 V per cell): the battery and the array are cut off until the power is removed | normal |

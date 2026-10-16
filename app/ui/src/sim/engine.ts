@@ -8,7 +8,7 @@
 // signal around the operating point.
 
 import { breakpoints, opValue, terminals, waveAt, type BjtModel, type Circuit, type DiodeModel, type Element, type MosModel } from './circuit';
-import { minDegreeOrder, solveComplex, solveRealOrdered } from './linalg';
+import { minDegreeOrder, solveComplex, SparseSolver } from './linalg';
 
 /** Nominal temperature in kelvin (27 °C, SPICE TNOM): model parameters are given at it. */
 export const TNOM = 300.15;
@@ -1025,7 +1025,8 @@ export class Engine {
 
   private ctx(over: Partial<Ctx>): Ctx {
     return {
-      A: new Float64Array(this.n * this.n), z: new Float64Array(this.n), x: this.x, n: this.n,
+      // one matrix buffer for every context: it is filled by assemble() before each use
+      A: this.Abuf && this.Abuf.length === this.n * this.n ? this.Abuf : (this.Abuf = new Float64Array(this.n * this.n)), z: new Float64Array(this.n), x: this.x, n: this.n,
       mode: 'dc', t: 0, h: 0, method: 'be', srcScale: 1, gshunt: 0, init: false, noncon: false, uic: false, ...over,
     };
   }
@@ -1039,6 +1040,8 @@ export class Engine {
   /** Newton–Raphson from c.x; returns the iteration count or −1 when it did not converge. */
   private order?: Int32Array;
   private orderMode?: Ctx['mode'];
+  private solver?: SparseSolver;
+  private Abuf?: Float64Array;
   private newton(c: Ctx, maxIter: number, initJct: boolean): number {
     let x = c.x;
     for (let it = 1; it <= maxIter; it++) {
@@ -1047,8 +1050,8 @@ export class Engine {
       this.assemble(c);
       const b = c.z.slice();
       // the fill-reducing order is found once per analysis mode, from the first matrix
-      if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; }
-      if (!solveRealOrdered(c.A, b, c.n, this.order)) return -1;
+      if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; this.solver = new SparseSolver(this.order); }
+      if (!this.solver!.solve(c.A, b)) return -1;
       for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) return -1;
       let conv = !c.noncon && !c.init;
       if (conv) {

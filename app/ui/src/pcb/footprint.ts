@@ -141,7 +141,7 @@ add(soic('SOIC-8', 'SOIC-8', 8));
 // connectors: parts that are off the board are wired to a connector
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
-for (const n of [2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
+for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
 add(make('Bridge_Inline_4', 'Bridge rectifier, 4 inline legs 5.08 mm (+ ~ ~ −)', 'check the marking on the body: + ~ ~ −', [1, 2, 3, 4].map((k) => tht(String(k), -7.62 + (k - 1) * 5.08, 0, 2.2, 1.2, k === 1 ? 'rect' : 'circle')),
   box(-10, -2, 10, 2), { x0: -10, y0: -1.9, x1: 10, y1: 1.9, h: 15 }));
 // switches and relays

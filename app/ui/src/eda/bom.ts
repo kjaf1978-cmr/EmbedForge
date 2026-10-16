@@ -2,7 +2,7 @@
 // one line with their quantity and references. Power symbols are not parts.
 
 import { symbolOf } from './symbols';
-import type { Sheet } from './schematic';
+import { PACKAGE_UNITS, packageRef, type Sheet } from './schematic';
 import { parseValue } from './units';
 import { importModel } from './spicemodel';
 import { pinOrder } from './connectivity';
@@ -11,9 +11,12 @@ export interface BomLine { qty: number; refs: string[]; part: string; value: str
 
 export function buildBom(sheet: Sheet): BomLine[] {
   const lines = new Map<string, BomLine>();
+  const seenPkg = new Set<string>();
   for (const p of sheet.parts) {
     const s = symbolOf(p.sym);
     if (s.power) continue;
+    // the units of a multi-unit IC are one part
+    if (p.props.pkg) { const k = packageRef(p); if (seenPkg.has(k)) continue; seenPkg.add(k); }
     const raw = p.props[s.value.key] ?? s.value.default;
     // switches' states and positions are operating states, not part values
     let value = s.value.kind === 'bool' || s.interactive ? '' : s.value.unit && parseValue(raw) !== null && !raw.endsWith(s.value.unit) ? `${raw} ${s.value.unit}` : raw;
@@ -25,7 +28,9 @@ export function buildBom(sheet: Sheet): BomLine[] {
     if (card && !('error' in card)) value = `${card.name} (SPICE model)`;
     const key = `${p.sym}|${value}|${details}`;
     const l = lines.get(key);
-    if (l) { l.qty++; l.refs.push(p.ref); } else lines.set(key, { qty: 1, refs: [p.ref], part: s.name, value, details, standard: false });
+    const ref = packageRef(p);
+    const part = p.props.pkg && PACKAGE_UNITS[raw] ? `${s.name} (${PACKAGE_UNITS[raw]} in one package)` : s.name;
+    if (l) { l.qty++; l.refs.push(ref); } else lines.set(key, { qty: 1, refs: [ref], part, value, details, standard: false });
   }
   const out = [...lines.values()];
   for (const l of out) l.refs.sort(pinOrder);

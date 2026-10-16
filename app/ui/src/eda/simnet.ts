@@ -591,6 +591,8 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       out.push({ kind: 'R', name: `${ref}_B`, a: pin['1'], b: pin['3'], r: b ? 0.01 : 1e9 });
       break;
     }
+    // a terminal is a connection point: nothing to simulate
+    case 'terminal': break;
     default: throw new SimSetupError(`no simulation model for ${s.id}`);
   }
 }

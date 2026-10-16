@@ -47,7 +47,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   opamp: { generic: { Vs: 36, Iout: 0.025 }, LM358: { Vs: 32, Iout: 0.03 }, TL072: { Vs: 36, Iout: 0.025 }, LM324: { Vs: 32, Iout: 0.03 }, MCP6002: { Vs: 6, Iout: 0.023 }, NE5532: { Vs: 44, Iout: 0.038 } },
   regulator: { '7805': { Vin: 35, Iout: 1, P: 2 }, '7809': { Vin: 35, Iout: 1, P: 2 }, '7812': { Vin: 35, Iout: 1, P: 2 }, 'AMS1117-3.3': { Vin: 15, Iout: 1, P: 0.8 }, 'AMS1117-5.0': { Vin: 15, Iout: 1, P: 0.8 },
     'MCP1700-3.3': { Vin: 6, Iout: 0.25, P: 0.5 }, L78L05: { Vin: 30, Iout: 0.1, P: 0.7 } },
-  lm317: { LM317: { Vin: 40, Iout: 1.5, P: 2 } },
+  lm317: { LM317: { Vin: 40, Iout: 1.5, P: 2 }, LM317HV: { Vin: 60, Iout: 1.5, P: 2 } },
   timer555: { NE555: { Vcc: 16, Iout: 0.2, P: 0.6 } },
   relay: { '*': { I: 10 }, '12 V 30 A': { I: 30 } },
 };
@@ -59,6 +59,7 @@ export const THERMAL: Record<string, { tj: number; rjc: number }> = {
   IRFP4468: { tj: 175, rjc: 0.29 }, IRFP4110: { tj: 175, rjc: 0.4 }, IRFB4115: { tj: 175, rjc: 0.45 }, IRFP4668: { tj: 175, rjc: 0.29 }, IPW65R041: { tj: 150, rjc: 0.33 },
   IRLZ44N: { tj: 175, rjc: 1.4 }, IRF540N: { tj: 175, rjc: 1.15 }, IRF9540N: { tj: 175, rjc: 1.2 },
   IKW30N60T: { tj: 175, rjc: 0.5 }, IKW40N120T2: { tj: 175, rjc: 0.31 }, 'generic 600 V 20 A': { tj: 150, rjc: 0.8 },
+  LM317: { tj: 125, rjc: 5 }, LM317HV: { tj: 125, rjc: 5 }, '7805': { tj: 125, rjc: 5 }, '7809': { tj: 125, rjc: 5 }, '7812': { tj: 125, rjc: 5 },
   STTH6003: { tj: 175, rjc: 0.6 }, SS34: { tj: 150, rjc: 15 }, GBU8K: { tj: 150, rjc: 2.2 }, KBP206: { tj: 150, rjc: 8 },
 };
 
@@ -148,7 +149,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       case 'regulator': case 'lm317': {
         if (!model) break;
         const [vin, g, vo] = p.sym === 'lm317' ? ['3', '1', '2'] : ['1', '2', '3'];
-        add('Vin', peak(p.sym === 'lm317' ? vAcross(vin, vo) : vAcross(vin, g)), model.Vin); add('Iout', peak(iPin(vo)), model.Iout); add('P', P([vin, g, vo]), model.P);
+        add('Vin', peak(p.sym === 'lm317' ? vAcross(vin, vo) : vAcross(vin, g)), model.Vin); add('Iout', peak(iPin(vo)), model.Iout); add('P', P([vin, g, vo]), pRating(model.P));
         break;
       }
       case 'timer555': if (model) { add('Vcc', peak(vAcross('8', '1')), model.Vcc); add('Iout', peak(iPin('3')), model.Iout); add('P', P(['1', '2', '3', '4', '5', '6', '7', '8']), model.P); } break;

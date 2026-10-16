@@ -16,11 +16,13 @@ describe('bill of materials', () => {
     expect(csv.split('\r\n')[0]).toBe('Qty,References,Part,Value,Details,Catalogue part');
     expect(csv).toContain('2,R1 R2,Resistor,1k Ω,,no (generic library)');
   });
-  it('every example has a parts list with every part once', () => {
+  it('every example has a parts list with every part once (the units of a multi-unit IC are one part)', () => {
     for (const ex of EXAMPLES) {
       const s = ex.build();
       const b = buildBom(s);
-      expect(b.reduce((a, l) => a + l.qty, 0), ex.id).toBe(s.parts.filter((p) => !['gnd', 'power'].includes(p.sym)).length);
+      const parts = s.parts.filter((p) => !['gnd', 'power'].includes(p.sym));
+      const packages = new Set(parts.map((p) => (p.props.pkg ? p.ref.replace(/[A-Z]$/, '') : p.ref)));
+      expect(b.reduce((a, l) => a + l.qty, 0), ex.id).toBe(packages.size);
     }
   });
 });

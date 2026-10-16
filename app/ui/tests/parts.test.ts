@@ -472,6 +472,8 @@ describe('parts left on their own', () => {
 describe('installation and power parts (detailed checks in installation.test.ts)', () => {
   const decks: [string, Spec[], SimSettings?][] = [
     ['mov', [V(230, 'L'), ['mov', {}, { '1': 'L', '2': 'GND' }]]],
+    // a terminal is a connection point: the circuit through it is unchanged
+    ['terminal', [V(5, 'L'), ['terminal', { value: 'L in' }, { '1': 'L' }], R('100', 'L', 'GND')]],
     ['gdt', [V(200, 'L'), R('100', 'L', 'M'), ['gdt', {}, { '1': 'M', '2': 'GND' }]]],
     ['breaker1', [V(230, 'L'), ['breaker1', {}, { '1': 'L', '2': 'O' }], R('100', 'O', 'GND')]],
     ['breaker2', [V(230, 'L'), ['breaker2', {}, { '1': 'L', '2': 'O', N1: 'GND', N2: 'NO' }], R('100', 'O', 'NO')]],

@@ -15,7 +15,7 @@ import { symbolOf } from './symbols';
 import { connectivity, type Connectivity } from './connectivity';
 import { smoke, THERMAL } from './smoke';
 import { parseValue } from './units';
-import type { Sheet } from './schematic';
+import { PACKAGE_PINS, PACKAGE_UNITS, packageRef, type Sheet } from './schematic';
 import type { SimResult } from '../sim/run';
 
 /** Reference failure rate (FIT at 40 °C) and activation energy (eV) of a part class. */
@@ -52,6 +52,7 @@ const CLASS: Record<string, PartClass> = {
   hbdriver: { fit: 20, ea: 0.45, what: 'gate driver' },
   regulator: { fit: 10, ea: 0.45, what: 'linear regulator' },
   lm317: { fit: 10, ea: 0.45, what: 'linear regulator' },
+  terminal: { fit: 0.5, ea: 0.2, what: 'screw terminal pole' },
   relay: { fit: 20, ea: 0.2, what: 'relay (random failures; contact wear apart)' },
   contactor: { fit: 50, ea: 0.2, what: 'contactor (random failures; contact wear apart)' },
   breaker1: { fit: 20, ea: 0.2, what: 'circuit breaker' }, breaker2: { fit: 25, ea: 0.2, what: 'circuit breaker' },
@@ -118,7 +119,9 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
     const pct = stress.get(p.ref) ?? 0;
     const piS = pct > 100 ? 10 : pct > 80 ? 3 : pct > 50 ? 1.5 : 1;
     const piT = piTemp(cls.ea, temp);
-    rows.push({ ref: p.ref, what: cls.what, temp, fitRef: cls.fit, piT, piS, fit: cls.fit * piT * piS });
+    // a unit of a multi-unit IC carries its share of the package
+    const share = p.props.pkg ? 1 / (PACKAGE_UNITS[model] ?? 1) : 1;
+    rows.push({ ref: p.ref, what: cls.what, temp, fitRef: cls.fit * share, piT, piS, fit: cls.fit * share * piT * piS });
     // wear-out
     if (p.sym === 'capacitor_pol') {
       // 105 °C, 10 000 h long-life types; the hot spot about 5 K above the air
@@ -136,7 +139,14 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
     }
   }
   const piE = usage.piE ?? 2;
-  const joints = sheet.parts.filter((p) => !symbolOf(p.sym).power && !OUTSIDE.has(p.sym)).reduce((a, p) => a + symbolOf(p.sym).pins.length, 0);
+  const seenPkg = new Set<string>();
+  const joints = sheet.parts.filter((p) => !symbolOf(p.sym).power && !OUTSIDE.has(p.sym)).reduce((a, p) => {
+    if (!p.props.pkg) return a + symbolOf(p.sym).pins.length;
+    const k = packageRef(p);
+    if (seenPkg.has(k)) return a;
+    seenPkg.add(k);
+    return a + (PACKAGE_PINS[p.props[symbolOf(p.sym).value.key] ?? ''] ?? symbolOf(p.sym).pins.length);
+  }, 0);
   const fit = piE * (rows.reduce((a, x) => a + x.fit, 0) + joints * FIT_JOINT);
   const mtbfHours = 1e9 / fit;
   return { rows: rows.sort((a, b) => b.fit - a.fit), fit, mtbfHours, mtbfYears: mtbfHours / 8760, wear, joints, piE };

@@ -95,6 +95,34 @@ right tap is chosen and the output is V_in·230/tap within 2 % and within 230 V 
 more than 253 V. A sag from 230 to 195 V while running steps down a tap and the output
 recovers. The stress check is clean at 140 V (largest input current) and 226 V.
 
+### P4 — redrawn as the product (decision D28, 16 October 2026)
+
+The owner found the first drawing unusable: parts with net labels on every pin and no wires.
+The stabiliser is now drawn as the circuit diagram of the product (pilot of D28):
+
+- **Wired:** every connection inside a functional block is a wire (automatic orthogonal
+  wiring, checked against the netlist: no pin may change its net); supply rails are power
+  symbols; only signals between blocks (VIN, N, T5, SF, VREF, N1 … N6, OD, DLY) carry labels.
+  No two parts overlap (test).
+- **Physically complete:** screw terminals L in, N in, PE, L out, N out, PE; the 12 V control
+  supply is built from the input (fuse 0.2 A, 230/27 V 25 VA transformer with RC snubber, DB107,
+  2200 µF 63 V, LM317HV on an 8 K/W heatsink: 11.5 … 12 V over 140 … 300 V in); the mains
+  neutral N is a separate conductor, the control ground is bonded to PE (PELV).
+- **Parts as bought:** three LM339 packages (taps 1–4; taps 5–6, the restart delay and a
+  spare; the independent output protection with two spares), each with a 100 nF decoupling
+  capacitor; spare comparators with + on ground and − on a reference (outputs held low).
+- **Product values in the drawing:** restart delay 1 MΩ (470k + 470k + 68k) and 4.7 µF film
+  against 80 % of the rail: about 7.6 s, independent of the rail; DDIS empties the capacitor at
+  every supply interruption. The tests use a 220 nF capacitor (0.35 s) to keep the runs short.
+- **The test bench** (mains source with its earthed neutral) and the test load are drawn
+  outside the product.
+
+Found on the way: every LED of the power designs was red (the colour is the LED's `colour`
+property, not its value); the protection comparator's output current was 24 mA when it
+discharged the delay capacitor (16 mA allowed): a 2.2k in the discharge path and a 4.7k for the
+FAULT LED bring it to 13 mA. The simulation engine now solves with a sparse LU (lists of the
+non-zeros per row and column), about twice as fast for the power designs.
+
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a

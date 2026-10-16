@@ -3,7 +3,7 @@
 
 import { symbolOf, railVoltage, type Pt } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
-import { pinPositions, type Sheet } from './schematic';
+import { PACKAGE_UNITS, packageRef, pinPositions, type Sheet } from './schematic';
 import { unbuyable } from './standard';
 
 export type Severity = 'error' | 'warning' | 'info';
@@ -12,7 +12,7 @@ export interface ErcIssue {
   id: string;
   severity: Severity;
   /** Requirement item the rule implements. */
-  rule: 'ED-09.a' | 'ED-09.b' | 'ED-09.c' | 'ED-09.d' | 'ED-09.e' | 'ED-03.f' | 'ED-08' | 'SIM-05' | 'VER-13' | 'net-name' | 'stress';
+  rule: 'ED-09.a' | 'ED-09.b' | 'ED-09.c' | 'ED-09.d' | 'ED-09.e' | 'ED-03.f' | 'ED-08' | 'SIM-05' | 'VER-13' | 'net-name' | 'stress' | 'package';
   message: string;
   at: Pt | null;
   refs: string[];
@@ -33,7 +33,7 @@ export const DC_PATH: Record<string, string[][]> = {
   // surge voltage generator; varistors, GDTs and the current generator give no DC path
   breaker1: [['1', '2']], breaker2: [['1', '2'], ['N1', 'N2']], breaker3: [['1', '2'], ['3', '4'], ['5', '6']], breaker4: [['1', '2'], ['3', '4'], ['5', '6'], ['N1', 'N2']],
   contactor: [['A1', 'A2']], pv: [['1', '2']], autotransformer: [['N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']],
-  comparator: [['8', '4']], hbdriver: [['8', '3', '4'], ['7', '6', '5']], vsurge: [['1', '2']], mov: [], gdt: [], isurge: [],
+  comparator: [['8', '4']], hbdriver: [['8', '3', '4'], ['7', '6', '5']], vsurge: [['1', '2']], mov: [], gdt: [], isurge: [], terminal: [],
   vdc: [['1', '2']], battery: [['1', '2']], vsin: [['1', '2']], vpulse: [['1', '2']],
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],
@@ -139,6 +139,16 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
 
   // VER-13: values and ratings that can be bought (E series, catalogue rating steps)
   for (const p of sheet.parts) for (const u of unbuyable(p)) add({ severity: 'warning', rule: 'VER-13', message: `${u.message}.`, at: { x: p.x, y: p.y }, refs: [p.ref] });
+
+  // multi-unit ICs: no more units than the package has, all of one type
+  const pk = new Map<string, typeof sheet.parts>();
+  for (const p of sheet.parts) if (p.props.pkg) pk.set(packageRef(p), [...(pk.get(packageRef(p)) ?? []), p]);
+  for (const [ref, units] of pk) {
+    const vals = new Set(units.map((u) => u.props[symbolOf(u.sym).value.key]));
+    const cap = PACKAGE_UNITS[[...vals][0]] ?? 1;
+    if (vals.size > 1) add({ severity: 'error', rule: 'package', message: `${ref}: its units are of different types (${[...vals].join(', ')}).`, at: { x: units[0].x, y: units[0].y }, refs: units.map((u) => u.ref) });
+    else if (units.length > cap) add({ severity: 'error', rule: 'package', message: `${ref}: ${units.length} units, but a ${[...vals][0]} has ${cap}.`, at: { x: units[0].x, y: units[0].y }, refs: units.map((u) => u.ref) });
+  }
 
   // ED-08 and SIM-05
   const generic = sheet.parts.filter((p) => !symbolOf(p.sym).power).length;

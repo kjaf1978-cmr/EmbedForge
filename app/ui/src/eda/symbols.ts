@@ -435,7 +435,7 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '1', name: 'IN', x: -40, y: 0, type: 'power_in' }, { id: '2', name: 'GND', x: 0, y: 30, type: 'power_in' }, { id: '3', name: 'OUT', x: 40, y: 0, type: 'power_out' }],
     refAt: { x: 0, y: -20 }, valAt: { x: 0, y: 44 }, simulated: true,
     gfx: () => [path('M -40 0 H -25 M 25 0 H 40 M 0 10 V 30'), path('M -25 -10 H 25 V 10 H -25 Z', 'bg'), text(-14, 3, 'IN', 7), text(13, 3, 'OUT', 7), text(0, 8, 'GND', 6)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(REGULATORS.map((m) => m.name)), default: '7805' }, params: [],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(REGULATORS.map((m) => m.name)), default: '7805' }, params: [HEATSINK],
   },
   {
     id: 'tl431', name: 'Shunt reference', category: 'Integrated circuits', keywords: ['u', 'tl431', 'tlv431', 'shunt', 'reference', 'programmable zener', 'feedback'], prefix: 'U',
@@ -471,7 +471,7 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '3', name: 'IN', x: -40, y: 0, type: 'power_in' }, { id: '1', name: 'ADJ', x: 0, y: 30, type: 'input' }, { id: '2', name: 'OUT', x: 40, y: 0, type: 'power_out' }],
     refAt: { x: 0, y: -20 }, valAt: { x: 0, y: 44 }, simulated: true,
     gfx: () => [path('M -40 0 H -25 M 25 0 H 40 M 0 10 V 30'), path('M -25 -10 H 25 V 10 H -25 Z', 'bg'), text(-14, 3, 'IN', 7), text(13, 3, 'OUT', 7), text(0, 8, 'ADJ', 6)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(ADJ_REGULATORS.map((m) => m.name)), default: 'LM317' }, params: [],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(ADJ_REGULATORS.map((m) => m.name)), default: 'LM317' }, params: [HEATSINK],
   },
   {
     id: 'timer555', name: '555 timer', category: 'Integrated circuits', keywords: ['u', '555', 'ne555', 'timer', 'oscillator', 'astable', 'monostable', 'blinker'], prefix: 'U',
@@ -586,6 +586,13 @@ export const SYMBOLS: SymbolDef[] = [
       text(-14, -17, 'PWM', 5), text(-16, 3, '+', 7), text(-16, 23, '−', 7), text(2, 18, 'SERVO', 6)],
     value: { key: 'value', label: 'Speed', kind: 'value', unit: '°/s', default: '600', help: '600 °/s = 0.1 s per 60° (SG90)' },
     params: [],
+  },
+  {
+    id: 'terminal', name: 'Screw terminal', category: 'Installation', keywords: ['x', 'terminal', 'screw terminal', 'connector', 'terminal block', 'clamp', 'wire', 'input', 'output'], prefix: 'X',
+    description: 'One pole of a screw terminal block, where an external wire (mains, load, battery, PV, sensor) lands on the board. Its value names the function (L in, N out, PE, BAT+…). Electrically a connection point.',
+    pins: [{ id: '1', name: '1', x: 20, y: 0, type: 'passive' }], refAt: { x: -2, y: -12 }, valAt: { x: -12, y: 4 }, simulated: true,
+    gfx: () => [circle(0, 0, 6, 'bg'), path('M -4 4 L 4 -4'), path('M 6 0 H 20')],
+    value: { key: 'value', label: 'Function', kind: 'text', default: 'L' }, params: [],
   },
   {
     id: 'mov', name: 'Varistor (MOV)', category: 'Installation', keywords: ['rv', 'mov', 'varistor', 'surge', 'spd', 'overvoltage', 'protection', 'lightning'], prefix: 'RV',

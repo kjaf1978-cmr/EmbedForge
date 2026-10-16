@@ -152,6 +152,7 @@ export const REGULATORS: NamedModel<RegulatorModel>[] = [
 
 export const ADJ_REGULATORS: NamedModel<RegulatorModel>[] = [
   { name: 'LM317', note: 'adjustable, 1.25 V between OUT and ADJ, 1.5 A, dropout about 2 V; Vout = 1.25 V × (1 + R2/R1)', model: { vout: 1.25, dropout: 2, iq: 50e-6, adjustable: true } },
+  { name: 'LM317HV', note: 'as the LM317, for up to 60 V between input and output (LM317HVT)', model: { vout: 1.25, dropout: 2, iq: 50e-6, adjustable: true } },
 ];
 
 /** Relays: coil as resistance and inductance; the contact pulls in at 75 % and drops out at

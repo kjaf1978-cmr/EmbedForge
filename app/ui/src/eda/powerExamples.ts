@@ -4,6 +4,7 @@
 // laid out on the sheet, so large designs stay readable and every connection is explicit.
 
 import { addLabel, placePart } from './editor';
+import { autowire, type AutowireOptions } from './autowire';
 import { annotate, emptySheet, newId, pinPositions, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from './schematic';
 import type { Example } from './examples';
 
@@ -14,11 +15,18 @@ export class NB {
   s = emptySheet();
   private ids = new Map<string, string>();
   private probes = 0;
+  /** The functional block of the parts placed next (for the drawing: see `wired`). */
+  private cur = '';
+  private blocks = new Map<string, string>();
+  /** When set, `done()` draws the circuit with wires (autowire) instead of labels on every pin. */
+  wired: AutowireOptions | null = null;
+  block(name: string): this { this.cur = name; return this; }
   /** Places a part; `key` names it for probes and sweeps (its reference comes from annotation). */
-  part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0): this {
-    const r = placePart(this.s, sym, { x, y }, rot, false, props);
+  part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0, mirror = false): this {
+    const r = placePart(this.s, sym, { x, y }, rot, mirror, props);
     this.s = r.sheet;
     this.ids.set(key, r.id);
+    this.blocks.set(r.id, this.cur);
     const part = this.s.parts.find((p) => p.id === r.id)!;
     for (const pin of pinPositions(part)) {
       const net = nets[pin.pin];
@@ -31,6 +39,15 @@ export class NB {
   /** A text note at (x, y). */
   note(text: string, x: number, y: number): this {
     this.s = { ...this.s, labels: [...this.s.labels, { id: newId('l'), name: text, x, y, note: true }] };
+    return this;
+  }
+  /** A paragraph of notes at (x, y), wrapped to lines of about `width` characters. */
+  para(text: string, x: number, y: number, width = 110): this {
+    const lines: string[] = [];
+    let cur = '';
+    for (const w of text.split(' ')) { if (cur && (cur + ' ' + w).length > width) { lines.push(cur); cur = w; } else cur = cur ? `${cur} ${w}` : w; }
+    if (cur) lines.push(cur);
+    lines.forEach((l, i) => this.note(l, x, y + 16 * i));
     return this;
   }
   /** A voltage probe on the first label of the net. */
@@ -47,7 +64,8 @@ export class NB {
   sim(s: SimSettings): this { this.s.sim = s; return this; }
   /** The annotated sheet, with an optional parameter sweep of a part property (by key). */
   done(step?: { key: string; param?: string; list: string }): Sheet {
-    const s = annotate(this.s);
+    let s = annotate(this.s);
+    if (this.wired) s = autowire(s, { ...this.wired, block: (p) => this.blocks.get(p.id) ?? '' }).sheet;
     if (step) {
       const ref = s.parts.find((p) => p.id === this.ids.get(step.key))!.ref;
       const sw: StepSweep = { on: true, ref, param: step.param ?? 'value', mode: 'list', list: step.list, start: '', stop: '', step: '' };
@@ -127,13 +145,13 @@ function transferLogic(nb: NB, X: (k: number) => number, Y: (k: number) => numbe
     .part('D4', 'zener', X(5), Y(yd), { value: 'BZX55C12' }, { '1': 'G2', '2': 'GND' }, 1)
     .part('Q2', 'nmos', X(6), Y(yd), { value: 'IRLZ44N' }, { '1': 'G2', '2': 'K2C', '3': 'GND' })
     // diagnostics
-    .part('LK1', 'led', X(8), Y(yd), { value: 'green' }, { '2': 'LK1A', '1': 'K1C' })
+    .part('LK1', 'led', X(8), Y(yd), { colour: 'green' }, { '2': 'LK1A', '1': 'K1C' })
     .part('RLK1', 'resistor', X(8), Y(yd - 0.6), { value: '4.7k' }, { '1': 'K1A', '2': 'LK1A' })
-    .part('LK2', 'led', X(9), Y(yd), { value: 'yellow' }, { '2': 'LK2A', '1': 'K2C' })
+    .part('LK2', 'led', X(9), Y(yd), { colour: 'yellow' }, { '2': 'LK2A', '1': 'K2C' })
     .part('RLK2', 'resistor', X(9), Y(yd - 0.6), { value: '4.7k' }, { '1': 'K2A', '2': 'LK2A' })
-    .part('LOV', 'led', X(10), Y(yd), { value: 'red' }, { '2': 'LOVA', '1': 'OVN' })
+    .part('LOV', 'led', X(10), Y(yd), { colour: 'red' }, { '2': 'LOVA', '1': 'OVN' })
     .part('RLOV', 'resistor', X(10), Y(yd - 0.6), { value: '4.7k' }, { '1': 'V24', '2': 'LOVA' })
-    .part('LUV', 'led', X(11), Y(yd), { value: 'red' }, { '2': 'LUVA', '1': 'UVN' })
+    .part('LUV', 'led', X(11), Y(yd), { colour: 'red' }, { '2': 'LUVA', '1': 'UVN' })
     .part('RLUV', 'resistor', X(11), Y(yd - 0.6), { value: '4.7k' }, { '1': 'V24', '2': 'LUVA' });
 }
 
@@ -277,102 +295,156 @@ const STAB_LADDER = ['5.36k', '732', '732', '732', '732', '909', '787'];
 
 /** Relay-switched mains voltage stabiliser (step-type AVR): the input feeds one tap of a tapped
  *  autotransformer, the output is taken from its 230 V tap, so V_out = V_in·230/tap. `vin`: input
- *  r.m.s. voltage. */
-export function stabiliser(vin = 230, step?: MainsStep, stop = '1', ladder = STAB_LADDER, o: { delayC?: string } = {}): { sheet: Sheet; nb: NB } {
+ *  r.m.s. voltage. Drawn as the product's circuit diagram: terminals, the 12 V control supply from
+ *  the mains, the control (LM339 packages with decoupling), the tap relays and their contact
+ *  chain, the output relay with its restart delay and the independent output protection; the
+ *  supply and the load of a test bench are drawn outside the product. `o.delayC`: the restart
+ *  delay capacitor (product 4.7 µF film: about 7.6 s; tests use smaller ones). */
+export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STAB_LADDER, o: { delayC?: string } = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
-  const X = (k: number) => k * 110, Y = (k: number) => k * 110;
-  nb.note('Relay-switched stabiliser: the input is connected to one tap of a 1 kVA autotransformer (150 … 280 V) and the output taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in.', X(0), Y(-1))
-    .note('Six 12 V relays in a chain choose the tap: each relay\'s NC contact feeds the next relay, so two taps are never connected, not even while a relay changes over.', X(0), Y(-0.75))
-    .note('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input; 1 MΩ feedback gives each a hysteresis of about 3 V. An output relay connects the load after a restart delay, and an independent cut-off opens it outside 190 … 255 V (DFMEA). LEDs: relay states, OUTPUT, FAULT.', X(0), Y(-0.5));
-  nb.part('VIN', 'vsin', X(0), Y(1), { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': step ? 'L_STEP' : 'GND' });
-  if (step) nb.part('VS', 'vsin', X(0), Y(2), { value: String(Number(((step.to[0] - vin) * Math.SQRT2).toPrecision(6))), freq: '50', delay: String(step.at) }, { '1': 'L_STEP', '2': 'GND' });
-  nb.part('QF1', 'breaker1', X(1), Y(1), { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN' })
+  nb.wired = { rails: ['+12V'], labelled: ['VIN', 'N', 'T5', 'SF', 'VREF', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'OD', 'DLY'] };
+  const V = '+12V';
+  nb.para('MAINS VOLTAGE STABILISER 1 kVA, relay-switched taps. The input is connected to one tap of a 1 kVA autotransformer (150 … 280 V); the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in. Six 12 V relays in a chain choose the tap: each relay\'s NC contact feeds the next relay, so two taps are never connected, not even while a relay changes over.', -1250, -300)
+    .para('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input, with about 3 V hysteresis. The output relay K7 connects the load after a restart delay of about 8 s; an independent protection (own sense transformer, reference and LM339) opens it outside 190 … 255 V. LEDs: one per tap relay, OUTPUT, FAULT. Control ground is bonded to PE (PELV); the mains neutral N is a separate conductor.', -50, -300);
+  // ---- test bench: the supply (earthed neutral, TN system) — not part of the product
+  nb.block('bench').note('TEST BENCH (not part of the product): mains supply with its neutral earthed at the transformer', -1250, -60);
+  nb.part('VIN', 'vsin', -1150, 100, { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': step ? 'L_STEP' : 'N' });
+  if (step) nb.part('VS', 'vsin', -1150, 220, { value: String(Number(((step.to[0] - vin) * Math.SQRT2).toPrecision(6))), freq: '50', delay: String(step.at) }, { '1': 'L_STEP', '2': 'N' });
+  nb.part('RE', 'resistor', -1050, 300, { value: '0.1' }, { '1': 'N', '2': 'GND' }, 1);
+
+  // ---- input: terminals, breaker, surge arrester
+  nb.block('in')
+    .part('X1', 'terminal', -900, 70, { value: 'L in' }, { '1': 'L_IN' })
+    .part('X2', 'terminal', -900, 130, { value: 'N in' }, { '1': 'N' })
+    .part('X3', 'terminal', -900, 190, { value: 'PE' }, { '1': 'GND' })
+    .part('QF1', 'breaker1', -760, 70, { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN' }, 3)
     // surge protection inside the unit (type 3), 300 V AC: survives a lost neutral (up to 400 V)
-    // only for seconds, so the output cut-off below protects the load meanwhile
-    .part('RV1', 'mov', X(1.5), Y(2), { value: '14D471K' }, { '1': 'VIN', '2': 'GND' }, 1);
-  // input sense, filtered to the mean (τ 47 ms) so the ripple does not reach the comparators
-  nb.part('TR1', 'transformer', X(2), Y(1), SENSE_TR, { '1': 'VIN', '2': 'GND', '3': 'SA', '4': 'SB' })
-    .part('RS1', 'resistor', X(2.5), Y(1.5), { value: '220' }, { '1': 'SA', '2': 'SN' })
-    .part('CS1', 'capacitor', X(3.5), Y(1.5), { value: '100n', vmax: '63' }, { '1': 'SN', '2': 'SB' })
-    .part('BR1', 'bridge', X(3), Y(1), { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VSR', '4': 'GND' })
-    .part('C1', 'capacitor_pol', X(4), Y(1), { value: '4.7u', vmax: '35' }, { '1': 'VSR', '2': 'GND' })
-    .part('R1', 'resistor', X(5), Y(1), { value: '68k' }, { '1': 'VSR', '2': 'SENSE' })
-    .part('R2', 'resistor', X(6), Y(1), { value: '10k' }, { '1': 'SENSE', '2': 'GND' }, 1)
-    .part('R3', 'resistor', X(7), Y(1), { value: '100k' }, { '1': 'SENSE', '2': 'SF' })
-    .part('C2', 'capacitor', X(8), Y(1), { value: '470n', vmax: '50' }, { '1': 'SF', '2': 'GND' }, 1);
-  // supply and reference ladder: N1 … N6, one threshold per step
-  nb.part('V12', 'vdc', X(0), Y(3), { value: '12' }, { '1': 'V12', '2': 'GND' })
-    .part('R4', 'resistor', X(1), Y(3), { value: '2.2k' }, { '1': 'V12', '2': 'VREF' })
-    .part('U1', 'tl431', X(2), Y(3), { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' });
+    // only for seconds, so the output cut-off protects the load meanwhile
+    .part('RV1', 'mov', -640, 100, { value: '14D471K' }, { '1': 'VIN', '2': 'N' }, 1);
+
+  // ---- 12 V control supply from the input: 24 V transformer, bridge, LM317HV (12 V at any
+  // input from 140 to 300 V: 16 … 45 V before the regulator)
+  nb.block('aux')
+    .part('F1', 'fuse', -840, 400, { value: '0.2', r: '2' }, { '1': 'VIN', '2': 'VF' })
+    .part('TR3', 'transformer', -700, 420, { value: '0.13', lp: '20', rp: '140', rs: '1.5', k: '0.995' }, { '1': 'VF', '2': 'N', '3': 'AA', '4': 'AB' })
+    // the leakage inductance rings with the bridge capacitance when the bridge stops conducting
+    .part('RS3', 'resistor', -610, 530, { value: '47', pmax: '0.5' }, { '1': 'AA', '2': 'SN3' }, 1)
+    .part('CS3', 'capacitor', -610, 620, { value: '1u', vmax: '100' }, { '1': 'SN3', '2': 'AB' }, 1)
+    .part('BR3', 'bridge', -560, 440, { value: 'DB107' }, { '1': 'AA', '2': 'AB', '3': 'VRAW', '4': 'GND' })
+    .part('C5', 'capacitor_pol', -470, 440, { value: '2200u', vmax: '63' }, { '1': 'VRAW', '2': 'GND' }, 1)
+    .part('U5', 'lm317', -360, 400, { value: 'LM317HV', heatsink: '8' }, { '3': 'VRAW', '1': 'ADJ', '2': V })
+    .part('R13', 'resistor', -280, 430, { value: '240' }, { '1': V, '2': 'ADJ' }, 1)
+    .part('R14', 'resistor', -360, 490, { value: '2.05k' }, { '1': 'ADJ', '2': 'GND' }, 1)
+    .part('C6', 'capacitor_pol', -200, 440, { value: '100u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
+
+  // ---- input sense: isolating transformer, bridge, divider, filtered to the mean (τ 47 ms)
+  nb.block('sense')
+    .part('TR1', 'transformer', -1100, 800, SENSE_TR, { '1': 'VIN', '2': 'N', '3': 'SA', '4': 'SB' })
+    .part('RS1', 'resistor', -990, 880, { value: '220' }, { '1': 'SA', '2': 'SN' }, 1)
+    .part('CS1', 'capacitor', -990, 970, { value: '100n', vmax: '63' }, { '1': 'SN', '2': 'SB' }, 1)
+    .part('BR1', 'bridge', -880, 820, { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VSR', '4': 'GND' })
+    .part('C1', 'capacitor_pol', -780, 820, { value: '4.7u', vmax: '35' }, { '1': 'VSR', '2': 'GND' }, 1)
+    .part('R1', 'resistor', -700, 750, { value: '68k' }, { '1': 'VSR', '2': 'SENSE' })
+    .part('R2', 'resistor', -630, 820, { value: '10k' }, { '1': 'SENSE', '2': 'GND' }, 1)
+    .part('R3', 'resistor', -560, 750, { value: '100k' }, { '1': 'SENSE', '2': 'SF' })
+    .part('C2', 'capacitor', -490, 820, { value: '470n', vmax: '50' }, { '1': 'SF', '2': 'GND' }, 1);
+
+  // ---- reference and threshold ladder N1 … N6 (E96), one threshold per step
+  nb.block('ref')
+    .part('R4', 'resistor', -1100, 1110, { value: '2.2k' }, { '1': V, '2': 'VREF' })
+    .part('U1REF', 'tl431', -1000, 1200, { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' }, 3);
   const lad = ['GND', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'VREF'];
-  ladder.forEach((r, k) => nb.part(`RL${k + 1}`, 'resistor', X(3 + k), Y(3), { value: r }, { '1': lad[k + 1], '2': lad[k] }, 1));
-  // per step k: relay k is on while the input is below its threshold (the comparator output is
-  // released: SF below Nk); the first relay that is on in the chain connects its tap
+  ladder.forEach((r, k) => nb.part(`RL${k + 1}`, 'resistor', -880 + 90 * k, 1270, { value: r }, { '1': lad[k], '2': lad[k + 1] }));
+
+  // ---- tap relays: per step k a comparator (relay k on while the input is below its
+  // threshold), a driver and the relay; the first relay that is on in the chain connects its tap
+  nb.block('taps');
   const chain = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
+  const pk = (k: number) => (k < 4 ? 'TAPS1' : 'TAPS2');
   for (let k = 0; k < 6; k++) {
-    const n = k + 1, x = X(2 * k), y = Y(5);
-    nb.part(`U${n + 1}`, 'comparator', x, y, { value: 'LM339' }, { '3': `N${n}`, '2': 'SF', '1': `O${n}`, '8': 'V12', '4': 'GND' })
-      .part(`RP${n}`, 'resistor', x + X(1), y, { value: '2.2k' }, { '1': 'V12', '2': `O${n}` }, 1)
-      .part(`RF${n}`, 'resistor', x, y + Y(1), { value: '1M' }, { '1': `O${n}`, '2': `N${n}` })
-      .part(`RB${n}`, 'resistor', x + X(1), y + Y(1), { value: '2.2k' }, { '1': `O${n}`, '2': `B${n}` })
-      .part(`Q${n}`, 'npn', x, y + Y(2), { value: 'BD139' }, { '1': `B${n}`, '2': `K${n}`, '3': 'GND' })
-      .part(`D${n}`, 'diode', x + X(1), y + Y(2), { value: '1N4148' }, { '2': `K${n}`, '1': 'V12' })
-      // diagnostics: an LED beside each coil shows which relay is energised
-      .part(`LK${n}`, 'led', x, y + Y(4.6), { value: 'yellow' }, { '2': 'V12', '1': `LKA${n}` })
-      .part(`RLK${n}`, 'resistor', x + X(1), y + Y(4.6), { value: '2.2k' }, { '1': `LKA${n}`, '2': `K${n}` })
+    const n = k + 1, x = 380 * k, tap = `T${n}`, next = k < 5 ? chain[k + 1] : 'T7';
+    nb.part(`U${n + 1}`, 'comparator', x, 150, { value: 'LM339', pkg: pk(k) }, { '3': `N${n}`, '2': 'SF', '1': `O${n}`, '8': V, '4': 'GND' })
+      .part(`RF${n}`, 'resistor', x, 60, { value: '1M' }, { '1': `N${n}`, '2': `O${n}` })
+      .part(`RP${n}`, 'resistor', x + 90, 90, { value: '2.2k' }, { '1': V, '2': `O${n}` }, 1)
+      .part(`RB${n}`, 'resistor', x + 40, 300, { value: '2.2k' }, { '1': `O${n}`, '2': `B${n}` }, 1)
+      .part(`Q${n}`, 'npn', x + 70, 420, { value: 'BD139' }, { '1': `B${n}`, '2': `K${n}`, '3': 'GND' })
+      .part(`D${n}`, 'diode', x + 170, 330, { value: '1N4148' }, { '2': `K${n}`, '1': V }, 3)
       // 30 A relays for a 4.5 A load: contact wear, the main field failure of stabilisers, falls
       // with about the square of the margin (more than 1 million operations here)
-      .part(`K${n}`, 'relay', x, y + Y(3.3), { value: '12 V 30 A' }, { '1': 'V12', '2': `K${n}`, '3': chain[k], '5': `T${n}`, '4': k < 5 ? chain[k + 1] : 'T7' })
+      .part(`K${n}`, 'relay', x + 220, 330, { value: '12 V 30 A' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
+      // diagnostics: an LED beside each coil shows which relay is energised
+      .part(`LK${n}`, 'led', x + 120, 250, { colour: 'yellow' }, { '2': V, '1': `LKA${n}` }, 1)
+      .part(`RLK${n}`, 'resistor', x + 120, 340, { value: '2.2k' }, { '1': `LKA${n}`, '2': `K${n}` }, 1)
       // contact protection: an RC (100 Ω + 100 nF X2) across each contact takes the winding's
       // current while the contact opens, instead of an arc that erodes it
-      .part(`RSA${n}`, 'resistor', x + X(1), y + Y(5.4), { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNA${n}` })
-      .part(`CSA${n}`, 'capacitor', x + X(1), y + Y(6), { value: '100n', vmax: '630' }, { '1': `SNA${n}`, '2': `T${n}` }, 1)
-      .part(`RSC${n}`, 'resistor', x, y + Y(5.4), { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNC${n}` })
-      .part(`CSC${n}`, 'capacitor', x, y + Y(6), { value: '100n', vmax: '630' }, { '1': `SNC${n}`, '2': k < 5 ? chain[k + 1] : 'T7' }, 1);
+      .part(`RSC${n}`, 'resistor', x + 200, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNC${n}` }, 1)
+      .part(`CSC${n}`, 'capacitor', x + 200, 580, { value: '100n', vmax: '630' }, { '1': `SNC${n}`, '2': next }, 1)
+      .part(`RSA${n}`, 'resistor', x + 310, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNA${n}` }, 1)
+      .part(`CSA${n}`, 'capacitor', x + 310, 580, { value: '100n', vmax: '630' }, { '1': `SNA${n}`, '2': tap }, 1);
   }
-  // the autotransformer and the load: 1 kVA at 230 V
-  nb.part('T1', 'autotransformer', X(10), Y(1), { value: '1 kVA 230 V, taps 150–280 V' }, { N: 'GND', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' })
-    .part('RLOAD', 'resistor', X(11), Y(1), { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'GND' }, 1);
-  // output delay: the load is connected only once the control has settled after power-on (the
-  // sense filter starts empty, so every relay is on at first and the 150 V tap is chosen);
-  // 1 MΩ·1.5 µF against VREF: 0.35 s here, 3 … 180 s in a stabiliser for appliances
-  // restart delay after power-on and after any cut-off: 1 MΩ (two 470k + 68k in the product,
-  // below the leakage of a humid board) and a 47 µF film capacitor: 11 s (simulations of the
-  // example use 1.5 µF, 0.35 s)
-  nb.part('RD', 'resistor', X(0), Y(9.5), { value: '1M' }, { '1': 'V12', '2': 'DLY' })
-    .part('CD', 'capacitor', X(1), Y(9.5), { value: o.delayC ?? '1.5u', vmax: '25' }, { '1': 'DLY', '2': 'GND' }, 1)
-    .part('U8', 'comparator', X(2), Y(9.5), { value: 'LM339' }, { '3': 'DLY', '2': 'VREF', '1': 'OD', '8': 'V12', '4': 'GND' })
-    .part('RPD', 'resistor', X(3), Y(9.5), { value: '2.2k' }, { '1': 'V12', '2': 'OD' }, 1)
-    .part('RBD', 'resistor', X(3), Y(10.5), { value: '2.2k' }, { '1': 'OD', '2': 'BD' })
-    .part('QD', 'npn', X(4), Y(10.5), { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
-    .part('DD', 'diode', X(5), Y(10.5), { value: '1N4148' }, { '2': 'KD', '1': 'V12' })
-    .part('KO', 'relay', X(6), Y(10), { value: '12 V 30 A' }, { '1': 'V12', '2': 'KD', '3': 'T5', '5': 'OUT' })
-    .part('LKO', 'led', X(7), Y(10.5), { value: 'green' }, { '2': 'V12', '1': 'LKOA' })
-    .part('RLKO', 'resistor', X(7), Y(11), { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' });
-  // independent output protection (its own sense transformer, reference and comparators): the
+  nb.part('CD1', 'capacitor', -150, 150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
+    .part('CD2', 'capacitor', 1340, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+  // the autotransformer: taps on the left, towards the relays
+  nb.part('T1', 'autotransformer', 2430, 640, { value: '1 kVA 230 V, taps 150–280 V' }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
+
+  // ---- output: restart delay, output relay, terminals. After power-on and after any cut-off
+  // the load waits RD·CD·ln 5 (1 MΩ as two 470k + 68k, below the leakage of a humid board;
+  // 4.7 µF film): the comparator compares against 80 % of the 12 V rail, so the delay does not
+  // depend on the rail; DDIS empties CD at once when the supply goes
+  nb.block('out')
+    .part('RD1', 'resistor', 2730, 60, { value: '470k' }, { '1': V, '2': 'RDA' }, 1)
+    .part('RD2', 'resistor', 2730, 150, { value: '470k' }, { '1': 'RDA', '2': 'RDB' }, 1)
+    .part('RD3', 'resistor', 2730, 240, { value: '68k' }, { '1': 'RDB', '2': 'DLY' }, 1)
+    .part('DDIS', 'diode', 2650, 240, { value: '1N4148' }, { '2': 'DLY', '1': V }, 3)
+    .part('CD', 'capacitor', 2730, 360, { value: o.delayC ?? '4.7u', vmax: '63' }, { '1': 'DLY', '2': 'GND' }, 1)
+    .part('RT1', 'resistor', 2880, 60, { value: '2.49k' }, { '1': V, '2': 'DTH' }, 1)
+    .part('RT2', 'resistor', 2880, 150, { value: '10k' }, { '1': 'DTH', '2': 'GND' }, 1)
+    .part('U8', 'comparator', 2880, 280, { value: 'LM339', pkg: 'TAPS2' }, { '3': 'DLY', '2': 'DTH', '1': 'OD', '8': V, '4': 'GND' })
+    .part('RPD', 'resistor', 2970, 230, { value: '2.2k' }, { '1': V, '2': 'OD' }, 1)
+    .part('RBD', 'resistor', 2970, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
+    .part('QD', 'npn', 3000, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
+    .part('DD', 'diode', 3050, 410, { value: '1N4148' }, { '2': 'KD', '1': V }, 3)
+    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A' }, { '1': V, '2': 'KD', '3': 'T5', '5': 'OUT' })
+    .part('LKO', 'led', 3190, 280, { colour: 'green' }, { '2': V, '1': 'LKOA' }, 1)
+    .part('RLKO', 'resistor', 3190, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
+    .part('X4', 'terminal', 3380, 600, { value: 'L out' }, { '1': 'OUT' }, 2)
+    .part('X5', 'terminal', 3380, 660, { value: 'N out' }, { '1': 'N' }, 2)
+    .part('X6', 'terminal', 3380, 720, { value: 'PE' }, { '1': 'GND' }, 2)
+    // spare comparator of the package: + to ground, − to a reference, so its output is held low
+    .part('U8S', 'comparator', 2880, 700, { value: 'LM339', pkg: 'TAPS2' }, { '3': 'GND', '2': 'DTH', '1': 'GND', '8': V, '4': 'GND' });
+  nb.block('load').note('TEST LOAD (not part of the product)', 3480, 540)
+    .part('RLOAD', 'resistor', 3530, 640, { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'N' }, 1);
+
+  // ---- independent output protection (its own sense transformer, reference and LM339): the
   // 230 V tap must stay within 190 … 255 V, or the output relay opens and the restart delay
   // starts again; a welded tap relay or a failed control cannot put the load out of range
-  nb.part('TR2', 'transformer', X(8), Y(12), SENSE_TR, { '1': 'T5', '2': 'GND', '3': 'SA2', '4': 'SB2' })
-    .part('RS2', 'resistor', X(8.5), Y(12.5), { value: '220' }, { '1': 'SA2', '2': 'SN2' })
-    .part('CS2', 'capacitor', X(9.5), Y(12.5), { value: '100n', vmax: '63' }, { '1': 'SN2', '2': 'SB2' })
-    .part('BR2', 'bridge', X(9), Y(12), { value: 'DB107' }, { '1': 'SA2', '2': 'SB2', '3': 'VSR2', '4': 'GND' })
-    .part('C3', 'capacitor_pol', X(10), Y(12), { value: '4.7u', vmax: '35' }, { '1': 'VSR2', '2': 'GND' })
-    .part('R5', 'resistor', X(11), Y(12), { value: '68k' }, { '1': 'VSR2', '2': 'SEN2' })
-    .part('R6', 'resistor', X(12), Y(12), { value: '10k' }, { '1': 'SEN2', '2': 'GND' }, 1)
-    .part('R7', 'resistor', X(13), Y(12), { value: '100k' }, { '1': 'SEN2', '2': 'SF2' })
-    .part('C4', 'capacitor', X(14), Y(12), { value: '470n', vmax: '50' }, { '1': 'SF2', '2': 'GND' }, 1)
-    .part('R8', 'resistor', X(8), Y(14), { value: '2.2k' }, { '1': 'V12', '2': 'VREF2' })
-    .part('U9', 'tl431', X(9), Y(14), { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' })
-    .part('R9', 'resistor', X(10), Y(14), { value: '1.82k' }, { '1': 'VREF2', '2': 'VOV' })
-    .part('R10', 'resistor', X(11), Y(14), { value: '3.65k' }, { '1': 'VOV', '2': 'VUV' })
-    .part('R11', 'resistor', X(12), Y(14), { value: '10k' }, { '1': 'VUV', '2': 'GND' }, 1)
-    .part('U10', 'comparator', X(10), Y(15), { value: 'LM339' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': 'V12', '4': 'GND' })
-    .part('U11', 'comparator', X(11), Y(15), { value: 'LM339' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': 'V12', '4': 'GND' })
-    .part('R12', 'resistor', X(12), Y(15), { value: '10k' }, { '1': 'V12', '2': 'FLTS' }, 1)
-    .part('DF1', 'diode', X(13), Y(15), { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })
-    .part('DF2', 'diode', X(13), Y(16), { value: '1N4148' }, { '2': 'DLY', '1': 'FLTS' })
-    .part('LF', 'led', X(14), Y(15), { value: 'red' }, { '2': 'V12', '1': 'LFA' })
-    .part('RLF', 'resistor', X(14), Y(16), { value: '2.2k' }, { '1': 'LFA', '2': 'FLTS' });
+  nb.block('prot').note('OUTPUT PROTECTION (independent of the control)', 0, 920)
+    .part('TR2', 'transformer', 50, 1040, SENSE_TR, { '1': 'T5', '2': 'N', '3': 'SA2', '4': 'SB2' })
+    .part('RS2', 'resistor', 160, 1120, { value: '220' }, { '1': 'SA2', '2': 'SN2' }, 1)
+    .part('CS2', 'capacitor', 160, 1210, { value: '100n', vmax: '63' }, { '1': 'SN2', '2': 'SB2' }, 1)
+    .part('BR2', 'bridge', 270, 1060, { value: 'DB107' }, { '1': 'SA2', '2': 'SB2', '3': 'VSR2', '4': 'GND' })
+    .part('C3', 'capacitor_pol', 370, 1060, { value: '4.7u', vmax: '35' }, { '1': 'VSR2', '2': 'GND' }, 1)
+    .part('R5', 'resistor', 450, 990, { value: '68k' }, { '1': 'VSR2', '2': 'SEN2' })
+    .part('R6', 'resistor', 520, 1060, { value: '10k' }, { '1': 'SEN2', '2': 'GND' }, 1)
+    .part('R7', 'resistor', 590, 990, { value: '100k' }, { '1': 'SEN2', '2': 'SF2' })
+    .part('C4', 'capacitor', 660, 1060, { value: '470n', vmax: '50' }, { '1': 'SF2', '2': 'GND' }, 1)
+    .part('R8', 'resistor', 50, 1320, { value: '2.2k' }, { '1': V, '2': 'VREF2' })
+    .part('U9', 'tl431', 150, 1410, { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' }, 3)
+    .part('R9', 'resistor', 250, 1380, { value: '1.82k' }, { '1': 'VREF2', '2': 'VOV' }, 1)
+    .part('R10', 'resistor', 250, 1470, { value: '3.65k' }, { '1': 'VOV', '2': 'VUV' }, 1)
+    .part('R11', 'resistor', 250, 1560, { value: '10k' }, { '1': 'VUV', '2': 'GND' }, 1)
+    .part('U10', 'comparator', 500, 1290, { value: 'LM339', pkg: 'PROT' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('U11', 'comparator', 500, 1470, { value: 'LM339', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('R12', 'resistor', 620, 1230, { value: '10k' }, { '1': V, '2': 'FLTS' }, 1)
+    .part('DF1', 'diode', 750, 1340, { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })
+    .part('DF2', 'diode', 750, 1490, { value: '1N4148' }, { '2': 'DLY', '1': 'DF2K' })
+    // the delay capacitor discharges through 2.2k: the comparator output stays below its 16 mA
+    .part('RDF2', 'resistor', 860, 1490, { value: '2.2k' }, { '1': 'DF2K', '2': 'FLTS' })
+    .part('LF', 'led', 880, 1240, { colour: 'red' }, { '2': V, '1': 'LFA' }, 1)
+    .part('RLF', 'resistor', 880, 1340, { value: '4.7k' }, { '1': 'LFA', '2': 'FLTS' }, 1)
+    .part('U12S', 'comparator', 500, 1660, { value: 'LM339', pkg: 'PROT' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
+    .part('U13S', 'comparator', 500, 1820, { value: 'LM339', pkg: 'PROT' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
+    .part('CD3', 'capacitor', 650, 1660, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.v('VIN').v('OUT').v('SF').v('SF2').i('RLOAD', '1');
   nb.sim({ type: 'tran', stop, step: '200u', start: 'zero' });
   return { sheet: nb.done(), nb };
@@ -515,13 +587,13 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     // the CHARGING LED on QB's gate drive: on BDN it pulled the comparator's high level down to
     // 10 V, which turned QD on and QB with it, defeating the reverse-current block (found by
     // the reversed-array test)
-    .part('LEDC', 'led', X(9), Y(1.6), { value: 'green' }, { '2': 'GD', '1': 'LCA' })
+    .part('LEDC', 'led', X(9), Y(1.6), { colour: 'green' }, { '2': 'GD', '1': 'LCA' })
     .part('RLC', 'resistor', X(9), Y(2.2), { value: '4.7k' }, { '1': 'LCA', '2': 'BN' })
     // a second comparator of U13 drives the optocoupler and the FAULT LED in series, so the
     // fault line FLT itself carries no load (a loaded pull-up kept QD2, and QB2, on)
     .part('U13B', 'comparator', X(13), Y(1), { value: 'LM393' }, { '3': 'VOS2', '2': 'VREF2', '1': 'FLT2', '8': 'V12', '4': 'GND' })
     .part('RFL2', 'resistor', X(13.5), Y(0.4), { value: '2.2k' }, { '1': 'V12', '2': 'FLT2' }, 1)
-    .part('LEDF', 'led', X(13.5), Y(2.2), { value: 'red' }, { '2': 'LFA2', '1': 'LFK' })
+    .part('LEDF', 'led', X(13.5), Y(2.2), { colour: 'red' }, { '2': 'LFA2', '1': 'LFK' })
     .part('RLF2', 'resistor', X(14), Y(2.2), { value: '1k' }, { '1': 'LFK', '2': 'GND' }, 1)
     // temperature: charging only with the battery between 0 and 50 °C (LiFePO4 must not be
     // charged below 0 °C), and the heatsink below 90 °C. The comparators pull the current
@@ -795,8 +867,8 @@ export const POWER_EXAMPLES: Example[] = [
   },
   {
     id: 'stabiliser', title: 'Mains voltage stabiliser, relay-switched taps (1 kVA)', level: 'advanced',
-    summary: 'Keeps a 1 kVA load near 230 V for inputs of 140–300 V: the input is switched to one of seven autotransformer taps by a chain of six 12 V relays under LM339 comparator control; an output relay connects the load once the control has settled.',
-    tryThis: 'Simulate at 230 V: the output OUT is the input. Set the input source V1 to 255 (180 V r.m.s.) or 382 (270 V) and simulate: another tap is chosen and OUT stays within about ±6 % of 230 V. Watch SF cross the ladder voltages N1 … N6.',
+    summary: 'Keeps a 1 kVA load near 230 V for inputs of 140–300 V: the input is switched to one of seven autotransformer taps by a chain of six 12 V relays under LM339 comparator control. Drawn as the product: screw terminals, breaker and surge arrester, a 12 V control supply from the mains (transformer, bridge, LM317HV), the tap relays with contact snubbers, an output relay with a restart delay, and an independent output protection. The test supply and load are drawn outside the product.',
+    tryThis: 'Simulate (9 s of circuit time, 2–3 minutes): the restart delay holds the output off for about 8 s, then OUT follows the input through the 230 V tap. Set the input source V1 to 255 (180 V r.m.s.) or 382 (270 V): another tap is chosen and OUT stays within about ±6 % of 230 V. Watch SF cross the thresholds N1 … N6.',
     build: () => stabiliser().sheet,
   },
   {
