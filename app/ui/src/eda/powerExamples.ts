@@ -158,13 +158,13 @@ function transferLogic(nb: NB, X: (k: number) => number, Y: (k: number) => numbe
     .part('Q2', 'nmos', X(6), Y(yd), { value: 'IRLZ44N' }, { '1': 'G2', '2': 'K2C', '3': 'GND' })
     // diagnostics
     .part('LK1', 'led', X(8), Y(yd), { colour: 'green' }, { '2': 'LK1A', '1': 'K1C' })
-    .part('RLK1', 'resistor', X(8), Y(yd - 0.6), { value: '4.7k' }, { '1': 'K1A', '2': 'LK1A' })
-    .part('LK2', 'led', X(9), Y(yd), { colour: 'yellow' }, { '2': 'LK2A', '1': 'K2C' })
-    .part('RLK2', 'resistor', X(9), Y(yd - 0.6), { value: '4.7k' }, { '1': 'K2A', '2': 'LK2A' })
-    .part('LOV', 'led', X(10), Y(yd), { colour: 'red' }, { '2': 'LOVA', '1': 'OVN' })
-    .part('RLOV', 'resistor', X(10), Y(yd - 0.6), { value: '4.7k' }, { '1': V, '2': 'LOVA' })
-    .part('LUV', 'led', X(11), Y(yd), { colour: 'red' }, { '2': 'LUVA', '1': 'UVN' })
-    .part('RLUV', 'resistor', X(11), Y(yd - 0.6), { value: '4.7k' }, { '1': V, '2': 'LUVA' });
+    .part('RLK1', 'resistor', X(8), Y(yd - 0.5), { value: '4.7k' }, { '1': 'K1A', '2': 'LK1A' })
+    .part('LK2', 'led', X(9.6), Y(yd), { colour: 'yellow' }, { '2': 'LK2A', '1': 'K2C' })
+    .part('RLK2', 'resistor', X(9.6), Y(yd - 0.5), { value: '4.7k' }, { '1': 'K2A', '2': 'LK2A' })
+    .part('LOV', 'led', X(11.2), Y(yd), { colour: 'red' }, { '2': 'LOVA', '1': 'OVN' })
+    .part('RLOV', 'resistor', X(11.2), Y(yd - 0.5), { value: '4.7k' }, { '1': V, '2': 'LOVA' })
+    .part('LUV', 'led', X(12.5), Y(yd), { colour: 'red' }, { '2': 'LUVA', '1': 'UVN' }, 0, true)
+    .part('RLUV', 'resistor', X(12.5), Y(yd - 0.5), { value: '4.7k' }, { '1': V, '2': 'LUVA' });
 }
 
 /** Single-phase mains / back-up change-over with over- and undervoltage protection, drawn as the
@@ -264,9 +264,9 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
   // ---- contactors: L and N switched, flyback diodes, the mutual NC interlock; load terminals
   nb.block('power')
     .part('K1', 'contactor', 1900, 300, { value: '32 A, coil 24 V DC' }, { A1: 'K1A', A2: 'K1C', '1': 'L1', '2': 'LOAD', '7': 'N1', '8': 'NLOAD', '21': V, '22': 'K2A' })
-    .part('D2', 'diode', 1810, 300, { value: '1N4007' }, { '2': 'K1C', '1': 'K1A' }, 3)
+    .part('D2', 'diode', 1780, 300, { value: '1N4007' }, { '2': 'K1C', '1': 'K1A' }, 3)
     .part('K2', 'contactor', 2300, 300, { value: '32 A, coil 24 V DC' }, { A1: 'K2A', A2: 'K2C', '1': 'L2', '2': 'LOAD', '7': 'N2', '8': 'NLOAD', '21': V, '22': 'K1A' })
-    .part('D3', 'diode', 2210, 300, { value: '1N4007' }, { '2': 'K2C', '1': 'K2A' }, 3)
+    .part('D3', 'diode', 2180, 300, { value: '1N4007' }, { '2': 'K2C', '1': 'K2A' }, 3)
     .part('X6', 'terminal', 2650, 500, { value: 'L load' }, { '1': 'LOAD' }, 2)
     .part('X7', 'terminal', 2650, 560, { value: 'N load' }, { '1': 'NLOAD' }, 2)
     .part('X8', 'terminal', 2650, 620, { value: 'PE' }, { '1': 'GND' }, 2);
@@ -390,9 +390,9 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
   // ---- four-pole contactors with flyback diodes and the NC interlock; load terminals
   nb.block('power')
     .part('K1', 'contactor', 1900, 300, { value: '32 A, coil 24 V DC' }, { A1: 'K1A', A2: 'K1C', '1': 'L1', '2': 'T1', '3': 'L2', '4': 'T2', '5': 'L3', '6': 'T3', '7': 'NMQ', '8': 'TN', '21': V, '22': 'K2A' })
-    .part('D2', 'diode', 1810, 300, { value: '1N4007' }, { '2': 'K1C', '1': 'K1A' }, 3)
+    .part('D2', 'diode', 1780, 300, { value: '1N4007' }, { '2': 'K1C', '1': 'K1A' }, 3)
     .part('K2', 'contactor', 2300, 300, { value: '32 A, coil 24 V DC' }, { A1: 'K2A', A2: 'K2C', '1': 'B1', '2': 'T1', '3': 'B2', '4': 'T2', '5': 'B3', '6': 'T3', '7': 'NBQ', '8': 'TN', '21': V, '22': 'K1A' })
-    .part('D3', 'diode', 2210, 300, { value: '1N4007' }, { '2': 'K2C', '1': 'K2A' }, 3);
+    .part('D3', 'diode', 2180, 300, { value: '1N4007' }, { '2': 'K2C', '1': 'K2A' }, 3);
   L.forEach((ph, k) => nb.part(`XL${ph}`, 'terminal', 2700, 480 + 60 * k, { value: `L${ph} load` }, { '1': `T${ph}` }, 2));
   nb.part('XLN', 'terminal', 2700, 660, { value: 'N load' }, { '1': 'TN' }, 2)
     .part('XLPE', 'terminal', 2700, 720, { value: 'PE' }, { '1': 'GND' }, 2);
@@ -479,7 +479,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   const chain = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   const pk = (k: number) => (k < 4 ? 'TAPS1' : 'TAPS2');
   for (let k = 0; k < 6; k++) {
-    const n = k + 1, x = 380 * k, tap = `T${n}`, next = k < 5 ? chain[k + 1] : 'T7';
+    const n = k + 1, x = 400 * k, tap = `T${n}`, next = k < 5 ? chain[k + 1] : 'T7';
     nb.part(`U${n + 1}`, 'comparator', x, 150, { value: 'LM339', pkg: pk(k) }, { '3': `N${n}`, '2': 'SF', '1': `O${n}`, '8': V, '4': 'GND' })
       .part(`RF${n}`, 'resistor', x, 60, { value: '1M' }, { '1': `N${n}`, '2': `O${n}` })
       .part(`RP${n}`, 'resistor', x + 90, 90, { value: '2.2k' }, { '1': V, '2': `O${n}` }, 1)
@@ -489,16 +489,16 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
       // 30 A relays for a 4.5 A load: contact wear, the main field failure of stabilisers, falls
       // with about the square of the margin (more than 1 million operations here)
       // a weak tropical grid: 200 tap changes a day; 4.4 million operations at a 4.5 A load
-      .part(`K${n}`, 'relay', x + 220, 330, { value: '12 V 30 A', opsday: '200', life: '4400000' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
+      .part(`K${n}`, 'relay', x + 250, 330, { value: '12 V 30 A', opsday: '200', life: '4400000' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
       // diagnostics: an LED beside each coil shows which relay is energised
       .part(`LK${n}`, 'led', x + 120, 250, { colour: 'yellow' }, { '2': V, '1': `LKA${n}` }, 1)
-      .part(`RLK${n}`, 'resistor', x + 120, 340, { value: '2.2k' }, { '1': `LKA${n}`, '2': `K${n}` }, 1)
+      .part(`RLK${n}`, 'resistor', x + 120, 340, { value: '2.2k', labels: 'left' }, { '1': `LKA${n}`, '2': `K${n}` }, 1)
       // contact protection: an RC (100 Ω + 100 nF X2) across each contact takes the winding's
       // current while the contact opens, instead of an arc that erodes it
-      .part(`RSC${n}`, 'resistor', x + 200, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNC${n}` }, 1)
-      .part(`CSC${n}`, 'capacitor', x + 200, 580, { value: '100n', vmax: '630' }, { '1': `SNC${n}`, '2': next }, 1)
-      .part(`RSA${n}`, 'resistor', x + 310, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNA${n}` }, 1)
-      .part(`CSA${n}`, 'capacitor', x + 310, 580, { value: '100n', vmax: '630' }, { '1': `SNA${n}`, '2': tap }, 1);
+      .part(`RSC${n}`, 'resistor', x + 230, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNC${n}` }, 1)
+      .part(`CSC${n}`, 'capacitor', x + 230, 580, { value: '100n', vmax: '630' }, { '1': `SNC${n}`, '2': next }, 1)
+      .part(`RSA${n}`, 'resistor', x + 330, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNA${n}` }, 1)
+      .part(`CSA${n}`, 'capacitor', x + 330, 580, { value: '100n', vmax: '630' }, { '1': `SNA${n}`, '2': tap }, 1);
   }
   nb.part('CD1', 'capacitor', -150, 150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 1340, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
@@ -521,7 +521,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RPD', 'resistor', 2970, 230, { value: '2.2k' }, { '1': V, '2': 'OD' }, 1)
     .part('RBD', 'resistor', 2970, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3000, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
-    .part('DD', 'diode', 3050, 410, { value: '1N4148' }, { '2': 'KD', '1': V }, 3)
+    .part('DD', 'diode', 3050, 410, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': V }, 3)
     .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KD', '3': 'T5', '5': 'OUT' })
     .part('LKO', 'led', 3190, 280, { colour: 'green' }, { '2': V, '1': 'LKOA' }, 1)
     .part('RLKO', 'resistor', 3190, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
@@ -755,7 +755,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CV', 'capacitor', -1300, 1920, { value: '10n', vmax: '50' }, { '1': 'VBS', '2': 'GND' }, 1)
     .part('U2', 'opamp', -1100, 1700, { value: 'LM358', pkg: 'AMP1' }, { '3': 'BF', '2': 'IFB', '6': 'ISA', '7': 'V12', '4': 'GND' })
     .part('RI1', 'resistor', -1180, 1850, { value: '1k' }, { '1': 'IFB', '2': 'GND' }, 1)
-    .part('RI2', 'resistor', -1100, 1790, { value: '30k' }, { '1': 'IFB', '2': 'ISA' })
+    .part('RI2', 'resistor', -1100, 1820, { value: '30k' }, { '1': 'IFB', '2': 'ISA' })
     .part('CDA1', 'capacitor', -1230, 1600, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1);
 
   // ---- average current-mode control. The current reference IREF is pulled up to VREF (2.5 V =
@@ -789,7 +789,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('DSS', 'diode', -800, 1950, { value: '1N4148' }, { '2': 'IREF', '1': 'SS' }, 3)
     .part('RSS', 'resistor', -730, 1950, { value: '4.7k' }, { '1': 'V12', '2': 'SS' }, 1)
     .part('CSS', 'capacitor', -730, 2040, { value: '1u', vmax: '25' }, { '1': 'SS', '2': 'GND' }, 1)
-    .part('CDA2', 'capacitor', -820, 1800, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1);
+    .part('CDA2', 'capacitor', -890, 1800, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1);
 
   // ---- fractional open-circuit-voltage MPPT: the converter pauses (at power-on for 50 ms, then
   // for 49 ms every 10.4 s), the array's open-circuit voltage is sampled onto CH and the PV held
@@ -835,7 +835,8 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('U7S', 'comparator', 450, 2560, { value: 'LM393', pkg: 'PWM' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': 'V12', '4': 'GND' })
     .part('RPW', 'resistor', 540, 2290, { value: '4.7k' }, { '1': 'V12', '2': 'PWM' }, 1)
     .part('DPW', 'diode', 600, 2450, { value: '1N4148' }, { '2': 'PWM', '1': 'RUN' }, 3)
-    .part('U8', 'hbdriver', 750, 2350, { value: 'IR2184-type 600 V' }, { '1': 'PWM', '8': 'V12', '3': 'GND', '7': 'VB', '6': 'HO', '5': 'SW', '4': 'LO' })
+    // LO (the low-side output) is not used: the buck converter freewheels through its diode
+    .part('U8', 'hbdriver', 750, 2350, { value: 'IR2184-type 600 V' }, { '1': 'PWM', '8': 'V12', '3': 'GND', '7': 'VB', '6': 'HO', '5': 'SW' })
     .part('DB', 'diode', 850, 2230, { value: '1N4007' }, { '2': 'V12', '1': 'VB' })
     .part('CB', 'capacitor', 900, 2350, { value: '1u', vmax: '25' }, { '1': 'VB', '2': 'SW' }, 1)
     .part('RG', 'resistor', 980, 2340, { value: '10' }, { '1': 'HO', '2': 'G1' })

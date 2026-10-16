@@ -29,7 +29,7 @@ verified first; each design then gets its PCB layout with the Increment 3 tools.
 | P4b | Mains voltage stabilisers with relay-switched taps for 5, 10 and 15 kVA loads (D27): tap switching by contactors or zero-current thyristors (owner's choice at the start of P4b), autotransformer, breaker, surge arresters and output cut-off sized per rating | Output kept in band over the input range at full load; tap changes without overlap of two taps; stress check and DFMEA fault tests per variant |
 | P5 | Surge and lightning protection: SPD type 1/2/3 coordination (GDT, MOV), earthing and equipotential bonding, mains house compared with PV house (DC-side SPDs, array earthing) | 8/20 µs and 1.2/50 µs surges: let-through voltage at the appliance |
 | P6 | Solar battery charger: PV array, synchronous buck converter, MPPT (fractional-Voc, analogue), CC/CV charge control, 48 V battery model; 5–30 kWh, parallel units | Charge current and voltage limits; MPPT tracking; stress check |
-| P7 | Inverters: 12/24/48 V DC to 230 V 1-phase and 3 × 400/230 V: HF DC-DC stage (full bridge, ferrite transformer, rectifier) to a DC bus, SPWM full bridge or 3-phase IGBT bridge, LC filter; ratings 5–30 kW by paralleled devices; parallel units with droop current sharing | Output voltage, frequency, THD (FFT), load step, stress check of every device |
+| P7 | Inverters (D30): two architectures, each with its DFMEA, compared: (a) low-frequency — MOSFET full bridge on the battery, sine PWM, 50 Hz transformer; (b) high-frequency — full bridge and ferrite transformer to a ~400 V DC bus, IGBT sine-PWM bridge, LC filter. Ratings by battery voltage: 12 V up to 1.5 kW, 24 V up to 3 kW, 48 V 5 kW per unit; 10–30 kW by paralleled 48 V units with droop current sharing; 3 × 400/230 V from three units | Output voltage, frequency, THD (FFT), load step, motor start (surge), stress check of every device |
 | P9 | Agricultural and industrial designs (D24): irrigation up to 64 channels with soil-moisture sensors (microcontroller sequencing, discrete sensor interfaces and valve drivers); pump control; borehole pump from tank level with overflow detection (discrete); electric grass/brush trimmer with its sensors and protections; block moulding machine (system design, motors, vibration, hydraulics, safety circuits, microcontroller sequence); gate controller with infrared remote command (D25); grinder machine electronics with variable speed and high torque (D26) | Function, protections and DFMEA fault tests per design |
 | P8 | PCB layouts of these designs with the Increment 3 tools (power tracks per IPC-2221, clearances for mains voltage) | DRC |
 
@@ -144,12 +144,20 @@ wired blocks, power symbols, terminals, packages as bought, no overlapping parts
 
 **Design document (D29):** Export → "Design document (.pdf)" or "(Word .docx)" gives:
 - the description
-- the schematic as vector graphics: an A3 overview, then enlarged tiles A1, A2 …, printable
-  at any scale
+- the schematic as vector graphics: the complete circuit on one large page (the smallest ISO
+  format from A3 to A0 that holds it at a readable scale: the four power designs are A0, text
+  at least 5.3 pt / 1.9 mm, still 1.3 mm when the same page is printed on A1), then an A3
+  overview with the tile grid and the enlarged A3 tiles A1, A2 … for office printers. Export →
+  "Schematic, one large page" gives the large page alone, for a plotter or print shop
 - the costed bill of materials: manufacturer part number, distributors with order numbers,
   and the price for 1 and for 100 pieces
 - the reliability prediction
 - the design's DFMEA, maintenance and FAQ at the end
+
+The drawings are readable (owner's note, 16 October): no reference, value or net name lies on
+a part, on other text or on a wire of another net (tests/drawing.test.ts, every example). The
+router keeps text and the way out of each pin free, and places the net names after all the
+wiring, where no later wire can cross them.
 
 The Parts tab shows the same catalogue columns and the total, and its CSV export includes
 them. Prices are estimates as of October 2026, not live quotes (each line says so); check

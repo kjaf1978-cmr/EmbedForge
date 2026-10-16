@@ -94,6 +94,7 @@ export const EDITOR_COMMANDS: { id: string; title: string; key: string }[] = [
   { id: 'export-bom', title: 'Export bill of materials (CSV)', key: '' },
   { id: 'export-doc-pdf', title: 'Export design document (PDF)', key: '' },
   { id: 'export-doc-docx', title: 'Export design document (Word)', key: '' },
+  { id: 'export-schematic-large', title: 'Export the schematic on one large page (PDF, A3 … A0)', key: '' },
   { id: 'print', title: 'Print schematic', key: '' },
   { id: 'escape', title: 'Cancel tool / clear selection', key: 'Esc' },
   { id: 'layout-below', title: 'Layout: results below the schematic (tile horizontally)', key: 'Ctrl+Alt+↓' },
@@ -487,6 +488,7 @@ export function SchematicView(props: Props) {
       case 'export-bom': void exportBom(); break;
       case 'export-doc-pdf': void exportDoc('pdf'); break;
       case 'export-doc-docx': void exportDoc('docx'); break;
+      case 'export-schematic-large': void exportLarge(); break;
       case 'print': window.print(); break;
       case 'escape':
         if (wirePts.length) setWirePts([]);
@@ -905,6 +907,15 @@ export function SchematicView(props: Props) {
       }
     } catch (e) { announce(`Design document failed: ${(e as Error).message}`); }
   };
+  // the complete schematic on one page for a plotter or print shop (A3 … A0, vector)
+  const exportLarge = async () => {
+    announce('Preparing the schematic…');
+    try {
+      const [{ schematicPdf }, regular, bold] = await Promise.all([import('../../eda/docPdf'), fetchBytes(fontRegularUrl), fetchBytes(fontBoldUrl)]);
+      const title = sheet.info?.title || props.name || 'Schematic';
+      await report(props.exportFile(`${baseName}-schematic.pdf`, await schematicPdf(sheet, title, `NETApps Electric Simulation ${APP_VERSION}`, { regular, bold }), 'application/pdf'));
+    } catch (e) { announce(`Schematic export failed: ${(e as Error).message}`); }
+  };
   const exportSpice = async () => {
     const t = schematicSpice(sheet, props.name || 'NETApps schematic');
     setSpiceText(t);
@@ -1019,6 +1030,7 @@ export function SchematicView(props: Props) {
             <button onClick={() => run('export-bom')}>Bill of materials (.csv)</button>
             <button onClick={() => run('export-doc-pdf')}>Design document (.pdf)</button>
             <button onClick={() => run('export-doc-docx')}>Design document (Word .docx)</button>
+            <button onClick={() => run('export-schematic-large')}>Schematic, one large page (.pdf, A3 … A0)</button>
             <button onClick={() => void exportCsv()} disabled={!ok || ok.analysis === 'op'}>Waveforms as CSV</button>
             <button onClick={() => run('print')}>Print…</button>
           </div>

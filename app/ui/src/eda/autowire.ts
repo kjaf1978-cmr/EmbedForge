@@ -8,7 +8,7 @@
 
 import { connectivity } from './connectivity';
 import { labelPos } from './editor';
-import { GRID, key, newId, partBounds, pinPositions, type Label, type Part, type Probe, type Rot, type Sheet, type Wire } from './schematic';
+import { GRID, key, newId, onSegment, partBounds, pinPositions, samePt, valueText, type Label, type Part, type Probe, type Rot, type Sheet, type Wire } from './schematic';
 import { symbolOf, type Pt } from './symbols';
 
 export interface AutowireOptions {
@@ -37,6 +37,8 @@ interface Cell {
   body?: boolean;
   /** Text of a reference, value or label: wires avoid it if they can. */
   text?: boolean;
+  /** The cell just outside a pin: kept for that pin's net, so the pin can always be left. */
+  esc?: string;
 }
 
 /** The pins of every net of a sheet (power symbols excluded), as "partId:pin". */
@@ -58,6 +60,15 @@ function netsOf(sheet: Sheet): Map<string, { part: Part; pin: string; at: Pt }[]
 export function pinPartition(sheet: Sheet): string[] {
   const conn = connectivity(sheet);
   return conn.nets.filter((n) => n.pins.length).map((n) => [...n.pins].sort().join(' ')).sort();
+}
+
+/** The grid cells under a part's reference or value text (size in sheet units). */
+function textCells(p: Part, which: 'ref' | 'val', t: string, size: number): Pt[] {
+  const g = GRID, lp = labelPos(p, which), w = t.length * size * 0.62;
+  const x0 = lp.anchor === 'start' ? lp.at.x : lp.anchor === 'end' ? lp.at.x - w : lp.at.x - w / 2;
+  const out: Pt[] = [];
+  for (let x = Math.floor(x0 / g) * g; x <= x0 + w + 1; x += g) for (let y = Math.floor((lp.at.y - size - 1) / g) * g; y <= lp.at.y + 2; y += g) if (y >= lp.at.y - size - 1) out.push({ x, y });
+  return out;
 }
 
 class Grid {
@@ -116,11 +127,10 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
     bx0 = Math.min(bx0, b.x0); by0 = Math.min(by0, b.y0); bx1 = Math.max(bx1, b.x1); by1 = Math.max(by1, b.y1);
     for (let x = Math.ceil(b.x0 / g) * g; x <= b.x1; x += g) for (let y = Math.ceil(b.y0 / g) * g; y <= b.y1; y += g) grid.at(x, y).body = true;
     // reference and value text
-    for (const which of ['ref', 'val'] as const) {
-      const lp = labelPos(p, which), w = (which === 'ref' ? p.ref : (p.props[symbolOf(p.sym).value.key] ?? '')).length * 6;
-      const x0 = lp.anchor === 'start' ? lp.at.x : lp.anchor === 'end' ? lp.at.x - w : lp.at.x - w / 2;
-      for (let x = Math.floor(x0 / g) * g; x <= x0 + w; x += g) grid.at(x, Math.round(lp.at.y / g) * g).text = true;
-    }
+    // (as drawn: 9-unit reference, 8-unit value; a wire through it would make it unreadable)
+    for (const c of textCells(p, 'ref', p.ref, 9)) grid.at(c.x, c.y).text = true;
+    const vt = valueText(p);
+    if (vt) for (const c of textCells(p, 'val', vt, 8)) grid.at(c.x, c.y).text = true;
   }
   const pinCells = new Set(parts.flatMap((p) => pinPositions(p).map((q) => key(q.at))));
   const pinNet = new Map<string, string>();
@@ -129,6 +139,10 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
     const c = grid.at(q.at.x, q.at.y);
     c.body = false;
     c.pt = pinNet.get(`${p.id}:${q.pin}`) ?? `#nc:${p.id}:${q.pin}`;
+  }
+  for (const p of parts) for (const q of pinPositions(p)) {
+    const d = outward(p, q.at), e = grid.at(q.at.x + DX[d] * g, q.at.y + DY[d] * g);
+    if (!e.body && !e.pt) e.esc = e.esc && e.esc !== grid.at(q.at.x, q.at.y).pt ? '#shared' : grid.at(q.at.x, q.at.y).pt;
   }
   const margin = 40 * g;
   bx0 -= margin; by0 -= margin; bx1 += margin; by1 += margin;
@@ -177,6 +191,7 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
           const target = isTarget(nx, ny);
           if (!target) {
             if (c.body || c.pt) continue;
+            if (c.esc && c.esc !== net && c.esc !== '#shared') continue; // another pin's way out
             const along = horiz(nd) ? c.h : c.v, across = horiz(nd) ? c.v : c.h;
             if (along) continue; // would run along another wire
             if (across) {
@@ -186,7 +201,7 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
               if (f && (f.body || (f.pt && !isTarget(fx, fy)) || (horiz(nd) ? f.h : f.v))) continue;
               step += 2;
             }
-            if (c.text) step += 3;
+            if (c.text) step += 300;
           } else if (c.body) continue;
         }
         const ns = idx(nx, ny) * 4 + nd;
@@ -249,7 +264,7 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
       const all = [...pieceOf.keys()].map((k) => { const [x, y] = k.split(',').map(Number); return { x, y }; });
       const xs = [q.at.x, ...all.map((c) => c.x)], ys = [q.at.y, ...all.map((c) => c.y)];
       let path: Pt[] | null = null;
-      for (const m of [8, 25]) {
+      for (const m of [8, 25, 80]) {
         const box = { x0: Math.max(bx0, Math.min(...xs) - m * g), y0: Math.max(by0, Math.min(...ys) - m * g), x1: Math.min(bx1, Math.max(...xs) + m * g), y1: Math.min(by1, Math.max(...ys) + m * g) };
         path = route(net, q.at, outward(q.part, q.at), (x, y) => {
           if (!pieceOf.has(`${x},${y}`)) return false;
@@ -267,28 +282,95 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
   };
 
   /** A free cell next to the piece where a label (or symbol) can sit, reached by a short stub. */
-  const placeName = (net: string, piece: Pt[]) => {
+  /** `needed`: the name carries a connection (a labelled net, a net in pieces, a lone pin);
+   *  otherwise it is only for reading and is left out where it has no clear place. */
+  const placeName = (net: string, piece: Pt[], needed = true) => {
     const w = Math.ceil((net.length * 6 + 4) / g);
-    for (const roomy of [true, false]) for (const reach of [1, 2, 3, 4, 5]) for (const c of piece) for (const d of [3, 1, 0, 2] as Dir[]) {
-      // a stub of `reach` cells in direction d, then the label reading to the right
-      let ok = true;
+    // what the name's row (above the point, reading to the right) would lie on: never a part or
+    // a pin; each wire costs 10, other text 1
+    const rowScore = (x: number, y: number) => {
+      let sc = 0;
+      // (from one cell on: the text starts right of the point, above its own stub)
+      for (let k = 1; k <= w; k++) {
+        const cl = grid.peek(x + k * g, y - g);
+        if (!cl) continue;
+        if (cl.body || cl.pt) return Infinity;
+        if (cl.h || cl.v) sc += 10;
+        if (cl.text) sc += 1;
+      }
+      return sc;
+    };
+    let best: { at: Pt; stub: Pt[]; score: number } | undefined;
+    const offer = (at: Pt, stub: Pt[], extra: number) => {
+      const sc = rowScore(at.x, at.y) + extra + stub.length * 0.1;
+      if (sc < Infinity && (!best || sc < best.score)) best = { at, stub, score: sc };
+    };
+    // a stub of `reach` cells from a point of the piece, then the name
+    for (const reach of [1, 2, 3, 4, 5, 6, 8, 10, 12, 16]) {
+      // a clear spot at this reach: no longer stub is better (long stubs only when nothing is clear)
+      if (best && (best.score < 1 || (reach > 8 && best.score < 10))) break;
+      for (const c of piece) for (const d of [3, 1, 0, 2] as Dir[]) {
+      let ok = true, txt = 0;
       const cells: Pt[] = [];
       for (let k = 1; k <= reach; k++) {
         const x = c.x + DX[d] * k * g, y = c.y + DY[d] * k * g, cl = grid.peek(x, y);
-        if (cl && (cl.body || cl.pt || cl.h || cl.v)) { ok = false; break; }
+        // a wire of another net may be crossed straight, not run along or ended on
+        const along = cl && (horiz(d) ? cl.h : cl.v), across = cl && (horiz(d) ? cl.v : cl.h);
+        if (cl && (cl.body || cl.pt || along || (across && (k === reach || across === net)))) { ok = false; break; }
+        if (across) txt += 3;
+        if (cl?.text) txt++;
         cells.push({ x, y });
       }
-      if (!ok) continue;
-      const end = cells[cells.length - 1];
-      if (roomy) for (let k = 1; k <= w; k++) { const cl = grid.peek(end.x + k * g, end.y - g); if (cl && (cl.body || cl.pt)) { ok = false; break; } }
-      if (!ok) continue;
-      commit(net, [c, ...cells]);
-      labels.push({ id: newId('l'), name: net, x: end.x, y: end.y });
-      for (let k = 0; k <= w; k++) grid.at(end.x + k * g, end.y - g).text = true;
-      return end;
+      if (ok) offer(cells[cells.length - 1], [c, ...cells], txt);
+      }
     }
-    // no room for a stub: the label on one of the piece's wires (not on a pin), else on the piece
-    const onWire = piece.find((c) => !pinCells.has(key(c)));
+    // still nothing clear: a stub with one bend (out, then sideways)
+    if (!best || best.score >= 1) for (const c of piece) for (const d of [3, 1, 0, 2] as Dir[]) for (const r1 of [1, 2, 3]) for (const d2 of ([0, 1, 2, 3] as Dir[]).filter((x) => x !== d && x !== ((d + 2) & 3))) for (const r2 of [1, 2, 3, 4]) {
+      let ok = true, txt = 0;
+      const cells: Pt[] = [];
+      for (let k = 1; k <= r1 + r2 && ok; k++) {
+        const dd = k <= r1 ? d : d2, base = k <= r1 ? c : { x: c.x + DX[d] * r1 * g, y: c.y + DY[d] * r1 * g }, kk = k <= r1 ? k : k - r1;
+        const x = base.x + DX[dd] * kk * g, y = base.y + DY[dd] * kk * g, cl = grid.peek(x, y);
+        if (cl && (cl.body || cl.pt || cl.h || cl.v || cl.esc)) ok = false;
+        else { if (cl?.text) txt++; cells.push({ x, y }); }
+      }
+      if (ok) offer(cells[cells.length - 1], [c, ...cells], txt + 0.5);
+    }
+    // or on the piece's own wire (not at a pin, not at a crossing with another net)
+    const reached = new Set(piece.map(key)), own: Wire[] = [];
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const wr of wires) if (!own.includes(wr) && (reached.has(key(wr.a)) || reached.has(key(wr.b)))) { own.push(wr); reached.add(key(wr.a)); reached.add(key(wr.b)); grew = true; }
+    }
+    for (const wr of own) {
+      const n = Math.round((Math.abs(wr.b.x - wr.a.x) + Math.abs(wr.b.y - wr.a.y)) / g);
+      for (let k = 0; k <= n; k++) {
+        const x = wr.a.x + Math.sign(wr.b.x - wr.a.x) * k * g, y = wr.a.y + Math.sign(wr.b.y - wr.a.y) * k * g, cl = grid.peek(x, y);
+        if (pinCells.has(key({ x, y })) || (cl && ((cl.h && cl.h !== net) || (cl.v && cl.v !== net)))) continue;
+        // only where every wire through the point is the piece's own
+        if (wires.some((o2) => !own.includes(o2) && onSegment({ x, y }, o2.a, o2.b))) continue;
+        offer({ x, y }, [], 0.05);
+      }
+    }
+    // a name only for reading: on a clear spot or not at all
+    if (!needed && best && best.score >= 10) best = undefined;
+    if (best) {
+      const b = best.at;
+      if (best.stub.length) commit(net, best.stub);
+      else {
+        // a label joins a wire anywhere along it; split the segment so the point is an end too
+        const i = wires.findIndex((wr) => onSegment(b, wr.a, wr.b) && !samePt(b, wr.a) && !samePt(b, wr.b));
+        if (i >= 0) { const wr = wires[i]; wires.splice(i, 1, { id: newId('w'), a: wr.a, b }, { id: newId('w'), a: b, b: wr.b }); }
+      }
+      labels.push({ id: newId('l'), name: net, x: b.x, y: b.y });
+      // a label joins whatever passes through its point: no other net may cross there later
+      grid.at(b.x, b.y).pt = net;
+      for (let k = 0; k <= w; k++) grid.at(b.x + k * g, b.y - g).text = true;
+      return b;
+    }
+    // nowhere: on one of the piece's points, not a pin and not a crossing with another net
+    if (!needed) return piece[0];
+    const onWire = piece.find((c) => { const cl = grid.peek(c.x, c.y); return !pinCells.has(key(c)) && !(cl && ((cl.h && cl.h !== net) || (cl.v && cl.v !== net))); });
     const at = onWire ?? piece[0];
     labels.push({ id: newId('l'), name: net, x: at.x, y: at.y });
     return at;
@@ -301,7 +383,7 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
     // the symbol's graphic points down (ground) or up (rail) at rotation 0
     const natural: Dir = sym === 'gnd' ? 1 : 3;
     const tries: Dir[] = [out, natural, ...([0, 1, 2, 3] as Dir[]).filter((d) => d !== out && d !== natural)];
-    for (const d of tries) for (const reach of [1, 2]) {
+    for (const reach of [1, 2, 3, 4, 5, 6, 8]) for (const d of tries) {
       const cells: Pt[] = [];
       let ok = true;
       for (let k = 1; k <= reach + 2; k++) {
@@ -311,10 +393,15 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
       }
       if (!ok) continue;
       const end = cells[cells.length - 1];
-      commit(net, [q.at, ...cells]);
       const rot = (((d - natural) + 4) % 4) as Rot;
-      symbols.push({ id: newId('p'), ref: '#PWR', sym, x: end.x, y: end.y, rot, mirror: false, props: { value: net } });
+      const part: Part = { id: newId('p'), ref: '#PWR', sym, x: end.x, y: end.y, rot, mirror: false, props: { value: net } };
+      // its name must stay readable: no wire, pin or part where the text goes
+      const tc = textCells(part, 'val', net, 8);
+      if (tc.some((c) => { const cl = grid.peek(c.x, c.y); return cl && (cl.body || cl.pt || cl.h || cl.v || cl.text); })) continue;
+      commit(net, [q.at, ...cells]);
+      symbols.push(part);
       for (let k = 1; k <= 2; k++) grid.at(end.x + DX[d] * k * g, end.y + DY[d] * k * g).body = true;
+      for (const c of tc) grid.at(c.x, c.y).body = true;
       return;
     }
     // no room: the symbol on the pin
@@ -328,22 +415,25 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
   });
   // rails first: their symbols sit right at the pins
   for (const [net, list] of nets) if (rails.has(net)) for (const q of list) railSymbol(net, q);
+  // names go on after all the wiring, where no later wire can cross them
+  const later: (() => void)[] = [];
   for (const [net, list] of order) {
     if (list.length < 2 && !labelled.has(net)) {
       // a single pin on a named net (a test point, an open contact): its label
-      if (!/^N\(/.test(net)) placeName(net, [list[0].at]);
+      if (!/^N\(/.test(net)) later.push(() => placeName(net, [list[0].at]));
       continue;
     }
     if (labelled.has(net)) {
       const byBlock = new Map<string, { part: Part; at: Pt }[]>();
       for (const q of list) { const b = blockOf(q.part); byBlock.set(b, [...(byBlock.get(b) ?? []), q]); }
-      for (const group of byBlock.values()) for (const piece of wireGroup(net, group)) placeName(net, piece);
+      for (const group of byBlock.values()) for (const piece of wireGroup(net, group)) later.push(() => placeName(net, piece));
       continue;
     }
     const pieces = wireGroup(net, list);
     const autoName = /^N\(/.test(net) || o.unnamed?.(net);
-    pieces.forEach((piece, i) => { if (!autoName || pieces.length > 1 || i > 0) named.set(net, placeName(net, piece)); });
+    pieces.forEach((piece, i) => { if (!autoName || pieces.length > 1 || i > 0) later.push(() => named.set(net, placeName(net, piece, pieces.length > 1))); });
   }
+  for (const f of later) f();
 
   const out: Sheet = { ...sheet, parts: [...parts, ...symbols], wires, labels };
   // probes: voltage probes move to the new place of their net

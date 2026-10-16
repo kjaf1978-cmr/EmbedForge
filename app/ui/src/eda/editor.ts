@@ -263,12 +263,28 @@ export function sheetBounds(sheet: Sheet): { x0: number; y0: number; x1: number;
 /** Pin label text position helper for the renderer: labels stay upright. */
 export function labelPos(p: Part, which: 'ref' | 'val'): { at: Pt; anchor: 'start' | 'middle' | 'end' } {
   const s = symbolOf(p.sym);
+  // the `labels` property moves the reference and value beside a crowded part
+  const side = p.props.labels;
+  if (!s.power && (side === 'left' || side === 'right' || side === 'above' || side === 'below')) {
+    const b = partBounds(p), ref = which === 'ref';
+    if (side === 'left') return { at: { x: Math.min(b.x0 - 4, p.x - 22), y: p.y + (ref ? -4 : 9) }, anchor: 'end' };
+    if (side === 'right') return { at: { x: Math.max(b.x1 + 4, p.x + 22), y: p.y + (ref ? -4 : 9) }, anchor: 'start' };
+    if (side === 'above') return { at: { x: p.x, y: b.y0 - (ref ? 15 : 4) }, anchor: 'middle' };
+    return { at: { x: p.x, y: b.y1 + (ref ? 11 : 21) }, anchor: 'middle' };
+  }
   if (p.rot % 2 === 1 && !s.power) {
+    // beside the upright part, on the side where no pin leaves at the height of the text
     const b = partBounds(p);
-    return { at: { x: Math.max(b.x1 + 4, p.x + 22), y: p.y + (which === 'ref' ? -4 : 9) }, anchor: 'start' };
+    const blocked = (right: boolean) => pinPositions(p).some((q) => (right ? q.at.x >= b.x1 - 1 : q.at.x <= b.x0 + 1) && q.at.y > p.y - 16 && q.at.y < p.y + 14);
+    const left = blocked(true) && !blocked(false);
+    return left
+      ? { at: { x: Math.min(b.x0 - 4, p.x - 22), y: p.y + (which === 'ref' ? -4 : 9) }, anchor: 'end' }
+      : { at: { x: Math.max(b.x1 + 4, p.x + 22), y: p.y + (which === 'ref' ? -4 : 9) }, anchor: 'start' };
   }
   const local = which === 'ref' ? s.refAt : s.valAt;
-  return { at: toWorld({ ...p, rot: s.power ? p.rot : 0, mirror: false }, local.x === 0 ? local : { x: p.mirror ? -local.x : local.x, y: local.y }), anchor: local.x > 10 ? 'start' : local.x < -10 ? 'end' : 'middle' };
+  // text stays upright; on a part turned 180° it moves to the side the part now faces
+  const flip = !s.power && (p.mirror !== (p.rot === 2));
+  return { at: toWorld({ ...p, rot: s.power ? p.rot : 0, mirror: false }, local.x === 0 ? local : { x: flip ? -local.x : local.x, y: local.y }), anchor: (flip ? -local.x : local.x) > 10 ? 'start' : (flip ? -local.x : local.x) < -10 ? 'end' : 'middle' };
 }
 
 // ---- collisions (asked, not merged silently): a new wire that touches something other than

@@ -6,7 +6,7 @@ import { PDFDocument } from 'pdf-lib';
 import { unzipSync, strFromU8 } from 'fflate';
 import { EXAMPLES } from '../src/eda/examples';
 import { designDoc } from '../src/eda/designDoc';
-import { designPdf, transformPath } from '../src/eda/docPdf';
+import { designPdf, largeFormat, schematicPdf, transformPath } from '../src/eda/docPdf';
 import { designDocx } from '../src/eda/docDocx';
 import { buildBom } from '../src/eda/bom';
 import { catalogueFor, costedBom, costedCsv } from '../src/eda/catalogue';
@@ -57,6 +57,14 @@ describe('design document', () => {
     expect(sizes.filter((w) => w === 1191).length).toBeGreaterThanOrEqual(3);
     expect(sizes.filter((w) => w === 842).length).toBeGreaterThanOrEqual(5);
     expect(pdf.getTitle()).toBe(ex.title);
+    // the complete schematic on one large page (owner's note of 16 October): an ISO format
+    // that holds the whole sheet with its text at least 5 pt (1.8 mm) high
+    const L = largeFormat(doc.sheet);
+    expect(['A1', 'A0'], id).toContain(L.name);
+    expect(L.k * L.ts * 8, id).toBeGreaterThanOrEqual(5);
+    expect(sizes, id).toContain(Math.round(L.size[0]));
+    const one = await PDFDocument.load(await schematicPdf(doc.sheet, ex.title, 'test', fonts));
+    expect(one.getPages().map((p) => Math.round(p.getWidth())), id).toEqual([Math.round(L.size[0])]);
     const files = unzipSync(await designDocx(doc, async () => PNG));
     const xml = strFromU8(files['word/document.xml']);
     expect(xml).toContain('Bill of materials');

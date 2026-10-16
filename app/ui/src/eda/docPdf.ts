@@ -1,5 +1,6 @@
 // PDF of a design document (D29). The schematic is drawn as vector graphics (it prints at any
-// scale without loss): an overview page and enlarged A3 tiles at a readable scale. Text uses an
+// scale without loss): the complete schematic on one large-format page (A3 … A0, for a plotter
+// or print shop), an A3 overview with the tile grid and enlarged A3 tiles for office printers. Text uses an
 // embedded font (DejaVu Sans), so every symbol of the designs (Ω, µ, ≥, …) prints.
 
 import { PDFDocument, rgb, type PDFFont, type PDFPage, pushGraphicsState, popGraphicsState, rectangle, clip, endPath, type RGB } from 'pdf-lib';
@@ -14,6 +15,12 @@ import { schematicTiles, type DesignDocModel } from './designDoc';
 export interface Fonts { regular: Uint8Array; bold: Uint8Array }
 
 const A4L: [number, number] = [842, 595], A3L: [number, number] = [1191, 842];
+/** ISO landscape formats for the one-page schematic, smallest first (pt). */
+const LARGE: { name: string; size: [number, number] }[] = [
+  { name: 'A3', size: A3L }, { name: 'A2', size: [1684, 1191] }, { name: 'A1', size: [2384, 1684] }, { name: 'A0', size: [3370, 2384] },
+];
+/** Scale of the tiles and the target of the large page: 0.8 pt per unit (8-unit text 6.4 pt). */
+const READABLE = 0.8;
 const M = 40; // page margin (pt)
 const hex = (h: string): RGB => { const v = h.replace('#', ''); const n = parseInt(v.length === 3 ? v.split('').map((c) => c + c).join('') : v, 16); return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); };
 const INK = hex('#1a1a1a'), PART = hex('#8b1a1a'), WIRE = hex('#1f5f1f'), LABEL = hex('#1a3d8b'), NOTE = hex('#444444'), GREY = hex('#888888'), LIGHT = hex('#eeeeee');
@@ -57,7 +64,7 @@ export function transformPath(d: string, p: Pick<Part, 'x' | 'y' | 'rot' | 'mirr
   return out.join(' ');
 }
 
-interface View { ox: number; oy: number; k: number; vx0: number; vy0: number; H: number }
+interface View { ox: number; oy: number; k: number; vx0: number; vy0: number; H: number; ts?: number }
 
 function drawSheet(page: PDFPage, sheet: Sheet, v: View, f: { regular: PDFFont; bold: PDFFont }) {
   const conn = connectivity(sheet);
@@ -67,7 +74,7 @@ function drawSheet(page: PDFPage, sheet: Sheet, v: View, f: { regular: PDFFont; 
   for (const j of conn.junctions) page.drawCircle({ x: X(j.x), y: Y(j.y), size: 2.6 * v.k, color: WIRE });
   const svgOpts = { x: v.ox - v.vx0 * v.k, y: v.H - v.oy + v.vy0 * v.k, scale: v.k };
   const text = (s: string, x: number, y: number, size: number, anchor: 'start' | 'middle' | 'end', color: RGB, bold = false) => {
-    const font = bold ? f.bold : f.regular, sz = size * v.k, w = font.widthOfTextAtSize(s, sz);
+    const font = bold ? f.bold : f.regular, sz = size * v.k * (v.ts ?? 1), w = font.widthOfTextAtSize(s, sz);
     page.drawText(s, { x: X(x) - (anchor === 'middle' ? w / 2 : anchor === 'end' ? w : 0), y: Y(y), size: sz, font, color });
   };
   for (const p of sheet.parts) {
@@ -206,6 +213,42 @@ class Writer {
 const eur = (v: number | null) => (v === null ? '—' : v.toFixed(2));
 
 /** The design document as a PDF file. */
+/** The format and scale of the one-page schematic: the smallest ISO format (A3 … A0, landscape)
+ *  that holds the whole sheet at the readable scale; a sheet too large even for A0 is fitted
+ *  to A0. Text keeps its size relative to the drawing (enlarging it alone would make it run
+ *  into the parts beside it). */
+export function largeFormat(sheet: Sheet): { name: string; size: [number, number]; k: number; ts: number; view: { x0: number; y0: number; w: number; h: number } } {
+  const { view } = schematicTiles(sheet, 1e9, 1e9);
+  for (const f of LARGE) {
+    const k = Math.min((f.size[0] - 2 * M) / view.w, (f.size[1] - LTOP - M) / view.h);
+    if (k >= READABLE) return { ...f, k: Math.min(k, 1.5), ts: 1, view };
+  }
+  const f = LARGE[LARGE.length - 1], k = Math.min((f.size[0] - 2 * M) / view.w, (f.size[1] - LTOP - M) / view.h);
+  return { ...f, k, ts: 1, view };
+}
+const LTOP = 70; // the large page's title band (pt)
+
+/** Draws the complete schematic on one page with a title block (the large-format page). */
+function largePage(pdf: PDFDocument, f: { regular: PDFFont; bold: PDFFont }, sheet: Sheet, title: string, subtitle: string) {
+  const L = largeFormat(sheet), [PW, PH] = L.size;
+  const page = pdf.addPage(L.size);
+  page.drawText(title, { x: M, y: PH - 40, size: 20, font: f.bold, color: INK });
+  page.drawText(`Complete schematic — ${L.name} landscape (${L.name === 'A0' ? '1189 × 841' : L.name === 'A1' ? '841 × 594' : L.name === 'A2' ? '594 × 420' : '420 × 297'} mm). Vector drawing: print at 100 % on ${L.name}, or scaled to any other format without loss. ${subtitle}`, { x: M, y: PH - 60, size: 10, font: f.regular, color: GREY });
+  const ox = M + (PW - 2 * M - L.view.w * L.k) / 2;
+  drawSheet(page, sheet, { ox, oy: LTOP, k: L.k, vx0: L.view.x0, vy0: L.view.y0, H: PH, ts: L.ts }, f);
+  page.drawRectangle({ x: M / 2, y: M / 2, width: PW - M, height: PH - M, borderColor: INK, borderWidth: 1 });
+}
+
+/** The complete schematic alone, as a one-page large-format PDF. */
+export async function schematicPdf(sheet: Sheet, title: string, subtitle: string, fonts: Fonts): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const f = { regular: await pdf.embedFont(fonts.regular, { subset: true }), bold: await pdf.embedFont(fonts.bold, { subset: true }) };
+  pdf.setTitle(`${title} — schematic`); pdf.setCreator('NETApps Electric Simulation');
+  largePage(pdf, f, sheet, title, subtitle);
+  return pdf.save();
+}
+
 export async function designPdf(doc: DesignDocModel, fonts: Fonts): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
@@ -224,11 +267,14 @@ export async function designPdf(doc: DesignDocModel, fonts: Fonts): Promise<Uint
   w.heading([{ text: '1 Description' }], 2);
   w.blocks(doc.intro);
 
-  // schematic: overview, then tiles at 0.8 pt per unit (8-unit text prints at 6.4 pt)
-  const [PW, PH] = A3L, top = 50, aw = PW - 2 * M, ah = PH - top - M, k = 0.8;
+  // schematic: the complete schematic on one large-format page, then an A3 overview with the
+  // tile grid and the tiles at 0.8 pt per unit (8-unit text prints at 6.4 pt) for A3 printers
+  largePage(pdf, f, doc.sheet, `2 Schematic — ${doc.title}`, doc.subtitle);
+  w.pageNo++;
+  const [PW, PH] = A3L, top = 50, aw = PW - 2 * M, ah = PH - top - M, k = READABLE;
   const { view, tiles } = schematicTiles(doc.sheet, aw / k, ah / k);
   w.newPage(A3L);
-  w.page.drawText('2 Schematic — overview (the following pages show it enlarged, tile by tile)', { x: M, y: PH - 34, size: 13, font: f.bold, color: INK });
+  w.page.drawText('2 Schematic — overview for A3 printers (the following pages show it enlarged, tile by tile)', { x: M, y: PH - 34, size: 13, font: f.bold, color: INK });
   const k0 = Math.min(aw / view.w, ah / view.h);
   drawSheet(w.page, doc.sheet, { ox: M, oy: top, k: k0, vx0: view.x0, vy0: view.y0, H: PH }, f);
   for (const t of tiles) {

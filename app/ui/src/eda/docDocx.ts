@@ -63,8 +63,10 @@ export async function designDocx(doc: DesignDocModel, pngOf: PngOf): Promise<Uin
     return new ImageRun({ type: 'svg', data: enc(svg), transformation: { width: w, height: h }, fallback: { type: 'png', data: png } });
   };
   const schematic: Paragraph[] = [
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [tr({ text: '2 Schematic — overview (the following pages show it enlarged, tile by tile)', bold: true }, 26)] }),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [tr({ text: '2 Schematic — the complete circuit on one page', bold: true }, 26)] }),
     new Paragraph({ children: [await image(view, aw, ah)] }),
+    // Word pages end at 55.9 cm: the A1/A0 sheet is in the PDF; this vector page scales up to it
+    para([{ text: 'Vector drawing: print this page scaled to A1 or A0 without loss, or use the PDF design document (or Export → Schematic, one large page), whose schematic page is an A1/A0 sheet. The following pages show the schematic enlarged, tile by tile, for A3 printers.' }], 16),
   ];
   for (const t of tiles) {
     schematic.push(new Paragraph({ pageBreakBefore: true, heading: HeadingLevel.HEADING_2, children: [tr({ text: `2 Schematic — tile ${t.name}`, bold: true }, 24)] }));

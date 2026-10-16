@@ -120,7 +120,7 @@ export const EXAMPLES: Example[] = [
       b.part('gnd', 0, 90); b.part('gnd', 160, 60);
       b.wire([0, -100], [0, -90]); b.wire([0, -30], [0, 0], [30, 0]); b.wire([90, 0], [120, 0]); b.wire([0, 60], [0, 90]);
       b.wire([160, -60], [160, -30]); b.wire([160, 30], [160, 60]); b.wire([160, -200], [160, -180]);
-      b.label('BASE', 110, 0);
+      b.label('BASE', 92, 0);
       b.i(d, '2');
       b.sim({ type: 'op' });
       return b.done();
@@ -155,7 +155,7 @@ export const EXAMPLES: Example[] = [
       b.part('opamp', 100, 0, { value: 'generic' });
       b.part('power', 90, -60, { value: '+12V' });
       b.part('power', 90, 60, { value: '-12V' }, 2);
-      b.part('vsin', 0, 20, { value: '0.5', freq: '1k', ac: '1' });
+      b.part('vsin', 0, 20, { value: '0.5', freq: '1k', ac: '1', labels: 'left' });
       b.part('resistor', 100, 100, { value: '10k' });
       b.part('resistor', 40, 150, { value: '2.2k' }, 1);
       b.part('resistor', 180, 30, { value: '10k' }, 1);
@@ -196,7 +196,7 @@ export const EXAMPLES: Example[] = [
       const b = new B();
       b.part('vdc', 0, 0, { value: '12' });
       b.part('resistor', 60, -60, { value: '470' });
-      b.part('zener', 120, -30, { value: 'BZX55C5V1' }, 3);
+      b.part('zener', 120, -30, { value: 'BZX55C5V1', labels: 'left' }, 3);
       b.part('resistor', 180, -30, { value: '1k' }, 1);
       b.part('gnd', 0, 60); b.part('gnd', 120, 30); b.part('gnd', 180, 30);
       b.wire([0, -30], [0, -60], [30, -60]); b.wire([90, -60], [180, -60]); b.wire([0, 30], [0, 60]); b.wire([120, 0], [120, 30]); b.wire([180, 0], [180, 30]);
@@ -243,14 +243,14 @@ EXAMPLES.push(
     tryThis: 'The DC sweep raises the battery voltage from 0 to 12 V: OUT follows the input up to about 7 V (the 2 V dropout), then stays at 5 V. Select U1 and choose AMS1117-5.0: the dropout shrinks to about 1.1 V.',
     build: () => {
       const b = new B();
-      b.part('battery', 0, 0, { value: '9', rint: '0.5' });
+      b.part('battery', 0, 0, { value: '9', rint: '0.5', labels: 'left' });
       b.part('regulator', 100, -60, { value: '7805' });
-      b.part('capacitor', 40, -30, { value: '330n' }, 1);
-      b.part('capacitor', 160, -30, { value: '100n' }, 1);
-      b.part('resistor', 200, -30, { value: '100' }, 1);
-      b.part('gnd', 0, 60); b.part('gnd', 40, 30); b.part('gnd', 100, 0); b.part('gnd', 160, 30); b.part('gnd', 200, 30);
-      b.wire([0, -30], [0, -60], [60, -60]); b.wire([140, -60], [200, -60]);
-      b.wire([0, 30], [0, 60]); b.wire([40, 0], [40, 30]); b.wire([100, -30], [100, 0]); b.wire([160, 0], [160, 30]); b.wire([200, 0], [200, 30]);
+      b.part('capacitor', 30, -30, { value: '330n' }, 1);
+      b.part('capacitor', 170, -30, { value: '100n' }, 1);
+      b.part('resistor', 240, -30, { value: '100' }, 1);
+      b.part('gnd', 0, 60); b.part('gnd', 30, 30); b.part('gnd', 100, 0); b.part('gnd', 170, 30); b.part('gnd', 240, 30);
+      b.wire([0, -30], [0, -60], [60, -60]); b.wire([140, -60], [240, -60]);
+      b.wire([0, 30], [0, 60]); b.wire([30, 0], [30, 30]); b.wire([100, -30], [100, 0]); b.wire([170, 0], [170, 30]); b.wire([240, 0], [240, 30]);
       b.label('IN', 20, -60); b.label('OUT', 180, -60);
       b.v(10, -60); b.v(190, -60);
       b.sim({ type: 'dc', target: 'BT1', param: 'value', start: '0', stop: '12', step: '0.1' });
@@ -320,7 +320,7 @@ EXAMPLES.push(
     tryThis: 'Compare CLK and Q: Q changes only on rising clock edges, at half the frequency. Open the Stress tab: the LED current is within its rating.',
     build: () => {
       const b = new B();
-      b.part('vpulse', 0, 0, { value: '5', low: '0', freq: '2', duty: '50', edge: '1m' });
+      b.part('vpulse', 0, 0, { value: '5', low: '0', freq: '2', duty: '50', edge: '1m', labels: 'left' });
       b.part('dff', 120, -20, { value: '+5V' });
       b.part('resistor', 230, -30, { value: '330' });
       const d = b.part('led', 260, 0, { colour: 'green' }, 1);
