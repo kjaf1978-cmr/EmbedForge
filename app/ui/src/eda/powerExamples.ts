@@ -148,14 +148,13 @@ function transferLogic(nb: NB, X: (k: number) => number, Y: (k: number) => numbe
     .part('RUVL', 'resistor', X(14), Y(y0 - 0.6), { value: '10k' }, { '1': V, '2': 'UVL' }, 1)
     .part('DU1', 'diode', X(14), Y(y0 + 0.6), { value: '1N4148' }, { '2': 'K1EN', '1': 'UVL' })
     .part('DU2', 'diode', X(15), Y(y0 + 0.6), { value: '1N4148' }, { '2': 'K2EN', '1': 'UVL' });
-  // drives, gates clamped to 12 V
+  // drives: the gate on the comparator output itself, clamped to 12 V by a Zener (the output's
+  // 10k pull-up limits the Zener current to 1.2 mA; no separate gate resistor needed)
   const yd = y0 + 2.5;
-  nb.part('R8', 'resistor', X(0), Y(yd), { value: '10k' }, { '1': 'K1EN', '2': 'G1' })
-    .part('D1', 'zener', X(1), Y(yd), { value: 'BZX55C12' }, { '1': 'G1', '2': 'GND' }, 1)
-    .part('Q1', 'nmos', X(2), Y(yd), { value: 'IRLZ44N' }, { '1': 'G1', '2': 'K1C', '3': 'GND' })
-    .part('R10', 'resistor', X(4), Y(yd), { value: '10k' }, { '1': 'K2EN', '2': 'G2' })
-    .part('D4', 'zener', X(5), Y(yd), { value: 'BZX55C12' }, { '1': 'G2', '2': 'GND' }, 1)
-    .part('Q2', 'nmos', X(6), Y(yd), { value: 'IRLZ44N' }, { '1': 'G2', '2': 'K2C', '3': 'GND' })
+  nb.part('D1', 'zener', X(1), Y(yd), { value: 'BZX55C12' }, { '1': 'K1EN', '2': 'GND' }, 1)
+    .part('Q1', 'nmos', X(2), Y(yd), { value: 'IRLZ44N' }, { '1': 'K1EN', '2': 'K1C', '3': 'GND' })
+    .part('D4', 'zener', X(5), Y(yd), { value: 'BZX55C12' }, { '1': 'K2EN', '2': 'GND' }, 1)
+    .part('Q2', 'nmos', X(6), Y(yd), { value: 'IRLZ44N' }, { '1': 'K2EN', '2': 'K2C', '3': 'GND' })
     // diagnostics
     .part('LK1', 'led', X(8), Y(yd), { colour: 'green' }, { '2': 'LK1A', '1': 'K1C' })
     .part('RLK1', 'resistor', X(8), Y(yd - 0.5), { value: '4.7k' }, { '1': 'K1A', '2': 'LK1A' })
@@ -510,9 +509,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   // 4.7 µF film): the comparator compares against 80 % of the 12 V rail, so the delay does not
   // depend on the rail; DDIS empties CD at once when the supply goes
   nb.block('out')
-    .part('RD1', 'resistor', 2730, 60, { value: '470k' }, { '1': V, '2': 'RDA' }, 1)
-    .part('RD2', 'resistor', 2730, 150, { value: '470k' }, { '1': 'RDA', '2': 'RDB' }, 1)
-    .part('RD3', 'resistor', 2730, 240, { value: '68k' }, { '1': 'RDB', '2': 'DLY' }, 1)
+    .part('RD1', 'resistor', 2730, 150, { value: '1M' }, { '1': V, '2': 'DLY' }, 1)
     .part('DDIS', 'diode', 2650, 240, { value: '1N4148' }, { '2': 'DLY', '1': V }, 3)
     .part('CD', 'capacitor', 2730, 360, { value: o.delayC ?? '4.7u', vmax: '63' }, { '1': 'DLY', '2': 'GND' }, 1)
     .part('RT1', 'resistor', 2880, 60, { value: '2.49k' }, { '1': V, '2': 'DTH' }, 1)
@@ -672,7 +669,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CIF', 'capacitor', -520, 870, { value: '100n', vmax: '50' }, { '1': 'ISF', '2': 'GND' }, 1)
     .part('RTH1', 'resistor', -600, 1000, { value: '27k' }, { '1': 'VREF', '2': 'ITH' })
     .part('RTH2', 'resistor', -520, 1070, { value: '3.3k' }, { '1': 'ITH', '2': 'GND' }, 1)
-    .part('U12', 'comparator', -380, 900, { value: 'LM393', pkg: 'PROT2' }, { '3': 'ITH', '2': 'ISF', '1': 'BDN', '8': 'V12', '4': 'GND' })
+    .part('U12', 'comparator', -380, 900, { value: 'LM339', pkg: 'CTL1' }, { '3': 'ITH', '2': 'ISF', '1': 'BDN', '8': 'V12', '4': 'GND' })
     .part('RBU', 'resistor', -290, 840, { value: '10k' }, { '1': 'V12', '2': 'BDN' }, 1)
     // base–emitter resistor: QD stays off whenever it is not driven (a load on BDN must not turn it on)
     .part('RBD', 'resistor', -200, 900, { value: '10k' }, { '1': 'BDN', '2': 'BQD' })
@@ -721,7 +718,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RLF2', 'resistor', 1250, 1650, { value: '1k' }, { '1': 'LFK', '2': 'GND' }, 1)
     .part('RFS1', 'resistor', 1350, 1250, { value: '226k' }, { '1': 'VO', '2': 'VOS3' })
     .part('RFS2', 'resistor', 1430, 1320, { value: '10k' }, { '1': 'VOS3', '2': 'GND' }, 1)
-    .part('U15', 'comparator', 1550, 1260, { value: 'LM393', pkg: 'PROT2' }, { '3': 'VREF', '2': 'VOS3', '1': 'PWM', '8': 'V12', '4': 'GND' })
+    .part('U15', 'comparator', 1550, 1260, { value: 'LM339', pkg: 'CTL1' }, { '3': 'VREF', '2': 'VOS3', '1': 'PWM', '8': 'V12', '4': 'GND' })
     .part('CDP1', 'capacitor', 1000, 1200, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1)
     .part('CDP2', 'capacitor', 1470, 1450, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1);
 
@@ -738,9 +735,11 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RT2', 'resistor', 2110, 1380, { value: '7.87k' }, { '1': 'T90', '2': 'T50' }, 1)
     .part('RT3', 'resistor', 2110, 1470, { value: '22.1k' }, { '1': 'T50', '2': 'T0' }, 1)
     .part('RT4', 'resistor', 2110, 1560, { value: '10k' }, { '1': 'T0', '2': 'GND' }, 1)
-    .part('U16', 'comparator', 2300, 1260, { value: 'LM393', pkg: 'TEMP1' }, { '3': 'T50', '2': 'NBT', '1': 'IREF', '8': 'V12', '4': 'GND' })
-    .part('U17', 'comparator', 2300, 1420, { value: 'LM393', pkg: 'TEMP1' }, { '3': 'NBT', '2': 'T0', '1': 'IREF', '8': 'V12', '4': 'GND' })
-    .part('U18', 'comparator', 2300, 1580, { value: 'LM393', pkg: 'TEMP2' }, { '3': 'T90', '2': 'NHS', '1': 'IREF', '8': 'V12', '4': 'GND' })
+    .part('U16', 'comparator', 2300, 1260, { value: 'LM339', pkg: 'CTL2' }, { '3': 'T50', '2': 'NBT', '1': 'IREF', '8': 'V12', '4': 'GND' })
+    .part('U17', 'comparator', 2300, 1420, { value: 'LM339', pkg: 'CTL2' }, { '3': 'NBT', '2': 'T0', '1': 'IREF', '8': 'V12', '4': 'GND' })
+    .part('U18', 'comparator', 2300, 1580, { value: 'LM339', pkg: 'CTL2' }, { '3': 'T90', '2': 'NHS', '1': 'IREF', '8': 'V12', '4': 'GND' })
+    // the fourth comparator of this LM339 is the design's one spare: + on ground, − on VREF
+    .part('U7S', 'comparator', 2300, 1740, { value: 'LM339', pkg: 'CTL2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': 'V12', '4': 'GND' })
     .part('CDT1', 'capacitor', 2420, 1200, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1);
 
   // ---- sensing: PV voltage (2.5 V at 93.8 V), battery voltage (2.5 V at 56.6 V), current (×31)
@@ -795,7 +794,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   nb.block('mppt').note('MPPT: open-circuit voltage sampled every 10 s', -1500, 2150)
     .part('RPOR', 'resistor', -1450, 2250, { value: '1M' }, { '1': 'V12', '2': 'POR' }, 1)
     .part('CPOR', 'capacitor', -1450, 2340, { value: '220n', vmax: '25' }, { '1': 'POR', '2': 'GND' }, 1)
-    .part('U9', 'comparator', -1300, 2310, { value: 'LM393', pkg: 'TEMP2' }, { '3': 'POR', '2': 'VREF', '1': 'RUN', '8': 'V12', '4': 'GND' })
+    .part('U9', 'comparator', -1300, 2310, { value: 'LM339', pkg: 'CTL1' }, { '3': 'POR', '2': 'VREF', '1': 'RUN', '8': 'V12', '4': 'GND' })
     .part('RRUN', 'resistor', -1210, 2250, { value: '10k' }, { '1': 'V12', '2': 'RUN' }, 1)
     .part('U10', 'timer555', -1050, 2500, { value: 'NE555' }, { '8': 'V12', '4': 'V12', '7': 'TD', '6': 'TT', '2': 'TT', '3': 'TOUT', '5': 'TCTL', '1': 'GND' })
     .part('RTA', 'resistor', -1160, 2410, { value: '3.01M' }, { '1': 'V12', '2': 'TD' }, 1)
@@ -813,11 +812,9 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     // sample and hold: the body diode of QS is reverse-biased while the PV runs below Voc
     .part('QS', 'nmos', -560, 2450, { value: '2N7000' }, { '1': 'SMP', '2': 'CH', '3': 'VPS' })
     .part('CH', 'capacitor', -450, 2500, { value: '1u', vmax: '50' }, { '1': 'CH', '2': 'GND' }, 1)
-    .part('U11', 'opamp', -300, 2440, { value: 'TL072', pkg: 'BUF' }, { '3': 'CH', '2': 'VOCH', '6': 'VOCH', '7': 'V12', '4': 'GND' })
+    .part('U11', 'opamp', -300, 2440, { value: 'TL071' }, { '3': 'CH', '2': 'VOCH', '6': 'VOCH', '7': 'V12', '4': 'GND' })
     .part('RSET1', 'resistor', -170, 2440, { value: '2.1k' }, { '1': 'VOCH', '2': 'VSET' })
     .part('RSET2', 'resistor', -100, 2510, { value: '10k' }, { '1': 'VSET', '2': 'GND' }, 1)
-    // the spare amplifier of the TL072 as a follower of ground
-    .part('U11S', 'opamp', -300, 2650, { value: 'TL072', pkg: 'BUF' }, { '3': 'GND', '2': 'SPO', '6': 'SPO', '7': 'V12', '4': 'GND' })
     .part('CDB', 'capacitor', -420, 2380, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1);
 
   // ---- PWM and gate driver: the ramp stops during a pause (RESET = RUN), and DPW holds the
@@ -829,8 +826,7 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CT', 'capacitor', 90, 2500, { value: '10n', vmax: '50' }, { '1': 'RAMP', '2': 'GND' }, 1)
     .part('CCT', 'capacitor', 300, 2450, { value: '10n', vmax: '50' }, { '1': 'CTL', '2': 'GND' }, 1)
     .part('CDW', 'capacitor', 320, 2250, { value: '100n', vmax: '50' }, { '1': 'V12', '2': 'GND' }, 1)
-    .part('U7', 'comparator', 450, 2350, { value: 'LM393', pkg: 'PWM' }, { '3': 'VCMD', '2': 'RAMP', '1': 'PWM', '8': 'V12', '4': 'GND' })
-    .part('U7S', 'comparator', 450, 2560, { value: 'LM393', pkg: 'PWM' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': 'V12', '4': 'GND' })
+    .part('U7', 'comparator', 450, 2350, { value: 'LM339', pkg: 'CTL1' }, { '3': 'VCMD', '2': 'RAMP', '1': 'PWM', '8': 'V12', '4': 'GND' })
     .part('RPW', 'resistor', 540, 2290, { value: '4.7k' }, { '1': 'V12', '2': 'PWM' }, 1)
     .part('DPW', 'diode', 600, 2450, { value: '1N4148' }, { '2': 'PWM', '1': 'RUN' }, 3)
     // LO (the low-side output) is not used: the buck converter freewheels through its diode
@@ -1024,7 +1020,7 @@ export const POWER_EXAMPLES: Example[] = [
   },
   {
     id: 'mppt-charger', title: 'MPPT solar charger for a 48 V LiFePO₄ battery (3.7 kW)', level: 'advanced',
-    summary: 'A 9-module PV array (3 × 3 × 410 Wp, Voc up to 120 V) charges a 16-cell LiFePO₄ battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH): fractional-Voc maximum power point tracking, 80 A current limit, 56.6 V constant voltage, battery temperature window, heatsink cut-off, reverse-polarity blocking on both sides and an independent latched overvoltage protection. Analogue control only: LM358, LM393, TL072, TL431, 555, gate driver.',
+    summary: 'A 9-module PV array (3 × 3 × 410 Wp, Voc up to 120 V) charges a 16-cell LiFePO₄ battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH): fractional-Voc maximum power point tracking, 80 A current limit, 56.6 V constant voltage, battery temperature window, heatsink cut-off, reverse-polarity blocking on both sides and an independent latched overvoltage protection. Analogue control only: LM358, LM339, LM393, TL071, TL431, 555, gate driver.',
     tryThis: 'Simulate (90 ms): the battery current I(BAT.1) rises to about 70 A at 1000 W/m², the PV voltage PVP settles near the maximum power point. Set the PV irradiance g to 500 and simulate again; set the battery source to 56.4 V and watch the current taper at 56.6 V.',
     build: () => withInfo(mpptCharger().sheet, 'mppt-charger', ['dfmea:4. MPPT solar charger', 'reliability', 'help:power-maintenance']),
   },

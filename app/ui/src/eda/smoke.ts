@@ -44,7 +44,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 }, AO3400: { Vds: 30, Id: 5.8, Vgs: 12, P: 1.4 }, IRF540N: { Vds: 100, Id: 33, Vgs: 20, P: 2 },
     IRFP4468: { Vds: 100, Id: 195, Vgs: 20, P: 3.5 }, IRFP4110: { Vds: 100, Id: 120, Vgs: 20, P: 3.5 }, IRFB4115: { Vds: 150, Id: 104, Vgs: 20, P: 2.4 }, IPW65R041: { Vds: 650, Id: 68, Vgs: 20, P: 3.5 }, IRFP4668: { Vds: 200, Id: 130, Vgs: 30, P: 3.5 } },
   pmos: { BS250: { Vds: 45, Id: 0.23, Vgs: 20, P: 0.83 }, IRF9540N: { Vds: 100, Id: 23, Vgs: 20, P: 2 }, AO3401: { Vds: 30, Id: 4, Vgs: 12, P: 1.4 } },
-  opamp: { generic: { Vs: 36, Iout: 0.025 }, LM358: { Vs: 32, Iout: 0.03 }, TL072: { Vs: 36, Iout: 0.025 }, LM324: { Vs: 32, Iout: 0.03 }, MCP6002: { Vs: 6, Iout: 0.023 }, NE5532: { Vs: 44, Iout: 0.038 } },
+  opamp: { generic: { Vs: 36, Iout: 0.025 }, LM358: { Vs: 32, Iout: 0.03 }, TL071: { Vs: 36, Iout: 0.025 }, TL072: { Vs: 36, Iout: 0.025 }, LM324: { Vs: 32, Iout: 0.03 }, MCP6002: { Vs: 6, Iout: 0.023 }, NE5532: { Vs: 44, Iout: 0.038 } },
   regulator: { '7805': { Vin: 35, Iout: 1, P: 2 }, '7809': { Vin: 35, Iout: 1, P: 2 }, '7812': { Vin: 35, Iout: 1, P: 2 }, 'AMS1117-3.3': { Vin: 15, Iout: 1, P: 0.8 }, 'AMS1117-5.0': { Vin: 15, Iout: 1, P: 0.8 },
     'MCP1700-3.3': { Vin: 6, Iout: 0.25, P: 0.5 }, L78L05: { Vin: 30, Iout: 0.1, P: 0.7 } },
   lm317: { LM317: { Vin: 40, Iout: 1.5, P: 2 }, LM317HV: { Vin: 60, Iout: 1.5, P: 2 } },

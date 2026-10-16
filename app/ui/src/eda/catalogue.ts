@@ -67,6 +67,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   opamp: {
     LM358: e('LM358P', 'Texas Instruments', 'dual op-amp, DIP-8', 0.35, 0.12, 'estimate', any('DIP-8')),
+    TL071: e('TL071CP', 'Texas Instruments', 'single JFET op-amp, DIP-8', 0.6, 0.25, 'estimate', any('DIP-8')),
     TL072: e('TL072CP', 'Texas Instruments', 'dual JFET op-amp, DIP-8', 0.7, 0.3, 'estimate', any('DIP-8')),
   },
   tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V, TO-92', 0.3, 0.1, 'estimate', any('TO-92')) },

@@ -113,8 +113,9 @@ The stabiliser is now drawn as the circuit diagram of the product (pilot of D28)
   decoupling capacitor. A spare comparator has + on ground and − on a reference, so its output
   is held low: an unused comparator left open can oscillate and disturb the others in its
   package. Packages are chosen so that a design has at most one spare (change-over 1P: two
-  LM339, one spare; 3P+N: three LM339 and an LM393, none; charger: five LM393, one spare).
-- **Product values in the drawing:** restart delay 1 MΩ (470k + 470k + 68k) and 4.7 µF film
+  LM339, one spare; 3P+N: three LM339 and an LM393, none; charger: the independent latch in an
+  LM393 and the other seven in two LM339, one spare).
+- **Product values in the drawing:** restart delay 1 MΩ (one resistor, the largest the board-leakage rule allows) and 4.7 µF film
   against 80 % of the rail: about 7.6 s, independent of the rail; DDIS empties the capacitor at
   every supply interruption. The tests use a 220 nF capacitor (0.35 s) to keep the runs short.
 - **The test bench** (mains source with its earthed neutral) and the test load are drawn
@@ -167,16 +168,36 @@ them. Prices are estimates as of October 2026, not live quotes (each line says s
 them with the distributor before ordering. The battery fuse is a Class T 160 V DC
 (JJN-100), not a 32 V automotive fuse.
 
+### No wasted parts (decision D31, 16 October 2026)
+
+Owner: no part without a function, in every design, now and in the future. Audit of the four
+power designs (all parts listed with their nets and checked one by one):
+
+| Design | Removed | Why it was not needed |
+|---|---|---|
+| change-over 1P | LM393 and its decoupling capacitor; 2 spare LM339 units | seven comparators fit two LM339 |
+| change-over 1P, 3P+N | the 10k gate resistors of the two contactor drives (2 each) | the comparator's 10k pull-up already limits the Zener and gate current |
+| change-over 3P+N | 2 spare LM339 units | three LM339 and an LM393 hold the fourteen comparators exactly |
+| stabiliser | 2 spare comparators (protection in an LM393 now); 470k + 68k of the restart delay | one 1 MΩ resistor gives the same delay (0.8 % shorter) |
+| MPPT charger | the spare half of the TL072 (now a single TL071); two LM393 packages | the independent overvoltage latch keeps its own LM393, the other seven comparators fit two LM339 |
+
+Kept on purpose, each with its function in the drawing's notes or the DFMEA: one spare unit
+where an odd count leaves it (its inputs held so it cannot oscillate); one decoupling capacitor
+per IC; RC snubbers at transformer secondaries and relay contacts; two 750k in series where
+1.5 MΩ is needed (no single resistor above 1 MΩ in a humid climate); the separate sense
+transformers and references of the independent protections. Every new design is audited the
+same way before release, and the tests count the spare units.
+
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a
 48 V (16-cell LiFePO₄) battery. A 20 kHz buck converter: IRFP4668 (200 V) on a heatsink,
 STTH6003 freewheeling diode, 56 µH, film capacitors on both sides (no electrolytics in the
 power path, FF-01), half-bridge gate driver with bootstrap. Analogue control from LM358,
-LM393, TL072, TL431 and 555 parts:
+LM339, LM393, TL071, TL431 and 555 parts:
 
 - **MPPT, fractional Voc:** every 10 s the converter stops for 50 ms, the open-circuit voltage
-  is held on a sample-and-hold (2N7000, 1 µF film, TL072) and 0.826 × Voc is the set point
+  is held on a sample-and-hold (2N7000, 1 µF film, TL071) and 0.826 × Voc is the set point
   of the PV voltage loop. A first design that held a constant PV voltage lost 10 % of the power
   on a hot roof (65 °C cells); fractional Voc follows the temperature.
 - **Charge control:** average current-mode control, an inner current loop; outer loops pull the current reference down for

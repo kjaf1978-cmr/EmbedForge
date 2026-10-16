@@ -81,12 +81,22 @@ describe('every power design is a real circuit diagram (D28)', () => {
   });
 });
 
-describe('no unused comparators beyond what the packages force (owner\'s question, 16 October)', () => {
+describe('no wasted parts (owner, 16 October: D31): no unused units beyond what the packages force', () => {
   // a spare unit has its output on ground (it does nothing); an odd count of comparators leaves
   // at most one spare in the packages chosen
   const spares = (s: Sheet) => s.parts.filter((p) => p.sym === 'comparator' && connectivity(s).pinNet.get(`${p.ref}.1`) === 'GND').map((p) => p.ref);
   it('change-over 1P: one spare (seven comparators in two LM339)', () => expect(spares(changeover1().sheet).length).toBe(1));
   it('change-over 3P+N: none (three LM339 and one LM393)', () => expect(spares(changeover3().sheet)).toEqual([]));
   it('stabiliser: one spare (seven comparators in two LM339; the protection in its own LM393)', () => expect(spares(stabiliser().sheet).length).toBe(1));
-  it('MPPT charger: one spare (nine comparators in five LM393)', () => expect(spares(mpptCharger().sheet).length).toBe(1));
+  it('MPPT charger: one spare (the independent latch in its LM393, seven comparators in two LM339); the sample-and-hold op-amp is a single TL071', () => {
+    const s = mpptCharger().sheet;
+    expect(spares(s).length).toBe(1);
+    expect(s.parts.filter((p) => p.sym === 'opamp' && p.props.value === 'TL072')).toEqual([]);
+  });
+  it('no separate gate resistor where a pull-up already limits the current (change-over drives)', () => {
+    for (const s of [changeover1().sheet, changeover3().sheet]) {
+      const conn = connectivity(s);
+      for (const q of s.parts.filter((p) => p.sym === 'nmos' && p.props.value === 'IRLZ44N')) expect(conn.pinNet.get(`${q.ref}.1`)).toMatch(/^K[12]EN$/);
+    }
+  });
 });

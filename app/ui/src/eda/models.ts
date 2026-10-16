@@ -126,6 +126,7 @@ export interface OpampModel {
 export const OPAMPS: NamedModel<OpampModel>[] = [
   { name: 'generic', note: 'general-purpose op-amp: 100 dB, 1 MHz, output 1.5 V from each rail', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5 } },
   { name: 'LM358', note: 'LM358-like: 100 dB, 1 MHz, output from V− + 0.1 V to V+ − 1.5 V (single supply)', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5, railDropLow: 0.1 } },
+  { name: 'TL071', note: 'TL071-like single JFET input: 106 dB, 3 MHz, output 1.5 V from each rail', model: { gain: 2e5, gbw: 3e6, rin: 1e12, rout: 50, railDrop: 1.5 } },
   { name: 'TL072', note: 'TL072-like JFET input: 106 dB, 3 MHz, output 1.5 V from each rail', model: { gain: 2e5, gbw: 3e6, rin: 1e12, rout: 50, railDrop: 1.5 } },
   { name: 'LM324', note: 'LM324-like quad (one amplifier): 100 dB, 1 MHz, output from V− + 0.1 V to V+ − 1.5 V (single supply)', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5, railDropLow: 0.1 } },
   { name: 'MCP6002', note: 'MCP6002-like CMOS rail-to-rail: 112 dB, 1 MHz, output 25 mV from each rail, supply up to 6 V', model: { gain: 4e5, gbw: 1e6, rin: 1e13, rout: 50, railDrop: 0.025 } },
