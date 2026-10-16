@@ -9,7 +9,7 @@
   - **U** = awaiting user execution (TEST-02);
   - **N** = not verified, with the reason.
 - **Gate:** the increment is complete when you have:
-  - signed the media (0.2.6 signed 15 October 2026, section 1a);
+  - signed the media (0.2.8 signed 16 October 2026, section 1a);
   - installed the result and looked at it (section 4);
   - ~~approved the gate~~ (decision D19, 14 October 2026: approved; Increment 3 started).
 
@@ -26,7 +26,25 @@
 
 ## 1a. Signed releases (SEC-02, TEST-04)
 
-### 0.2.6 (current)
+### 0.2.8 (current)
+
+Signed by the owner on their own PC, 16 October 2026, from the signing kit "NETApps-signing-kit"
+of CI run [38823996549](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38823996549)
+(commit ffeb095). `embedforge-sign` signed each medium, then verified it against the built-in
+release keys. Its `signed/RESULT.txt`:
+
+| Medium | Components | `medium.json` SHA-256 |
+|---|---|---|
+| raspios-aarch64 | 3 | `45b8e39a1636436c8b95bfe36e087645a45d4de524a7f0340d332531a9eba9e5` |
+| ubuntu-x86_64 | 4 | `958fe65c025eed764114b0087e7a89d3ef77971e70df663e1193a5249dfb1dba` |
+| windows-x86_64 | 1 | `b0b926e6192aaa111a1a676ac96d4931cbb794ebff9b135ba81100b71f59fce8` |
+
+All three: PASS.
+
+0.2.7 (CI run 38773481933) was built without the signing kit and was not signed; 0.2.8
+supersedes it.
+
+### 0.2.6
 
 Signed by the owner on their own PC, 15 October 2026, from the signing kit "NETApps-signing-kit"
 of CI run [38629508536](https://github.com/kjaf1978-cmr/EmbedForge/actions/runs/38629508536)
@@ -288,8 +306,8 @@ The run with a person is yours (U).
 
 ## 5. Open before the Increment 2 gate
 
-1. ~~Sign 0.2.6~~ done 15 October 2026 (section 1a). Tags **v0.2.2** (b035130), **v0.2.3**
-   (5b9f9fb), **v0.2.4** (2ea8bec), **v0.2.5** (5cb9bf0) and **v0.2.6** (ef73979) need a session that may push tags
+1. ~~Sign 0.2.8~~ done 16 October 2026 (section 1a). Tags **v0.2.2** (b035130), **v0.2.3**
+   (5b9f9fb), **v0.2.4** (2ea8bec), **v0.2.5** (5cb9bf0), **v0.2.6** (ef73979) and **v0.2.8** (ffeb095) need a session that may push tags
    (see item 3).
 2. **Your look at it:** install 0.2.6 over the earlier version, open the tutorial and two examples, and tell
    me what is missing or unclear.
