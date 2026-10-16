@@ -52,5 +52,5 @@ describe('parts that cannot be bought', () => {
     expect(erc(sheet).filter((i) => i.rule === 'VER-13').map((i) => i.severity)).toEqual(['warning']);
     const { EXAMPLES } = await import('../src/eda/examples');
     for (const ex of EXAMPLES) expect(erc(ex.build()).filter((i) => i.rule === 'VER-13').map((i) => i.message), ex.id).toEqual([]);
-  });
+  }, 30_000); // every example is built and checked (about 4 s alone)
 });
