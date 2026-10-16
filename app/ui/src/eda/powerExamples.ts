@@ -238,26 +238,26 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
     // only after a trip, through a diode: 33k pulls VHI and 100k pulls SENSE down by about 0.08 V
     // (8 V of mains), more than the 0.06 V sense ripple: after a trip it reconnects only inside
     // about 205 … 245 V
-    .part('U2', 'comparator', -760, 1200, { value: 'LM393', pkg: 'WIN' }, { '3': 'VHI', '2': 'SENSE', '1': 'OVN', '8': V, '4': 'GND' })
+    .part('U2', 'comparator', -760, 1200, { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'VHI', '2': 'SENSE', '1': 'OVN', '8': V, '4': 'GND' })
     .part('R11', 'resistor', -660, 1140, { value: '10k' }, { '1': V, '2': 'OVN' }, 1)
     .part('R12', 'resistor', -760, 1290, { value: '33k' }, { '1': 'VHI', '2': 'HOV' })
     .part('D5', 'diode', -650, 1290, { value: '1N4148' }, { '2': 'HOV', '1': 'OVN' })
-    .part('U3', 'comparator', -760, 1450, { value: 'LM393', pkg: 'WIN' }, { '3': 'SENSE', '2': 'VLO', '1': 'UVN', '8': V, '4': 'GND' })
+    .part('U3', 'comparator', -760, 1450, { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'SENSE', '2': 'VLO', '1': 'UVN', '8': V, '4': 'GND' })
     .part('R13', 'resistor', -660, 1390, { value: '10k' }, { '1': V, '2': 'UVN' }, 1)
     .part('R14', 'resistor', -760, 1540, { value: '100k' }, { '1': 'SENSE', '2': 'HUV' })
     .part('D6', 'diode', -650, 1540, { value: '1N4148' }, { '2': 'HUV', '1': 'UVN' })
     .part('D7', 'diode', -520, 1200, { value: '1N4148' }, { '2': 'OK', '1': 'OVN' })
-    .part('D8', 'diode', -520, 1450, { value: '1N4148' }, { '2': 'OK', '1': 'UVN' })
-    .part('CDW', 'capacitor', -880, 1200, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+    .part('D8', 'diode', -520, 1450, { value: '1N4148' }, { '2': 'OK', '1': 'UVN' });
 
   // ---- transfer logic (return delay, dead time, coil-supply lockout, drives, LEDs)
   nb.block('logic');
   transferLogic(nb, X, Y, 9, { ...t, returnC: t.returnC ?? '10u', deadC: t.deadC ?? '680n' }, V);
   for (const k of ['UD1', 'UD3', 'UDT1', 'UDT2']) nb.prop(k, { pkg: 'LOGIC1' });
+  // the second LM339 holds the two window comparators, the coil-supply lockout and one spare
+  // (seven comparators in two packages; the spare's inputs are held at fixed levels: open, they
+  // would let it oscillate and disturb its neighbours in the package)
   nb.prop('UD5', { pkg: 'LOGIC2' })
     .part('UDS1', 'comparator', X(14), Y(13.2), { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' })
-    .part('UDS2', 'comparator', X(16), Y(13.2), { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' })
-    .part('UDS3', 'comparator', X(18), Y(13.2), { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' })
     .part('CDL1', 'capacitor', X(-0.8), Y(9), { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CDL2', 'capacitor', X(12.5), Y(13.2), { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
@@ -364,7 +364,7 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
     const x = 380 * k, y = 1050;
     nb.part(`UO${ph}`, 'comparator', x, y, { value: 'LM339', pkg: pkW[3 * k] }, { '3': 'VHI', '2': `S${ph}`, '1': 'OVN', '8': V, '4': 'GND' })
       .part(`UU${ph}`, 'comparator', x, y + 150, { value: 'LM339', pkg: pkW[3 * k + 1] }, { '3': `S${ph}`, '2': 'VLO', '1': 'UVN', '8': V, '4': 'GND' })
-      .part(`UA${ph}`, 'comparator', x, y + 300, { value: 'LM339', pkg: pkW[3 * k + 2] }, { '3': `S${ph}`, '2': 'VAS', '1': 'UVN', '8': V, '4': 'GND' })
+      .part(`UA${ph}`, 'comparator', x, y + 300, { value: pkW[3 * k + 2] === 'LOGIC2' ? 'LM393' : 'LM339', pkg: pkW[3 * k + 2] }, { '3': `S${ph}`, '2': 'VAS', '1': 'UVN', '8': V, '4': 'GND' })
       .part(`RH${ph}`, 'resistor', x + 150, y + 210, { value: '100k' }, { '1': `S${ph}`, '2': `HU${ph}` })
       .part(`DH${ph}`, 'diode', x + 270, y + 210, { value: '1N4148' }, { '2': `HU${ph}`, '1': 'UVN' });
   });
@@ -381,9 +381,9 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
   nb.block('logic');
   transferLogic(nb, X, Y, 9, { ...t, returnC: t.returnC ?? '10u', deadC: t.deadC ?? '680n' }, V);
   for (const k of ['UD1', 'UD3', 'UDT1', 'UDT2']) nb.prop(k, { pkg: 'LOGIC1' });
-  nb.prop('UD5', { pkg: 'LOGIC2' })
-    .part('UDS1', 'comparator', X(14), Y(13.2), { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' })
-    .part('UDS2', 'comparator', X(16), Y(13.2), { value: 'LM339', pkg: 'LOGIC2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' })
+  // fourteen comparators: three LM339 and one LM393 (the last window comparator and the
+  // coil-supply lockout), no spare
+  nb.prop('UD5', { pkg: 'LOGIC2', value: 'LM393' })
     .part('CDL1', 'capacitor', X(-0.8), Y(9), { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CDL2', 'capacitor', X(12.5), Y(13.2), { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
@@ -533,7 +533,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   nb.block('load').note('TEST LOAD (not part of the product)', 3480, 540)
     .part('RLOAD', 'resistor', 3530, 640, { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'N' }, 1);
 
-  // ---- independent output protection (its own sense transformer, reference and LM339): the
+  // ---- independent output protection (its own sense transformer, reference and LM393): the
   // 230 V tap must stay within 190 … 255 V, or the output relay opens and the restart delay
   // starts again; a welded tap relay or a failed control cannot put the load out of range
   nb.block('prot').note('OUTPUT PROTECTION (independent of the control)', 0, 920)
@@ -551,8 +551,8 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('R9', 'resistor', 250, 1380, { value: '1.82k' }, { '1': 'VREF2', '2': 'VOV' }, 1)
     .part('R10', 'resistor', 250, 1470, { value: '3.65k' }, { '1': 'VOV', '2': 'VUV' }, 1)
     .part('R11', 'resistor', 250, 1560, { value: '10k' }, { '1': 'VUV', '2': 'GND' }, 1)
-    .part('U10', 'comparator', 500, 1290, { value: 'LM339', pkg: 'PROT' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': V, '4': 'GND' })
-    .part('U11', 'comparator', 500, 1470, { value: 'LM339', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('U10', 'comparator', 500, 1290, { value: 'LM393', pkg: 'PROT' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('U11', 'comparator', 500, 1470, { value: 'LM393', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
     .part('R12', 'resistor', 620, 1230, { value: '10k' }, { '1': V, '2': 'FLTS' }, 1)
     .part('DF1', 'diode', 750, 1340, { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })
     .part('DF2', 'diode', 750, 1490, { value: '1N4148' }, { '2': 'DLY', '1': 'DF2K' })
@@ -560,8 +560,6 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RDF2', 'resistor', 860, 1490, { value: '2.2k' }, { '1': 'DF2K', '2': 'FLTS' })
     .part('LF', 'led', 880, 1240, { colour: 'red' }, { '2': V, '1': 'LFA' }, 1)
     .part('RLF', 'resistor', 880, 1340, { value: '4.7k' }, { '1': 'LFA', '2': 'FLTS' }, 1)
-    .part('U12S', 'comparator', 500, 1660, { value: 'LM339', pkg: 'PROT' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
-    .part('U13S', 'comparator', 500, 1820, { value: 'LM339', pkg: 'PROT' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
     .part('CD3', 'capacitor', 650, 1660, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.v('VIN').v('OUT').v('SF').v('SF2').i('RLOAD', '1');
   nb.sim({ type: 'tran', stop, step: '200u', start: 'zero' });

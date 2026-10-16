@@ -108,9 +108,12 @@ The stabiliser is now drawn as the circuit diagram of the product (pilot of D28)
   supply is built from the input (fuse 0.2 A, 230/27 V 25 VA transformer with RC snubber, DB107,
   2200 µF 63 V, LM317HV on an 8 K/W heatsink: 11.5 … 12 V over 140 … 300 V in); the mains
   neutral N is a separate conductor, the control ground is bonded to PE (PELV).
-- **Parts as bought:** three LM339 packages (taps 1–4; taps 5–6, the restart delay and a
-  spare; the independent output protection with two spares), each with a 100 nF decoupling
-  capacitor; spare comparators with + on ground and − on a reference (outputs held low).
+- **Parts as bought:** two LM339 packages (taps 1–4; taps 5–6, the restart delay and one
+  spare) and an LM393 of its own for the independent output protection, each with a 100 nF
+  decoupling capacitor. A spare comparator has + on ground and − on a reference, so its output
+  is held low: an unused comparator left open can oscillate and disturb the others in its
+  package. Packages are chosen so that a design has at most one spare (change-over 1P: two
+  LM339, one spare; 3P+N: three LM339 and an LM393, none; charger: five LM393, one spare).
 - **Product values in the drawing:** restart delay 1 MΩ (470k + 470k + 68k) and 4.7 µF film
   against 80 % of the rail: about 7.6 s, independent of the rail; DDIS empties the capacitor at
   every supply interruption. The tests use a 220 nF capacitor (0.35 s) to keep the runs short.

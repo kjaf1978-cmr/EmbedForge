@@ -331,7 +331,7 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
       for (let k = 1; k <= r1 + r2 && ok; k++) {
         const dd = k <= r1 ? d : d2, base = k <= r1 ? c : { x: c.x + DX[d] * r1 * g, y: c.y + DY[d] * r1 * g }, kk = k <= r1 ? k : k - r1;
         const x = base.x + DX[dd] * kk * g, y = base.y + DY[dd] * kk * g, cl = grid.peek(x, y);
-        if (cl && (cl.body || cl.pt || cl.h || cl.v || cl.esc)) ok = false;
+        if (cl && (cl.body || cl.pt || cl.h || cl.v || (cl.esc && cl.esc !== net))) ok = false;
         else { if (cl?.text) txt++; cells.push({ x, y }); }
       }
       if (ok) offer(cells[cells.length - 1], [c, ...cells], txt + 0.5);

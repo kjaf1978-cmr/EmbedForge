@@ -54,10 +54,12 @@ describe('the stabiliser is a real circuit diagram (D28)', () => {
     const t = sheet.parts.filter((p) => p.sym === 'terminal').map((p) => p.props.value).sort();
     expect(t).toEqual(['L in', 'L out', 'N in', 'N out', 'PE', 'PE']);
   });
-  it('the parts list counts packages: three LM339 (control, delay and spare, independent protection)', () => {
-    const lm339 = buildBom(sheet).find((l) => l.value === 'LM339')!;
-    expect(lm339.qty).toBe(3);
+  it('the parts list counts packages: two LM339 (taps; taps, delay and one spare) and an LM393 for the independent protection', () => {
+    const bom = buildBom(sheet);
+    const lm339 = bom.find((l) => l.value === 'LM339')!, lm393 = bom.find((l) => l.value === 'LM393')!;
+    expect(lm339.qty).toBe(2);
     expect(lm339.part).toMatch(/4 in one package/);
+    expect(lm393.qty).toBe(1);
   });
   it('the 12 V control supply is part of the design (no ideal source inside the product)', () => {
     expect(sheet.parts.filter((p) => p.sym === 'vdc')).toEqual([]);
@@ -77,4 +79,14 @@ describe('every power design is a real circuit diagram (D28)', () => {
     expect(sheet.parts.filter((p) => p.sym === 'vdc').map((p) => p.ref)).toEqual([]);
     expect(sheet.parts.filter((p) => p.sym === 'terminal').length).toBeGreaterThanOrEqual(4);
   });
+});
+
+describe('no unused comparators beyond what the packages force (owner\'s question, 16 October)', () => {
+  // a spare unit has its output on ground (it does nothing); an odd count of comparators leaves
+  // at most one spare in the packages chosen
+  const spares = (s: Sheet) => s.parts.filter((p) => p.sym === 'comparator' && connectivity(s).pinNet.get(`${p.ref}.1`) === 'GND').map((p) => p.ref);
+  it('change-over 1P: one spare (seven comparators in two LM339)', () => expect(spares(changeover1().sheet).length).toBe(1));
+  it('change-over 3P+N: none (three LM339 and one LM393)', () => expect(spares(changeover3().sheet)).toEqual([]));
+  it('stabiliser: one spare (seven comparators in two LM339; the protection in its own LM393)', () => expect(spares(stabiliser().sheet).length).toBe(1));
+  it('MPPT charger: one spare (nine comparators in five LM393)', () => expect(spares(mpptCharger().sheet).length).toBe(1));
 });
