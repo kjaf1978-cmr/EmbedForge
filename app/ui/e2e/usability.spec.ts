@@ -81,10 +81,13 @@ test('expert scenario: keyboard only, 1920×1080', async ({ page }) => {
     expect(await page.locator('tbody tr').count()).toBeGreaterThan(5);
   });
   await step(page, S, 'E2', 'Navigator (Ctrl+1) → R3 → cross-highlight', async () => {
-    await kb.press('Control+1');
-    await kb.press('Home');
-    // project → Requirements → R1 → R2 → R3; focus moves one frame after each key
+    // project → Requirements → R1 → R2 → R3; focus moves one frame after each key (also after
+    // Ctrl+1), so every key waits until the previous one has moved the focus
     const active = () => page.evaluate(() => (document.activeElement as HTMLElement | null)?.dataset.id ?? '');
+    await kb.press('Control+1');
+    await expect.poll(active).not.toBe('');
+    await kb.press('Home');
+    await expect.poll(active).toBe('project');
     for (const id of ['requirements', 'req:R1', 'req:R2', 'req:R3']) {
       await kb.press('ArrowDown');
       await expect.poll(active).toBe(id);
