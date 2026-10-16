@@ -48,7 +48,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RPC', 'resistor', -780, -260, { value: '22', pmax: '25' }, { '1': 'PCA', '2': 'BUS' })
     // the contactor's 48 V coil from the battery after the input diode DAUX: a reversed battery
     // cannot energise it through QK's body diode
-    .part('K1', 'contactor', -820, -100, { value: '150 A DC, coil 48 V' }, { A1: 'AXA', A2: 'KC', '1': 'BF', '2': 'BUS' })
+    .part('K1', 'contactor', -820, -100, { value: '150 A DC, coil 48 V' }, { A1: 'AXA', A2: 'KC', '1': 'BF', '2': 'BUS', '13': 'BKA', '14': 'GND' })
     .part('DK', 'diode', -950, -20, { value: '1N4007' }, { '2': 'KC', '1': 'AXA' }, 3)
     .part('QK', 'nmos', -900, 90, { value: 'IRF540N' }, { '1': 'KEN', '2': 'KC', '3': 'GND' });
   // the film DC bus
@@ -141,9 +141,13 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RHVH', 'resistor', -80, 800, { value: '100k' }, { '1': 'HVN', '2': 'VHI' })
     .part('DHV', 'diode', 20, 800, { value: '1N4148' }, { '2': 'EN', '1': 'HVN' })
     .part('REN', 'resistor', 120, 600, { value: '10k' }, { '1': V, '2': 'EN' }, 1)
-    // EN low (a fault, or the contactor still open) also holds the PWM inputs low; ENN (EN
-    // inverted) restarts the soft start and the DC servo
-    .part('DKE', 'diode', -900, 860, { value: '1N4148' }, { '2': 'EN', '1': 'KEN' })
+    // EN low until the contactor has really closed: its auxiliary contact 13–14 shorts QKA's base
+    // (the bridge must not start on the pre-charge resistor: found in simulation, it pulled the
+    // bus down and the contactor never closed); a contactor that does not close keeps it off
+    .part('RKA', 'resistor', -900, 820, { value: '22k' }, { '1': V, '2': 'BKA' }, 1)
+    .part('QKA', 'npn', -780, 900, { value: 'BC547B' }, { '1': 'BKA', '2': 'EN', '3': 'GND' })
+    // EN low also holds the PWM inputs low (STOP); ENN (EN inverted) restarts the soft start
+    // and the DC servo
     .part('UENN', 'comparator', 240, 680, { value: 'LM339', pkg: 'CMP1' }, { '3': 'VMID', '2': 'EN', '1': 'ENN', '8': V, '4': 'GND' })
     .part('RENN', 'resistor', 340, 600, { value: '10k' }, { '1': V, '2': 'ENN' }, 1)
     .part('CDC1', 'capacitor', 340, 760, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
