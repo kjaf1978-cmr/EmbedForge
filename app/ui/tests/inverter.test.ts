@@ -123,6 +123,28 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
   }, 3_600_000);
 
+  it('I-7 at the highest battery voltage (58.4 V, fully charged), 5 kW: every part within its ratings (MOSFET voltage at turn-off)', async () => {
+    const s = await run({ stop: '140m', precharged: true, vbat: 58.4 });
+    const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over');
+    expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
+    expect(s.max(s.r.v['BUS'])).toBeLessThan(80);
+  }, 3_600_000);
+
+  it('I-4 motor start at half load: a locked rotor (about 85 A) for 50 ms: the current limit holds, nothing trips, the output recovers without overshoot; no product part over its ratings', async () => {
+    const s = await run({ stop: '240m', precharged: true, load: '21.6', motorStart: { at: 0.14, for: 0.05 } });
+    const ish = s.cur('RSH', '1').map(Math.abs), out = s.r.v['OUTL'];
+    expect(s.max(ish, 0.14)).toBeLessThan(650);
+    expect(s.max(s.r.v['FLT'])).toBeLessThan(1);
+    expect(s.min(s.r.v['EN'], 0.13)).toBeGreaterThan(8);
+    // after the motor: back near 230 V, and no overvoltage on the way (the protection trips at 262 V)
+    expect(s.rms(out, 0.22)).toBeGreaterThan(230 * 0.95);
+    expect(s.rms(out, 0.22)).toBeLessThan(230 * 1.05);
+    expect(s.max(out.map(Math.abs), 0.19)).toBeLessThan(262 * Math.SQRT2);
+    const test = new Set(s.sheet.parts.filter((p) => p.props.scope === 'test').map((p) => p.ref));
+    const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over' && !test.has(x.ref));
+    expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
+  }, 5_400_000);
+
   it('I-10 the voltage loop has lost its sense (winding open): the output rises, the independent protection trips below 270 V and holds the bridge off', async () => {
     const s = await run({ stop: '60m', precharged: true, senseOpen: true });
     const out = s.r.v['OUTL'];

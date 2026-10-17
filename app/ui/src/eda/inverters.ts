@@ -21,6 +21,10 @@ export interface InverterLfOptions {
   /** Tests: a smaller overload-timer capacitor (the product's 22 µF trips after about 0.9 s
    *  at the current limit). */
   overloadC?: string;
+  /** Tests: a motor start, the worst part of it: a locked-rotor induction motor (about 85 A at
+   *  230 V, six times the rating of a 2.2 kW motor) connected by a relay from `at` for `for`
+   *  seconds. */
+  motorStart?: { at: number; for: number };
 }
 
 /** The sense transformer of the voltage loop and of the independent protection: a 1 VA 230/12 V
@@ -115,7 +119,15 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('X4', 'terminal', 1800, -80, { value: 'N out' }, { '1': 'GND' }, 2)
     .part('X5', 'terminal', 1800, -20, { value: 'PE' }, { '1': 'GND' }, 2);
   if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 1900, -220)
-    .part('RLOAD', 'resistor', 1950, -60, { value: o.load ?? '10.7', pmax: '6k' }, { '1': 'OUTL', '2': 'GND' }, 1);
+    // three 2 kW resistors in parallel: 10.8 Ω, 4.9 kW (`load` is the total)
+    .part('RLOAD', 'resistor', 1950, -60, { value: o.load ? String(3 * Number(o.load)) : '32.4', pmax: '2k' }, { '1': 'OUTL', '2': 'GND' }, 1)
+    .part('RLOAD2', 'resistor', 2070, -60, { value: o.load ? String(3 * Number(o.load)) : '32.4', pmax: '2k' }, { '1': 'OUTL', '2': 'GND' }, 1)
+    .part('RLOAD3', 'resistor', 2190, -60, { value: o.load ? String(3 * Number(o.load)) : '32.4', pmax: '2k' }, { '1': 'OUTL', '2': 'GND' }, 1);
+  if (o.motorStart) nb.block('bench').note('TEST BENCH: a motor start (locked rotor)', 2350, -220)
+    .part('DMS', 'diode', 2330, 120, { value: '1N4007' }, { '2': 'GND', '1': 'MSC' }, 3)
+    .part('VMS', 'vpulse', 2500, 120, { value: '12', low: '0', freq: '1', duty: String(o.motorStart.for * 100), delay: String(o.motorStart.at), edge: '10u' }, { '1': 'MSC', '2': 'GND' })
+    .part('KMS', 'relay', 2400, 40, { value: '12 V 30 A' }, { '1': 'MSC', '2': 'GND', '3': 'OUTL', '5': 'MSL' })
+    .part('MST', 'motor1', 2600, -40, { value: '1', rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' }, { '1': 'MSL', '2': 'GND' });
 
   // ---- 12 V control supply from the battery (after the fuse; a diode against reversal)
   nb.block('aux')
