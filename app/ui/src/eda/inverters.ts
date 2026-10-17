@@ -4,6 +4,7 @@
 
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
+import { connectivity } from './connectivity';
 
 /** Options of the 50 Hz-transformer inverter: battery voltage (V), load (Ω at 230 V; 0: none),
  *  air and heatsink temperatures (°C), simulated time, and short timings for tests. */
@@ -218,10 +219,28 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RB50', 'resistor', -1420, 1080, { value: '30.9k' }, { '1': 'D50', '2': 'T50' }, 1)
     .part('CT50', 'capacitor', -1420, 1200, { value: '100n', vmax: '50' }, { '1': 'T50', '2': 'GND' }, 1)
     .part('CK50', 'capacitor', -1180, 1180, { value: '10n', vmax: '50' }, { '1': 'K50', '2': 'GND' }, 1)
-    .part('UFF1', 'dff', -1050, 1040, { value: V }, { '1': 'Q100N', '2': 'C200', '3': 'Q100', '4': 'Q100N' })
-    .part('UFF2', 'dff', -850, 1040, { value: V }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
+    .part('UFF1', 'dff', -1050, 1040, { value: V , pkg: 'FF' }, { '1': 'Q100N', '2': 'C200', '3': 'Q100', '4': 'Q100N' })
+    .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
     .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
+  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' } });
+
+  nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
+  nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
+  const sheet = nb.done();
+  if (o.temp !== undefined) sheet.temp = String(o.temp);
+  return { sheet, nb };
+}
+
+/** The control of the sine bridge, shared by both inverters (drawn below the power section): the
+ *  square VME ± VA/2 and its 4th-order Butterworth sine, the DC servo, the 20 kHz triangle and the
+ *  PWM comparators, the cycle-by-cycle current window and the overload timer, the voltage loop
+ *  and the independent latched output overvoltage protection. `V` is its supply rail, `G` its
+ *  ground, `q50` the 50 Hz square that switches the sine's square; `cmpT` the package of the
+ *  triangle's comparator; `bipolar`: leg B switches as the complement of leg A (else unipolar,
+ *  leg B from the inverted sine). */
+export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; bipolar?: boolean }) {
+  const { V, G } = c;
   // ---- the square VME ± VA/2: H = VMID + VA/2, L = 2·VME − H; QSQ connects SQ to L while Q50
   // is high, RSQ to H otherwise. VME = VMID + the DC servo's correction: the square's mean, and
   // with it the sine's DC, follows VME
@@ -231,34 +250,36 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // the bridge started at 45 % modulation and the OV latch tripped, found in simulation)
     .part('RH1', 'resistor', -700, 960, { value: '100k' }, { '1': 'VMID', '2': 'HP' })
     .part('RH2', 'resistor', -700, 1060, { value: '200k' }, { '1': 'VA', '2': 'HP' })
-    .part('UH', 'opamp', -560, 1000, { value: 'TL074', pkg: 'SIG1' }, { '3': 'HP', '2': 'HN', '6': 'H', '7': V, '4': 'GND' })
+    .part('UH', 'opamp', -560, 1000, { value: 'TL074', pkg: 'SIG1' }, { '3': 'HP', '2': 'HN', '6': 'H', '7': V, '4': G })
     .part('RHF', 'resistor', -560, 900, { value: '4.99k' }, { '1': 'HN', '2': 'H' })
-    .part('RHG', 'resistor', -660, 1140, { value: '10k' }, { '1': 'HN', '2': 'GND' }, 1)
+    .part('RHG', 'resistor', -660, 1140, { value: '10k' }, { '1': 'HN', '2': G }, 1)
     // L: H mirrored about VMID (inverting, gain 1, around VMID)
-    .part('UL', 'opamp', -400, 1150, { value: 'TL074', pkg: 'SIG1' }, { '3': 'VME', '2': 'LN', '6': 'L', '7': V, '4': 'GND' })
+    .part('UL', 'opamp', -400, 1150, { value: 'TL074', pkg: 'SIG1' }, { '3': 'VME', '2': 'LN', '6': 'L', '7': V, '4': G })
     .part('RL1', 'resistor', -480, 1240, { value: '10k' }, { '1': 'H', '2': 'LN' })
     .part('RL2', 'resistor', -380, 1260, { value: '10k' }, { '1': 'LN', '2': 'L' })
     // 220 Ω: the filter's 22k input loads SQ when it comes from H through RSQ; through 1k the
     // square's mean sat 70 mV below VME, and the DC servo had to correct it after every start
     // (the primary saw −1.4 V for the first 40 ms: found in simulation)
     .part('RSQ', 'resistor', -300, 960, { value: '220' }, { '1': 'H', '2': 'SQ' })
-    .part('QSQ', 'nmos', -260, 1080, { value: '2N7000' }, { '1': 'Q50', '2': 'SQ', '3': 'L' })
+    .part('QSQ', 'nmos', -260, 1080, { value: '2N7000' }, { '1': c.q50, '2': 'SQ', '3': 'L' })
     // 4th-order Butterworth low-pass, 70 Hz: two unity-gain Sallen–Key stages (Q 0.54, 1.31)
     .part('RF1', 'resistor', -150, 1000, { value: '22.1k' }, { '1': 'SQ', '2': 'F1A' })
     .part('RF2', 'resistor', -50, 1000, { value: '22.1k' }, { '1': 'F1A', '2': 'F1B' })
     .part('CF1', 'capacitor', -50, 900, { value: '110n', vmax: '50' }, { '1': 'F1A', '2': 'F1O' })
     .part('CF2', 'capacitor', 30, 1100, { value: '100n', vmax: '50' }, { '1': 'F1B', '2': 'VMID' }, 1)
-    .part('UF1', 'opamp', 120, 1000, { value: 'TL074', pkg: 'SIG1' }, { '3': 'F1B', '2': 'F1O', '6': 'F1O', '7': V, '4': 'GND' })
+    .part('UF1', 'opamp', 120, 1000, { value: 'TL074', pkg: 'SIG1' }, { '3': 'F1B', '2': 'F1O', '6': 'F1O', '7': V, '4': G })
     .part('RF3', 'resistor', 240, 1000, { value: '22.1k' }, { '1': 'F1O', '2': 'F2A' })
     .part('RF4', 'resistor', 340, 1000, { value: '22.1k' }, { '1': 'F2A', '2': 'F2B' })
     .part('CF3', 'capacitor', 340, 900, { value: '270n', vmax: '50' }, { '1': 'F2A', '2': 'SINE' })
     .part('CF4', 'capacitor', 420, 1100, { value: '39n', vmax: '50' }, { '1': 'F2B', '2': 'VMID' }, 1)
-    .part('UF2', 'opamp', 520, 1000, { value: 'TL074', pkg: 'SIG2' }, { '3': 'F2B', '2': 'SINE', '6': 'SINE', '7': V, '4': 'GND' })
-    // the inverted sine for leg B: 2·VMID − SINE
-    .part('RN1', 'resistor', 640, 1000, { value: '10k' }, { '1': 'SINE', '2': 'NSB' })
+    .part('UF2', 'opamp', 520, 1000, { value: 'TL074', pkg: 'SIG2' }, { '3': 'F2B', '2': 'SINE', '6': 'SINE', '7': V, '4': G });
+  // unipolar PWM: the inverted sine for leg B, 2·VMID − SINE. Bipolar (leg B the complement of
+  // leg A) needs none: that unit is the package's spare, a follower of VMID
+  if (c.bipolar) nb.part('USP2', 'opamp', 760, 1000, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'SPF', '6': 'SPF', '7': V, '4': G });
+  else nb.part('RN1', 'resistor', 640, 1000, { value: '10k' }, { '1': 'SINE', '2': 'NSB' })
     .part('RN2', 'resistor', 740, 1100, { value: '10k' }, { '1': 'NSB', '2': 'SINEB' })
-    .part('UNB', 'opamp', 760, 1000, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NSB', '6': 'SINEB', '7': V, '4': 'GND' })
-    .part('CDS2', 'capacitor', 860, 1160, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+    .part('UNB', 'opamp', 760, 1000, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NSB', '6': 'SINEB', '7': V, '4': G });
+  nb.part('CDS2', 'capacitor', 860, 1160, { value: '100n', vmax: '50' }, { '1': V, '2': G }, 1);
 
   // ---- DC servo (FF 5.1.6: DC saturates the transformer): a JFET differential integrator of
   // SWA − SWB (÷11 dividers around VMID, 470k / 2.2 µF: loop time constant about 30 ms) moves
@@ -271,7 +292,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RDB1', 'resistor', 1000, 1150, { value: '470k' }, { '1': 'SWB', '2': 'PDC' })
     .part('RDB2', 'resistor', 1100, 1250, { value: '47k' }, { '1': 'PDC', '2': 'VMID' }, 1)
     .part('CDB', 'capacitor', 1000, 1250, { value: '2.2u', vmax: '25' }, { '1': 'PDC', '2': 'VMID' }, 1)
-    .part('UDC', 'opamp', 1200, 1050, { value: 'TL074', pkg: 'SIG1' }, { '3': 'PDC', '2': 'NDC', '6': 'VME', '7': V, '4': 'GND' })
+    .part('UDC', 'opamp', 1200, 1050, { value: 'TL074', pkg: 'SIG1' }, { '3': 'PDC', '2': 'NDC', '6': 'VME', '7': V, '4': G })
     .part('CDI', 'capacitor', 1200, 900, { value: '2.2u', vmax: '25' }, { '1': 'NDC', '2': 'VME' })
     // source at VME: its body diode then points from VME to NDC, which runs about 1.8 V above
     // VME (the dividers carry the bridge's 26 V mean). The other way round the diode
@@ -285,27 +306,28 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   // An op-amp as the Schmitt trigger slewed rail to rail every 25 µs (it set most of the
   // simulation's steps)
   nb.block('pwm')
-    .part('UTI', 'opamp', -1300, 1500, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NTI', '6': 'TRI', '7': V, '4': 'GND' })
+    .part('UTI', 'opamp', -1300, 1500, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NTI', '6': 'TRI', '7': V, '4': G })
     .part('RTI', 'resistor', -1420, 1420, { value: '13.3k' }, { '1': 'SQT', '2': 'NTI' })
     .part('CTI', 'capacitor', -1300, 1400, { value: '3.3n', vmax: '50' }, { '1': 'NTI', '2': 'TRI' })
-    .part('UST', 'comparator', -1100, 1500, { value: 'LM339', pkg: 'CMP1' }, { '3': 'PST', '2': 'VMID', '1': 'SQT', '8': V, '4': 'GND' })
+    .part('UST', 'comparator', -1100, 1500, c.cmpT, { '3': 'PST', '2': 'VMID', '1': 'SQT', '8': V, '4': G })
     .part('RSTU', 'resistor', -1000, 1400, { value: '1k' }, { '1': V, '2': 'SQT' }, 1)
     .part('RSA', 'resistor', -1100, 1400, { value: '10k' }, { '1': 'TRI', '2': 'PST' })
     .part('RSB', 'resistor', -1000, 1600, { value: '38.3k' }, { '1': 'SQT', '2': 'PST' })
-    // leg A on while SINE is above the triangle, leg B while SINEB is
-    .part('UPA', 'comparator', -850, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SINE', '2': 'TRI', '1': 'INA', '8': V, '4': 'GND' })
+    // leg A on while SINE is above the triangle, leg B while SINEB is (unipolar), or while SINE is
+    // below it (bipolar)
+    .part('UPA', 'comparator', -850, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SINE', '2': 'TRI', '1': 'INA', '8': V, '4': G })
     .part('RPA', 'resistor', -750, 1420, { value: '4.7k' }, { '1': V, '2': 'INA' }, 1)
-    .part('UPB', 'comparator', -650, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SINEB', '2': 'TRI', '1': 'INB', '8': V, '4': 'GND' })
+    .part('UPB', 'comparator', -650, 1500, { value: 'LM339', pkg: 'CMP2' }, c.bipolar ? { '3': 'TRI', '2': 'SINE', '1': 'INB', '8': V, '4': G } : { '3': 'SINEB', '2': 'TRI', '1': 'INB', '8': V, '4': G })
     .part('RPB', 'resistor', -550, 1420, { value: '4.7k' }, { '1': V, '2': 'INB' }, 1)
     // STOP (EN low, or an overcurrent) pulls both drivers' SD low with QSD: all four switches
     // off, so a fault current returns to the bus through the body diodes, where the shunt sees
     // it (inputs held low turned both low sides on: a short-circuit current freewheeled past the
     // shunt and rose every PWM period, to 215 kA in simulation)
-    .part('QSD', 'nmos', -750, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'SD', '3': 'GND' })
+    .part('QSD', 'nmos', -750, 1620, { value: '2N7000' }, { '1': 'STOP', '2': 'SD', '3': G })
     .part('RSD', 'resistor', -950, 1700, { value: '10k' }, { '1': V, '2': 'SD' }, 1)
     .part('DSE', 'diode', -650, 1700, { value: '1N4148' }, { '2': 'ENN', '1': 'STOP' })
-    .part('RSTP', 'resistor', -450, 1720, { value: '100k' }, { '1': 'STOP', '2': 'GND' }, 1)
-    .part('CDC2', 'capacitor', -450, 1600, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+    .part('RSTP', 'resistor', -450, 1720, { value: '100k' }, { '1': 'STOP', '2': G }, 1)
+    .part('CDC2', 'capacitor', -450, 1600, { value: '100n', vmax: '50' }, { '1': V, '2': G }, 1);
 
   // ---- cycle-by-cycle current limit, the shunt straight into a window comparator: SRS =
   // 0.9 × SRC + 0.25 V (shifted up from VREF so both directions stay above 0 V); outside
@@ -316,12 +338,12 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.block('current')
     .part('RLS1', 'resistor', -250, 1400, { value: '90.9k' }, { '1': 'VREF', '2': 'SRS' }, 1)
     .part('RLS2', 'resistor', -250, 1600, { value: '10k' }, { '1': 'SRC', '2': 'SRS' }, 1)
-    .part('CSRS', 'capacitor', -150, 1600, { value: '47p', vmax: '50' }, { '1': 'SRS', '2': 'GND' }, 1)
+    .part('CSRS', 'capacitor', -150, 1600, { value: '47p', vmax: '50' }, { '1': 'SRS', '2': G }, 1)
     .part('ROC1', 'resistor', 0, 1400, { value: '86.6k' }, { '1': 'VREF', '2': 'OCH' }, 1)
     .part('ROC2', 'resistor', 0, 1500, { value: '7.5k' }, { '1': 'OCH', '2': 'OCL' }, 1)
-    .part('ROC3', 'resistor', 0, 1600, { value: '6.19k' }, { '1': 'OCL', '2': 'GND' }, 1)
-    .part('UOC1', 'comparator', 150, 1450, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SRS', '2': 'OCH', '1': 'OCP', '8': V, '4': 'GND' })
-    .part('UOC2', 'comparator', 150, 1600, { value: 'LM339', pkg: 'CMP2' }, { '3': 'OCL', '2': 'SRS', '1': 'OCN', '8': V, '4': 'GND' })
+    .part('ROC3', 'resistor', 0, 1600, { value: '6.19k' }, { '1': 'OCL', '2': G }, 1)
+    .part('UOC1', 'comparator', 150, 1450, { value: 'LM339', pkg: 'CMP2' }, { '3': 'SRS', '2': 'OCH', '1': 'OCP', '8': V, '4': G })
+    .part('UOC2', 'comparator', 150, 1600, { value: 'LM339', pkg: 'CMP2' }, { '3': 'OCL', '2': 'SRS', '1': 'OCN', '8': V, '4': G })
     .part('ROCP', 'resistor', 280, 1400, { value: '2.2k' }, { '1': V, '2': 'OCP' }, 1)
     .part('ROCN', 'resistor', 280, 1550, { value: '2.2k' }, { '1': V, '2': 'OCN' }, 1)
     // OCS: either overcurrent, held 20 µs by CSTP (the bridge stays off for about half a PWM
@@ -329,8 +351,8 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // pulses last about 1 µs, and through 10k CSTP reached only 4.5 V (found in simulation)
     .part('DSP', 'diode', 380, 1450, { value: '1N4148' }, { '2': 'OCP', '1': 'OCS' })
     .part('DSN', 'diode', 380, 1600, { value: '1N4148' }, { '2': 'OCN', '1': 'OCS' })
-    .part('CSTP', 'capacitor', 460, 1700, { value: '150p', vmax: '50' }, { '1': 'OCS', '2': 'GND' }, 1)
-    .part('ROCS', 'resistor', 540, 1700, { value: '100k' }, { '1': 'OCS', '2': 'GND' }, 1)
+    .part('CSTP', 'capacitor', 460, 1700, { value: '150p', vmax: '50' }, { '1': 'OCS', '2': G }, 1)
+    .part('ROCS', 'resistor', 540, 1700, { value: '100k' }, { '1': 'OCS', '2': G }, 1)
     .part('DOS', 'diode', 480, 1380, { value: '1N4148' }, { '2': 'OCS', '1': 'STOP' })
     // overload timer: COL follows the mean of OCS (ROL, 4.8 s), which is 1.5 … 2.5 V while the
     // limit acts and 0 V otherwise; above OCH (0.34 V) after about 0.9 s at the limit, longer
@@ -339,13 +361,13 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // (FAULT LED). At the limit for good, the shunt and the switches would overheat long before
     // the heatsink sensor reacts (found in simulation: a sustained short)
     .part('ROL', 'resistor', 580, 1520, { value: '220k' }, { '1': 'OCS', '2': 'OLC' })
-    .part('COL', 'capacitor_pol', 660, 1620, { value: o.overloadC ?? '22u', vmax: '25' }, { '1': 'OLC', '2': 'GND' }, 1)
-    .part('UOT', 'opamp', 840, 1500, { value: 'LM358', pkg: 'AMP' }, { '3': 'OLC', '2': 'OCH', '6': 'OLO', '7': V, '4': 'GND' })
+    .part('COL', 'capacitor_pol', 660, 1620, { value: o.overloadC ?? '22u', vmax: '25' }, { '1': 'OLC', '2': G }, 1)
+    .part('UOT', 'opamp', 840, 1500, { value: 'LM358', pkg: 'AMP' }, { '3': 'OLC', '2': 'OCH', '6': 'OLO', '7': V, '4': G })
     .part('DOT', 'diode', 960, 1500, { value: '1N4148' }, { '2': 'OLO', '1': 'OLS' })
     .part('ROT', 'resistor', 1060, 1500, { value: '4.7k' }, { '1': 'OLS', '2': 'SP' })
-    .part('CDA', 'capacitor', -150, 1400, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+    .part('CDA', 'capacitor', -150, 1400, { value: '100n', vmax: '50' }, { '1': V, '2': G }, 1);
 
-  // ---- voltage loop: the output's rectified average (sense transformer, bridge, 10k / 1 µF:
+  // ---- voltage loop (the sense transformers' primaries are on the output, L to N): the output's rectified average (sense transformer, bridge, 10k / 1 µF:
   // about 9 ms; a peak detector here decayed in 180 ms and the start-up overshot to 370 V peak,
   // found in simulation) against the soft-start reference VSS (22 ms); PI amplifier (P 0.47,
   // integral 45 /s) → VA, clamped at 3.3 V (full modulation) through 1k, stiff against the 200k summer
@@ -353,21 +375,21 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('TRS', 'transformer', -1300, 1950, SENSE_TR, { '1': o.senseOpen ? 'GND' : 'OUTL', '2': 'GND', '3': 'SAO', '4': 'SBO' })
     .part('RSO', 'resistor', -1180, 2050, { value: '220' }, { '1': 'SAO', '2': 'SNO' }, 1)
     .part('CSO', 'capacitor', -1180, 2150, { value: '100n', vmax: '63' }, { '1': 'SNO', '2': 'SBO' }, 1)
-    .part('BRO', 'bridge', -1050, 1950, { value: 'DB107' }, { '1': 'SAO', '2': 'SBO', '3': 'VRO', '4': 'GND' })
+    .part('BRO', 'bridge', -1050, 1950, { value: 'DB107' }, { '1': 'SAO', '2': 'SBO', '3': 'VRO', '4': G })
     // RLO keeps the bridge conducting all the cycle: without a load it fed CVO only near the
     // peaks and the sense read 1.35 × high (the output settled at 171 V, found in simulation)
-    .part('RLO', 'resistor', -980, 2050, { value: '1k', pmax: '0.25' }, { '1': 'VRO', '2': 'GND' }, 1)
+    .part('RLO', 'resistor', -980, 2050, { value: '1k', pmax: '0.25' }, { '1': 'VRO', '2': G }, 1)
     .part('RAV', 'resistor', -920, 1950, { value: '10k' }, { '1': 'VRO', '2': 'VSO' })
-    .part('CVO', 'capacitor', -820, 2050, { value: '1u', vmax: '35' }, { '1': 'VSO', '2': 'GND' }, 1)
+    .part('CVO', 'capacitor', -820, 2050, { value: '1u', vmax: '35' }, { '1': 'VSO', '2': G }, 1)
     .part('RVO1', 'resistor', -720, 1950, { value: '57.6k' }, { '1': 'VSO', '2': 'SO' })
-    .part('RVO2', 'resistor', -620, 2050, { value: '25.5k' }, { '1': 'SO', '2': 'GND' }, 1)
+    .part('RVO2', 'resistor', -620, 2050, { value: '25.5k' }, { '1': 'SO', '2': G }, 1)
     .part('RSS', 'resistor', -560, 1880, { value: '100k' }, { '1': 'VREF', '2': 'VSS' }, 1)
-    .part('CSS', 'capacitor', -480, 2000, { value: o.softC ?? '220n', vmax: '50' }, { '1': 'VSS', '2': 'GND' }, 1)
-    .part('QSS', 'npn', -400, 2080, { value: 'BC547B' }, { '1': 'BSS', '2': 'VSS', '3': 'GND' })
+    .part('CSS', 'capacitor', -480, 2000, { value: o.softC ?? '220n', vmax: '50' }, { '1': 'VSS', '2': G }, 1)
+    .part('QSS', 'npn', -400, 2080, { value: 'BC547B' }, { '1': 'BSS', '2': 'VSS', '3': G })
     // 100k: QSS empties CSS with its collector current alone (β × Ib); through 10k that was
     // above the BC547's 100 mA (found in the stress check)
     .part('RQS', 'resistor', -400, 2200, { value: '100k' }, { '1': 'ENN', '2': 'BSS' })
-    .part('UEA', 'opamp', -260, 1950, { value: 'LM358', pkg: 'AMP' }, { '3': 'VSS', '2': 'NEA', '6': 'VAO', '7': V, '4': 'GND' })
+    .part('UEA', 'opamp', -260, 1950, { value: 'LM358', pkg: 'AMP' }, { '3': 'VSS', '2': 'NEA', '6': 'VAO', '7': V, '4': G })
     .part('REA', 'resistor', -380, 1880, { value: '100k' }, { '1': 'SO', '2': 'NEA' })
     // peak limiter: from about 245 V (hard towards the 262 V trip) DPL drives current into NEA
     // and pulls VA down within the half cycle; its current also unwinds the integrator (a 3.3 V
@@ -378,7 +400,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // motor dropped the output jumped towards 307 V and the overvoltage latch tripped (found in
     // simulation)
     .part('RPL1', 'resistor', -1100, 2200, { value: '47.5k' }, { '1': 'VRO', '2': 'PLA' })
-    .part('RPL2', 'resistor', -1000, 2300, { value: '10k' }, { '1': 'PLA', '2': 'GND' }, 1)
+    .part('RPL2', 'resistor', -1000, 2300, { value: '10k' }, { '1': 'PLA', '2': G }, 1)
     .part('DPL', 'diode', -900, 2200, { value: '1N4148' }, { '2': 'PLA', '1': 'NEA' })
     .part('RFEA', 'resistor', -260, 1840, { value: '47k' }, { '1': 'NEA', '2': 'FEA' })
     .part('CFEA', 'capacitor', -140, 1840, { value: '220n', vmax: '25' }, { '1': 'FEA', '2': 'VAO' })
@@ -387,7 +409,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // simulation)
     .part('QEA', 'nmos', -40, 1760, { value: '2N7000' }, { '1': 'ENN', '2': 'FEA', '3': 'VAO' })
     .part('RVA', 'resistor', -120, 1950, { value: '1k' }, { '1': 'VAO', '2': 'VA' })
-    .part('DZVA', 'zener', -20, 2050, { value: 'BZX55C3V3' }, { '1': 'VA', '2': 'GND' }, 1);
+    .part('DZVA', 'zener', -20, 2050, { value: 'BZX55C3V3' }, { '1': 'VA', '2': G }, 1);
 
   // ---- independent output overvoltage (own sense transformer and reference, latched): EN low
   // above 262 V (2.5 V at SP); once tripped it holds itself until the battery is disconnected
@@ -395,17 +417,17 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('TRS2', 'transformer', 150, 1950, SENSE_TR, { '1': 'OUTL', '2': 'GND', '3': 'SAP', '4': 'SBP' })
     .part('RSP', 'resistor', 270, 2050, { value: '220' }, { '1': 'SAP', '2': 'SNP' }, 1)
     .part('CSP', 'capacitor', 270, 2150, { value: '100n', vmax: '63' }, { '1': 'SNP', '2': 'SBP' }, 1)
-    .part('BRP', 'bridge', 400, 1950, { value: 'DB107' }, { '1': 'SAP', '2': 'SBP', '3': 'VSP', '4': 'GND' })
-    .part('CVP', 'capacitor', 530, 2050, { value: '2.2u', vmax: '35' }, { '1': 'VSP', '2': 'GND' }, 1)
+    .part('BRP', 'bridge', 400, 1950, { value: 'DB107' }, { '1': 'SAP', '2': 'SBP', '3': 'VSP', '4': G })
+    .part('CVP', 'capacitor', 530, 2050, { value: '2.2u', vmax: '35' }, { '1': 'VSP', '2': G }, 1)
     .part('RVP1', 'resistor', 650, 1950, { value: '68k' }, { '1': 'VSP', '2': 'SP' })
-    .part('RVP2', 'resistor', 750, 2050, { value: '11.3k' }, { '1': 'SP', '2': 'GND' }, 1)
+    .part('RVP2', 'resistor', 750, 2050, { value: '11.3k' }, { '1': 'SP', '2': G }, 1)
     // 21 ms: it trips on an overvoltage that lasts (a failed loop), not on the one half cycle at
     // up to 380 V peak (117 %, within the ITIC curve) when a large load is switched off (that
     // tripped it at the end of a motor start: found in simulation)
-    .part('CSPF', 'capacitor', 820, 2150, { value: '2.2u', vmax: '25' }, { '1': 'SP', '2': 'GND' }, 1)
+    .part('CSPF', 'capacitor', 820, 2150, { value: '2.2u', vmax: '25' }, { '1': 'SP', '2': G }, 1)
     .part('RREF2', 'resistor', 850, 1850, { value: '2.2k' }, { '1': V, '2': 'VREF2' }, 1)
-    .part('UREF2', 'tl431', 850, 1980, { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' }, 3)
-    .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': 'VREF2', '1': 'FLT', '8': V, '4': 'GND' })
+    .part('UREF2', 'tl431', 850, 1980, { value: 'TL431' }, { '1': 'VREF2', '2': G, '3': 'VREF2' }, 3)
+    .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': 'VREF2', '1': 'FLT', '8': V, '4': G })
     .part('RFLT', 'resistor', 1100, 1850, { value: '2.2k' }, { '1': V, '2': 'FLT' }, 1)
     // the latch: FLT high (7.3 V with the LED and QFL's base) holds SP at 3.5 V through DLAT and
     // RLAT with the sense at zero (4.7k and 47k held only 0.6 V: the trip released itself when
@@ -413,14 +435,401 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('DLAT', 'diode', 1100, 2050, { value: '1N4148' }, { '2': 'FLT', '1': 'LAT' })
     .part('RLAT', 'resistor', 1000, 2120, { value: '10k' }, { '1': 'LAT', '2': 'SP' })
     .part('RBFL', 'resistor', 1220, 1880, { value: '10k' }, { '1': 'FLT', '2': 'BFL' })
-    .part('QFL', 'npn', 1320, 1950, { value: 'BC547B' }, { '1': 'BFL', '2': 'EN', '3': 'GND' })
+    .part('QFL', 'npn', 1320, 1950, { value: 'BC547B' }, { '1': 'BFL', '2': 'EN', '3': G })
     .part('LFLT', 'led', 1220, 2060, { colour: 'red' }, { '2': 'FLT', '1': 'LFA' }, 1)
-    .part('RLF', 'resistor', 1220, 2170, { value: '4.7k' }, { '1': 'LFA', '2': 'GND' }, 1)
-    .part('CDP', 'capacitor', 1300, 2050, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+    .part('RLF', 'resistor', 1220, 2170, { value: '4.7k' }, { '1': 'LFA', '2': G }, 1)
+    .part('CDP', 'capacitor', 1300, 2050, { value: '100n', vmax: '50' }, { '1': V, '2': G }, 1);
+}
 
-  nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
+/** Options of the high-frequency inverter: as the 50 Hz-transformer unit, and for tests the DC-DC
+ *  converter alone (`stage: 'dcdc'`: no sine bridge, a resistor `busLoad` on the 380 V bus). */
+export interface InverterHfOptions extends InverterLfOptions {
+  stage?: 'dcdc';
+  busLoad?: string;
+  /** Tests: the bus voltage feedback has failed (the optocoupler's LED open, DFMEA H-3). */
+  feedbackOpen?: boolean;
+}
+
+/**
+ * Inverter, one 5 kW unit, high-frequency type: 48 V LiFePO4 battery → isolated DC-DC converter
+ * to a 380 V bus → IGBT sine bridge and LC filter → 230 V 50 Hz.
+ *
+ * DC-DC converter: MOSFET full bridge (2 × IRFP4468 per switch) at 20 kHz, phase-shifted: leg A
+ * a 50 % square, leg B the same square shifted, so the ferrite transformer (1 : 12, gapped) gets
+ * ±V(battery) for the part P of each half period and freewheels for the rest. P ends when the
+ * primary current reaches the command (peak current-mode control: each half period ends at the
+ * same current, so the transformer's flux stays balanced, and the current command is also the
+ * cycle-by-cycle limit). SiC Schottky bridge (no reverse recovery), 470 µH, 4 × 470 µF 450 V. The
+ * bus is regulated to 380 V by a TL431 on the high-voltage side through an optocoupler.
+ *
+ * The low-voltage side (battery, contactor, battery window, heatsink, the DC-DC control) is
+ * referenced to the battery negative, bonded to PE with the output's N. The high-voltage side
+ * (the bus, the sine bridge and its control) floats on the transformer; its 15 V come from an
+ * auxiliary transformer on the bridge, and only optocouplers cross between the sides: the bus
+ * feedback, the bus overvoltage stop and the 50 Hz square.
+ *
+ * Sine bridge: 4 × IKW50N60T with unipolar sine PWM at 20 kHz, 2 × 470 µH and 10 µF; the control
+ * is the 50 Hz-transformer unit's (inverterControl): sine from a filtered exact 50 Hz square, DC
+ * servo (no DC at the output), averaging voltage loop with soft start and peak limiter, current
+ * window at twice the rated peak, overload timer, independent latched output overvoltage.
+ */
+export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } {
+  const nb = new NB();
+  const V = 'V12', VH = 'V15H', G = 'HVG';
+  const inv = o.stage !== 'dcdc';
+  const vb = o.vbat ?? 52;
+  nb.wired = { rails: [V, VH, G], labelled: ['BF', 'AXA', 'BUS', 'LA', 'LB', 'SRCL', 'CSR', 'Q50H', 'FBA', 'FBK', 'OVA', 'OVK', 'ENL', 'ENNL', 'VREFL', 'SDL', 'STOPL', 'BLK', 'PA', 'AN', 'A', 'B', 'KEN', 'Q50',
+    'HBUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'SRS', 'OUTL', 'VME', 'STOP', 'SD', 'SP', 'FLT'] };
+  nb.para('INVERTER, one 5 kW unit, high-frequency type: 48 V LiFePO4 battery (16 cells, 42 … 58.4 V) to 230 V 50 Hz. Isolated DC-DC converter (phase-shifted MOSFET full bridge at 20 kHz, peak current-mode, ferrite transformer 1 : 12, SiC rectifier) to a 380 V bus; IGBT full bridge with unipolar sine PWM at 20 kHz and an LC filter. Surge: twice the rated current for motor starts, cycle by cycle limited.', -1400, -420)
+    .para('Protections (DFMEA section 6): pre-charge before the battery contactor closes; battery low cut-out 42 V (restart 47 V) and high cut-out 61 V; heatsink above 90 °C; bus overvoltage (own divider, reference and optocoupler) stops the DC-DC converter; bus undervoltage stops the sine bridge; cycle-by-cycle current limits in both converters; output overvoltage from its own sense transformer and reference (latched). WARNING: the bus holds 380 V for minutes after switch-off (bleeder 94 kΩ): wait 10 minutes.', -1400, -340);
+
+  // ---- battery (test bench), input, pre-charge and contactor: as the 50 Hz-transformer unit
+  nb.block('battery').note('TEST BENCH (not part of the product): the battery and its cables', -1400, -220)
+    .part('BAT', 'battery', -1350, -100, { value: String(vb), rint: '0.01' }, o.reversed ? { '1': 'GND', '2': 'BC' } : { '1': 'BC', '2': 'GND' }, 1)
+    .part('LBAT', 'inductor', -1290, -200, { value: '2u', imax: '1000' }, { '1': 'BC', '2': 'BP' });
+  nb.block('dcin')
+    .part('X1', 'terminal', -1200, -160, { value: 'BAT+' }, { '1': 'BP' })
+    .part('X2', 'terminal', -1200, -40, { value: 'BAT−' }, { '1': 'GND' })
+    .part('F1', 'fuse', -1050, -160, { value: '200', r: '0.3m' }, { '1': 'BP', '2': 'BF' })
+    .part('DPC', 'diode', -900, -260, { value: '1N5408' }, { '2': 'BF', '1': 'PCA' })
+    .part('RPC', 'resistor', -780, -260, { value: '10', pmax: '50' }, { '1': 'PCA', '2': 'BUS' })
+    .part('K1', 'contactor', -820, -100, { value: '150 A DC, coil 48 V' }, { A1: 'AXA', A2: 'KC', '1': 'BF', '2': 'BUS', '13': 'BKA', '14': 'GND' })
+    .part('DK', 'diode', -950, -20, { value: '1N4007' }, { '2': 'KC', '1': 'AXA' }, 3)
+    .part('QK', 'nmos', -900, 90, { value: 'IRF540N' }, { '1': 'KEN', '2': 'KC', '3': 'GND' });
+  nb.block('bus');
+  const pre: Record<string, string> = o.precharged ? { ic: String(vb - 0.7) } : {};
+  for (let k = 0; k < 6; k++) nb.part(`CB${k + 1}`, 'capacitor', -600 + 70 * k, -60, { value: '47u', vmax: '100', ...pre }, { '1': 'BUS', '2': 'GND' }, 1);
+  for (let k = 0; k < 2; k++) nb.part(`CE${k + 1}`, 'capacitor_pol', -600 + 70 * k, 60, { value: '2200u', vmax: '100', esr: '0.04', ...pre }, { '1': 'BUS', '2': 'GND' }, 1);
+
+  // ---- DC-DC full bridge: 2 MOSFETs per switch, emitter-follower gate buffers as in the 50 Hz
+  // unit (the drivers alone are too slow for 39 nF within their 0.5 µs dead time)
+  nb.block('dc-dc bridge');
+  ([['A', -150, 'LA'], ['B', 550, 'LB']] as const).forEach(([leg, x0, sw]) => {
+    for (let k = 0; k < 2; k++) {
+      const x = x0 + 120 * k;
+      nb.part(`QH${leg}${k + 1}`, 'nmos', x, -160, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GH${leg}${k + 1}`, '2': 'BUS', '3': sw })
+        .part(`RGH${leg}${k + 1}`, 'resistor', x - 60, -240, { value: '4.7' }, { '1': `EH${leg}`, '2': `GH${leg}${k + 1}` })
+        .part(`QL${leg}${k + 1}`, 'nmos', x, 40, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${leg}${k + 1}`, '2': sw, '3': 'SRCL' })
+        .part(`RGL${leg}${k + 1}`, 'resistor', x - 60, 120, { value: '4.7' }, { '1': `EL${leg}`, '2': `GL${leg}${k + 1}` });
+    }
+    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': leg, '2': 'SDL', '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': sw, '4': `LO${leg}` })
+      .part(`DB${leg}`, 'diode', x0 + 240, 250, { value: '1N4148' }, { '2': V, '1': `VB${leg}` })
+      .part(`CBS${leg}`, 'capacitor', x0 + 300, 330, { value: '2.2u', vmax: '25' }, { '1': `VB${leg}`, '2': sw }, 1)
+      .part(`QBH${leg}`, 'npn', x0 + 400, -260, { value: 'D44H11' }, { '1': `HO${leg}`, '2': `VB${leg}`, '3': `EH${leg}` })
+      .part(`QBHP${leg}`, 'pnp', x0 + 400, -140, { value: 'D45H11' }, { '1': `HO${leg}`, '2': sw, '3': `EH${leg}` })
+      .part(`QBL${leg}`, 'npn', x0 + 400, 60, { value: 'D44H11' }, { '1': `LO${leg}`, '2': V, '3': `EL${leg}` })
+      .part(`QBLP${leg}`, 'pnp', x0 + 400, 180, { value: 'D45H11' }, { '1': `LO${leg}`, '2': 'GND', '3': `EL${leg}` })
+      .part(`RHS${leg}`, 'resistor', x0 + 500, -200, { value: '10k' }, { '1': `EH${leg}`, '2': sw }, 1)
+      .part(`RLS${leg}`, 'resistor', x0 + 500, 120, { value: '10k' }, { '1': `EL${leg}`, '2': 'GND' }, 1)
+      .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
+  });
+
+  // the current in the bridge's return: a current transformer (1 turn : 200, one Schottky diode,
+  // 1.2 Ω: 6 mV/A; 1k reset it between the pulses: 4.7k, reflected 0.12 Ω, gave −17 V spikes
+  // on the bridge when the dead time returns current through it). It sees the transformer's current while
+  // the bridge drives it, from zero, offset included (not the freewheeling current inside the
+  // bridge), so a half period with a DC offset ends sooner: the flux stays balanced. In series
+  // with the winding (bipolar, never zero) it could not see the offset, and 18 A of DC built up
+  // in the primary; a 0.47 mΩ shunt gave 40 mV at 90 A, too little for the comparator (found in
+  // simulation)
+  nb.block('current sense')
+    .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999' }, { '1': 'SRCL', '2': 'GND', '3': 'CTA', '4': 'GND' })
+    .part('RCR', 'resistor', -440, 280, { value: '1k' }, { '1': 'CTA', '2': 'GND' }, 1)
+    .part('DC1', 'diode', -380, 180, { value: '1N5819' }, { '2': 'CTA', '1': 'CSR' })
+    .part('RBD', 'resistor', -300, 260, { value: '1.2' }, { '1': 'CSR', '2': 'GND' }, 1);
+
+  // ---- transformer, auxiliary transformer, SiC rectifier, filter, the 380 V bus
+  nb.block('dc-dc output')
+    // gapped ferrite core: 100 µH magnetising, about 0.1 µH leakage (primary side), core losses
+    // about 15 W (150 Ω: they also damp the ringing with the switches' capacitance)
+    .part('TR1', 'transformer', 1250, -60, { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150' }, { '1': 'LA', '2': 'LB', '3': 'S1', '4': 'S2' })
+    // the snubber damps the ringing of the leakage inductance with the diodes' capacitance
+    .part('RSN', 'resistor', 1370, -220, { value: '470', pmax: '10' }, { '1': 'S1', '2': 'SNB' })
+    .part('CSN', 'capacitor', 1470, -220, { value: '220p', vmax: '2000' }, { '1': 'SNB', '2': 'S2' })
+    .part('DR1', 'diode', 1400, -160, { value: 'C4D20120A' }, { '2': 'S1', '1': 'RP' }, 3)
+    .part('DR2', 'diode', 1520, -160, { value: 'C4D20120A' }, { '2': 'S2', '1': 'RP' }, 3)
+    .part('DR3', 'diode', 1400, 40, { value: 'C4D20120A' }, { '2': G, '1': 'S1' }, 3)
+    .part('DR4', 'diode', 1520, 40, { value: 'C4D20120A' }, { '2': G, '1': 'S2' }, 3)
+    // its core losses (about 6 W) damp its ringing with the diodes while the current is zero
+    .part('LOB', 'inductor', 1650, -160, { value: '470u', imax: '40', rloss: '15k' }, { '1': 'RP', '2': 'HBUS' });
+  const hpre: Record<string, string> = o.precharged ? { ic: '380' } : {};
+  for (let k = 0; k < 4; k++) nb.part(`CH${k + 1}`, 'capacitor_pol', 1750 + 70 * k, -60, { value: '470u', vmax: '450', esr: '0.15', ...hpre }, { '1': 'HBUS', '2': G }, 1);
+  for (let k = 0; k < 2; k++) nb.part(`CHF${k + 1}`, 'capacitor', 2030 + 70 * k, -60, { value: '2.2u', vmax: '630', ...hpre }, { '1': 'HBUS', '2': G }, 1);
+  nb.part('RBL1', 'resistor', 2170, -100, { value: '47k', pmax: '3' }, { '1': 'HBUS', '2': 'BLM' }, 1)
+    .part('RBL2', 'resistor', 2170, 20, { value: '47k', pmax: '3' }, { '1': 'BLM', '2': G }, 1)
+    // Y2 capacitors from the bus to PE (EMI): with bipolar PWM the bus sits at ±190 V about the
+    // output's mid-point and moves only at 50 Hz (80 µA through them); with unipolar PWM it
+    // jumped by up to 380 V at each switching edge (amperes through any capacitance to PE)
+    .part('CY1', 'capacitor', 2060, 160, { value: '2.2n', vmax: '1600', ...(o.precharged ? { ic: '190' } : {}) }, { '1': 'HBUS', '2': 'GND' }, 1)
+    .part('CY2', 'capacitor', 2170, 160, { value: '2.2n', vmax: '1600', ...(o.precharged ? { ic: '-190' } : {}) }, { '1': G, '2': 'GND' }, 1);
+  // the auxiliary transformer on leg A, a 50 % square whatever the load (between the drive
+  // pulses too: across both legs it got almost nothing at no load, and the 15 V fell to 4 V,
+  // found in simulation), through a blocking capacitor: ±V(battery)/2, rectified 19.6 … 27.8 V,
+  // regulated to 15 V for the high-voltage side
+  nb.block('hv supply')
+    .part('CXB', 'capacitor', 1150, 300, { value: '2.2u', vmax: '100' }, { '1': 'XB', '2': 'GND' }, 1)
+    .part('TRA', 'transformer', 1250, 200, { value: '1', lp: '20m', rp: '0.5', rs: '0.5', k: '0.99', rc: '4.7k' }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
+    // 10k across the winding damp the ringing of its leakage with the bridge's capacitance
+    .part('RXA', 'resistor', 1330, 400, { value: '10k' }, { '1': 'XA1', '2': 'XA2' }, 1)
+    .part('BRA', 'bridge', 1380, 300, { value: 'DB107' }, { '1': 'XA1', '2': 'XA2', '3': 'VXH', '4': G })
+    .part('CXA', 'capacitor_pol', 1440, 400, { value: '47u', vmax: '50', ...(o.precharged ? { ic: (0.5 * vb - 1.4).toFixed(1) } : {}) }, { '1': 'VXH', '2': G }, 1)
+    .part('UAH', 'lm317', 1580, 300, { value: 'LM317HV', heatsink: '8' }, { '3': 'VXH', '1': 'ADJH', '2': VH })
+    .part('RA1H', 'resistor', 1680, 380, { value: '240' }, { '1': VH, '2': 'ADJH' }, 1)
+    .part('RA2H', 'resistor', 1580, 460, { value: '2.61k' }, { '1': 'ADJH', '2': G }, 1)
+    .part('CAXH', 'capacitor', 1760, 380, { value: '10u', vmax: '25', ...(o.precharged ? { ic: '14.8' } : {}) }, { '1': VH, '2': G }, 1);
+
+  // ---- 12 V control supply (low-voltage side), the reference
+  nb.block('aux')
+    .part('DAUX', 'diode', -1300, 300, { value: '1N4007' }, { '2': 'BF', '1': 'AXA' })
+    .part('RAUX', 'resistor', -1200, 300, { value: '220', pmax: '5' }, { '1': 'AXA', '2': 'VRAW' })
+    .part('CRAW', 'capacitor', -1100, 380, { value: '2.2u', vmax: '100' }, { '1': 'VRAW', '2': 'GND' }, 1)
+    .part('UAX', 'lm317', -1000, 300, { value: 'LM317HV', heatsink: '8' }, { '3': 'VRAW', '1': 'ADJ', '2': V })
+    .part('RA1', 'resistor', -900, 380, { value: '240' }, { '1': V, '2': 'ADJ' }, 1)
+    .part('RA2', 'resistor', -1000, 460, { value: '2.05k' }, { '1': 'ADJ', '2': 'GND' }, 1)
+    .part('CAX', 'capacitor', -820, 380, { value: '10u', vmax: '25' }, { '1': V, '2': 'GND' }, 1)
+    .part('RREFL', 'resistor', -700, 300, { value: '2.2k' }, { '1': V, '2': 'VREFL' }, 1)
+    .part('UREFL', 'tl431', -700, 420, { value: 'TL431' }, { '1': 'VREFL', '2': 'GND', '3': 'VREFL' }, 3);
+
+  // ---- battery contactor (as the 50 Hz unit)
+  nb.block('precharge')
+    .part('RPB1', 'resistor', -1300, 620, { value: '200k' }, { '1': 'AXA', '2': 'VBF' }, 1)
+    .part('RPB2', 'resistor', -1300, 740, { value: '10k' }, { '1': 'VBF', '2': 'GND' }, 1)
+    .part('RPU1', 'resistor', -1180, 620, { value: '182k' }, { '1': 'BUS', '2': 'VBU' }, 1)
+    .part('RPU2', 'resistor', -1180, 740, { value: '10k' }, { '1': 'VBU', '2': 'GND' }, 1)
+    .part('UPC', 'comparator', -1000, 680, { value: 'LM339', pkg: 'CMPL' }, { '3': 'VBU', '2': 'VBF', '1': 'KEN', '8': V, '4': 'GND' })
+    .part('RKEN', 'resistor', -900, 600, { value: '10k' }, { '1': V, '2': 'KEN' }, 1)
+    .part('RPH', 'resistor', -1000, 780, { value: '1M' }, { '1': 'KEN', '2': 'VBU' });
+
+  // ---- battery window and the enable of the DC-DC converter (as the 50 Hz unit); the bus
+  // overvoltage optocoupler U2 also pulls ENL low
+  nb.block('battery window')
+    .part('RBS1', 'resistor', -760, 620, { value: '200k' }, { '1': 'AXA', '2': 'VBS' }, 1)
+    .part('RBS2', 'resistor', -760, 740, { value: '10k' }, { '1': 'VBS', '2': 'GND' }, 1)
+    .part('CBS', 'capacitor', -700, 800, { value: '470n', vmax: '25', ...(o.precharged ? { ic: ((vb - 0.85) / 21).toFixed(3) } : {}) }, { '1': 'VBS', '2': 'GND' }, 1)
+    .part('RLV1', 'resistor', -620, 620, { value: '1.54k' }, { '1': 'VREFL', '2': 'VLO' }, 1)
+    .part('RLV2', 'resistor', -620, 740, { value: '10k' }, { '1': 'VLO', '2': 'GND' }, 1)
+    .part('ULV', 'comparator', -480, 680, { value: 'LM339', pkg: 'CMPL' }, { '3': 'VBS', '2': 'VLO', '1': 'ENL', '8': V, '4': 'GND' })
+    .part('RLVH', 'resistor', -480, 800, { value: '475k' }, { '1': 'ENL', '2': 'VBS' })
+    .part('RBH1', 'resistor', -340, 620, { value: '243k' }, { '1': 'AXA', '2': 'VBH' }, 1)
+    .part('RBH2', 'resistor', -340, 740, { value: '10k' }, { '1': 'VBH', '2': 'GND' }, 1)
+    .part('CBH', 'capacitor', -280, 800, { value: '470n', vmax: '25', ...(o.precharged ? { ic: ((vb - 0.85) / 25.3).toFixed(3) } : {}) }, { '1': 'VBH', '2': 'GND' }, 1)
+    .part('RHV1', 'resistor', -220, 620, { value: '715' }, { '1': 'VREFL', '2': 'VHI' }, 1)
+    .part('RHV2', 'resistor', -220, 740, { value: '10k' }, { '1': 'VHI', '2': 'GND' }, 1)
+    .part('UHV', 'comparator', -80, 680, { value: 'LM393', pkg: 'PROTL' }, { '3': 'VHI', '2': 'VBH', '1': 'HVN', '8': V, '4': 'GND' })
+    .part('RHVN', 'resistor', 20, 600, { value: '10k' }, { '1': V, '2': 'HVN' }, 1)
+    .part('RHVH', 'resistor', -80, 800, { value: '100k' }, { '1': 'HVN', '2': 'VHI' })
+    .part('DHV', 'diode', 20, 800, { value: '1N4148' }, { '2': 'ENL', '1': 'HVN' })
+    // the second comparator of this LM393 is the design's one spare (five on this side): + on
+    // ground, − on VREFL, so its output is held low
+    .part('USP', 'comparator', -180, 900, { value: 'LM393', pkg: 'PROTL' }, { '3': 'GND', '2': 'VREFL', '1': 'GND', '8': V, '4': 'GND' })
+    .part('REN', 'resistor', 120, 600, { value: '10k' }, { '1': V, '2': 'ENL' }, 1)
+    .part('RKA', 'resistor', -900, 820, { value: '22k' }, { '1': V, '2': 'BKA' }, 1)
+    .part('QKA', 'npn', -780, 900, { value: 'BC547B' }, { '1': 'BKA', '2': 'ENL', '3': 'GND' })
+    .part('RQE', 'resistor', 240, 680, { value: '47k' }, { '1': 'ENL', '2': 'BQE' })
+    .part('QEN', 'npn', 340, 740, { value: 'BC547B' }, { '1': 'BQE', '2': 'ENNL', '3': 'GND' })
+    .part('RQE2', 'resistor', 280, 820, { value: '47k' }, { '1': 'BQE', '2': 'GND' }, 1)
+    .part('RENN', 'resistor', 340, 600, { value: '10k' }, { '1': V, '2': 'ENNL' }, 1)
+    .part('CDC1', 'capacitor', 120, 840, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+
+  // ---- heatsink (MOSFETs and IGBTs on one heatsink): ENL low above 90 °C; the DC-DC converter
+  // stops, and the sine bridge stops when the bus falls below its undervoltage level
+  nb.block('thermal')
+    .part('RTH', 'ntc', 500, 620, { value: '10k', temp: String(o.theatsink ?? 50) }, { '1': 'VREFL', '2': 'NHS' }, 1)
+    .part('RTHB', 'resistor', 500, 740, { value: '10k' }, { '1': 'NHS', '2': 'GND' }, 1)
+    .part('RT90', 'resistor', 620, 620, { value: '3.92k' }, { '1': 'VREFL', '2': 'T90' }, 1)
+    .part('RT90B', 'resistor', 620, 740, { value: '40.2k' }, { '1': 'T90', '2': 'GND' }, 1)
+    .part('UTH', 'comparator', 760, 680, { value: 'LM339', pkg: 'CMPL' }, { '3': 'T90', '2': 'NHS', '1': 'THN', '8': V, '4': 'GND' })
+    .part('RTHN', 'resistor', 860, 600, { value: '10k' }, { '1': V, '2': 'THN' }, 1)
+    .part('RTHH', 'resistor', 760, 800, { value: '2.2M' }, { '1': 'THN', '2': 'T90' })
+    .part('DTH', 'diode', 860, 800, { value: '1N4148' }, { '2': 'ENL', '1': 'THN' });
+
+  // ---- 50 Hz (low-voltage side, as the 50 Hz unit), to the high-voltage side through U3
+  nb.block('50 Hz')
+    .part('U50', 'timer555', -1300, 1050, { value: 'NE555' }, { '8': V, '4': V, '7': 'D50', '6': 'T50', '2': 'T50', '3': 'C200', '5': 'K50', '1': 'GND' })
+    .part('RA50', 'resistor', -1420, 960, { value: '10k' }, { '1': V, '2': 'D50' }, 1)
+    .part('RB50', 'resistor', -1420, 1080, { value: '30.9k' }, { '1': 'D50', '2': 'T50' }, 1)
+    .part('CT50', 'capacitor', -1420, 1200, { value: '100n', vmax: '50' }, { '1': 'T50', '2': 'GND' }, 1)
+    .part('CK50', 'capacitor', -1180, 1180, { value: '10n', vmax: '50' }, { '1': 'K50', '2': 'GND' }, 1)
+    .part('UFF1', 'dff', -1050, 1040, { value: V , pkg: 'FF' }, { '1': 'Q100N', '2': 'C200', '3': 'Q100', '4': 'Q100N' })
+    .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
+    .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
+    // 4.7 mA in the LED; on the high-voltage side the phototransistor pulls Q50H low (2.2k from
+    // 15 V: 6.8 mA, saturated with the PC817's CTR of 80 % or more)
+    .part('R50', 'resistor', -750, 1040, { value: '2.2k' }, { '1': 'Q50', '2': 'L50A' })
+    .part('U3', 'opto', -620, 1060, { value: 'PC817' }, { '1': 'L50A', '2': 'GND', '4': 'Q50H', '3': G })
+    .part('R50H', 'resistor', -660, 940, { value: '2.2k' }, { '1': VH, '2': 'Q50H' }, 1);
+
+  // ---- DC-DC control: 555 at 40 kHz (93 % charge, 1.7 µs discharge: the blanking BLK between the
+  // half periods); A toggles at each blanking (CD4013: 20 kHz, 50 %); the pulse PA from the end
+  // of the blanking until the primary current reaches the command (latch of two CD4001 gates);
+  // B = A ⊕ PA (four NOR gates: B = XNOR(Ā, PA))
+  nb.block('dc-dc control')
+    .part('U40', 'timer555', -400, 1100, { value: 'NE555' }, { '8': V, '4': V, '7': 'D40', '6': 'T40', '2': 'T40', '3': 'O40', '5': 'K40', '1': 'GND' })
+    .part('RA40', 'resistor', -520, 1010, { value: '31.6k' }, { '1': V, '2': 'D40' }, 1)
+    .part('RB40', 'resistor', -520, 1130, { value: '2.15k' }, { '1': 'D40', '2': 'T40' }, 1)
+    .part('CT40', 'capacitor', -520, 1250, { value: '1n', vmax: '50' }, { '1': 'T40', '2': 'GND' }, 1)
+    .part('CK40', 'capacitor', -280, 1230, { value: '10n', vmax: '50' }, { '1': 'K40', '2': 'GND' }, 1)
+    .part('G1', 'nor2', -160, 1100, { value: V, pkg: 'NOR1' }, { '1': 'O40', '2': 'O40', '3': 'BLK' })
+    .part('UFA', 'dff', -20, 1000, { value: V, pkg: 'FFA' }, { '1': 'AN', '2': 'BLK', '3': 'A', '4': 'AN' })
+    // the latch: OC sets it, the blanking resets it
+    .part('G2', 'nor2', -20, 1150, { value: V, pkg: 'NOR1' }, { '1': 'BLK', '2': 'QCN', '3': 'QC' })
+    .part('G3', 'nor2', -20, 1270, { value: V, pkg: 'NOR1' }, { '1': 'OC', '2': 'QC', '3': 'QCN' })
+    .part('G4', 'nor2', 120, 1200, { value: V, pkg: 'NOR1' }, { '1': 'BLK', '2': 'QC', '3': 'PA' })
+    .part('G5', 'nor2', 260, 1050, { value: V, pkg: 'NOR2' }, { '1': 'AN', '2': 'PA', '3': 'X1' })
+    .part('G6', 'nor2', 400, 1000, { value: V, pkg: 'NOR2' }, { '1': 'AN', '2': 'X1', '3': 'X2' })
+    .part('G7', 'nor2', 400, 1120, { value: V, pkg: 'NOR2' }, { '1': 'PA', '2': 'X1', '3': 'X3' })
+    .part('G8', 'nor2', 540, 1060, { value: V, pkg: 'NOR2' }, { '1': 'X2', '2': 'X3', '3': 'B' })
+    .part('CDL', 'capacitor', 120, 1320, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
+    // peak current: the current transformer's signal (0.5 µs filter against the turn-on spike)
+    // plus the slope compensation (the 555 ramp, AC-coupled, 0.68 V; biased 0.34 V up from
+    // VREFL so it stays above 0 V) against the command VC
+    .part('RCF', 'resistor', -500, 1400, { value: '1k' }, { '1': 'CSR', '2': 'CSF' })
+    .part('CCF', 'capacitor', -400, 1500, { value: '470p', vmax: '50' }, { '1': 'CSF', '2': 'GND' }, 1)
+    .part('RCB', 'resistor', -400, 1300, { value: '5.23k' }, { '1': 'VREFL', '2': 'CSF' })
+    // the ramp through an emitter follower (68k straight on the 1 nF timing capacitor slowed the
+    // oscillator to 23 kHz)
+    .part('QSLF', 'npn', -640, 1380, { value: 'BC547B' }, { '1': 'T40', '2': V, '3': 'T40E' })
+    .part('RSLE', 'resistor', -700, 1500, { value: '4.7k' }, { '1': 'T40E', '2': 'GND' }, 1)
+    .part('CSL', 'capacitor', -600, 1500, { value: '100n', vmax: '50' }, { '1': 'T40E', '2': 'SLP' }, 1)
+    .part('RSL', 'resistor', -500, 1560, { value: '4.99k' }, { '1': 'SLP', '2': 'CSF' })
+    .part('UCS', 'comparator', -280, 1450, { value: 'LM339', pkg: 'CMPL' }, { '3': 'CSF', '2': 'VC', '1': 'OC', '8': V, '4': 'GND' })
+    .part('ROC', 'resistor', -180, 1380, { value: '4.7k' }, { '1': V, '2': 'OC' }, 1)
+    // the command: at most 1.92 V from VREFL (the current limit: about 220 A at the end of a long
+    // pulse, more at the start), pulled down by the feedback optocoupler U1; the soft start QSC
+    // holds it below VSSL + 0.6 V
+    .part('RVC', 'resistor', 0, 1380, { value: '10k' }, { '1': 'VREFL', '2': 'VC' }, 1)
+    .part('RVC2', 'resistor', -100, 1620, { value: '33k' }, { '1': 'VC', '2': 'GND' }, 1)
+    .part('U1', 'opto', 140, 1500, { value: 'PC817' }, { '1': 'FBA', '2': 'FBK', '4': 'VC', '3': 'GND' })
+    .part('QSC', 'pnp', 280, 1450, { value: 'BC557B' }, { '1': 'VSSL', '2': 'GND', '3': 'VC' })
+    .part('RSSL', 'resistor', 380, 1380, { value: '100k' }, { '1': 'VREFL', '2': 'VSSL' }, 1)
+    .part('CSSL', 'capacitor', 380, 1500, { value: '220n', vmax: '25' }, { '1': 'VSSL', '2': 'GND' }, 1)
+    .part('QSSL', 'npn', 480, 1580, { value: 'BC547B' }, { '1': 'BSSL', '2': 'VSSL', '3': 'GND' })
+    .part('RQSL', 'resistor', 480, 1680, { value: '100k' }, { '1': 'ENNL', '2': 'BSSL' })
+    // ENL low (or the bus overvoltage) turns all four switches off through both drivers' SD
+    .part('QSDL', 'nmos', -300, 1800, { value: '2N7000' }, { '1': 'STOPL', '2': 'SDL', '3': 'GND' })
+    .part('RSDL', 'resistor', -300, 1700, { value: '10k' }, { '1': V, '2': 'SDL' }, 1)
+    .part('DSEL', 'diode', -180, 1880, { value: '1N4148' }, { '2': 'ENNL', '1': 'STOPL' })
+    .part('RSTL', 'resistor', -80, 1880, { value: '100k' }, { '1': 'STOPL', '2': 'GND' }, 1)
+    .part('U2', 'opto', 120, 1800, { value: 'PC817' }, { '1': 'OVA', '2': 'OVK', '4': 'ENL', '3': 'GND' });
+
+  // ---- high-voltage side: reference, mid-rail, bus voltage feedback and bus overvoltage
+  nb.block('hv reference')
+    .part('RREF', 'resistor', 1000, 560, { value: '2.2k' }, { '1': VH, '2': 'VREF' }, 1)
+    .part('UREF', 'tl431', 1000, 680, { value: 'TL431' }, { '1': 'VREF', '2': G, '3': 'VREF' }, 3)
+    .part('RM1', 'resistor', 1120, 560, { value: '10k' }, { '1': VH, '2': 'VMR' }, 1)
+    .part('RM2', 'resistor', 1120, 680, { value: '10k' }, { '1': 'VMR', '2': G }, 1)
+    .part('UM', 'opamp', 1260, 620, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMR', '2': 'VMID', '6': 'VMID', '7': VH, '4': G })
+    .part('CDS1', 'capacitor', 1260, 740, { value: '100n', vmax: '50' }, { '1': VH, '2': G }, 1);
+  // 381 V: 1.48 MΩ (750k + 732k) and 9.76k on the TL431 (its own, not the reference above); the LED
+  // current pulls the command down; 1k across the LED keeps the TL431 above its 1 mA minimum
+  nb.block('bus feedback')
+    .part('RFB1', 'resistor', 1400, 520, { value: '750k' }, { '1': 'HBUS', '2': 'FBM' }, 1)
+    .part('RFB2', 'resistor', 1400, 620, { value: '732k' }, { '1': 'FBM', '2': 'FBS' }, 1)
+    .part('RFB3', 'resistor', 1400, 740, { value: '9.76k' }, { '1': 'FBS', '2': G }, 1)
+    .part('UFB', 'tl431', 1520, 700, { value: 'TL431' }, { '1': 'FBS', '2': G, '3': 'FBK' }, 3)
+    .part('RFC', 'resistor', 1620, 640, { value: '33k' }, { '1': 'FBK', '2': 'FBC' })
+    .part('CFC', 'capacitor', 1620, 740, { value: '100n', vmax: '50' }, { '1': 'FBC', '2': 'FBS' })
+    .part('RFL', 'resistor', 1500, 440, { value: '1k' }, { '1': VH, '2': o.feedbackOpen ? 'FBX' : 'FBA' })
+    .part('RFBI', 'resistor', 1640, 520, { value: '1k' }, { '1': VH, '2': 'FBK' });
+  // independent bus overvoltage: own divider, the HV reference, LM393 with hysteresis; above 427 V
+  // its output pulls U2's LED on and the DC-DC converter stops until the bus is below 407 V
+  nb.block('bus overvoltage')
+    .part('RBO1', 'resistor', 1800, 520, { value: '750k' }, { '1': 'HBUS', '2': 'BOM' }, 1)
+    .part('RBO2', 'resistor', 1800, 620, { value: '750k' }, { '1': 'BOM', '2': 'BOS' }, 1)
+    .part('RBO3', 'resistor', 1800, 740, { value: '7.87k' }, { '1': 'BOS', '2': G }, 1)
+    .part('RBV1', 'resistor', 1920, 560, { value: '1.2k' }, { '1': 'VREF', '2': 'BOR' }, 1)
+    .part('RBV2', 'resistor', 1920, 680, { value: '10k' }, { '1': 'BOR', '2': G }, 1)
+    .part('UBOV', 'comparator', 2060, 620, { value: 'LM393', pkg: 'PROT' }, { '3': 'BOR', '2': 'BOS', '1': 'OVK', '8': VH, '4': G })
+    .part('RBOH', 'resistor', 2060, 740, { value: '20k' }, { '1': 'OVK', '2': 'BOR' })
+    .part('ROVL', 'resistor', 2180, 520, { value: '4.7k' }, { '1': VH, '2': 'OVA' });
+
+  if (!inv) {
+    nb.block('load').note('TEST LOAD (not part of the product): the bus', 2300, -220)
+      .part('RBUS', 'resistor', 2350, -60, { value: o.busLoad ?? '28.9', pmax: '6k' }, { '1': 'HBUS', '2': G }, 1);
+  } else {
+    // ---- sine bridge: one IKW50N60T per switch, driven directly (310 nC)
+    nb.block('bridge');
+    ([['A', 2350, 'SWA'], ['B', 2750, 'SWB']] as const).forEach(([leg, x0, sw]) => {
+      nb.part(`QIH${leg}`, 'igbt', x0, -160, { value: 'IKW50N60T', heatsink: '1' }, { '1': `GIH${leg}`, '2': 'HBUS', '3': sw })
+        .part(`RGIH${leg}`, 'resistor', x0 - 70, -240, { value: '10' }, { '1': `HOI${leg}`, '2': `GIH${leg}` })
+        .part(`RGEH${leg}`, 'resistor', x0 + 70, -240, { value: '10k' }, { '1': `GIH${leg}`, '2': sw }, 1)
+        .part(`QIL${leg}`, 'igbt', x0, 40, { value: 'IKW50N60T', heatsink: '1' }, { '1': `GIL${leg}`, '2': sw, '3': 'SRC' })
+        .part(`RGIL${leg}`, 'resistor', x0 - 70, 120, { value: '10' }, { '1': `LOI${leg}`, '2': `GIL${leg}` })
+        .part(`RGEL${leg}`, 'resistor', x0 + 70, 120, { value: '10k' }, { '1': `GIL${leg}`, '2': 'SRC' }, 1)
+        .part(`UDI${leg}`, 'hbdriver', x0, 300, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '2': 'SD', '8': VH, '3': G, '7': `VBI${leg}`, '6': `HOI${leg}`, '5': sw, '4': `LOI${leg}` })
+        .part(`DBI${leg}`, 'diode', x0 + 120, 220, { value: 'UF4007' }, { '2': VH, '1': `VBI${leg}` })
+        .part(`CBI${leg}`, 'capacitor', x0 + 160, 300, { value: '2.2u', vmax: '25' }, { '1': `VBI${leg}`, '2': sw }, 1)
+        .part(`CDI${leg}`, 'capacitor', x0 - 100, 380, { value: '1u', vmax: '25' }, { '1': VH, '2': G }, 1);
+    });
+    // shunt in the bridge return: ±104 mV is the current window's limit (±69 A, 2.2 × the rated
+    // peak of 31 A)
+    nb.part('RSHI', 'resistor', 2570, 180, { value: '1.5m', pmax: '3' }, { '1': 'SRC', '2': G }, 1);
+    nb.block('output')
+      .part('LF1', 'inductor', 3000, -160, { value: '470u', imax: '80' }, { '1': 'SWA', '2': 'OUTL' })
+      .part('LF2', 'inductor', 3000, 40, { value: '470u', imax: '80' }, { '1': 'SWB', '2': 'GND' })
+      .part('COUT', 'capacitor', 3130, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
+      .part('RVO', 'mov', 3230, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
+      .part('X3', 'terminal', 3350, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
+      .part('X4', 'terminal', 3350, -80, { value: 'N out' }, { '1': 'GND' }, 2)
+      .part('X5', 'terminal', 3350, -20, { value: 'PE' }, { '1': 'GND' }, 2);
+    if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 2980, 160)
+      .part('RLOAD', 'resistor', 3000, 260, { value: o.load ? String(3 * Number(o.load)) : '32.4', pmax: '2k' }, { '1': 'OUTL', '2': 'GND' }, 1)
+      .part('RLOAD2', 'resistor', 3120, 260, { value: o.load ? String(3 * Number(o.load)) : '32.4', pmax: '2k' }, { '1': 'OUTL', '2': 'GND' }, 1)
+      .part('RLOAD3', 'resistor', 3240, 260, { value: o.load ? String(3 * Number(o.load)) : '32.4', pmax: '2k' }, { '1': 'OUTL', '2': 'GND' }, 1);
+    if (o.motorStart) nb.block('bench').note('TEST BENCH: a motor start (locked rotor)', 3900, -220)
+      .part('DMS', 'diode', 3880, 120, { value: '1N4007' }, { '2': 'GND', '1': 'MSC' }, 3)
+      .part('VMS', 'vpulse', 4050, 120, { value: '12', low: '0', freq: '1', duty: String(o.motorStart.for * 100), delay: String(o.motorStart.at), edge: '10u' }, { '1': 'MSC', '2': 'GND' })
+      .part('KMS', 'relay', 3950, 40, { value: '12 V 30 A', zc: 'true' }, { '1': 'MSC', '2': 'GND', '3': 'OUTL', '5': 'MSL' })
+      .part('MST', 'motor1', 4150, -40, { value: '1', rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' }, { '1': 'MSL', '2': 'GND' });
+
+    // ---- bus window and the enable of the sine bridge: EN high above 355 V, low below 325 V
+    // (the hysteresis from EN: any fault restarts only above 355 V); the output protections pull
+    // EN low as in the 50 Hz unit
+    nb.block('bus window')
+      .part('RUV1', 'resistor', 2300, 520, { value: '750k' }, { '1': 'HBUS', '2': 'UVM' }, 1)
+      .part('RUV2', 'resistor', 2300, 620, { value: '750k' }, { '1': 'UVM', '2': 'BUV' }, 1)
+      .part('RUV3', 'resistor', 2300, 740, { value: '9.31k' }, { '1': 'BUV', '2': G }, 1)
+      .part('RLH1', 'resistor', 2420, 560, { value: '1.54k' }, { '1': 'VREF', '2': 'VLOH' }, 1)
+      .part('RLH2', 'resistor', 2420, 680, { value: '10k' }, { '1': 'VLOH', '2': G }, 1)
+      .part('ULVH', 'comparator', 2560, 620, { value: 'LM393', pkg: 'CMPH' }, { '3': 'BUV', '2': 'VLOH', '1': 'EN', '8': VH, '4': G })
+      .part('RUVH', 'resistor', 2560, 740, { value: '750k' }, { '1': 'EN', '2': 'BUV' })
+      .part('RENH', 'resistor', 2680, 520, { value: '10k' }, { '1': VH, '2': 'EN' }, 1)
+      .part('RQEH', 'resistor', 2680, 640, { value: '47k' }, { '1': 'EN', '2': 'BQEH' })
+      .part('QENH', 'npn', 2780, 700, { value: 'BC547B' }, { '1': 'BQEH', '2': 'ENN', '3': G })
+      .part('RQEH2', 'resistor', 2720, 780, { value: '47k' }, { '1': 'BQEH', '2': G }, 1)
+      .part('RENNH', 'resistor', 2800, 560, { value: '10k' }, { '1': VH, '2': 'ENN' }, 1)
+      .part('CDCH', 'capacitor', 2880, 700, { value: '100n', vmax: '50' }, { '1': VH, '2': G }, 1)
+      // undervoltage lockout of the 15 V: EN low below 13 V (the 15 V decays within milliseconds
+      // once the converter stops, while the bus may still be charged: the control must not run on
+      // a failing supply); the second comparator of this LM393 is the side's one spare
+      .part('RUL1', 'resistor', 2980, 520, { value: '42.2k' }, { '1': VH, '2': 'ULS' }, 1)
+      .part('RUL2', 'resistor', 2980, 640, { value: '10k' }, { '1': 'ULS', '2': G }, 1)
+      .part('UUV', 'comparator', 3100, 600, { value: 'LM393', pkg: 'UVH' }, { '3': 'ULS', '2': 'VREF', '1': 'EN', '8': VH, '4': G })
+      .part('USPH', 'comparator', 3100, 760, { value: 'LM393', pkg: 'UVH' }, { '3': G, '2': 'VREF', '1': G, '8': VH, '4': G });
+
+    // ---- the control of the sine bridge (shared with the 50 Hz unit), drawn below
+    nb.ox = 2050;
+    inverterControl(nb, o, { V: VH, G, q50: 'Q50H', cmpT: { value: 'LM393', pkg: 'CMPH' }, bipolar: true });
+    nb.ox = 0;
+  }
+
+  // the installation's insulation resistance from the high-voltage side to PE
+  nb.block('bench').note('TEST BENCH: insulation resistance', 2180, 140)
+    .part('RINS', 'resistor', 2250, 220, { value: '10M' }, { '1': G, '2': 'GND' }, 1);
+
+  if (inv) nb.v('OUTL').v('SINE').v('VA').v('HBUS').v('EN').i('LF1', '1');
+  else nb.v('HBUS').v('VC').v('ENL').i('TR1', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
   const sheet = nb.done();
   if (o.temp !== undefined) sheet.temp = String(o.temp);
+  // a run that starts with the bus charged: every capacitor of the high-voltage side's 15 V rail
+  // starts charged with it (the decoupling at 0 V pulled the rail down to 1.5 V at the start)
+  if (o.precharged) {
+    const c = connectivity(sheet);
+    for (const p of sheet.parts) if ((p.sym === 'capacitor' || p.sym === 'capacitor_pol') && !p.props.ic) {
+      const nets = new Set([c.pinNet.get(`${p.ref}.1`), c.pinNet.get(`${p.ref}.2`)]);
+      if (nets.has(VH) && nets.has(G)) p.props = { ...p.props, ic: '14.8' };
+    }
+  }
   return { sheet, nb };
 }

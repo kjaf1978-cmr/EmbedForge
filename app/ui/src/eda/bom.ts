@@ -2,7 +2,7 @@
 // one line with their quantity and references. Power symbols are not parts.
 
 import { symbolOf } from './symbols';
-import { PACKAGE_UNITS, packageRef, type Sheet } from './schematic';
+import { packageRef, unitsPerPackage, type Sheet } from './schematic';
 import { formatValue, parseValue } from './units';
 import { importModel } from './spicemodel';
 import { pinOrder } from './connectivity';
@@ -41,7 +41,8 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     const key = `${p.sym}|${value}|${details}`;
     const l = lines.get(key);
     const ref = packageRef(p);
-    const part = p.props.pkg && PACKAGE_UNITS[raw] ? `${s.name} (${PACKAGE_UNITS[raw]} in one package)` : s.name;
+    const units = p.props.pkg ? unitsPerPackage(p.sym, raw) : undefined;
+    const part = units ? `${s.name} (${units} in one package)` : s.name;
     if (l) { l.qty++; l.refs.push(ref); } else lines.set(key, { qty: 1, refs: [ref], part, value, details, standard: false, sym: p.sym, raw });
   }
   const out = [...lines.values()];

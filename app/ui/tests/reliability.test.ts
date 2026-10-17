@@ -1,5 +1,5 @@
 // Reliability prediction (D22): MTBF of every power design at 45 °C, wear-out lives.
-import { inverterLF } from '../src/eda/inverters';
+import { inverterHF, inverterLF } from '../src/eda/inverters';
 import { describe, expect, it } from 'vitest';
 import { changeover1, changeover3, mpptCharger, stabiliser } from '../src/eda/powerExamples';
 import { reliability, type Usage } from '../src/eda/reliability';
@@ -27,6 +27,7 @@ describe('reliability prediction', () => {
     ['MPPT charger', mpptCharger().sheet, {}],
     // the battery contactor closes once per start: a few times a day
     ['inverter (50 Hz transformer)', inverterLF().sheet, { opsPerDay: { K1: 5 } }],
+    ['inverter (high-frequency)', inverterHF().sheet, { opsPerDay: { K1: 5 } }],
   ];
   for (const [name, sheet, usage] of designs) {
     it(`${name}: MTBF at 45 °C at least 5 years; every wear-out part lasts at least 5 years at its use`, () => {

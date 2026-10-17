@@ -61,7 +61,7 @@ The test limits are the tests of the app, so design and production use the same 
 5. **Traceability:** serial number on each unit, linked to its batch of critical parts
    (power semiconductors, relays, contactors, varistors) and its end-of-line record.
 6. **Field feedback:** every return analysed for root cause and fed back into the DFMEA
-   (section 6 of DFMEA.md) and FIELD_FAILURES.md.
+   (section 7 of DFMEA.md) and FIELD_FAILURES.md.
 7. **Qualification of each design** before the first delivery: heat run at 50 °C, damp heat
    cyclic 6 cycles (IEC 60068-2-30), salt mist (IEC 60068-2-52) for coastal use, surge
    (IEC 61000-4-5, 4 kV), dips and interruptions (IEC 61000-4-11), IP54 test (IEC 60529).

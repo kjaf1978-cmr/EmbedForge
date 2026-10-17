@@ -169,7 +169,8 @@ export const SYMBOLS: SymbolDef[] = [
     id: 'inductor', name: 'Inductor', category: 'Passive', keywords: ['l', 'coil', 'choke', 'henry'], prefix: 'L',
     description: 'Inductor (ideal, no series resistance).', pins: two('1', '2'), ...H, simulated: true,
     gfx: () => [path('M -30 0 H -20 A 5 5 0 0 1 -10 0 A 5 5 0 0 1 0 0 A 5 5 0 0 1 10 0 A 5 5 0 0 1 20 0 H 30')],
-    value: { key: 'value', label: 'Inductance', kind: 'value', unit: 'H', default: '10m' }, params: [{ key: 'imax', label: 'Current rating', kind: 'value', unit: 'A', default: '1', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } }],
+    value: { key: 'value', label: 'Inductance', kind: 'value', unit: 'H', default: '10m' }, params: [{ key: 'imax', label: 'Current rating', kind: 'value', unit: 'A', default: '1', help: 'for the stress check (smoke analysis)', limits: { gt: 0, text: 'must be above 0' } },
+      { key: 'rloss', label: 'Core loss resistance', kind: 'value', unit: 'Ω', default: '', help: 'optional: the core losses as a resistance across the inductor (V² / core loss); empty = none. It damps the ringing of a switched inductor with the diodes\' capacitance' }],
   },
   {
     id: 'transformer', name: 'Transformer', category: 'Passive', keywords: ['t', 'transformer', 'mains', 'isolation', 'coupled inductors', 'tr'], prefix: 'T',
@@ -188,6 +189,7 @@ export const SYMBOLS: SymbolDef[] = [
       { key: 'k', label: 'Coupling', kind: 'value', default: '0.999', help: 'from above 0 to 1; 1 = no leakage', limits: { gt: 0, le: 1, text: 'must be above 0 and at most 1' } },
       { key: 'rp', label: 'Primary resistance', kind: 'value', unit: 'Ω', default: '1' },
       { key: 'rs', label: 'Secondary resistance', kind: 'value', unit: 'Ω', default: '0.1' },
+      { key: 'rc', label: 'Core loss resistance', kind: 'value', unit: 'Ω', default: '', help: 'optional: the core losses as a resistance across the primary (V² / core loss at the rated voltage); empty = no core loss. It damps the ringing of a ferrite transformer with the switches\' capacitance' },
     ],
   },
   {

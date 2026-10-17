@@ -3,7 +3,7 @@
 Design failure mode and effects analysis of the worked examples of the power track:
 change-over 1P (`changeover-1p`), change-over 3P+N (`changeover-3p`), mains voltage stabiliser
 (`stabiliser`), MPPT solar charger (`mppt-charger`) and the inverters (P7, D30): section 5 the
-50 Hz transformer type; the high-frequency type follows.
+50 Hz transformer type, section 6 the high-frequency type.
 
 ## 1. Method
 
@@ -126,7 +126,37 @@ the people around them. Field root causes: FIELD_FAILURES.md section 5 (FF 5.1 �
 | I-12 | Hum and audible whine | Complaints, transformer stress | PWM in the audible range | 20 kHz PWM | 3 | 2 | 3 | L | analysis |
 | I-13 | Parallel and three-phase operation | Circulating current, units fight (FF 5.6) | Phase or amplitude mismatch | Planned (P7c): shared reference sine and fault line (no sync, no output); droop sharing | 8 | — | — | — | open (P7c) |
 
-## 6. Open actions (not yet closed by design or test)
+## 6. Inverter, high-frequency type (5 kW unit, 48 V LiFePO4) — in design
+
+Function as section 5 (230 V ± 5 %, 50 Hz ± 1 %, THD below 5 %, 5 kW continuous and twice the
+rated current for motor starts, from 42 … 58.4 V). Structure: an isolated DC-DC converter
+(phase-shifted MOSFET full bridge at 20 kHz, peak current-mode, ferrite transformer 1 : 12, SiC
+rectifier) to a 380 V bus, then an IGBT sine bridge with an LC filter; the sine bridge's control
+is section 5's. Rows that repeat section 5 name its row; field root causes: FIELD_FAILURES.md
+section 5 (the HF type).
+
+| # | Failure mode | Effect | Cause | Design action | S | O | D | AP | Verified by |
+|---|---|---|---|---|---|---|---|---|---|
+| H-1 | Inrush when the battery is connected | as I-1 | Empty battery-side capacitors | as I-1 (pre-charge, contactor above 91 %); the 380 V bus then charges through the converter's current limit and soft start, not from the battery directly | 6 | 2 | 2 | L | to do |
+| H-2 | Battery connected the wrong way round | as I-2 | Installer | as I-2 | 9 | 3 | 2 | L | simulation: inverterhf.test.ts H-2 (below 50 mA, bus and aux at 0 V) |
+| H-3 | Bus overvoltage | IGBTs (600 V) and bus capacitors (450 V) destroyed, fire; the converter can reach 12 × 58.4 = 700 V | Bus feedback lost (optocoupler LED open, TL431 or divider failed) | Independent bus overvoltage: own divider, the high-voltage side's reference (not the feedback's TL431), an LM393 with hysteresis drives its own optocoupler U2, which pulls the converter's enable low above 427 V and releases it below 407 V (IGBTs at 71 %, capacitors at 95 % of their rating at the trip) | 10 | 2 | 2 | L | to do |
+| H-4 | Overload or short circuit of the 380 V bus | MOSFETs and rectifier overheat | A sine-bridge IGBT shorted, a wiring fault | Peak current-mode: every half period ends at the current command, which is clamped (about 220 A at the end of a long pulse, more early in a pulse): a cycle-by-cycle limit; the heatsink cut-out and the battery fuse behind it | 8 | 2 | 3 | L | to do |
+| H-5 | DC in the high-frequency transformer (flux walking) | Core saturates, the bridge fails | Unequal half periods (timing, dead time with the current's direction); 0.1 % is enough for 18 A through the 3 mΩ primary | Peak current-mode with the current sensed in the bridge's return (current transformer, from zero, offset included): a half period with an offset ends sooner; gapped core (100 µH). A current transformer in series with the winding could not see the offset: 18 A of DC built up (found in simulation) | 9 | 2 | 2 | L | to do |
+| H-6 | Shoot-through in a bridge leg | MOSFETs or IGBTs destroyed | as I-3 | DC-DC bridge as I-3 (emitter followers for the two gates per switch, fixed dead time, SD); sine bridge: one IGBT per switch driven directly (310 nC), 10k gate–emitter, the driver's dead time and SD | 9 | 2 | 3 | L | to do (stress check) |
+| H-7 | Overload, short circuit, motor start at the output | IGBTs destroyed | as I-4 | as I-4: the current window at ±69 A (2.2 × the rated peak, the shunt 1.5 mΩ) turns all four switches off for at least 20 µs; the overload timer latches the bridge off; the converter's own limit holds the bus | 9 | 3 | 2 | L | to do |
+| H-8 | Overvoltage at the MOSFETs' turn-off | MOSFET avalanche | Leakage and wiring inductance | 100 V MOSFETs on a 58.4 V battery (58 %); film and electrolytic capacitors at the bridge as I-7; the transformer's leakage is small (about 0.1 µH) and its energy goes to the secondary snubber | 8 | 3 | 3 | L | to do (stress check at 58.4 V) |
+| H-9 | Rectifier overvoltage and ringing | Diode failure, interference | Leakage inductance with the diodes' capacitance, reverse recovery | SiC Schottky diodes (no reverse recovery) at 1200 V for 700 V (58 %); RC snubber 470 Ω / 220 pF across the secondary; the output inductor's core losses damp its ringing while its current is zero | 7 | 3 | 3 | L | to do (stress check) |
+| H-10 | Output overvoltage | Loads destroyed | Voltage loop or its sense open | as I-10 (own sense transformer, own reference, latched) | 9 | 2 | 2 | L | to do |
+| H-11 | Bus too low for the output | Distorted output, current limit | Converter at its limit (motor start), low battery | The sine bridge runs only above 355 V and stops below 325 V (comparator with hysteresis from its enable: any fault restarts only above 355 V) | 6 | 3 | 2 | L | to do |
+| H-12 | DC at the output | Loads' transformers saturate | Sine reference or bridge asymmetry | Sine without DC by construction and the DC servo of section 5 on the bridge's mean voltage | 6 | 2 | 3 | L | to do |
+| H-13 | The high-voltage side reaches the battery side or PE | Electric shock on the battery terminals or the control | Insulation failure | Only transformers (HF, auxiliary, current) and optocouplers cross; they are specified for reinforced insulation (4 kV); creepage and clearance on the board (PFMEA); no part has pins on both sides | 10 | 2 | 3 | L | drawing test (no part across the sides); the insulation itself: PFMEA and type test |
+| H-14 | Bus capacitors overheat | Early wear-out, venting | 100 Hz ripple current (about 9 A r.m.s. at 5 kW) and the 20 kHz current | Four 470 µF 450 V snap-in capacitors (about 2.5 A each at 100 Hz), two 2.2 µF film capacitors at the bridge; ripple check with the layout (P8) | 6 | 3 | 3 | L | to do (ripple current in the start-up run) |
+| H-15 | Bus voltage after switch-off | Electric shock during service | 1.9 mF at 380 V (136 J) | Bleeder 2 × 47k (1.5 W): below 50 V within about 6 minutes; warning on the drawing and the enclosure: wait 10 minutes | 9 | 3 | 2 | L | analysis (τ = 177 s) |
+| H-16 | Low or high battery, heatsink | as I-8, I-9, I-11 | as I-8, I-9, I-11 | as I-8, I-9, I-11: they stop the converter; the sine bridge stops when the bus falls below 325 V | 6 | 3 | 2 | L | to do |
+| H-17 | High-voltage auxiliary supply lost | Sine bridge uncontrolled | Auxiliary transformer or regulator failed | The drivers' undervoltage lockout holds the IGBTs off, 10k gate–emitter resistors hold the gates low; without its supply the bus feedback's LED is dark and the bus overvoltage stop takes over | 8 | 2 | 3 | L | analysis |
+| H-18 | Parallel and three-phase operation | as I-13 | as I-13 | Planned (P7c); the 50 Hz square is made on the battery side, where several units can share it | 8 | — | — | — | open (P7c) |
+
+## 7. Open actions (not yet closed by design or test)
 
 | # | Design | Action | AP |
 |---|---|---|---|
@@ -137,7 +167,7 @@ the people around them. Field root causes: FIELD_FAILURES.md section 5 (FF 5.1 �
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
 | all | all | Layouts (P8): creepage for pollution degree 3, coating keep-outs, power tracks per IPC-2221 | M |
 
-## 7. How to keep this DFMEA current
+## 8. How to keep this DFMEA current
 
 Every design change re-runs the tests named above (they are part of the unit suite). A new
 failure mode found in the field or in a test is added here with its root cause, its action

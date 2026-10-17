@@ -52,6 +52,9 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '2N7000': e('2N7000', 'onsemi', 'MOSFET N 60 V 200 mA, TO-92', 0.2, 0.06, 'estimate', any('TO-92')),
   },
   diode: {
+    C4D20120A: e('C4D20120A', 'Wolfspeed', 'SiC Schottky diode 1200 V 20 A, TO-220-2 (no reverse recovery)', 9.5, 6.2, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
+    '1N5819': e('1N5819', 'various', 'Schottky diode 1 A 40 V, DO-41', 0.12, 0.03, 'estimate', any('DO-41')),
+    UF4007: e('UF4007', 'various', 'ultrafast rectifier 1 A 1000 V, 75 ns, DO-41 (bootstrap diode)', 0.12, 0.03, 'estimate', any('DO-41')),
     STTH6003: e('STTH6003CW', 'STMicroelectronics', 'ultrafast diode 2 × 30 A 300 V, TO-247 (both diodes in parallel)', 2.55, 1.7, 'live', [{ distributor: 'Digi-Key' }, { distributor: 'RS', sku: '168-6090' }], 'lead times up to 25 weeks seen'),
     '1N5408': e('1N5408', 'various', 'rectifier diode 3 A 1000 V, DO-201AD', 0.15, 0.05, 'estimate', any('DO-201AD')),
     '1N4007': e('1N4007', 'various', 'rectifier diode 1 A 1000 V, DO-41', 0.1, 0.02, 'estimate', any('DO-41')),
@@ -86,7 +89,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     BC547B: e('BC547B', 'onsemi', 'NPN 45 V 100 mA, TO-92', 0.1, 0.03, 'estimate', any('TO-92')),
     MJE340: e('MJE340G', 'onsemi', 'NPN 300 V 0.5 A, TO-126 (on the heatsink, insulated)', 0.84, 0.35, 'live', [{ distributor: 'Mouser', sku: '863-MJE340G' }, { distributor: 'LCSC', sku: 'C898406' }, { distributor: 'RS', sku: '046-4205' }]),
   },
-  pnp: { BD140: e('BD140-16', 'STMicroelectronics', 'PNP 80 V 1.5 A, TO-126', 0.45, 0.2, 'estimate', any('TO-126')), D45H11: e('D45H11G', 'onsemi', 'PNP 80 V 10 A switching, TO-220', 0.95, 0.45, 'estimate', any('TO-220')) },
+  pnp: { BC557B: e('BC557B', 'onsemi', 'PNP 45 V 100 mA, TO-92', 0.1, 0.03, 'estimate', any('TO-92')), BD140: e('BD140-16', 'STMicroelectronics', 'PNP 80 V 1.5 A, TO-126', 0.45, 0.2, 'estimate', any('TO-126')), D45H11: e('D45H11G', 'onsemi', 'PNP 80 V 10 A switching, TO-220', 0.95, 0.45, 'estimate', any('TO-220')) },
   led: {
     green: e('5 mm green LED, 20 mA', 'Kingbright (e.g. L-53GD)', 'LED 5 mm green, diffused', 0.12, 0.04, 'estimate', any('5 mm LED')),
     yellow: e('5 mm yellow LED, 20 mA', 'Kingbright (e.g. L-53YD)', 'LED 5 mm yellow, diffused', 0.12, 0.04, 'estimate', any('5 mm LED')),
@@ -94,22 +97,33 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   ntc: { '10k': e('NTCLE100E3103JB0', 'Vishay', 'NTC thermistor 10 kΩ, B 3977 K, radial (heatsink sensor)', 0.47, 0.27, 'live', [{ distributor: 'Farnell', sku: '1434160' }, { distributor: 'LCSC', sku: 'C141588' }, { distributor: 'RS', sku: '754-6645' }]) },
   terminal: { '5.08 mm, 1 pole': e('MKDS 1,5/ 2-5,08 (2 poles per block)', 'Phoenix Contact', 'PCB screw terminal 5.08 mm (control and sensors, per pole); mains and battery wiring: DIN-rail terminals PT 10 / PT 16 N', 0.4, 0.25, 'estimate', [{ distributor: 'RS', sku: '193-0564' }], 'power terminals PT 10 BK (RS 207-2871) about €1.00 per pole') },
-  inductor: { '56 µH': e('made to specification', 'magnetics supplier (Kool Mµ / powder-core toroid)', 'power inductor 56 µH at 100 A DC, 20 kHz, powder core, temperature class 155 °C', 105, 52, 'estimate', [{ distributor: 'magnetics supplier' }]) },
+  igbt: { IKW50N60T: e('IKW50N60TFKSA1', 'Infineon', 'IGBT 600 V 50 A TRENCHSTOP with anti-parallel diode, TO-247', 6.4, 4.3, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]) },
+  nor2: { any: e('CD4001BE', 'Texas Instruments', 'quad 2-input NOR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')) },
+  inductor: { '470 µH': e('made to specification', 'magnetics supplier (sendust / Kool Mµ toroid)', 'power inductor 470 µH, 20–40 kHz, powder core, temperature class 155 °C: the bus inductor rated 40 A peak, the output inductors 80 A peak (as the parts list gives)', 42, 24, 'estimate', [{ distributor: 'magnetics supplier' }]),
+  '56 µH': e('made to specification', 'magnetics supplier (Kool Mµ / powder-core toroid)', 'power inductor 56 µH at 100 A DC, 20 kHz, powder core, temperature class 155 °C', 105, 52, 'estimate', [{ distributor: 'magnetics supplier' }]) },
 };
 
 /** Transformers by turns ratio (their value). */
 const TRANSFORMERS: Record<string, CatalogueEntry> = {
   '0.052': e('VB 1,0/1/12', 'Block', 'PCB transformer 230 V / 12 V, 1 VA (sense)', 7.2, 7.2, 'live', [{ distributor: 'RS', sku: '074-8411', url: 'https://es.rs-online.com/web/p/transformadores-de-pcb/0748411' }]),
   '8.36': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 5 kVA, 50 Hz, 27.5 V / 230 V, leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 480, 320, 'estimate', [{ distributor: 'transformer winder' }]),
+  '12': e('made to specification', 'magnetics supplier (ferrite, e.g. 2 × ETD59 or a planar core)', 'high-frequency transformer 5 kW, 20 kHz, 1 : 12 (24 V-equivalent primary of copper foil, 4 kV insulation, reinforced), gapped for 100 µH magnetising, leakage below 0.2 µH', 165, 95, 'estimate', [{ distributor: 'magnetics supplier' }]),
+  '200': e('current-sense transformer 1 : 200 (a catalogue type, e.g. of the Talema AS or Pulse PE-67 series: check the ratio and the primary current)', 'Talema / Pulse', 'current-sense transformer 1 : 200, 20–200 kHz, 20 A RMS primary (the primary as a bus bar through the core), 4 kV insulation', 4.5, 2.8, 'estimate', [{ distributor: 'Mouser / Digi-Key' }]),
+  '1': e('made to specification', 'magnetics supplier (ferrite EE25)', 'auxiliary transformer 2 VA, 20 kHz, 1 : 1 (on one bridge leg through a blocking capacitor), 4 kV reinforced insulation: the supply of the high-voltage side', 6, 3.5, 'estimate', [{ distributor: 'magnetics supplier' }]),
   '0.13': e('FL 24/24 (or Hahn BV EI 482 series)', 'Block / Hahn', 'PCB transformer 230 V / 24 V, 25 VA, short-circuit proof (control supply)', 22, 16, 'estimate', [{ distributor: 'Bürklin / Reichelt' }]),
 };
 
 function capacitor(value: string, vmax: number, pol: boolean): CatalogueEntry {
   const c = parseValue(value) ?? 0;
   if (pol) {
+    if (vmax >= 200) return e(`${value}F ${vmax} V snap-in 105 °C (e.g. Nichicon LGU, KEMET ALC10)`, 'Nichicon / KEMET', `electrolytic ${value}F ${vmax} V, snap-in, 105 °C, DC bus`, 6.5, 4.2, 'estimate', [{ distributor: 'Mouser / Farnell' }]);
     if (c >= 1e-3) return e(`${value}F ${vmax} V 105 °C low-ESR long life (series e.g. Nichicon UHW, Panasonic FC/FR)`, 'Nichicon / Panasonic', `electrolytic ${value}F ${vmax} V, 105 °C, 10 000 h, low ESR`, vmax > 63 ? 5.5 : 3.2, vmax > 63 ? 3.6 : 2.1, 'estimate', [{ distributor: 'Future Electronics / Mouser' }]);
     return e(`${value}F ${vmax} V 105 °C (e.g. Panasonic FC series)`, 'Panasonic / Nichicon', `electrolytic ${value}F ${vmax} V, 105 °C long life`, c >= 50e-6 ? 0.25 : 0.1, c >= 50e-6 ? 0.1 : 0.03, 'estimate', any('radial'));
   }
+  // Y2 safety capacitors (bus to PE) are drawn with a 1.6 kV rating (their 1.5 kV test voltage)
+  if (vmax === 1600) return e(`Y2 safety capacitor ${value}F 300 V AC (e.g. Vishay VY2, TDK CD series)`, 'Vishay / TDK', `${value}F Y2 300 V AC (EMI, line to PE)`, 0.3, 0.12, 'estimate', any('Y2'));
+  if (vmax > 1000) return e(`high-voltage ceramic ${value}F ${vmax} V (e.g. Vishay 2 kV disc)`, 'Vishay / Murata', `${value}F ${vmax} V ceramic disc (snubber)`, 0.3, 0.12, 'estimate', any('HV disc'));
+  if (vmax >= 600 && c >= 1e-6 && c < 5e-6) return e(`DC-link film ${value}F 630 V (e.g. KEMET R76, WIMA MKP4)`, 'KEMET / WIMA', `${value}F 630 V polypropylene film (high-frequency bus capacitor)`, 2.2, 1.3, 'estimate', any('film'));
   if (vmax >= 600) return c >= 50e-9
     ? e('X2 film capacitor 275 V AC (e.g. TDK B32922C3104)', 'TDK / KEMET', `${value}F X2 275 V AC film (across mains contacts)`, 0.35, 0.15, 'estimate', any('X2'))
     : e('film capacitor 630 V DC (e.g. WIMA FKP2)', 'WIMA / KEMET', `${value}F 630 V film (snubber)`, 0.25, 0.1, 'estimate', any('film'));
@@ -125,6 +139,9 @@ function resistor(value: string, pmax: number): CatalogueEntry {
   const r = parseValue(value) ?? 0;
   if (r > 0 && r < 0.5e-3) return e(`busbar shunt ${value}Ω, 10 W, 1 % (e.g. Isabellenhütte BVR series)`, 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %, four-terminal`, 9, 6, 'estimate', [{ distributor: 'RS / Isabellenhütte' }]);
   if (r > 0 && r <= 0.01) return e('BVN-M-R001-1.0', 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %`, 4, 2.5, 'estimate', [{ distributor: 'RS', sku: '193-0103' }]);
+  if (pmax >= 25) return e(`aluminium-housed ${value}Ω ${pmax} W (e.g. Arcol HS50)`, 'Arcol / TE', `resistor ${value}Ω, ${pmax} W, on the chassis`, 4.5, 3, 'estimate', any('aluminium-housed'));
+  if (pmax >= 5) return e(`ceramic wirewound ${value}Ω 10 W (e.g. TE SQP10)`, 'TE / Vishay', `resistor ${value}Ω, ${pmax} W`, 0.7, 0.35, 'estimate', any('10 W ceramic'));
+  if (pmax > 1) return e(`metal oxide ${value}Ω 3 W (e.g. Vishay PR03)`, 'Vishay / Yageo', `resistor ${value}Ω, ${pmax} W`, 0.25, 0.08, 'estimate', any('axial 3 W'));
   if (pmax >= 1) return e(`metal film ${value}Ω 1 W, 1 % (e.g. Vishay PR01)`, 'Vishay / Yageo', `resistor ${value}Ω, ${pmax} W`, 0.12, 0.05, 'estimate', any('axial 1 W'));
   return e(`metal film ${value}Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)`, 'Vishay / Yageo', `resistor ${value}Ω, 0207, 1 %`, 0.08, 0.02, 'estimate', any('0207 1 %'));
 }
@@ -154,6 +171,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
     case 'dff': return BY_VALUE.dff.any; // its value is the supply rail
+    case 'nor2': return BY_VALUE.nor2.any;
     default: return BY_VALUE[line.sym]?.[v] ?? null;
   }
 }

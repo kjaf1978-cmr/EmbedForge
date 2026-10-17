@@ -85,7 +85,7 @@ describe('sources', () => {
 });
 
 describe('semiconductors, every model', () => {
-  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5408': [0.5, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35], STTH6003: [0.3, 0.6] };
+  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5408': [0.5, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35], STTH6003: [0.3, 0.6], UF4007: [0.6, 0.8], C4D20120A: [0.6, 0.95] };
   for (const m of DIODES) it(`diode ${m.name}: conducts forward, blocks reverse`, () => {
     const f = run([V(5, 'A'), R('1k', 'A', 'K'), ['diode', { value: m.name }, { '2': 'K', '1': 'GND' }]]);
     expect(f.v('K')).toBeGreaterThan(fwd[m.name][0]); expect(f.v('K')).toBeLessThan(fwd[m.name][1]);
@@ -159,7 +159,7 @@ describe('protection, power and interface parts', () => {
     expect(Math.max(...out)).toBeGreaterThan(8.3); expect(Math.max(...out)).toBeLessThan(9.2);
     near(measure(r.x, out, 20e-3, 60e-3).freq!, 100, 2);
   });
-  const sat: Record<string, [vcesat: number, amps: number]> = { IKW30N60T: [1.5, 30], IKW40N120T2: [1.75, 40], 'generic 600 V 20 A': [1.8, 20], 'Module 1200 V 100 A': [1.75, 100], 'Module 1200 V 200 A': [1.75, 200], 'Module 1200 V 450 A': [1.75, 450] };
+  const sat: Record<string, [vcesat: number, amps: number]> = { IKW30N60T: [1.5, 30], IKW50N60T: [1.5, 50], IKW40N120T2: [1.75, 40], 'generic 600 V 20 A': [1.8, 20], 'Module 1200 V 100 A': [1.75, 100], 'Module 1200 V 200 A': [1.75, 200], 'Module 1200 V 450 A': [1.75, 450] };
   for (const m of IGBTS) it(`IGBT ${m.name}: VCE(sat) about ${sat[m.name][0]} V at ${sat[m.name][1]} A with 15 V on the gate, blocks with 0 V`, () => {
     const [vs, amps] = sat[m.name];
     const load = String(100 / amps);

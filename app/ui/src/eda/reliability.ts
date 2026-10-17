@@ -15,7 +15,7 @@ import { symbolOf } from './symbols';
 import { connectivity, type Connectivity } from './connectivity';
 import { smoke, THERMAL } from './smoke';
 import { parseValue } from './units';
-import { PACKAGE_PINS, PACKAGE_UNITS, packageRef, type Sheet } from './schematic';
+import { LOGIC_UNITS, PACKAGE_PINS, packageRef, unitsPerPackage, type Sheet } from './schematic';
 import type { SimResult } from '../sim/run';
 
 /** Reference failure rate (FIT at 40 °C) and activation energy (eV) of a part class. */
@@ -120,7 +120,7 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
     const piS = pct > 100 ? 10 : pct > 80 ? 3 : pct > 50 ? 1.5 : 1;
     const piT = piTemp(cls.ea, temp);
     // a unit of a multi-unit IC carries its share of the package
-    const share = p.props.pkg ? 1 / (PACKAGE_UNITS[model] ?? 1) : 1;
+    const share = p.props.pkg ? 1 / (unitsPerPackage(p.sym, model) ?? 1) : 1;
     rows.push({ ref: p.ref, what: cls.what, temp, fitRef: cls.fit * share, piT, piS, fit: cls.fit * share * piT * piS });
     // wear-out
     if (p.sym === 'capacitor_pol') {
@@ -146,7 +146,7 @@ export function reliability(sheet: Sheet, ambient: number, r?: SimResult, usage:
     const k = packageRef(p);
     if (seenPkg.has(k)) return a;
     seenPkg.add(k);
-    return a + (PACKAGE_PINS[p.props[symbolOf(p.sym).value.key] ?? ''] ?? symbolOf(p.sym).pins.length);
+    return a + (PACKAGE_PINS[p.props[symbolOf(p.sym).value.key] ?? ''] ?? (LOGIC_UNITS[p.sym] ? 14 : symbolOf(p.sym).pins.length));
   }, 0);
   const fit = piE * (rows.reduce((a, x) => a + x.fit, 0) + joints * FIT_JOINT);
   const mtbfHours = 1e9 / fit;

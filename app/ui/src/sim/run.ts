@@ -40,7 +40,7 @@ export interface Mech {
   period?: number;
 }
 
-export interface SimFailure { error: string; errors: string[] }
+export interface SimFailure { error: string; errors: string[]; partial?: SimResult }
 
 /** One run of a parameter sweep, on the shared x axis of the stepped result. */
 export interface StepRun {
@@ -326,6 +326,13 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
         break;
       }
     }
+    return result(w);
+  } catch (e) {
+    // a failed transient keeps what it computed before (to see what led to the failure)
+    if (e instanceof SimError) return { error: e.message, errors: [], ...(e.partial?.x.length ? { partial: result(e.partial) } : {}) };
+    throw e;
+  }
+  function result(w: Waveforms): SimResult {
     const v: Record<string, number[]> = {}, vi: Record<string, number[]> = {};
     for (const [netName, node] of net.netNode) {
       v[netName] = node === '0' ? w.x.map(() => 0) : w.v[node] ?? w.x.map(() => 0);
@@ -338,9 +345,6 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
       i: pinCurrents(net, w, false), ii: w.ii ? pinCurrents(net, w, true) : undefined,
       rails: net.rails, notSimulated: net.notSimulated, warnings: [...net.warnings, ...w.warnings, ...switchOnHint(sheet, plan.analysis)], ms: performance.now() - t0,
     };
-  } catch (e) {
-    if (e instanceof SimError) return { error: e.message, errors: [] };
-    throw e;
   }
 }
 

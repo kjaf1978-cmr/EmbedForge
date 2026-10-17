@@ -183,7 +183,10 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       out.push({ kind: 'C', name: ref, a: ci, b: pin['2'], c: v('value', 'capacitance'), ...(ic !== null ? { ic } : {}) });
       break;
     }
-    case 'inductor': out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') }); break;
+    case 'inductor':
+      out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') });
+      if (p.props.rloss?.trim()) out.push({ kind: 'R', name: `${ref}_RL`, a: pin['1'], b: pin['2'], r: v('rloss', 'core loss resistance') });
+      break;
     case 'transformer': {
       const ratio = v('value', 'turns ratio'), lp = v('lp', 'primary inductance'), k = v('k', 'coupling');
       if (!(ratio > 0)) errors.push(`${p.ref}: the turns ratio must be above 0`);
@@ -196,6 +199,8 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'L', name: `${ref}_LS`, a: b, b: pin['4'], l: lp * ratio * ratio },
         { kind: 'K', name: `${ref}_K`, l1: `${ref}_LP`, l2: `${ref}_LS`, k: Math.min(Math.max(k, 1e-6), 1) },
       );
+      // core losses: a resistance across the magnetising inductance
+      if (p.props.rc?.trim()) out.push({ kind: 'R', name: `${ref}_RC`, a, b: pin['2'], r: v('rc', 'core loss resistance') });
       break;
     }
     case 'relay': {
@@ -583,22 +588,25 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       const dm = { is: 1e-15, n: 0.1, rs: 0 };
       const clamp = Math.max(m.railDrop + 0.07, 0), clampLow = Math.max((m.railDropLow ?? m.railDrop) + 0.07, 0);
       out.push(
+        // the internal network is referenced to V− (ground in most designs): an amplifier on a
+        // floating supply (the high-frequency inverter's high-voltage side, which jumps by hundreds
+        // of volts at every switching edge) follows its supply, and passes no current to ground
         { kind: 'R', name: `${ref}_RIN`, a: inp, b: inn, r: m.rin },
-        { kind: 'G', name: `${ref}_G1`, p: '0', n: n1, cp: inp, cn: inn, gm },
-        { kind: 'R', name: `${ref}_R1`, a: n1, b: '0', r: r1 },
-        { kind: 'C', name: `${ref}_C1`, a: n1, b: '0', c: 1 / (2 * Math.PI * r1 * fp) },
-        // the clamps follow the rails through buffers: their current returns to ground, not into
-        // a supply pin (a saturated amplifier fed its own unpowered rail: found in simulation)
+        { kind: 'G', name: `${ref}_G1`, p: vn, n: n1, cp: inp, cn: inn, gm },
+        { kind: 'R', name: `${ref}_R1`, a: n1, b: vn, r: r1 },
+        { kind: 'C', name: `${ref}_C1`, a: n1, b: vn, c: 1 / (2 * Math.PI * r1 * fp) },
+        // the clamps follow the rails through buffers: their current returns to V−, not into
+        // V+ (a saturated amplifier fed its own unpowered rail: found in simulation)
         // (1 Ω each: unpowered, the two clamps overlap; it bounds the current between them)
-        { kind: 'E', name: `${ref}_ERH`, p: `${rh}0`, n: '0', cp: vp, cn: '0', gain: 1 },
+        { kind: 'E', name: `${ref}_ERH`, p: `${rh}0`, n: vn, cp: vp, cn: vn, gain: 1 },
         { kind: 'R', name: `${ref}_RRH`, a: `${rh}0`, b: rh, r: 1 },
         { kind: 'V', name: `${ref}_VH`, p: rh, n: nh, dc: clamp },
         { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm, fixedTemp: true },
-        { kind: 'E', name: `${ref}_ERL`, p: `${rl}0`, n: '0', cp: vn, cn: '0', gain: 1 },
+        { kind: 'E', name: `${ref}_ERL`, p: `${rl}0`, n: vn, cp: vn, cn: vn, gain: 1 },
         { kind: 'R', name: `${ref}_RRL`, a: `${rl}0`, b: rl, r: 1 },
         { kind: 'V', name: `${ref}_VL`, p: nl, n: rl, dc: clampLow },
         { kind: 'D', name: `${ref}_DL`, a: nl, k: n1, model: dm, fixedTemp: true },
-        { kind: 'E', name: `${ref}_EO`, p: oi, n: '0', cp: n1, cn: '0', gain: 1 },
+        { kind: 'E', name: `${ref}_EO`, p: oi, n: vn, cp: n1, cn: vn, gain: 1 },
         { kind: 'R', name: `${ref}_RO`, a: oi, b: o, r: m.rout },
       );
       break;

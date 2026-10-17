@@ -3,7 +3,7 @@
 // drawn as placed parts whose pins carry net labels (GND: a ground symbol), like a SPICE deck
 // laid out on the sheet, so large designs stay readable and every connection is explicit.
 
-import { inverterLF } from './inverters';
+import { inverterHF, inverterLF } from './inverters';
 import { addLabel, placePart } from './editor';
 import { autowire, type AutowireOptions } from './autowire';
 import { annotate, emptySheet, newId, pinPositions, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from './schematic';
@@ -26,11 +26,14 @@ export class NB {
   wired: AutowireOptions | null = null;
   /** Connections the drawing could not wire (they are joined by labels instead). */
   unrouted: string[] = [];
+  /** Offset added to the positions of the parts placed next (a shared section drawn elsewhere). */
+  ox = 0;
+  oy = 0;
   block(name: string): this { this.cur = name; return this; }
   /** Places a part; `key` names it for probes and sweeps (its reference comes from annotation). */
   part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0, mirror = false): this {
     // parts of the test bench (sources, loads, the array, the battery) are not part of the product
-    const r = placePart(this.s, sym, { x, y }, rot, mirror, TEST_BLOCKS.has(this.cur) ? { ...props, scope: 'test' } : props);
+    const r = placePart(this.s, sym, { x: x + this.ox, y: y + this.oy }, rot, mirror, TEST_BLOCKS.has(this.cur) ? { ...props, scope: 'test' } : props);
     this.s = r.sheet;
     this.ids.set(key, r.id);
     this.blocks.set(r.id, this.cur);
@@ -879,5 +882,11 @@ export const POWER_EXAMPLES: Example[] = [
     summary: 'A 16-cell LiFePO₄ battery (42–58.4 V) to 230 V 50 Hz, 5 kW: battery fuse and contactor after a pre-charge, MOSFET full bridge (3 × IRFP4468 per switch, IR2184 drivers with emitter-follower gate buffers), unipolar sine PWM at 20 kHz, 27.5/230 V 5 kVA transformer with an LC output filter. Analogue control: a 50 Hz sine from a 555 and CD4013 through a Butterworth filter (no DC by construction) with a DC servo on the primary, an averaging voltage loop with soft start, a cycle-by-cycle current limit, battery window, heatsink cut-off and an independent latched output overvoltage protection.',
     tryThis: 'Simulate (60 ms, about 12 minutes): the bus charges through the pre-charge resistor, the contactor closes at about 16 ms, then the output OUTL ramps up with the soft start. For the steady state (230 V at 5 kW, THD about 2 %) set the stop time to 140m (about 30 minutes). Set the battery BAT to 41 V or 62 V: the bridge stays stopped.',
     build: () => withInfo(inverterLF({ stop: '60m' }).sheet, 'inverter-lf', ['dfmea:5. Inverter, 50 Hz transformer type', 'reliability', 'help:power-maintenance']),
+  },
+  {
+    id: 'inverter-hf', title: 'Inverter 48 V → 230 V 50 Hz, high-frequency type (5 kW)', level: 'advanced',
+    summary: 'A 16-cell LiFePO₄ battery (42–58.4 V) to 230 V 50 Hz, 5 kW, without a 50 Hz transformer: an isolated DC-DC converter (phase-shifted MOSFET full bridge at 20 kHz, peak current-mode with a current transformer, ferrite transformer 1 : 12, SiC rectifier, 470 µH) charges a 380 V bus, held by a TL431 through an optocoupler; an IGBT full bridge (IKW50N60T, bipolar sine PWM at 20 kHz) with 2 × 470 µH and 10 µF makes the sine. The battery side and the floating 380 V side meet only in transformers and optocouplers. The sine control is the 50 Hz-transformer unit\'s; the battery side adds pre-charge and contactor, battery window and heatsink cut-off, the bus side an independent bus overvoltage stop and an undervoltage lockout.',
+    tryThis: 'Simulate (40 ms, about 25 minutes): the contactor closes at about 14 ms, then the converter holds the bus HBUS at 380 V and the output OUTL ramps up with the soft start. Set the stop time to 160m for the steady state at 5 kW (over an hour). Set the battery BAT to 41 V: the converter never starts.',
+    build: () => withInfo(inverterHF({ stop: '40m' }).sheet, 'inverter-hf', ['dfmea:6. Inverter, high-frequency type', 'reliability', 'help:power-maintenance']),
   },
 ];

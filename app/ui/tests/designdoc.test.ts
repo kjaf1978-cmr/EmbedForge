@@ -15,7 +15,7 @@ import { parseMd } from '../src/eda/md';
 const bytes = (f: string) => new Uint8Array(readFileSync(f));
 const fonts = { regular: bytes('node_modules/dejavu-fonts-ttf/ttf/DejaVuSans.ttf'), bold: bytes('node_modules/dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf') };
 const PNG = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64'));
-const POWER = ['changeover-1p', 'changeover-3p', 'stabiliser', 'mppt-charger', 'inverter-lf'];
+const POWER = ['changeover-1p', 'changeover-3p', 'stabiliser', 'mppt-charger', 'inverter-lf', 'inverter-hf'];
 
 describe('parts catalogue', () => {
   it('every product part of the power designs has a manufacturer part number and a price; test-bench parts are not listed', () => {

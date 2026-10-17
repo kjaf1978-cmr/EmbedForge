@@ -11,12 +11,16 @@ export const DIODES: NamedModel<DiodeModel>[] = [
   { name: '1N4148', note: 'small-signal switching diode, 100 V / 200 mA', model: { is: 2.52e-9, n: 1.752, rs: 0.568, bv: 100, ibv: 100e-6 } },
   { name: '1N5408', note: 'rectifier diode, 1000 V / 3 A (approximate model)', model: { is: 2e-8, n: 1.9, rs: 0.012, bv: 1000, ibv: 1e-5, cj: 40e-12 } },
   { name: '1N4007', note: 'rectifier diode, 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6, cj: 15e-12 } },
+  { name: 'UF4007', note: 'ultrafast rectifier diode, 1000 V / 1 A, 75 ns: bootstrap diode of high-voltage gate drivers', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6, cj: 17e-12 } },
   { name: '1N5819', note: 'Schottky diode, 40 V / 1 A, low forward voltage', model: { is: 31.7e-6, n: 1.373, rs: 0.051, bv: 40, ibv: 1e-3, xti: 2, eg: 0.69 } },
   // fitted to the datasheet forward curve: 0.32 V at 1 mA, 0.8 V at 100 mA
   { name: 'BAT54', note: 'small-signal Schottky diode, 30 V / 200 mA', model: { is: 9.7e-8, n: 1.34, rs: 3.2, bv: 30, ibv: 2e-6, xti: 2, eg: 0.69 } },
   // 0.5 V at 3 A
   { name: 'SS34', note: 'power Schottky diode, 40 V / 3 A (SMC)', model: { is: 5.5e-6, n: 1.2, rs: 0.03, bv: 40, ibv: 0.5e-3, xti: 2, eg: 0.69 } },
   // fitted to the datasheet forward curve at 25 °C: 0.95 V at 30 A, 1.15 V at 60 A
+  // SiC Schottky: no reverse recovery (no ringing at the turn-off of a high-voltage rectifier);
+  // fitted to 1.0 V at 1 A and 1.5 V at 20 A (25 °C)
+  { name: 'C4D20120A', note: 'SiC Schottky diode, 1200 V / 20 A (TO-220-2): high-voltage rectifier of converters, no reverse recovery (approximate model)', model: { is: 2e-12, n: 1.4, rs: 0.025, bv: 1200, ibv: 1e-4, cj: 100e-12 } },
   { name: 'STTH6003', note: 'ultrafast power rectifier, 300 V / 60 A (TO-247): freewheeling diode of converters', model: { is: 2.05e-7, n: 1.6, rs: 0.0057, bv: 300, ibv: 1e-4, cj: 100e-12 } },
 ];
 
@@ -94,6 +98,7 @@ export interface IgbtModel { vto: number; kp: number; bf: number; is: number; di
 
 export const IGBTS: NamedModel<IgbtModel>[] = [
   { name: 'IKW30N60T', note: 'IGBT 600 V / 30 A with anti-parallel diode, VCE(sat) ≈ 1.5 V, VGE(th) ≈ 4.9 V (TO-247, approximate)', model: { vto: 4.9, kp: 1.89, bf: 1, is: 1e-10, diode: { is: 1e-9, n: 1.5, rs: 0.02 } } },
+  { name: 'IKW50N60T', note: 'IGBT 600 V / 50 A with anti-parallel diode, VCE(sat) ≈ 1.5 V, VGE(th) ≈ 4.9 V (TO-247, approximate)', model: { vto: 4.9, kp: 3.15, bf: 1, is: 1.7e-10, diode: { is: 1.7e-9, n: 1.5, rs: 0.012 } } },
   { name: 'IKW40N120T2', note: 'IGBT 1200 V / 40 A with anti-parallel diode, VCE(sat) ≈ 1.75 V, VGE(th) ≈ 5.8 V (TO-247, approximate)', model: { vto: 5.8, kp: 2.16, bf: 1, is: 1e-10, diode: { is: 1e-9, n: 1.5, rs: 0.02 } } },
   { name: 'generic 600 V 20 A', note: 'IGBT 600 V / 20 A without diode (reverse blocking), VCE(sat) ≈ 1.8 V, VGE(th) ≈ 5.5 V', model: { vto: 5.5, kp: 0.95, bf: 1, is: 1e-10 } },
 ];

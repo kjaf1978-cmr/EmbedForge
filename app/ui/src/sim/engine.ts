@@ -75,7 +75,10 @@ function lteStep(hist: [number, number][], t: number, q: number, h: number, meth
 }
 const MAX_EXP = 80;
 
-export class SimError extends Error {}
+export class SimError extends Error {
+  /** The waveforms computed before a transient failed (to see what led to it). */
+  partial?: Waveforms;
+}
 
 /** The positions of the matrix that any device has ever written (index i·n + j), so the matrix
  *  is cleared and handed to the solver by its non-zeros instead of all n² entries. */
@@ -1262,7 +1265,11 @@ export class Engine {
       const it = this.newton(c, 100, false);
       if (it < 0) {
         h = hh / 8;
-        if (h < hmin) throw new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence${this.noConv ? `, last at the ${this.noConv}` : ''})`);
+        if (h < hmin) {
+          const e = new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence${this.noConv ? `, last at the ${this.noConv}` : ''})`);
+          e.partial = out;
+          throw e;
+        }
         continue;
       }
       // truncation error: reject a step that is too long for the reactive parts

@@ -3,7 +3,7 @@
 
 import { symbolOf, railVoltage, type Pt } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
-import { PACKAGE_UNITS, packageRef, pinPositions, type Sheet } from './schematic';
+import { packageRef, pinPositions, unitsPerPackage, type Sheet } from './schematic';
 import { unbuyable } from './standard';
 
 export type Severity = 'error' | 'warning' | 'info';
@@ -128,8 +128,10 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
   for (const l of sheet.parts.filter((p) => ['inductor', 'relay', 'dcmotor'].includes(p.sym))) {
     const a = conn.pinNet.get(`${l.ref}.1`), b = conn.pinNet.get(`${l.ref}.2`);
     if (!a || !b) continue;
-    const switched = sheet.parts.some((q) => ((q.sym === 'npn' || q.sym === 'pnp') && [a, b].includes(conn.pinNet.get(`${q.ref}.2`) ?? '')) ||
-      ((q.sym === 'nmos' || q.sym === 'pmos') && [a, b].includes(conn.pinNet.get(`${q.ref}.2`) ?? '')));
+    // a collector or drain on ground switches nothing (an output inductor to N, a PNP's collector)
+    const ends = [a, b].filter((n) => n !== GND_NET);
+    const switched = sheet.parts.some((q) => ((q.sym === 'npn' || q.sym === 'pnp') && ends.includes(conn.pinNet.get(`${q.ref}.2`) ?? '')) ||
+      ((q.sym === 'nmos' || q.sym === 'pmos') && ends.includes(conn.pinNet.get(`${q.ref}.2`) ?? '')));
     if (!switched) continue;
     const flyback = sheet.parts.some((d) => ['diode', 'zener'].includes(d.sym) &&
       new Set([conn.pinNet.get(`${d.ref}.1`), conn.pinNet.get(`${d.ref}.2`)]).size === 2 &&
@@ -145,7 +147,7 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
   for (const p of sheet.parts) if (p.props.pkg) pk.set(packageRef(p), [...(pk.get(packageRef(p)) ?? []), p]);
   for (const [ref, units] of pk) {
     const vals = new Set(units.map((u) => u.props[symbolOf(u.sym).value.key]));
-    const cap = PACKAGE_UNITS[[...vals][0]] ?? 1;
+    const cap = unitsPerPackage(units[0].sym, [...vals][0]) ?? 1;
     if (vals.size > 1) add({ severity: 'error', rule: 'package', message: `${ref}: its units are of different types (${[...vals].join(', ')}).`, at: { x: units[0].x, y: units[0].y }, refs: units.map((u) => u.ref) });
     else if (units.length > cap) add({ severity: 'error', rule: 'package', message: `${ref}: ${units.length} units, but a ${[...vals][0]} has ${cap}.`, at: { x: units[0].x, y: units[0].y }, refs: units.map((u) => u.ref) });
   }

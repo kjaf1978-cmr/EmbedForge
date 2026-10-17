@@ -214,6 +214,10 @@ export function valueText(p: Part): string {
 /** Units per package of the multi-unit ICs: parts with the same `pkg` property are the units
  *  of one IC (U3A, U3B…), counted once in the parts list. */
 export const PACKAGE_UNITS: Record<string, number> = { LM339: 4, LM393: 2, LM358: 2, TL072: 2, TL074: 4, LM324: 4 };
+/** Units per package of the logic ICs (CD4000 series, 14 pins: their value is the supply rail). */
+export const LOGIC_UNITS: Record<string, number> = { dff: 2, and2: 4, nand2: 4, or2: 4, nor2: 4, xor2: 4, not: 6, schmitt: 6 };
+/** Units in the package of a part with `pkg`: by its type, or for logic by its symbol. */
+export const unitsPerPackage = (sym: string, value: string): number | undefined => PACKAGE_UNITS[value] ?? LOGIC_UNITS[sym];
 /** Package pin count of the multi-unit ICs (for the solder joints of the reliability count). */
 export const PACKAGE_PINS: Record<string, number> = { LM339: 14, LM393: 8, LM358: 8, TL072: 8, TL074: 14, LM324: 14 };
 
