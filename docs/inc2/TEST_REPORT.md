@@ -19,10 +19,10 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 813 passed, 30 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
-| Inverter DFMEA runs (P7a) | `cd app/ui && npm run test:long` | 13 of 13 passed on the final design (section 3h) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 815 passed, 32 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
+| Inverter DFMEA runs (P7a) | `cd app/ui && npm run test:long` | 13 of 13 passed on the final design, motor start and 58.4 V included (section 3h) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
-| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9); 41 passed, 3 consecutive runs (0.2.6) |
+| Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9, and again 17 October with `PW_CHROMIUM=/opt/pw-browsers/chromium`); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
 
 ## 1a. Signed releases (SEC-02, TEST-04)
@@ -343,8 +343,14 @@ in the simulator, each fixed with the unit suite passing afterwards:
 - **New:** a transient can store one point per print step (`thin`) for long switching runs;
   electrolytic capacitors have an optional ESR; the IR2184's SD pin; 1N5408 with a DO-201AD
   footprint.
+- **Relay contact at a current zero:** a relay can be drawn with `zc` so its contact opens
+  only when its current passes zero, as an AC contact's arc goes out. Breaking a motor's 85 A
+  at once gave a 717 V spike that no real contact makes. The decision to open is now taken
+  once per accepted step (it was taken before the step was accepted, so the contact never
+  opened); tests/devices.test.ts checks the contact opens at 63.2 ms with `zc` and at 55 ms
+  without.
 
-Inverter runs on the final design (17 October; each 3 to 35 minutes):
+Inverter runs on the final design (17 October; each 3 to 90 minutes):
 
 | Test | Result |
 |---|---|
@@ -354,8 +360,10 @@ Inverter runs on the final design (17 October; each 3 to 35 minutes):
 | I-8 41 V, 45 V; I-9 62 V; I-11 95 °C: no start | passed |
 | 48 V, 58.4 V, 85 °C: starts | passed |
 | start-up at 5 kW, 140 ms: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | passed |
-| I-10 sense open: protection trips and latches | passed |
+| I-10 sense open: protection trips and latches (100 ms; the 21 ms filter trips about 60 ms in) | passed |
 | I-4 short circuit: limit, overload timer, stress check | passed |
+| I-7 5 kW at 58.4 V: stress check | passed |
+| I-4 motor start at half load: limit holds, nothing trips, output recovers, peak below 130 % | passed |
 
 The start-up run gave 229.5 V, THD 2.5 %, primary mean current −0.6 A and steady. Its first
 stress check flagged only the test bench's load resistor (rated 1.5 kW for a 5 kW load); rated

@@ -232,9 +232,12 @@ low-ESR electrolytic bus capacitors → MOSFET full bridge (3 × IRFP4468 per sw
 drivers, D44H11/D45H11 gate buffers) with unipolar sine PWM at 20 kHz → 27.5/230 V 5 kVA
 transformer, 10 µF filter → 230 V 50 Hz. Analogue control: 555 and CD4013 for an exact 50 Hz,
 a square VME ± VA/2 and a 4th-order Butterworth for the sine (no DC by construction), a DC
-servo on the primary, an averaging voltage loop with soft start, a window comparator on the
+servo on the primary, an averaging voltage loop with soft start and a peak limiter (the loop
+cannot wind up during a current limit and overshoot afterwards), a window comparator on the
 shunt (twice the rated peak, all four switches off for 20 µs), an overload timer, battery
-window, heatsink cut-out and an independent latched output overvoltage protection.
+window, heatsink cut-out and an independent latched output overvoltage protection (its sense
+filtered over 21 ms, so it rides through one peak when a large load is disconnected and trips
+within about 60 ms of a real fault).
 
 Verified by simulation (tests/inverter.test.ts; the runs with the bridge switching take 3 to
 35 minutes each and run with `npm run test:long`; results in TEST_REPORT.md section 3h):
@@ -247,7 +250,9 @@ Verified by simulation (tests/inverter.test.ts; the runs with the bridge switchi
 | short circuit from the start (I-4) | bridge current below 650 A (limit 519 A), the overload timer latches the bridge off, no part over its ratings |
 | 41, 45, 48, 58.4, 62 V; heatsink 85 and 95 °C (I-8, I-9, I-11) | stops or starts as designed |
 | voltage-loop sense open (I-10) | the independent protection trips and holds the bridge off |
+| 5 kW at 58.4 V, fully charged (I-7) | every part within its ratings, MOSFET voltage at turn-off included |
+| motor start at half load (I-4): locked rotor, about 85 A, for 50 ms | the current limit holds, nothing trips, back to 230 V −10 % … +5 % about 40 ms after the disconnect; the first half cycle after the disconnect peaks at 127 % (bound 130 %); no product part over its ratings |
 
-Still to do for P7a: motor start (surge), stress check at 58.4 V, reliability figures, a
-person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
+Reliability (RELIABILITY.md): 234 parts, 1958 FIT, 58 years at 45 °C. Still to do for P7a:
+a person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
 default) take about 12 minutes.
