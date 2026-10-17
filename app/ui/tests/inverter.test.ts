@@ -110,9 +110,12 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     const zc: number[] = []; for (let k = k0 + 1; k < s.x.length; k++) if (out[k - 1] < 0 && out[k] >= 0) zc.push(s.x[k - 1] + (-out[k - 1] / (out[k] - out[k - 1])) * (s.x[k] - s.x[k - 1]));
     expect(zc.length).toBeGreaterThanOrEqual(2);
     expect(Math.abs((zc.length - 1) / (zc[zc.length - 1] - zc[0]) - 50)).toBeLessThan(1);
-    // I-5: the mean voltage across the primary (DC servo, still settling) below 0.13 % of its 39 V peak
-    const sw = s.r.v['SWA'].map((v, k) => v - s.r.v['SWB'][k]);
-    expect(Math.abs(s.mean(sw, t1))).toBeLessThan(0.05);
+    // I-5: no DC in the transformer: the primary's mean current over the last period below 2 A
+    // (1 % of the rated 182 A) and not ramping from one period to the next. (The bridge nodes
+    // are stored every 5 µs, too coarse for their mean at 20 kHz; the current is smooth.)
+    const ip = s.cur('TR1', '1'), m1 = s.mean(ip, 0.12), m0 = s.mean(ip, t1) * 2 - m1; // 120–140 ms and 100–120 ms
+    expect(Math.abs(m1)).toBeLessThan(2);
+    expect(Math.abs(m1 - m0)).toBeLessThan(0.5);
     // no overshoot during the soft start
     expect(s.max(out.map(Math.abs))).toBeLessThan(230 * Math.SQRT2 * 1.08);
     // I-3, I-6, I-7: stress of every part (MOSFET currents, voltages, power) within its ratings

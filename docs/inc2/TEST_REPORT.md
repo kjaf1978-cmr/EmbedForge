@@ -19,7 +19,8 @@
 |---|---|---|
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
-| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 789 passed, 19 skipped (0.2.9; the charger tests are split over three files that skip each other's cases) |
+| UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 813 passed, 30 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
+| Inverter DFMEA runs (P7a) | `cd app/ui && npm run test:long` | 12 of 13 passed on the final design; the start-up run is being repeated (section 3h) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
@@ -313,6 +314,56 @@ Found and fixed on the way:
   (TVS, bridge rectifier, IGBT, optocoupler, TL431, NTC, fuse), nor for the servo's and the DC
   motor's outputs, so their nets were reported as floating. A test now checks that every part
   states its DC paths.
+
+## 3h. Inverter P7a and the simulator faults it found (16–17 October 2026)
+
+The 50 Hz-transformer inverter (POWER.md, P7a) is the largest circuit so far (384 parts). Its
+DFMEA runs found design faults, now fixed and listed in DFMEA.md section 5, and these faults
+in the simulator, each fixed with the unit suite passing afterwards:
+
+- **Op-amp model:** the output clamps were voltage sources tied to the supply pins. A
+  saturated op-amp pushed its clamp current into V+ (an unpowered 12 V rail sat at 3 V), and
+  every op-amp rail counted as driven, so ±12 V rails drawn with power symbols floated. The
+  clamps now follow the rails through buffers, with 1 Ω so the two clamps of an unpowered
+  op-amp cannot draw unbounded current.
+- **Comparator model:** the output transistor driven into saturation through 1k converged
+  poorly at every switching edge; the output is now a MOSFET (same switching point, 25 Ω on).
+- **Power-on start:** MOSFET capacitances were held at 0 V like ordinary capacitors; with a
+  charged bus that shorted every MOSFET (205 kA at t = 0). They now follow the circuit.
+- **Trapezoidal ringing:** a capacitor current that flips sign at a similar size on three
+  steps gets one backward-Euler step (the charger's reversed-PV case carried ±1.7 A through its
+  battery for ever; that test failed before the fix).
+- **Newton:** 100 iterations in a transient (50 were too few where a comparator output enters
+  saturation, and the step then shrank until the matrix lost precision); the error message
+  names the unknown that did not converge.
+- **SPICE export:** RAIL_+12V and RAIL_−12V had the same name.
+- **Stress check:** a regulator's output current is checked as its average (its rating is a
+  continuous one); a switching MOSFET's RMS current against its continuous rating and its peak
+  against a pulsed rating, taken conservatively as twice the package-limited current.
+- **New:** a transient can store one point per print step (`thin`) for long switching runs;
+  electrolytic capacitors have an optional ESR; the IR2184's SD pin; 1N5408 with a DO-201AD
+  footprint.
+
+Inverter runs on the final design (17 October; each 3 to 35 minutes):
+
+| Test | Result |
+|---|---|
+| drawing: ERC clean, every connection drawn, text readable | passed (default suite) |
+| I-2 battery reversed | passed (default suite) |
+| I-1 connecting the battery (150 ms) | passed |
+| I-8 41 V, 45 V; I-9 62 V; I-11 95 °C: no start | passed |
+| 48 V, 58.4 V, 85 °C: starts | passed |
+| start-up at 5 kW, 140 ms: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | see below |
+| I-10 sense open: protection trips and latches | passed |
+| I-4 short circuit: limit, overload timer, stress check | passed |
+
+The start-up run gave 229.5 V, THD 2.5 %, primary mean current −0.6 A and steady. Its stress
+check flagged only the test bench's load resistor (rated 1.5 kW for a 5 kW load); with the
+load rated 6 kW the run is being repeated.
+
+Measurement note: long runs store a point every 5 µs. That is fine for the output and the
+currents, but too coarse for the mean of the 20 kHz bridge nodes, so the DC check uses the
+primary current.
 
 ## 4. Usability (section 22 step 4)
 

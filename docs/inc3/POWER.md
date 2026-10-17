@@ -180,6 +180,7 @@ power designs (all parts listed with their nets and checked one by one):
 | change-over 3P+N | 2 spare LM339 units | three LM339 and an LM393 hold the fourteen comparators exactly |
 | stabiliser | 2 spare comparators (protection in an LM393 now); 470k + 68k of the restart delay | one 1 MΩ resistor gives the same delay (0.8 % shorter) |
 | MPPT charger | the spare half of the TL072 (now a single TL071); two LM393 packages | the independent overvoltage latch keeps its own LM393, the other seven comparators fit two LM339 |
+| inverter (P7a) | the LM358 shunt amplifier and four resistors; one of two FETs holding the driver inputs; a bleed resistor of the overload timer | the shunt goes straight into the window comparator; both drivers' SD pins share one FET; the timer empties through its own resistors. All six IC packages are full (the freed LM358 unit is the overload timer) |
 
 Kept on purpose, each with its function in the drawing's notes or the DFMEA: one spare unit
 where an odd count leaves it (its inputs held so it cannot oscillate); one decoupling capacitor
@@ -216,9 +217,37 @@ Verified (tests/charger.test.ts, charger2, charger3, charger.faults):
 |---|---|
 | 1000, 500, 200 W/m² at 25 °C; 1000, 300 W/m² at 65 °C | array at ≥ 97 % of its maximum power; ≥ 93 % reaches the battery; inductor peak < 110 A |
 | deeply discharged battery (44 V) | 75 … 82 A (limit 80 A) |
-| nearly full battery (56.4 V) | held at 56.4 … 56.8 V, current < 15 A |
+| nearly full battery (56.4 V) | held at 56.4 … 56.8 V, current < 20 A (the bound is (V − 56.4 V) / 10 mΩ: 5 mV of regulation is 0.5 A) |
 | hot case: 1000 W/m², 65 °C air and cells | every power semiconductor below Tj 125 °C on its heatsink |
 | 7 DFMEA fault cases (above) | the protection acts as designed |
 
 Larger batteries (10–30 kWh) use several units in parallel, one array each; the outputs are
 blocked against reverse current, so they share without interaction.
+
+### P7a — inverter, 50 Hz transformer type (one 5 kW unit, 48 V; DFMEA section 5)
+
+Example `inverter-lf` (src/eda/inverters.ts): 16-cell LiFePO₄ battery (42 … 58.4 V) → class T
+fuse → pre-charge (10 Ω, 1N5408) and a 150 A DC contactor with a 48 V coil → film and two
+low-ESR electrolytic bus capacitors → MOSFET full bridge (3 × IRFP4468 per switch, IR2184
+drivers, D44H11/D45H11 gate buffers) with unipolar sine PWM at 20 kHz → 27.5/230 V 5 kVA
+transformer, 10 µF filter → 230 V 50 Hz. Analogue control: 555 and CD4013 for an exact 50 Hz,
+a square VME ± VA/2 and a 4th-order Butterworth for the sine (no DC by construction), a DC
+servo on the primary, an averaging voltage loop with soft start, a window comparator on the
+shunt (twice the rated peak, all four switches off for 20 µs), an overload timer, battery
+window, heatsink cut-out and an independent latched output overvoltage protection.
+
+Verified by simulation (tests/inverter.test.ts; the runs with the bridge switching take 3 to
+35 minutes each and run with `npm run test:long`; results in TEST_REPORT.md section 3h):
+
+| Condition | Result |
+|---|---|
+| 5 kW, 52 V, start from a charged bus, 140 ms | 230 V ± 3 % (229.5 V), THD below 3 % (2.5 %), 50 Hz, no overshoot, no DC in the primary (mean current below 2 A and steady), every part within its ratings |
+| connecting the battery (I-1) | pre-charge below 5.5 A, contactor closes above 91 % of the battery, then the bridge starts |
+| battery reversed (I-2) | nothing conducts |
+| short circuit from the start (I-4) | bridge current below 650 A (limit 519 A), the overload timer latches the bridge off, no part over its ratings |
+| 41, 45, 48, 58.4, 62 V; heatsink 85 and 95 °C (I-8, I-9, I-11) | stops or starts as designed |
+| voltage-loop sense open (I-10) | the independent protection trips and holds the bridge off |
+
+Still to do for P7a: motor start (surge), stress check at 58.4 V, reliability figures, a
+person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
+default) take about 12 minutes.

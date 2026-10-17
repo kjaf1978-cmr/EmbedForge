@@ -115,7 +115,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('X4', 'terminal', 1800, -80, { value: 'N out' }, { '1': 'GND' }, 2)
     .part('X5', 'terminal', 1800, -20, { value: 'PE' }, { '1': 'GND' }, 2);
   if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 1900, -220)
-    .part('RLOAD', 'resistor', 1950, -60, { value: o.load ?? '10.7', pmax: '1.5k' }, { '1': 'OUTL', '2': 'GND' }, 1);
+    .part('RLOAD', 'resistor', 1950, -60, { value: o.load ?? '10.7', pmax: '6k' }, { '1': 'OUTL', '2': 'GND' }, 1);
 
   // ---- 12 V control supply from the battery (after the fuse; a diode against reversal)
   nb.block('aux')
