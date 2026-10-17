@@ -65,7 +65,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     expect(s.max(ibat)).toBeLessThan(400);
     expect(s.at('EN', s.x[kClose] - 1e-3)).toBeLessThan(1);
     expect(s.last('EN')).toBeGreaterThan(8);
-  }, 900_000);
+  }, 3_600_000);
 
   // the battery window (I-8, I-9) and the heatsink (I-11): EN stays low, so the bridge never starts
   for (const [what, o] of [
@@ -84,7 +84,9 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   }
   for (const [what, o] of [
     ['battery at 48 V, above the restart level', { vbat: 48 }],
-    ['battery at 60 V, below the high cut-out', { vbat: 60 }],
+    // 58.4 V: sixteen LiFePO4 cells fully charged (the cut-out's hysteresis band, 59.4 … 61.3 V,
+    // starts tripped at power-up)
+    ['battery at 58.4 V, fully charged, below the high cut-out', { vbat: 58.4 }],
     ['heatsink at 85 °C', { theatsink: 85 }],
   ] as [string, InverterLfOptions][]) {
     it(`${what}: the bridge starts once the contactor has closed`, async () => {

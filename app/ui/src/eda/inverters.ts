@@ -9,8 +9,8 @@ import type { Sheet } from './schematic';
  *  air and heatsink temperatures (°C), simulated time, and short timings for tests. */
 export interface InverterLfOptions {
   vbat?: number; load?: string; stop?: string; temp?: number; theatsink?: number;
-  /** Tests: the bus capacitors start charged to the battery voltage (the pre-charge itself has
-   *  its own test), so a run reaches the output sooner. */
+  /** Tests: the bus capacitors and the battery-sense filters start at their settled voltages, as
+   *  after the pre-charge (it has its own test), so a run reaches the output sooner. */
   precharged?: boolean;
   /** Tests: a smaller soft-start capacitor (the product's 220 nF ramps in about 0.1 s). */
   softC?: string;
@@ -153,7 +153,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RBS2', 'resistor', -760, 740, { value: '10k' }, { '1': 'VBS', '2': 'GND' }, 1)
     // 4.5 ms: the cut-out follows the battery, not the bus sag at each current-limit cycle
     // (that stopped and restarted the bridge every 20–30 ms in a short: found in simulation)
-    .part('CBS', 'capacitor', -700, 800, { value: '470n', vmax: '25' }, { '1': 'VBS', '2': 'GND' }, 1)
+    .part('CBS', 'capacitor', -700, 800, { value: '470n', vmax: '25', ...(o.precharged ? { ic: (((o.vbat ?? 52) - 0.85) / 21).toFixed(3) } : {}) }, { '1': 'VBS', '2': 'GND' }, 1)
     .part('RLV1', 'resistor', -620, 620, { value: '1.54k' }, { '1': 'VREF', '2': 'VLO' }, 1)
     .part('RLV2', 'resistor', -620, 740, { value: '10k' }, { '1': 'VLO', '2': 'GND' }, 1)
     .part('ULV', 'comparator', -480, 680, { value: 'LM339', pkg: 'CMP1' }, { '3': 'VBS', '2': 'VLO', '1': 'EN', '8': V, '4': 'GND' })
@@ -162,7 +162,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RBH2', 'resistor', -340, 740, { value: '10k' }, { '1': 'VBH', '2': 'GND' }, 1)
     // 4.5 ms as on VBS: the bus jumps by 10–15 V for microseconds when the bridge turns off a
     // current-limit peak, and that tripped the high cut-out (found in simulation)
-    .part('CBH', 'capacitor', -280, 800, { value: '470n', vmax: '25' }, { '1': 'VBH', '2': 'GND' }, 1)
+    .part('CBH', 'capacitor', -280, 800, { value: '470n', vmax: '25', ...(o.precharged ? { ic: (((o.vbat ?? 52) - 0.85) / 25.3).toFixed(3) } : {}) }, { '1': 'VBH', '2': 'GND' }, 1)
     .part('RHV1', 'resistor', -220, 620, { value: '715' }, { '1': 'VREF', '2': 'VHI' }, 1)
     .part('RHV2', 'resistor', -220, 740, { value: '10k' }, { '1': 'VHI', '2': 'GND' }, 1)
     .part('UHV', 'comparator', -80, 680, { value: 'LM393', pkg: 'PROT' }, { '3': 'VHI', '2': 'VBH', '1': 'HVN', '8': V, '4': 'GND' })
@@ -179,6 +179,9 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     // and the DC servo
     .part('RQE', 'resistor', 240, 680, { value: '47k' }, { '1': 'EN', '2': 'BQE' })
     .part('QEN', 'npn', 340, 740, { value: 'BC547B' }, { '1': 'BQE', '2': 'ENN', '3': 'GND' })
+    // the protections pull EN low through diodes, to about 0.64 V: the divider keeps QEN off
+    // there (alone, 0.64 V on its base left it half on)
+    .part('RQE2', 'resistor', 280, 820, { value: '47k' }, { '1': 'BQE', '2': 'GND' }, 1)
     .part('RENN', 'resistor', 340, 600, { value: '10k' }, { '1': V, '2': 'ENN' }, 1)
     .part('CDC1', 'capacitor', 120, 840, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
@@ -223,7 +226,10 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('UL', 'opamp', -400, 1150, { value: 'TL074', pkg: 'SIG1' }, { '3': 'VME', '2': 'LN', '6': 'L', '7': V, '4': 'GND' })
     .part('RL1', 'resistor', -480, 1240, { value: '10k' }, { '1': 'H', '2': 'LN' })
     .part('RL2', 'resistor', -380, 1260, { value: '10k' }, { '1': 'LN', '2': 'L' })
-    .part('RSQ', 'resistor', -300, 960, { value: '1k' }, { '1': 'H', '2': 'SQ' })
+    // 220 Ω: the filter's 22k input loads SQ when it comes from H through RSQ; through 1k the
+    // square's mean sat 70 mV below VME, and the DC servo had to correct it after every start
+    // (the primary saw −1.4 V for the first 40 ms: found in simulation)
+    .part('RSQ', 'resistor', -300, 960, { value: '220' }, { '1': 'H', '2': 'SQ' })
     .part('QSQ', 'nmos', -260, 1080, { value: '2N7000' }, { '1': 'Q50', '2': 'SQ', '3': 'L' })
     // 4th-order Butterworth low-pass, 70 Hz: two unity-gain Sallen–Key stages (Q 0.54, 1.31)
     .part('RF1', 'resistor', -150, 1000, { value: '22.1k' }, { '1': 'SQ', '2': 'F1A' })
