@@ -378,8 +378,11 @@ class CSwitch implements Device {
     return want;
   }
   private gOf(on: boolean) { return 1 / (on ? this.el.ron : this.el.roff); }
-  pending(x: Float64Array) { return this.next(x) !== this.on; }
-  commitState(x: Float64Array) { this.on = this.next(x); }
+  // the decision is taken where the change is found: the point is accepted (and iLast moves
+  // past the zero) before the state is committed
+  private decided: boolean | undefined;
+  pending(x: Float64Array) { this.decided = this.next(x); return this.decided !== this.on; }
+  commitState(x: Float64Array) { this.on = this.decided ?? this.next(x); this.decided = undefined; }
   accept(_c: Ctx, x: Float64Array) { this.iLast = (V(x, this.a) - V(x, this.b)) * this.g; }
   get g() { return this.gOf(this.on); }
   load(c: Ctx) { stampG(c, this.a, this.b, this.g); }

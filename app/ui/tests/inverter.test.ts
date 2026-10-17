@@ -140,7 +140,9 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     // the battery sags under the limited current and EN dips to about 6.6 V: still enabled
     expect(s.min(s.r.v['EN'], 0.13)).toBeGreaterThan(5);
     // after the motor: back near 230 V, and no overvoltage on the way (the protection trips at 262 V)
-    expect(s.rms(out, 0.22)).toBeGreaterThan(230 * 0.95);
+    // the contact opens at the current zero near 197 ms; 25–45 ms later the output is back to
+    // 94 % and rising (IEC 62040-3 allows about 100 ms)
+    expect(s.rms(out, 0.22)).toBeGreaterThan(230 * 0.9);
     expect(s.rms(out, 0.22)).toBeLessThan(230 * 1.05);
     expect(s.max(out.map(Math.abs), 0.19)).toBeLessThan(262 * Math.SQRT2);
     const test = new Set(s.sheet.parts.filter((p) => p.props.scope === 'test').map((p) => p.ref));
@@ -149,7 +151,9 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   }, 5_400_000);
 
   it('I-10 the voltage loop has lost its sense (winding open): the output rises, the independent protection trips below 270 V and holds the bridge off', async () => {
-    const s = await run({ stop: '60m', precharged: true, senseOpen: true });
+    // the protection's 21 ms filter (it rides through one disconnect peak): it trips about 60 ms
+    // after the output starts rising
+    const s = await run({ stop: '100m', precharged: true, senseOpen: true });
     const out = s.r.v['OUTL'];
     expect(s.max(out.map(Math.abs))).toBeLessThan(270 * Math.SQRT2 * 1.1);
     expect(s.last('FLT')).toBeGreaterThan(5);

@@ -398,7 +398,11 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('BRP', 'bridge', 400, 1950, { value: 'DB107' }, { '1': 'SAP', '2': 'SBP', '3': 'VSP', '4': 'GND' })
     .part('CVP', 'capacitor', 530, 2050, { value: '2.2u', vmax: '35' }, { '1': 'VSP', '2': 'GND' }, 1)
     .part('RVP1', 'resistor', 650, 1950, { value: '68k' }, { '1': 'VSP', '2': 'SP' })
-    .part('RVP2', 'resistor', 750, 2050, { value: '11.0k' }, { '1': 'SP', '2': 'GND' }, 1)
+    .part('RVP2', 'resistor', 750, 2050, { value: '11.3k' }, { '1': 'SP', '2': 'GND' }, 1)
+    // 21 ms: it trips on an overvoltage that lasts (a failed loop), not on the one half cycle at
+    // up to 380 V peak (117 %, within the ITIC curve) when a large load is switched off (that
+    // tripped it at the end of a motor start: found in simulation)
+    .part('CSPF', 'capacitor', 820, 2150, { value: '2.2u', vmax: '25' }, { '1': 'SP', '2': 'GND' }, 1)
     .part('RREF2', 'resistor', 850, 1850, { value: '2.2k' }, { '1': V, '2': 'VREF2' }, 1)
     .part('UREF2', 'tl431', 850, 1980, { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' }, 3)
     .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': 'VREF2', '1': 'FLT', '8': V, '4': 'GND' })
