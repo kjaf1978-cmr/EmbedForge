@@ -175,7 +175,12 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'capacitor': case 'capacitor_pol': {
       const ic = p.props.ic?.trim() ? parseValue(p.props.ic) : null;
       if (p.props.ic?.trim() && ic === null) errors.push(`${p.ref}: the initial voltage is not a number`);
-      out.push({ kind: 'C', name: ref, a: pin['1'], b: pin['2'], c: v('value', 'capacitance'), ...(ic !== null ? { ic } : {}) });
+      // ESR (electrolytic): a resistor in series, inside the part
+      const esr = p.props.esr?.trim() ? parseValue(p.props.esr) : null;
+      if (p.props.esr?.trim() && (esr === null || esr < 0)) errors.push(`${p.ref}: the ESR is not a value`);
+      const ci = esr ? `${ref}#c` : pin['1'];
+      if (esr) out.push({ kind: 'R', name: `${ref}_ESR`, a: pin['1'], b: ci, r: esr });
+      out.push({ kind: 'C', name: ref, a: ci, b: pin['2'], c: v('value', 'capacitance'), ...(ic !== null ? { ic } : {}) });
       break;
     }
     case 'inductor': out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') }); break;
@@ -321,10 +326,11 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'V', name: `${ref}_VH`, p: nh, n: g, dc: 1 },
         { kind: 'D', name: `${ref}_DH`, a: n1, k: nh, model: dm, fixedTemp: true },
         { kind: 'D', name: `${ref}_DL`, a: g, k: n1, model: dm, fixedTemp: true },
-        // buffered, so the base current does not load the amplifier node
-        { kind: 'E', name: `${ref}_EB`, p: `${ref}#o1`, n: g, cp: n1, cn: g, gain: 1 },
-        { kind: 'R', name: `${ref}_RB`, a: `${ref}#o1`, b, r: 1e3 },
-        { kind: 'Q', name: `${ref}_Q`, c: o, b, e: g, model: { type: 'npn', is: 1e-14, bf: 100, br: 1, nf: 1, nr: 1 }, fixedTemp: true },
+        // the open-drain output: a MOSFET driven by 5 × n1, on from n1 = 0.7 V (25 Ω fully on,
+        // about 30 mA at most). A transistor driven into saturation through 1k converged poorly
+        // at every switching edge (the inverter's PWM comparators: found in simulation)
+        { kind: 'E', name: `${ref}_EB`, p: b, n: g, cp: n1, cn: g, gain: 5 },
+        { kind: 'M', name: `${ref}_Q`, d: o, g: b, s: g, model: { type: 'nmos', vto: 3.5, kp: 0.0267, lambda: 0, w: 1, l: 1, is: 1e-14 }, fixedTemp: true },
         { kind: 'R', name: `${ref}_RS`, a: vp, b: g, r: 5e3 },
       );
       break;

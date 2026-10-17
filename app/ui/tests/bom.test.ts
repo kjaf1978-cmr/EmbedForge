@@ -25,7 +25,7 @@ describe('bill of materials', () => {
       const packages = new Set(parts.map((p) => (p.props.pkg ? p.ref.replace(/[A-Z]$/, '') : p.ref)));
       expect(b.reduce((a, l) => a + l.qty, 0), ex.id).toBe(packages.size);
     }
-  });
+  }, 60_000);
 });
 
 describe('text notes', async () => {

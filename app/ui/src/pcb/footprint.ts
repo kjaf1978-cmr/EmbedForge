@@ -118,6 +118,7 @@ add(inline('Pot_9mm', 'Potentiometer, 9 mm panel, 5.0 mm', 3, 5.0, 1.3, 2.4, 2.4
 // diodes
 add(axial('D_DO-35', 'Diode, DO-35 (glass), 7.62 mm', 7.62, 0.8, 1.6, 4, 2, 2, true));
 add(axial('D_DO-41', 'Diode, DO-41, 10.16 mm', 10.16, 1.0, 2.0, 5.2, 2.7, 2.7, true));
+add(axial('D_DO-201AD', 'Diode, DO-201AD (3 A rectifier), 15.24 mm', 15.24, 1.4, 2.6, 9.5, 5.3, 5.3, true));
 add(axial('D_P600', 'Diode, P600 (5 kW TVS, 6 A rectifiers), 15.24 mm', 15.24, 1.5, 2.8, 9.1, 9.1, 9.1, true));
 add(make('D_SMA', 'Diode, SMA (DO-214AC)', 'pad 1 = cathode', [smd('1', -2.15, 0, 1.8, 1.7), smd('2', 2.15, 0, 1.8, 1.7)],
   [line(-1, -1.4, 1, -1.4), line(-1, 1.4, 1, 1.4), line(-0.9, -1.4, -0.9, 1.4)], { x0: -2.2, y0: -1.3, x1: 2.2, y1: 1.3, h: 2.3 }));

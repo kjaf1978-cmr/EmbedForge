@@ -53,6 +53,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   diode: {
     STTH6003: e('STTH6003CW', 'STMicroelectronics', 'ultrafast diode 2 × 30 A 300 V, TO-247 (both diodes in parallel)', 2.55, 1.7, 'live', [{ distributor: 'Digi-Key' }, { distributor: 'RS', sku: '168-6090' }], 'lead times up to 25 weeks seen'),
+    '1N5408': e('1N5408', 'various', 'rectifier diode 3 A 1000 V, DO-201AD', 0.15, 0.05, 'estimate', any('DO-201AD')),
     '1N4007': e('1N4007', 'various', 'rectifier diode 1 A 1000 V, DO-41', 0.1, 0.02, 'estimate', any('DO-41')),
     '1N4148': e('1N4148', 'various', 'signal diode 100 V 200 mA, DO-35', 0.06, 0.015, 'estimate', any('DO-35')),
   },
@@ -106,7 +107,7 @@ const TRANSFORMERS: Record<string, CatalogueEntry> = {
 function capacitor(value: string, vmax: number, pol: boolean): CatalogueEntry {
   const c = parseValue(value) ?? 0;
   if (pol) {
-    if (c >= 1e-3) return e(`2200 µF ${vmax} V 105 °C long life (e.g. Nichicon UHW1J222MHD)`, 'Nichicon / Panasonic', `electrolytic ${value}F ${vmax} V, 105 °C, 10 000 h`, 3.2, 2.1, 'estimate', [{ distributor: 'Future Electronics' }]);
+    if (c >= 1e-3) return e(`${value}F ${vmax} V 105 °C low-ESR long life (series e.g. Nichicon UHW, Panasonic FC/FR)`, 'Nichicon / Panasonic', `electrolytic ${value}F ${vmax} V, 105 °C, 10 000 h, low ESR`, vmax > 63 ? 5.5 : 3.2, vmax > 63 ? 3.6 : 2.1, 'estimate', [{ distributor: 'Future Electronics / Mouser' }]);
     return e(`${value}F ${vmax} V 105 °C (e.g. Panasonic FC series)`, 'Panasonic / Nichicon', `electrolytic ${value}F ${vmax} V, 105 °C long life`, c >= 50e-6 ? 0.25 : 0.1, c >= 50e-6 ? 0.1 : 0.03, 'estimate', any('radial'));
   }
   if (vmax >= 600) return c >= 50e-9

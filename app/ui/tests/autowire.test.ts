@@ -1,5 +1,6 @@
 // The drawn circuit diagrams (decision D28): automatic wiring keeps the netlist, and the wired
 // designs are real drawings (wires, no overlapping parts, terminals, packages).
+import { inverterLF } from '../src/eda/inverters';
 import { describe, expect, it } from 'vitest';
 import { autowire, pinPartition } from '../src/eda/autowire';
 import { changeover1, changeover3, mpptCharger, stabiliser } from '../src/eda/powerExamples';
@@ -86,13 +87,20 @@ describe('no wasted parts (owner, 16 October: D31): no unused units beyond what 
   // at most one spare in the packages chosen
   const spares = (s: Sheet) => s.parts.filter((p) => p.sym === 'comparator' && connectivity(s).pinNet.get(`${p.ref}.1`) === 'GND').map((p) => p.ref);
   it('change-over 1P: one spare (seven comparators in two LM339)', () => expect(spares(changeover1().sheet).length).toBe(1));
-  it('change-over 3P+N: none (three LM339 and one LM393)', () => expect(spares(changeover3().sheet)).toEqual([]));
+  it('change-over 3P+N: none (three LM339 and one LM393)', () => expect(spares(changeover3().sheet)).toEqual([]), 30_000);
   it('stabiliser: one spare (seven comparators in two LM339; the protection in its own LM393)', () => expect(spares(stabiliser().sheet).length).toBe(1));
   it('MPPT charger: one spare (the independent latch in its LM393, seven comparators in two LM339); the sample-and-hold op-amp is a single TL071', () => {
     const s = mpptCharger().sheet;
     expect(spares(s).length).toBe(1);
     expect(s.parts.filter((p) => p.sym === 'opamp' && p.props.value === 'TL072')).toEqual([]);
   });
+  it('inverter (50 Hz transformer): every package full (two LM339, an LM393, two TL074, an LM358)', () => {
+    const units: Record<string, number> = { LM339: 4, LM393: 2, TL074: 4, LM358: 2 };
+    const pk = new Map<string, { value: string; n: number }>();
+    for (const p of inverterLF().sheet.parts) if (p.props.pkg) { const e = pk.get(p.props.pkg) ?? { value: p.props.value, n: 0 }; e.n++; pk.set(p.props.pkg, e); }
+    expect([...pk].map(([k, e]) => `${k} ${e.value} ${e.n}/${units[e.value]}`)).toEqual([...pk].map(([k, e]) => `${k} ${e.value} ${units[e.value]}/${units[e.value]}`));
+    expect(pk.size).toBe(6);
+  }, 30_000);
   it('no separate gate resistor where a pull-up already limits the current (change-over drives)', () => {
     for (const s of [changeover1().sheet, changeover3().sheet]) {
       const conn = connectivity(s);

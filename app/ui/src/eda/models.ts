@@ -9,6 +9,7 @@ export interface NamedModel<T> { name: string; note: string; model: T }
 
 export const DIODES: NamedModel<DiodeModel>[] = [
   { name: '1N4148', note: 'small-signal switching diode, 100 V / 200 mA', model: { is: 2.52e-9, n: 1.752, rs: 0.568, bv: 100, ibv: 100e-6 } },
+  { name: '1N5408', note: 'rectifier diode, 1000 V / 3 A (approximate model)', model: { is: 2e-8, n: 1.9, rs: 0.012, bv: 1000, ibv: 1e-5, cj: 40e-12 } },
   { name: '1N4007', note: 'rectifier diode, 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6, cj: 15e-12 } },
   { name: '1N5819', note: 'Schottky diode, 40 V / 1 A, low forward voltage', model: { is: 31.7e-6, n: 1.373, rs: 0.051, bv: 40, ibv: 1e-3, xti: 2, eg: 0.69 } },
   // fitted to the datasheet forward curve: 0.32 V at 1 mA, 0.8 V at 100 mA

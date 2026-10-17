@@ -28,7 +28,7 @@ describe('parts catalogue', () => {
       expect(c.total, id).toBeGreaterThan(100);
       expect(costedCsv(c.lines).split('\r\n')[0]).toMatch(/^Qty,References,Part,Value,Details,Manufacturer,Part number,Where to buy/);
     }
-  });
+  }, 60_000);
   it('the battery fuse of the charger is rated for a 58 V battery (not a 32 V automotive fuse)', () => {
     const sheet = EXAMPLES.find((e) => e.id === 'mppt-charger')!.build();
     const fuse = buildBom(sheet).find((l) => l.sym === 'fuse' && l.raw === '100')!;

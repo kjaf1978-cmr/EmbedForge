@@ -85,6 +85,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
       if (v === '1N4148') return [map('D_DO-35', { 1: '1', 2: '2' }), k];
       if (v === 'BAT54') return [map('SOT-23', { 2: '1', 1: '3' }, { note: 'single BAT54: A pin 1, K pin 3' })];
       if (v === 'SS34') return [map('D_SMC', { 1: '1', 2: '2' })];
+      if (v === '1N5408') return [map('D_DO-201AD', { 1: '1', 2: '2' })];
       if (v === 'STTH6003') return [map('TO-247_Vertical', { 1: '2', 2: '1' }, { note: 'anode on pad 1, cathode on the centre pad and the tab; pad 3 unused' })];
       return [k];
     }
