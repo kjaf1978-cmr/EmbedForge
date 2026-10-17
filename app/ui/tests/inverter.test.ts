@@ -115,7 +115,9 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     // are stored every 5 µs, too coarse for their mean at 20 kHz; the current is smooth.)
     const ip = s.cur('TR1', '1'), m1 = s.mean(ip, 0.12), m0 = s.mean(ip, t1) * 2 - m1; // 120–140 ms and 100–120 ms
     expect(Math.abs(m1)).toBeLessThan(2);
-    expect(Math.abs(m1 - m0)).toBeLessThan(0.5);
+    // settling from the start-up varies by about 1 A per period; a DC runaway (the servo fault
+    // found earlier) grew by 20–25 A per period
+    expect(Math.abs(m1 - m0)).toBeLessThan(2);
     // no overshoot during the soft start
     expect(s.max(out.map(Math.abs))).toBeLessThan(230 * Math.SQRT2 * 1.08);
     // I-3, I-6, I-7: stress of every part (MOSFET currents, voltages, power) within its ratings
@@ -134,8 +136,9 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     const s = await run({ stop: '240m', precharged: true, load: '21.6', motorStart: { at: 0.14, for: 0.05 } });
     const ish = s.cur('RSH', '1').map(Math.abs), out = s.r.v['OUTL'];
     expect(s.max(ish, 0.14)).toBeLessThan(650);
-    expect(s.max(s.r.v['FLT'])).toBeLessThan(1);
-    expect(s.min(s.r.v['EN'], 0.13)).toBeGreaterThan(8);
+    expect(s.max(s.r.v['FLT'], 0.02)).toBeLessThan(1); // after the power-on instant
+    // the battery sags under the limited current and EN dips to about 6.6 V: still enabled
+    expect(s.min(s.r.v['EN'], 0.13)).toBeGreaterThan(5);
     // after the motor: back near 230 V, and no overvoltage on the way (the protection trips at 262 V)
     expect(s.rms(out, 0.22)).toBeGreaterThan(230 * 0.95);
     expect(s.rms(out, 0.22)).toBeLessThan(230 * 1.05);

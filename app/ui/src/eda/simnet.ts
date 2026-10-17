@@ -205,8 +205,9 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'V', name: `${ref}_VS`, p: pin['1'], n: a, dc: 0 },
         { kind: 'R', name: `${ref}_RC`, a, b, r: m.rcoil },
         { kind: 'L', name: `${ref}_LC`, a: b, b: pin['2'], l: m.lcoil },
-        { kind: 'W', name: `${ref}_NO`, p: pin['3'], n: pin['5'], ctrl: `${ref}_VS`, ...sw, ron: 0.05, roff: 1e9 },
-        { kind: 'W', name: `${ref}_NC`, p: pin['3'], n: pin['4'], ctrl: `${ref}_VS`, ...sw, ron: 1e9, roff: 0.05 },
+        // zc (a test bench's AC load contact): it opens at the current zero, as its arc does
+        { kind: 'W', name: `${ref}_NO`, p: pin['3'], n: pin['5'], ctrl: `${ref}_VS`, ...sw, ron: 0.05, roff: 1e9, ...(p.props.zc === 'true' ? { zc: true } : {}) },
+        { kind: 'W', name: `${ref}_NC`, p: pin['3'], n: pin['4'], ctrl: `${ref}_VS`, ...sw, ron: 1e9, roff: 0.05, ...(p.props.zc === 'true' ? { zc: true } : {}) },
       );
       break;
     }

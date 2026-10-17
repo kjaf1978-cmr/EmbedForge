@@ -366,15 +366,22 @@ class Mutual implements Device {
 class CSwitch implements Device {
   on = false;
   constructor(public el: Element & { kind: 'W' }, private a: number, private b: number, private sense: VSource) {}
+  private iLast = 0;
   private next(x: Float64Array) {
     const i = Math.abs(x[this.sense.branch]);
-    if (i > this.el.it + this.el.ih) return true;
-    if (i < this.el.it - this.el.ih) return false;
-    return this.on;
+    const want = i > this.el.it + this.el.ih ? true : i < this.el.it - this.el.ih ? false : this.on;
+    // zc: an opening contact keeps its arc until the current through it passes zero
+    if (this.el.zc && want !== this.on && this.gOf(want) < this.g) {
+      const ic = (V(x, this.a) - V(x, this.b)) * this.g;
+      if (ic * this.iLast > 0) return this.on;
+    }
+    return want;
   }
+  private gOf(on: boolean) { return 1 / (on ? this.el.ron : this.el.roff); }
   pending(x: Float64Array) { return this.next(x) !== this.on; }
   commitState(x: Float64Array) { this.on = this.next(x); }
-  get g() { return 1 / (this.on ? this.el.ron : this.el.roff); }
+  accept(_c: Ctx, x: Float64Array) { this.iLast = (V(x, this.a) - V(x, this.b)) * this.g; }
+  get g() { return this.gOf(this.on); }
   load(c: Ctx) { stampG(c, this.a, this.b, this.g); }
   loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.g, 0); }
   currents(x: Float64Array) { const i = (V(x, this.a) - V(x, this.b)) * this.g; return [i, -i]; }

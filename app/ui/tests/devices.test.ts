@@ -115,3 +115,25 @@ describe('thinned transient output (a long switching run)', () => {
     near(thin.v.a[thin.x.length - 1], full.v.a[full.x.length - 1], 1e-6);
   });
 });
+
+describe('relay contact opening an AC load (zc)', () => {
+  // 325 V 50 Hz into 10 Ω + 50 mH (the current lags by 57°); the coil current (through the
+  // 0 V sense source VS) stops at 55 ms, when the load current is far from zero
+  const circuit = (zc: boolean): Circuit => ({ elements: [
+    { kind: 'V', name: 'V1', p: 's', n: '0', dc: 0, wave: { type: 'sin', vo: 0, va: 325, freq: 50 } },
+    { kind: 'W', name: 'K1', p: 's', n: 'a', ctrl: 'VS', it: 0.05, ih: 0.02, ron: 0.05, roff: 1e9, ...(zc ? { zc: true } : {}) },
+    { kind: 'R', name: 'R1', a: 'a', b: 'l', r: 10 }, { kind: 'L', name: 'L1', a: 'l', b: '0', l: 0.05 },
+    { kind: 'V', name: 'VC', p: 'c', n: '0', dc: 0, wave: { type: 'pulse', v1: 10, v2: 0, td: 0.055, tr: 1e-6, tf: 1e-6, pw: 1, per: 2 } },
+    { kind: 'V', name: 'VS', p: 'c', n: 'cs', dc: 0 }, { kind: 'R', name: 'RC', a: 'cs', b: '0', r: 100 }] });
+  const opening = (zc: boolean) => {
+    const w = new Engine(circuit(zc)).tran(20e-6, 0.08, 20e-6);
+    const i = w.i.R1[0], k = w.x.findIndex((t, j) => t > 0.055 && Math.abs(i[j]) < 1e-4);
+    return { t: w.x[k], before: Math.abs(i[k - 1]) };
+  };
+  it('with zc the contact opens at the next current zero (63.2 ms: 57.5° after the voltage zero at 60 ms); without it at once (55 ms)', () => {
+    const a = opening(true), b = opening(false);
+    expect(a.before).toBeLessThan(0.3); // the current had reached zero (peak about 17 A)
+    expect(Math.abs(a.t - 0.0632)).toBeLessThan(0.0005);
+    expect(b.t - 0.055).toBeLessThan(0.0003);
+  });
+});

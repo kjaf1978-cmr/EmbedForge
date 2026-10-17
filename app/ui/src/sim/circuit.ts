@@ -46,7 +46,8 @@ export type Element =
   /** Current-controlled switch (SPICE W): on above it + ih, off below it − ih, where the control
    *  current is the branch current of voltage source `ctrl` (its magnitude: relay coils have no
    *  polarity). `ron` may exceed `roff` for a normally-closed contact. */
-  | { kind: 'W'; name: string; p: string; n: string; ctrl: string; it: number; ih: number; ron: number; roff: number }
+  /** zc: the contact opens only at a zero of its current (an AC contact's arc) */
+  | { kind: 'W'; name: string; p: string; n: string; ctrl: string; it: number; ih: number; ron: number; roff: number; zc?: boolean }
   /** Hobby RC servo, behavioural: reads the high-pulse width on sig (above 1.5 V against gnd;
    *  1.0 ms → −90°, 1.5 ms → 0°, 2.0 ms → +90°), turns toward it at `slew` degrees per second,
    *  and drives out with angle/100 V through 100 Ω. No SPICE primitive; the export says so. */

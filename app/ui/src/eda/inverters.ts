@@ -126,7 +126,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   if (o.motorStart) nb.block('bench').note('TEST BENCH: a motor start (locked rotor)', 2350, -220)
     .part('DMS', 'diode', 2330, 120, { value: '1N4007' }, { '2': 'GND', '1': 'MSC' }, 3)
     .part('VMS', 'vpulse', 2500, 120, { value: '12', low: '0', freq: '1', duty: String(o.motorStart.for * 100), delay: String(o.motorStart.at), edge: '10u' }, { '1': 'MSC', '2': 'GND' })
-    .part('KMS', 'relay', 2400, 40, { value: '12 V 30 A' }, { '1': 'MSC', '2': 'GND', '3': 'OUTL', '5': 'MSL' })
+    .part('KMS', 'relay', 2400, 40, { value: '12 V 30 A', zc: 'true' }, { '1': 'MSC', '2': 'GND', '3': 'OUTL', '5': 'MSL' })
     .part('MST', 'motor1', 2600, -40, { value: '1', rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' }, { '1': 'MSL', '2': 'GND' });
 
   // ---- 12 V control supply from the battery (after the fuse; a diode against reversal)
@@ -369,6 +369,17 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RQS', 'resistor', -400, 2200, { value: '100k' }, { '1': 'ENN', '2': 'BSS' })
     .part('UEA', 'opamp', -260, 1950, { value: 'LM358', pkg: 'AMP' }, { '3': 'VSS', '2': 'NEA', '6': 'VAO', '7': V, '4': 'GND' })
     .part('REA', 'resistor', -380, 1880, { value: '100k' }, { '1': 'SO', '2': 'NEA' })
+    // peak limiter: from about 245 V (hard towards the 262 V trip) DPL drives current into NEA
+    // and pulls VA down within the half cycle; its current also unwinds the integrator (a 3.3 V
+    // Zener across it for anti-windup leaked below its knee and upset the start-up). 47.5k: at
+    // 230 V the diode stays 0.1 V below conduction (with 44.2k it already took a few µA there
+    // and held the output at 221 V)
+    // A motor start wound the loop up to full modulation behind the current limit, and when the
+    // motor dropped the output jumped towards 307 V and the overvoltage latch tripped (found in
+    // simulation)
+    .part('RPL1', 'resistor', -1100, 2200, { value: '47.5k' }, { '1': 'VRO', '2': 'PLA' })
+    .part('RPL2', 'resistor', -1000, 2300, { value: '10k' }, { '1': 'PLA', '2': 'GND' }, 1)
+    .part('DPL', 'diode', -900, 2200, { value: '1N4148' }, { '2': 'PLA', '1': 'NEA' })
     .part('RFEA', 'resistor', -260, 1840, { value: '47k' }, { '1': 'NEA', '2': 'FEA' })
     .part('CFEA', 'capacitor', -140, 1840, { value: '220n', vmax: '25' }, { '1': 'FEA', '2': 'VAO' })
     // while stopped, QEA empties the integrator: the bridge always starts from VA = 0 (without it
