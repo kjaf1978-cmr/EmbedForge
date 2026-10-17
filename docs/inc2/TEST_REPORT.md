@@ -20,7 +20,7 @@
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
 | UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 813 passed, 30 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
-| Inverter DFMEA runs (P7a) | `cd app/ui && npm run test:long` | 12 of 13 passed on the final design; the start-up run is being repeated (section 3h) |
+| Inverter DFMEA runs (P7a) | `cd app/ui && npm run test:long` | 13 of 13 passed on the final design (section 3h) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
@@ -353,13 +353,13 @@ Inverter runs on the final design (17 October; each 3 to 35 minutes):
 | I-1 connecting the battery (150 ms) | passed |
 | I-8 41 V, 45 V; I-9 62 V; I-11 95 °C: no start | passed |
 | 48 V, 58.4 V, 85 °C: starts | passed |
-| start-up at 5 kW, 140 ms: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | see below |
+| start-up at 5 kW, 140 ms: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | passed |
 | I-10 sense open: protection trips and latches | passed |
 | I-4 short circuit: limit, overload timer, stress check | passed |
 
-The start-up run gave 229.5 V, THD 2.5 %, primary mean current −0.6 A and steady. Its stress
-check flagged only the test bench's load resistor (rated 1.5 kW for a 5 kW load); with the
-load rated 6 kW the run is being repeated.
+The start-up run gave 229.5 V, THD 2.5 %, primary mean current −0.6 A and steady. Its first
+stress check flagged only the test bench's load resistor (rated 1.5 kW for a 5 kW load); rated
+6 kW, the run passed.
 
 Measurement note: long runs store a point every 5 µs. That is fine for the output and the
 currents, but too coarse for the mean of the 20 kHz bridge nodes, so the DC check uses the
