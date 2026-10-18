@@ -96,8 +96,14 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     }, 900_000);
   }
 
-  it('start-up at the rated load (5 kW, 10.7 Ω), 52 V: 230 V 50 Hz, THD below 3 %, no DC on the primary, every part within its ratings', async () => {
-    const s = await run({ stop: '140m', precharged: true });
+  // D32: the start-up also at the ambient range's corners (−10 °C; +60 °C with the power
+  // semiconductors' junctions at 125 °C, the heatsinks rated at 60 °C) and with the electrolytic
+  // capacitors at their end of life
+  for (const [corner, o] of [
+    ['', {}], [' at +60 °C ambient (power junctions 125 °C)', { temp: 60, tj: 125 }],
+    [' at −10 °C', { temp: -10, tj: -10 }], [' with the electrolytic capacitors at their end of life', { aged: true }],
+  ] as [string, InverterLfOptions][]) it(`start-up at the rated load (5 kW, 10.7 Ω), 52 V${corner}: 230 V 50 Hz, THD below 3 %, no DC on the primary, every part within its ratings`, async () => {
+    const s = await run({ stop: '140m', precharged: true, ...o });
     const out = s.r.v['OUTL'], t1 = 0.1;
     // fundamental and harmonics over the last two periods
     const k0 = s.x.findIndex((t) => t >= 0.1), xs = s.x.slice(k0), ys = out.slice(k0), T = xs[xs.length - 1] - xs[0];

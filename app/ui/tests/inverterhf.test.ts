@@ -139,8 +139,13 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     }, 1_800_000);
   }
 
-  it('start-up at the rated load (5 kW), 52 V: 230 V 50 Hz, THD below 3 %, no DC at the output, the bus within 381 V ± 6 %, the transformer without DC, every part within its ratings', async () => {
-    const s = await runHF({ stop: '160m', precharged: true });
+  // D32: also at the ambient range's corners (−10 °C; +60 °C with the power semiconductors'
+  // junctions at 125 °C) and with the electrolytic capacitors at their end of life
+  for (const [corner, o] of [
+    ['', {}], [' at +60 °C ambient (power junctions 125 °C)', { temp: 60, tj: 125 }],
+    [' at −10 °C', { temp: -10, tj: -10 }], [' with the electrolytic capacitors at their end of life', { aged: true }],
+  ] as [string, InverterHfOptions][]) it(`start-up at the rated load (5 kW), 52 V${corner}: 230 V 50 Hz, THD below 3 %, no DC at the output, the bus within 381 V ± 6 %, the transformer without DC, every part within its ratings`, async () => {
+    const s = await runHF({ stop: '160m', precharged: true, ...o });
     const t1 = 0.12;
     checkOutput(s, t1);
     // the bus: 381 V, its 100 Hz ripple included
