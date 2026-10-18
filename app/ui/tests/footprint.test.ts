@@ -3,7 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { FOOTPRINTS } from '../src/pcb/footprint';
 import { checkFootprint, EF_PROTO_STD, padGap, ring } from '../src/pcb/profile';
-import { footprintChoices, footprintOf, pinsWithoutPad } from '../src/pcb/library';
+import { footprintChoices, footprintOf, logicRailVoltage, pinsWithoutPad } from '../src/pcb/library';
+import { inverterHF, inverterLF } from '../src/eda/inverters';
 import { SYMBOLS } from '../src/eda/symbols';
 import { defaultProps, type Part } from '../src/eda/schematic';
 
@@ -58,6 +59,36 @@ describe('pin-outs from the datasheets', () => {
     expect(nor.pins).toEqual({ 1: ['2'], 2: ['3'], 3: ['1'] });
     expect([nor.rail, nor.gnd]).toEqual([['14'], ['7']]);
   });
+  it('74HC74 on a 5 V or 3.3 V rail: D 2, CLK 3, Q 5, Q̄ 6; CLR and PRE (1, 4) tied to VCC', () => {
+    for (const value of ['+5V', '+3V3']) {
+      const ff = footprintOf(part('dff', { value }))!.choice;
+      expect(ff.pins).toEqual({ 1: ['2'], 2: ['3'], 3: ['5'], 4: ['6'] });
+      expect([ff.rail, ff.gnd]).toEqual([['14', '1', '4'], ['7']]);
+      expect(ff.note).toContain('74HC74');
+    }
+  });
+  it('above 6 V the logic is CD4000: CD4013 D 5, CLK 3, Q 1, Q̄ 2 with RESET and SET (4, 6) on VSS; CD4001 A 1, B 2, Y 3', () => {
+    for (const value of ['V12', '+12V', '15V']) {
+      const ff = footprintOf(part('dff', { value }))!.choice;
+      expect(ff.pins).toEqual({ 1: ['5'], 2: ['3'], 3: ['1'], 4: ['2'] });
+      expect([ff.rail, ff.gnd]).toEqual([['14'], ['7', '4', '6']]);
+      expect(ff.note).toContain('CD4013');
+      const nor = footprintOf(part('nor2', { value }))!.choice;
+      expect(nor.pins).toEqual({ 1: ['1'], 2: ['2'], 3: ['3'] });
+      expect([nor.rail, nor.gnd]).toEqual([['14'], ['7']]);
+      expect(nor.note).toContain('CD4001');
+    }
+    expect(footprintOf(part('not', { value: 'V12' }))!.choice.note).toContain('CD4069');
+  });
+  it('logic rail voltage from the name: +5V, 3V3, V12, V15H; none from VCC', () => {
+    expect([logicRailVoltage('+5V'), logicRailVoltage('3V3'), logicRailVoltage('V12'), logicRailVoltage('V15H'), logicRailVoltage('VCC')]).toEqual([5, 3.3, 12, 15, null]);
+  });
+  it('the inverters on their 12 V rail get CD4013 flip-flops and CD4001 NOR gates', () => {
+    const logic = [...inverterLF().sheet.parts, ...inverterHF().sheet.parts].filter((p) => p.sym === 'dff' || p.sym === 'nor2');
+    expect(logic.filter((p) => p.sym === 'dff').length).toBeGreaterThan(0);
+    expect(logic.filter((p) => p.sym === 'nor2').length).toBeGreaterThan(0);
+    for (const p of logic) expect(footprintOf(p)!.choice.note, p.ref).toContain(p.sym === 'dff' ? 'CD4013' : 'CD4001');
+   }, 60_000);
   it('DIP pads count anticlockwise from pin 1 at the top left; pad 1 is square', () => {
     const d = FOOTPRINTS['DIP-8'].pads;
     const at = (id: string) => d.find((p) => p.id === id)!;

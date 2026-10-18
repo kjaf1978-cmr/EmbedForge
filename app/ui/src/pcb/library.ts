@@ -2,11 +2,11 @@
 // symbol pins to the footprint's pads. The map follows the datasheet pin-out of the chosen
 // model (a 2N3904 is E-B-C, a BC547B C-B-E, a 2N7000 S-G-D), so the board connects the
 // right legs. Parts that do not sit on the board (motors, transformers, supplies) get a
-// connector their wires go to. Logic gates sit in a 74HC package whose supply pins connect
-// to the gate's supply rail and to ground.
+// connector their wires go to. Logic gates sit in a 74HC package (a CD4000 package when their
+// rail is above the 74HC's 6 V) whose supply pins connect to the gate's supply rail and to ground.
 
 import { FOOTPRINTS, type Footprint } from './footprint';
-import { symbolOf } from '../eda/symbols';
+import { railVoltage, symbolOf } from '../eda/symbols';
 import type { Part } from '../eda/schematic';
 
 export interface FootprintChoice {
@@ -62,6 +62,32 @@ const LOGIC: Record<string, FootprintChoice> = {
   nor2: HC('02', { 1: '2', 2: '3', 3: '1' }), not: HC('04', { 1: '1', 2: '2' }), schmitt: HC('14', { 1: '1', 2: '2' }),
   dff: HC('74', { 1: '2', 2: '3', 3: '5', 4: '6' }, { rail: ['14', '1', '4'], note: 'flip-flop 1 of a 74HC74; CLR and PRE (pins 1, 4) tied high' }),
 };
+// CD4000 logic for rails above 6 V (3–18 V): VDD on 14, VSS on 7
+const CD = (chip: string, m: Record<string, string>, extra: Partial<FootprintChoice> = {}): FootprintChoice =>
+  map('DIP-14', m, { rail: ['14'], gnd: ['7'], note: `gate 1 of a CD${chip}; tie the inputs of the unused gates to VSS`, ...extra });
+const LOGIC_CD: Record<string, FootprintChoice> = {
+  and2: CD('4081', { 1: '1', 2: '2', 3: '3' }), nand2: CD('4011', { 1: '1', 2: '2', 3: '3' }), or2: CD('4071', { 1: '1', 2: '2', 3: '3' }), xor2: CD('4070', { 1: '1', 2: '2', 3: '3' }),
+  nor2: CD('4001', { 1: '1', 2: '2', 3: '3' }), not: CD('4069', { 1: '1', 2: '2' }), schmitt: CD('40106', { 1: '1', 2: '2' }),
+  // RESET and SET are active high, so they go to VSS (the 74HC74's CLR and PRE go to VCC)
+  dff: CD('4013', { 1: '5', 2: '3', 3: '1', 4: '2' }, { gnd: ['7', '4', '6'], note: 'flip-flop 1 of a CD4013; RESET and SET (pins 4, 6) tied to VSS' }),
+};
+/** Highest supply the 74HC family is rated for. */
+const HC_VMAX = 6;
+
+/** Voltage of a logic part's supply rail from its name: "+5V", "3V3" (as `railVoltage`) or
+ *  "V12", "V15H" (V, the volts, an optional letter); null when the name gives none. */
+export function logicRailVoltage(name: string): number | null {
+  const v = railVoltage(name);
+  if (v !== null) return v;
+  const m = name.trim().match(/^V(\d+)(?:[Vv.,](\d+))?[A-Za-z]?$/);
+  return m ? Number(`${m[1]}${m[2] ? `.${m[2]}` : ''}`) : null;
+}
+
+/** The logic package for a gate: CD4000 on a rail above 6 V, else 74HC. */
+function logicChoice(id: string, rail: string): FootprintChoice | undefined {
+  const v = logicRailVoltage(rail);
+  return (v !== null && Math.abs(v) > HC_VMAX ? LOGIC_CD : LOGIC)[id];
+}
 
 /** The footprints a part may have, the default first. */
 export function footprintChoices(p: Part): FootprintChoice[] {
@@ -124,7 +150,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'motor1': return [same('TerminalBlock_1x2', pins, 'motor wires L, N')];
     case 'motor3': return [same('TerminalBlock_1x4', pins, 'motor wires U, V, W, N')];
     case 'servo': return [map('PinHeader_1x3', { 1: '1', 2: '2', 3: '3' }, { note: 'servo plug S, +, −; the angle output is simulation only' })];
-    default: return s.logic && LOGIC[s.id] ? [LOGIC[s.id]] : [];
+    default: { const c = s.logic ? logicChoice(s.id, v) : undefined; return c ? [c] : []; }
   }
 }
 
