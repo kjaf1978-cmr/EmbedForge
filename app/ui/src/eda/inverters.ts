@@ -606,10 +606,12 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '2' }, { '1': 'CSR', '2': 'GND' }, 1)
     // the reverse clamp: while the dead time returns current to the bus (360 A when the bus is
     // shorted) the diode DC1 blocks and the secondary current had only the 1k: 1.8 kV on the
-    // secondary. DCR and 4.7 Ω take it at about 9 V (a 13 V 1 W Zener here dissipated more
-    // than its rating with the bus shorted, found in the stress check)
+    // secondary. DCR and 4.7 Ω take it at about 9 V. With the bus shorted the bridge's input
+    // is negative almost half the time and the clamp carries 0.7 A rms: 2.3 W (a 13 V 1 W
+    // Zener here and a 2 W resistor were over their ratings, found in the stress check), so a
+    // 5 W wirewound; a lasting short ends at the heatsink cut-out
     .part('DCR', 'diode', -440, 400, { value: 'UF4007' }, { '2': 'CZC', '1': 'CTA' }, 3)
-    .part('RCZ', 'resistor', -380, 460, { value: '4.7', pmax: '2' }, { '1': 'GND', '2': 'CZC' }, 1);
+    .part('RCZ', 'resistor', -380, 460, { value: '4.7', pmax: '5' }, { '1': 'GND', '2': 'CZC' }, 1);
 
   // ---- transformer, auxiliary transformer, SiC rectifier, filter, the 380 V bus
   nb.block('dc-dc output')
