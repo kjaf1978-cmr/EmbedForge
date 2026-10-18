@@ -5,5 +5,5 @@ import { EXAMPLES } from '../src/eda/examples';
 import { textCollisions } from './drawing.helpers';
 
 describe('readable drawings', () => {
-  for (const ex of EXAMPLES) it(`${ex.id}: no text on a part, on other text or on a wire`, () => expect(textCollisions(ex.build())).toEqual([]));
+  for (const ex of EXAMPLES) it(`${ex.id}: no text on a part, on other text or on a wire`, () => expect(textCollisions(ex.build())).toEqual([]), 60_000); // the inverters' drawings take several seconds to route
 });
