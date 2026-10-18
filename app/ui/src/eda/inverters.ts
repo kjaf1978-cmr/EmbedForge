@@ -30,7 +30,9 @@ export interface InverterLfOptions {
 
 /** The sense transformer of the voltage loop and of the independent protection: a 1 VA 230/12 V
  *  PCB type (as the other power designs). */
-const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99' };
+// 12 mA: a small mains transformer's core reaches its knee at about 115 % of the rated flux
+// (230 V: 1.03 Wb·turn in 100 H, 10 mA)
+const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99', isat: '0.012' };
 
 /**
  * Inverter, one 5 kW unit, 50 Hz transformer type.
@@ -113,7 +115,10 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
 
   // ---- transformer, output filter, surge protection, output terminals
   nb.block('output')
-    .part('TR1', 'transformer', 1400, -60, { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999' }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
+    // the core's knee at 110 % of the rated flux (27.5 V r.m.s.: 0.124 Wb·turn in 15 mH,
+    // 8.3 A magnetising; a 1.5 T design saturating towards 1.9 T): a DC offset or an
+    // overvoltage of the primary saturates it (DFMEA I-5)
+    .part('TR1', 'transformer', 1400, -60, { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
     .part('COUT', 'capacitor', 1550, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
     .part('RVO', 'mov', 1650, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
     .part('X3', 'terminal', 1800, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
@@ -607,7 +612,9 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   // in the primary; a 0.47 mΩ shunt gave 40 mV at 90 A, too little for the comparator (found in
   // simulation)
   nb.block('current sense')
-    .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999' }, { '1': 'BUS', '2': 'BUSD', '3': 'CTA', '4': 'GND' })
+    // its core saturates at 1.5 A primary-referred magnetising current, ten times what a half
+    // period builds (about 0.14 A)
+    .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999', isat: '1.5' }, { '1': 'BUS', '2': 'BUSD', '3': 'CTA', '4': 'GND' })
     .part('RCR', 'resistor', -440, 280, { value: '1k' }, { '1': 'CTA', '2': 'GND' }, 1)
     .part('DC1', 'diode', -380, 180, { value: 'UF4007' }, { '2': 'CTA', '1': 'CSR' })
     .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '2' }, { '1': 'CSR', '2': 'GND' }, 1)
@@ -624,7 +631,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.block('dc-dc output')
     // gapped ferrite core: 100 µH magnetising, about 0.1 µH leakage (primary side), core losses
     // about 15 W (150 Ω: they also damp the ringing with the switches' capacitance)
-    .part('TR1', 'transformer', 1250, -60, { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150' }, { '1': 'LA', '2': 'LB', '3': 'S1', '4': 'S2' })
+    // the core saturates at 12 A magnetising current: ferrite at 100 °C (about 0.35 T), 1.64 ×
+    // the 7.3 A a 25 µs half period builds at 58.4 V; the margin is for the offset the
+    // current-mode limit allows before it corrects it (DFMEA H-5)
+    .part('TR1', 'transformer', 1250, -60, { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, { '1': 'LA', '2': 'LB', '3': 'S1', '4': 'S2' })
     // the snubber damps the ringing of the leakage inductance with the diodes' capacitance
     .part('RSN', 'resistor', 1370, -220, { value: '470', pmax: '10' }, { '1': 'S1', '2': 'SNB' })
     .part('CSN', 'capacitor', 1470, -220, { value: '220p', vmax: '2000' }, { '1': 'SNB', '2': 'S2' })
@@ -633,7 +643,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('DR3', 'diode', 1400, 40, { value: 'C4D20120A', heatsink: '2' }, { '2': G, '1': 'S1' }, 3)
     .part('DR4', 'diode', 1520, 40, { value: 'C4D20120A', heatsink: '2' }, { '2': G, '1': 'S2' }, 3)
     // its core losses (about 6 W) damp its ringing with the diodes while the current is zero
-    .part('LOB', 'inductor', 1650, -160, { value: '470u', imax: '40', rloss: '15k' }, { '1': 'RP', '2': 'HBUS' });
+    .part('LOB', 'inductor', 1650, -160, { value: '470u', imax: '40', rloss: '15k', isat: '40' }, { '1': 'RP', '2': 'HBUS' });
   const hpre: Record<string, string> = o.precharged ? { ic: '380' } : {};
   for (let k = 0; k < 4; k++) nb.part(`CH${k + 1}`, 'capacitor_pol', 1750 + 70 * k, -60, { value: '470u', vmax: '450', esr: '0.15', ...hpre }, { '1': 'HBUS', '2': G }, 1);
   for (let k = 0; k < 2; k++) nb.part(`CHF${k + 1}`, 'capacitor', 2030 + 70 * k, -60, { value: '2.2u', vmax: '630', ...hpre }, { '1': 'HBUS', '2': G }, 1);
@@ -654,7 +664,8 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   // regulated to 15 V for the high-voltage side
   nb.block('hv supply')
     .part('CXB', 'capacitor', 1150, 300, { value: '2.2u', vmax: '100' }, { '1': 'XB', '2': 'GND' }, 1)
-    .part('TRA', 'transformer', 1250, 200, { value: '1', lp: '20m', rp: '0.5', rs: '0.5', k: '0.99', rc: '4.7k' }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
+    // saturates at 50 mA magnetising current, 2.7 × the 18 mA of ±29 V for 12.5 µs
+    .part('TRA', 'transformer', 1250, 200, { value: '1', lp: '20m', rp: '0.5', rs: '0.5', k: '0.99', rc: '4.7k', isat: '0.05' }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
     // 10k across the winding damp the ringing of its leakage with the bridge's capacitance
     .part('RXA', 'resistor', 1330, 400, { value: '10k' }, { '1': 'XA1', '2': 'XA2' }, 1)
     .part('BRA', 'bridge', 1380, 300, { value: 'DB107' }, { '1': 'XA1', '2': 'XA2', '3': 'VXH', '4': G })
@@ -887,7 +898,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     // peak of 31 A)
     nb.part('RSHI', 'resistor', 2570, 180, { value: '1.5m', pmax: '3' }, { '1': 'SRC', '2': G }, 1);
     nb.block('output')
-      .part('LF1', 'inductor', 3000, -160, { value: '470u', imax: '80' }, { '1': 'SWA', '2': 'OUTL' })
+      .part('LF1', 'inductor', 3000, -160, { value: '470u', imax: '80', isat: '80' }, { '1': 'SWA', '2': 'OUTL' })
       .part('COUT', 'capacitor', 3130, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
       .part('RVO', 'mov', 3230, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
       .part('X3', 'terminal', 3350, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
