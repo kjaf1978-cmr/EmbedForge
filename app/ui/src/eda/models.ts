@@ -93,13 +93,14 @@ export const MOSFETS: NamedModel<MosModel>[] = [
 /** IGBT macro model: an N-channel MOSFET drives the base of a wide-base PNP (the classic
  *  equivalent circuit). The collector current is (1 + BF)·I_MOS; VCE(sat) = VEB(PNP) + VDS(MOS).
  *  Fitted to VGE(th) and VCE(sat) at the rated current with VGE = 15 V; no gate charge or tail
- *  current. `diode`: the co-packed anti-parallel diode from E to C. */
-export interface IgbtModel { vto: number; kp: number; bf: number; is: number; diode?: DiodeModel }
+ *  current. `diode`: the co-packed anti-parallel diode from E to C. cge, cgc, cce: constant
+ *  terminal capacitances (F) from the datasheet's Cies − Cres, Cres and Coes − Cres at 25 V. */
+export interface IgbtModel { vto: number; kp: number; bf: number; is: number; diode?: DiodeModel; cge?: number; cgc?: number; cce?: number }
 
 export const IGBTS: NamedModel<IgbtModel>[] = [
-  { name: 'IKW30N60T', note: 'IGBT 600 V / 30 A with anti-parallel diode, VCE(sat) ≈ 1.5 V, VGE(th) ≈ 4.9 V (TO-247, approximate)', model: { vto: 4.9, kp: 1.89, bf: 1, is: 1e-10, diode: { is: 1e-9, n: 1.5, rs: 0.02 } } },
-  { name: 'IKW50N60T', note: 'IGBT 600 V / 50 A with anti-parallel diode, VCE(sat) ≈ 1.5 V, VGE(th) ≈ 4.9 V (TO-247, approximate)', model: { vto: 4.9, kp: 3.15, bf: 1, is: 1.7e-10, diode: { is: 1.7e-9, n: 1.5, rs: 0.012 } } },
-  { name: 'IKW40N120T2', note: 'IGBT 1200 V / 40 A with anti-parallel diode, VCE(sat) ≈ 1.75 V, VGE(th) ≈ 5.8 V (TO-247, approximate)', model: { vto: 5.8, kp: 2.16, bf: 1, is: 1e-10, diode: { is: 1e-9, n: 1.5, rs: 0.02 } } },
+  { name: 'IKW30N60T', note: 'IGBT 600 V / 30 A with anti-parallel diode, VCE(sat) ≈ 1.5 V, VGE(th) ≈ 4.9 V (TO-247, approximate)', model: { vto: 4.9, kp: 1.89, bf: 1, is: 1e-10, diode: { is: 1e-9, n: 1.5, rs: 0.02 }, cge: 1580e-12, cgc: 50e-12, cce: 58e-12 } },
+  { name: 'IKW50N60T', note: 'IGBT 600 V / 50 A with anti-parallel diode, VCE(sat) ≈ 1.5 V, VGE(th) ≈ 4.9 V (TO-247, approximate)', model: { vto: 4.9, kp: 3.15, bf: 1, is: 1.7e-10, diode: { is: 1.7e-9, n: 1.5, rs: 0.012 }, cge: 3047e-12, cgc: 93e-12, cce: 107e-12 } },
+  { name: 'IKW40N120T2', note: 'IGBT 1200 V / 40 A with anti-parallel diode, VCE(sat) ≈ 1.75 V, VGE(th) ≈ 5.8 V (TO-247, approximate)', model: { vto: 5.8, kp: 2.16, bf: 1, is: 1e-10, diode: { is: 1e-9, n: 1.5, rs: 0.02 }, cge: 2390e-12, cgc: 110e-12, cce: 90e-12 } },
   { name: 'generic 600 V 20 A', note: 'IGBT 600 V / 20 A without diode (reverse blocking), VCE(sat) ≈ 1.8 V, VGE(th) ≈ 5.5 V', model: { vto: 5.5, kp: 0.95, bf: 1, is: 1e-10 } },
 ];
 

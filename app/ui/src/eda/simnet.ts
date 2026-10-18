@@ -469,6 +469,12 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'Q', name: `${ref}_Q`, c: e, b, e: c, model: { type: 'pnp', is: m.is, bf: m.bf, br: 1, nf: 1, nr: 1 } },
       );
       if (m.diode) out.push({ kind: 'D', name: `${ref}_D`, a: e, k: c, model: m.diode });
+      // its capacitances as the power MOSFET's (free at a power-on start): without them a
+      // switching leg moved a floating 381 V side in femtoseconds and the step size collapsed
+      // (found in simulation, the high-frequency inverter at −10 °C)
+      if (m.cge) out.push({ kind: 'C', name: `${ref}_CGE`, a: g, b: e, c: m.cge, free: true });
+      if (m.cgc) out.push({ kind: 'C', name: `${ref}_CGC`, a: g, b: c, c: m.cgc, free: true });
+      if (m.cce) out.push({ kind: 'C', name: `${ref}_CCE`, a: c, b: e, c: m.cce, free: true });
       break;
     }
     case 'opto': {
