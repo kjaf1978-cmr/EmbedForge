@@ -27,7 +27,16 @@ export type Element =
   /** tc1, tc2: temperature coefficients (1/K, 1/K²): r(T) = r·(1 + tc1·ΔT + tc2·ΔT²), ΔT from 27 °C. */
   | { kind: 'R'; name: string; a: string; b: string; r: number; tc1?: number; tc2?: number }
   | { kind: 'C'; name: string; a: string; b: string; c: number; /** start voltage of a uic transient */ ic?: number; /** a device's own capacitance: not held at a power-on start (it follows the circuit) */ free?: boolean }
-  | { kind: 'L'; name: string; a: string; b: string; l: number }
+  /** isat: a saturating core: the incremental inductance has fallen by 20 % at |i| = isat, the
+   *  flux levels off at about 1.3 × l·isat and above it the inductance is l/50 (coreFlux in the
+   *  engine). Without it, linear. */
+  | { kind: 'L'; name: string; a: string; b: string; l: number; isat?: number }
+  /** Transformer with a saturating core: windings a–b (primary, l1) and c–d (secondary, n
+   *  times the primary's turns), dots at a and c. Leakage (1 − k)·l1 on each side (referred),
+   *  magnetising flux of the primary-referred current i1 + n·i2 through k·l1, saturating as
+   *  an inductor's with isat (that magnetising current). With k < 1 and no isat it equals
+   *  two inductors l1 and n²·l1 coupled with k. */
+  | { kind: 'TX'; name: string; a: string; b: string; c: string; d: string; l1: number; n: number; k: number; isat?: number }
   /** Voltage source: v(p) − v(n) = value. Branch current flows from p through the source to n. */
   | { kind: 'V'; name: string; p: string; n: string; dc: number; wave?: Wave; acMag?: number; acPhase?: number }
   /** Current source: `value` flows from p through the source to n (out of the source into n). */
@@ -87,6 +96,7 @@ export interface Circuit {
 export function terminals(e: Element): string[] {
   switch (e.kind) {
     case 'R': case 'C': case 'L': return [e.a, e.b];
+    case 'TX': return [e.a, e.b, e.c, e.d];
     case 'V': case 'I': return [e.p, e.n];
     case 'E': case 'G': return [e.p, e.n, e.cp, e.cn];
     case 'D': return [e.a, e.k];

@@ -11,7 +11,7 @@ import { sheetTemp, type Sheet } from './schematic';
 import type { Connectivity } from './connectivity';
 import type { SimResult } from '../sim/run';
 
-type Quantity = 'P' | 'V' | 'Vr' | 'If' | 'Ic' | 'Vce' | 'Id' | 'Vds' | 'Vgs' | 'Iz' | 'Vin' | 'Vs' | 'I' | 'Vcc' | 'Iout' | 'Ppk' | 'Vge' | 'Vka' | 'Ik' | 'Irms' | 'Ipk' | 'E' | 'Vb' | 'Idm' | 'Icm';
+type Quantity = 'P' | 'V' | 'Vr' | 'If' | 'Ic' | 'Vce' | 'Id' | 'Vds' | 'Vgs' | 'Iz' | 'Vin' | 'Vs' | 'I' | 'Vcc' | 'Iout' | 'Ppk' | 'Vge' | 'Vka' | 'Ik' | 'Irms' | 'Ipk' | 'E' | 'Vb' | 'Idm' | 'Icm' | 'Isat';
 
 export interface Stress {
   ref: string;
@@ -66,11 +66,11 @@ export const THERMAL: Record<string, { tj: number; rjc: number }> = {
   STTH6003: { tj: 175, rjc: 0.6 }, C4D20120A: { tj: 175, rjc: 0.5 }, SS34: { tj: 150, rjc: 15 }, GBU8K: { tj: 150, rjc: 2.2 }, KBP206: { tj: 150, rjc: 8 },
 };
 
-const UNIT: Record<Quantity, 'W' | 'V' | 'A' | 'J'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A', Ipk: 'A', E: 'J', Vb: 'V', Idm: 'A', Icm: 'A' };
+const UNIT: Record<Quantity, 'W' | 'V' | 'A' | 'J'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A', Ipk: 'A', E: 'J', Vb: 'V', Idm: 'A', Icm: 'A', Isat: 'A' };
 const WHAT: Record<Quantity, string> = {
   P: 'power', V: 'voltage', Vr: 'reverse voltage', If: 'forward current', Ic: 'collector current', Vce: 'collector–emitter voltage', Id: 'drain current',
   Vds: 'drain–source voltage', Vgs: 'gate–source voltage', Iz: 'Zener current', Vin: 'input voltage', Vs: 'supply voltage', I: 'current', Vcc: 'supply voltage', Iout: 'output current',
-  Ppk: 'peak pulse power', Vge: 'gate–emitter voltage', Vka: 'cathode–anode voltage', Ik: 'cathode current', Irms: 'RMS current (the fuse blows above its rating)', Ipk: 'peak surge current', E: 'surge energy', Vb: 'bootstrap voltage (VB to COM)', Idm: 'pulsed drain current', Icm: 'pulsed collector current',
+  Ppk: 'peak pulse power', Vge: 'gate–emitter voltage', Vka: 'cathode–anode voltage', Ik: 'cathode current', Irms: 'RMS current (the fuse blows above its rating)', Ipk: 'peak surge current', E: 'surge energy', Vb: 'bootstrap voltage (VB to COM)', Idm: 'pulsed drain current', Isat: 'peak current against the saturation current', Icm: 'pulsed collector current',
 };
 
 const peak = (y: number[]) => y.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
@@ -126,7 +126,13 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         add('Vr', maxOf(vAcross('2', '1')), 1); // electrolytics tolerate about 1 V reversed
         break;
       }
-      case 'inductor': add('I', peak(iPin('1')), prop('imax')); break;
+      case 'inductor': {
+        add('I', peak(iPin('1')), prop('imax'));
+        // a saturating core (D32): the peak against its saturation current, where the
+        // inductance has fallen by 20 %
+        if (p.props.isat?.trim()) add('Isat', peak(iPin('1')), prop('isat'));
+        break;
+      }
       case 'switch': case 'button': add('I', peak(iPin('1')), prop('imax')); break;
       case 'spdt': add('I', peak(iPin('1')), prop('imax')); break;
       case 'diode': case 'zener': case 'led': {

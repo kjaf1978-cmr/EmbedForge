@@ -310,39 +310,138 @@ class Vcvs extends Branch {
   acCurrents(re: Float64Array, im: Float64Array) { return [[re[this.k], im[this.k]], [-re[this.k], -im[this.k]], [0, 0], [0, 0]] as [number, number][]; }
 }
 
+/** Flux of a core with inductance l at its current i, and the incremental inductance dφ/di.
+ *  isat: the current at which the incremental inductance has fallen by 20 % (a datasheet's
+ *  saturation current). φ = r·l·i + (1 − r)·l·Is·f(i/Is) with f(x) = x/(1 + |x|⁶)^(1/6): a
+ *  sharp knee (the flux levels off at about 1.3 × l·isat) and above it the residual
+ *  inductance r·l of the winding's air path (a gapped inductor's core about 1/50, an ungapped
+ *  transformer core 1/200). Is = isat/0.7714 (f′ = 0.8 there). */
+export function coreFlux(l: number, i: number, isat?: number, r = 1 / 50): [number, number] {
+  if (!isat) return [l * i, l];
+  const is = isat / 0.7714, x = i / is, a = Math.abs(x), g = Math.pow(1 + Math.pow(a, 6), 1 / 6);
+  return [r * l * i + (1 - r) * l * is * (x / g), r * l + (1 - r) * l * Math.pow(g, -7)];
+}
+
+/** The current at which a saturating core is linearised in a Newton iteration: at most
+ *  max(isat, |last|/2) from the last iterate. Across the knee the incremental inductance
+ *  changes 50 to 200 times, and an unlimited step overshoots back and forth (the transient
+ *  failed to converge, found in the unit tests). */
+function satLimit(i: number, last: number, isat: number) {
+  const d = Number((globalThis as { __satLim?: number }).__satLim ?? 1) * Math.max(isat, 0.5 * Math.abs(last));
+  return Math.min(Math.max(i, last - d), last + d);
+}
+
 class Inductor extends Branch {
-  iprev = 0; vprev = 0;
+  iprev = 0; vprev = 0; private fprev = 0; private iIt = 0;
   constructor(public el: Element & { kind: 'L' }, p: number, q: number, k: number) { super(p, q, k); }
-  /** The inductor keeps its current as an unknown (branch row k): v = L·di/dt becomes
-   *  Backward Euler:  v − (L/h)·i = −(L/h)·i₋
-   *  Trapezoidal:     v − (2L/h)·i = −(2L/h)·i₋ − v₋
+  /** The inductor keeps its current as an unknown (branch row k): v = dφ/dt with φ(i) the
+   *  core's flux (linear without isat), linearised at the iterate i₀ (incremental L = dφ/di):
+   *  Backward Euler:  v − (L/h)·i = (φ(i₀) − L·i₀ − φ₋)/h
+   *  Trapezoidal:     v − (2L/h)·i = (2/h)·(φ(i₀) − L·i₀ − φ₋) − v₋
+   *  A saturating core always with Backward Euler (see the transformer below).
    *  At DC it is a short (v = 0); at a power-on start (uic) its current is held at 0. */
   load(c: Ctx) {
     if (c.mode === 'dc' && c.uic) { add(c, this.p, this.k, 1); add(c, this.q, this.k, -1); add(c, this.k, this.k, 1); return; }
     this.stampBranch(c);
     if (c.mode === 'dc') return;
-    const L = this.el.l;
-    if (c.method === 'be') { const r = L / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, -r * this.iprev); }
-    else { const r = (2 * L) / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, -r * this.iprev - this.vprev); }
+    let i0 = 0;
+    if (this.el.isat) { i0 = c.init ? this.iprev : satLimit(c.x[this.k], this.iIt, this.el.isat); this.iIt = i0; }
+    const [f0, L] = coreFlux(this.el.l, i0, this.el.isat), off = f0 - L * i0 - this.fprev;
+    if (c.method === 'be' || this.el.isat) { const r = L / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, off / c.h); }
+    else { const r = (2 * L) / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, (2 * off) / c.h - this.vprev); }
   }
+  flux(i: number) { return coreFlux(this.el.l, i, this.el.isat)[0]; }
+  /** A saturating core has converged only where it was linearised (the step limit may still
+   *  be walking its current towards the solution while every node voltage has settled). */
+  converged(x: Float64Array) { return !this.el.isat || Math.abs(x[this.k] - this.iIt) <= RELTOL * Math.max(Math.abs(x[this.k]), Math.abs(this.iIt)) + ABSTOL; }
   private hist: [number, number][] = [];
-  initTran(x: Float64Array) { this.iprev = x[this.k]; this.vprev = 0; this.hist = [[0, this.el.l * this.iprev]]; }
+  initTran(x: Float64Array) { this.iprev = x[this.k]; this.iIt = this.iprev; this.vprev = 0; this.fprev = this.flux(this.iprev); this.hist = [[0, this.fprev]]; }
   accept(c: Ctx, x: Float64Array) {
     if (c.mode !== 'tran') return;
-    this.iprev = x[this.k]; this.vprev = V(x, this.p) - V(x, this.q);
-    this.hist.push([c.t, this.el.l * this.iprev]);
+    this.iprev = x[this.k]; this.iIt = this.iprev; this.vprev = V(x, this.p) - V(x, this.q); this.fprev = this.flux(this.iprev);
+    this.hist.push([c.t, this.fprev]);
     if (this.hist.length > 3) this.hist.shift();
   }
   resetHistory() { this.hist = this.hist.slice(-1); }
   lte(x: Float64Array, c: Ctx) {
-    const i = x[this.k], v = V(x, this.p) - V(x, this.q);
-    const tol = Math.max(VNTOL + RELTOL * Math.max(Math.abs(v), Math.abs(this.vprev)), (RELTOL * Math.max(Math.abs(this.el.l * i), Math.abs(this.el.l * this.iprev), CHGTOL)) / c.h);
-    return lteStep(this.hist, c.t, this.el.l * i, c.h, c.method, tol);
+    const i = x[this.k], v = V(x, this.p) - V(x, this.q), f = this.flux(i);
+    const tol = Math.max(VNTOL + RELTOL * Math.max(Math.abs(v), Math.abs(this.vprev)), (RELTOL * Math.max(Math.abs(f), Math.abs(this.fprev), CHGTOL)) / c.h);
+    return lteStep(this.hist, c.t, f, c.h, this.el.isat ? 'be' : c.method, tol);
   }
   loadAC(c: AcCtx) {
     addc(c, this.p, this.k, 1, 0); addc(c, this.q, this.k, -1, 0); addc(c, this.k, this.p, 1, 0); addc(c, this.k, this.q, -1, 0);
-    addc(c, this.k, this.k, 0, -c.w * this.el.l);
+    addc(c, this.k, this.k, 0, -c.w * coreFlux(this.el.l, this.iprev, this.el.isat)[1]);
   }
+}
+
+/** Transformer with a saturating core (element TX): branch rows k1 (winding a–b) and k2
+ *  (winding c–d). Flux linkages λ1 = Ll1·i1 + φ(im), λ2 = Ll2·i2 + n·φ(im), im = i1 + n·i2,
+ *  φ the magnetising inductance k·l1's core flux (coreFlux with isat), Ll1 = (1 − k)·l1,
+ *  Ll2 = (1 − k)·n²·l1; v = dλ/dt integrated and linearised as the inductor's; the ungapped
+ *  core's residual inductance 1/200. */
+class SatTransformer implements Device {
+  private ip = [0, 0]; private vp = [0, 0]; private lp = [0, 0]; private imIt = 0;
+  private hist: [number, number][][] = [[], []];
+  constructor(public el: Element & { kind: 'TX' }, private a: number, private b: number, private c2: number, private d: number, private k1: number, private k2: number) {}
+  get branch() { return this.k1; }
+  converged(x: Float64Array) { const im = x[this.k1] + this.el.n * x[this.k2]; return !this.el.isat || Math.abs(im - this.imIt) <= RELTOL * Math.max(Math.abs(im), Math.abs(this.imIt)) + ABSTOL; }
+  private parts() { const { l1, n, k } = this.el; return { lm: k * l1, ll1: (1 - k) * l1, ll2: (1 - k) * n * n * l1, n }; }
+  private lambda(i1: number, i2: number): [number, number] {
+    const { lm, ll1, ll2, n } = this.parts(), f = coreFlux(lm, i1 + n * i2, this.el.isat, 1 / 200)[0];
+    return [ll1 * i1 + f, ll2 * i2 + n * f];
+  }
+  load(c: Ctx) {
+    const { k1, k2 } = this;
+    const pins: [number, number, number][] = [[this.a, this.b, k1], [this.c2, this.d, k2]];
+    if (c.mode === 'dc' && c.uic) { for (const [p, q, k] of pins) { add(c, p, k, 1); add(c, q, k, -1); add(c, k, k, 1); } return; }
+    for (const [p, q, k] of pins) { add(c, p, k, 1); add(c, q, k, -1); add(c, k, p, 1); add(c, k, q, -1); }
+    if (c.mode === 'dc') return;
+    const { lm, ll1, ll2, n } = this.parts();
+    let im = 0;
+    if (this.el.isat) { im = c.init ? this.ip[0] + n * this.ip[1] : satLimit(c.x[k1] + n * c.x[k2], this.imIt, this.el.isat); this.imIt = im; }
+    const [f0, ld] = coreFlux(lm, im, this.el.isat, 1 / 200), off = f0 - ld * im;
+    // λ1 ≈ (ll1 + ld)·i1 + n·ld·i2 + off; λ2 ≈ n·ld·i1 + (ll2 + n²·ld)·i2 + n·off
+    const m = [[ll1 + ld, n * ld], [n * ld, ll2 + n * n * ld]], o = [off, n * off];
+    // a saturating core always with backward Euler: the trapezoidal rule only holds a stiff
+    // mode (a winding into a high impedance) at −1 per step, and with the inductance changing
+    // from step to step that mode grew without bound (found in the unit tests)
+    const s = c.method === 'be' || this.el.isat ? 1 : 2;
+    for (let w = 0; w < 2; w++) {
+      const k = w ? k2 : k1;
+      add(c, k, k1, -(s * m[w][0]) / c.h); add(c, k, k2, -(s * m[w][1]) / c.h);
+      rhs(c, k, (s * (o[w] - this.lp[w])) / c.h - (s === 2 ? this.vp[w] : 0));
+    }
+  }
+  initTran(x: Float64Array) {
+    this.ip = [x[this.k1], x[this.k2]]; this.imIt = this.ip[0] + this.el.n * this.ip[1]; this.vp = [0, 0]; this.lp = this.lambda(this.ip[0], this.ip[1]);
+    this.hist = [[[0, this.lp[0]]], [[0, this.lp[1]]]];
+  }
+  accept(c: Ctx, x: Float64Array) {
+    if (c.mode !== 'tran') return;
+    this.ip = [x[this.k1], x[this.k2]]; this.imIt = this.ip[0] + this.el.n * this.ip[1]; this.vp = [V(x, this.a) - V(x, this.b), V(x, this.c2) - V(x, this.d)];
+    this.lp = this.lambda(this.ip[0], this.ip[1]);
+    for (let w = 0; w < 2; w++) { this.hist[w].push([c.t, this.lp[w]]); if (this.hist[w].length > 3) this.hist[w].shift(); }
+  }
+  resetHistory() { this.hist = this.hist.map((h) => h.slice(-1)); }
+  lte(x: Float64Array, c: Ctx) {
+    const lam = this.lambda(x[this.k1], x[this.k2]), v = [V(x, this.a) - V(x, this.b), V(x, this.c2) - V(x, this.d)];
+    let h = Infinity;
+    for (let w = 0; w < 2; w++) {
+      const tol = Math.max(VNTOL + RELTOL * Math.max(Math.abs(v[w]), Math.abs(this.vp[w])), (RELTOL * Math.max(Math.abs(lam[w]), Math.abs(this.lp[w]), CHGTOL)) / c.h);
+      h = Math.min(h, lteStep(this.hist[w], c.t, lam[w], c.h, this.el.isat ? 'be' : c.method, tol));
+      if (h < 1e-12 && (globalThis as { __simDebug?: (s: string) => void }).__simDebug) (globalThis as { __simDebug?: (s: string) => void }).__simDebug!(`TXLTE w=${w} h=${h.toExponential(2)} lam=${lam[w]} hist=${JSON.stringify(this.hist[w])} i=${x[this.k1]},${x[this.k2]} v=${v[w]} tol=${tol}`);
+    }
+    return h;
+  }
+  loadAC(c: AcCtx) {
+    const { lm, ll1, ll2, n } = this.parts(), ld = coreFlux(lm, this.ip[0] + n * this.ip[1], this.el.isat, 1 / 200)[1];
+    const m = [[ll1 + ld, n * ld], [n * ld, ll2 + n * n * ld]];
+    const pins: [number, number, number][] = [[this.a, this.b, this.k1], [this.c2, this.d, this.k2]];
+    for (const [p, q, k] of pins) { addc(c, p, k, 1, 0); addc(c, q, k, -1, 0); addc(c, k, p, 1, 0); addc(c, k, q, -1, 0); }
+    for (let w = 0; w < 2; w++) { const k = w ? this.k2 : this.k1; addc(c, k, this.k1, 0, -c.w * m[w][0]); addc(c, k, this.k2, 0, -c.w * m[w][1]); }
+  }
+  currents(x: Float64Array) { return [x[this.k1], -x[this.k1], x[this.k2], -x[this.k2]]; }
+  acCurrents(re: Float64Array, im: Float64Array) { return [[re[this.k1], im[this.k1]], [-re[this.k1], -im[this.k1]], [re[this.k2], im[this.k2]], [-re[this.k2], -im[this.k2]]] as [number, number][]; }
 }
 
 /** Mutual inductance between two inductors. Their branch rows get the coupled flux term
@@ -1018,6 +1117,7 @@ export class Engine {
         case 'R': this.devices.push(new Resistor(e, ix(e.a), ix(e.b), tk - TNOM)); break;
         case 'C': this.devices.push(new Capacitor(e, ix(e.a), ix(e.b), !e.free)); break;
         case 'L': this.devices.push(new Inductor(e, ix(e.a), ix(e.b), br())); break;
+        case 'TX': { const k1 = br(), k2 = br(); this.devices.push(new SatTransformer(e, ix(e.a), ix(e.b), ix(e.c), ix(e.d), k1, k2)); break; }
         case 'V': this.devices.push(new VSource(e, ix(e.p), ix(e.n), br())); this.breaks.push({ wave: e }); break;
         case 'I': this.devices.push(new ISource(e, ix(e.p), ix(e.n))); this.breaks.push({ wave: e }); break;
         case 'E': this.devices.push(new Vcvs(e, ix(e.p), ix(e.n), ix(e.cp), ix(e.cn), br())); break;
@@ -1126,9 +1226,10 @@ export class Engine {
       const b = c.z.slice();
       // the fill-reducing order is found once per analysis mode, from the first matrix
       if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; this.solver = new SparseSolver(this.order); }
-      if (!this.solver!.solve(c.A, b, c.pat)) return -1;
+      const dbg = (globalThis as { __simDebug?: (s: string) => void }).__simDebug;
+      if (!this.solver!.solve(c.A, b, c.pat)) { dbg?.(`t=${c.t.toExponential(4)} h=${c.h.toExponential(2)} singular matrix`); return -1; }
       if (this.refine) this.solver!.refine(c.A, c.z, b, c.pat);
-      for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) return -1;
+      for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) { dbg?.(`t=${c.t.toExponential(4)} h=${c.h.toExponential(2)} not finite at ${i}`); return -1; }
       let conv = !c.noncon && !c.init, vconv = conv;
       if (conv) {
         for (let i = 0; i < c.n; i++) {

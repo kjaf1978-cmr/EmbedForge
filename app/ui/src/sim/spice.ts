@@ -52,7 +52,13 @@ export function elementLine(e: Element, models: Map<string, string>, temp?: numb
   switch (e.kind) {
     case 'R': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.r)}${e.tc1 ? ` tc1=${n(e.tc1)}` : ''}${e.tc2 ? ` tc2=${n(e.tc2)}` : ''}`;
     case 'C': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.c)}${e.ic !== undefined ? ` IC=${n(e.ic)}` : ''}`;
-    case 'L': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.l)}`;
+    case 'L': return `${nm} ${N(e.a)} ${N(e.b)} ${n(e.l)}${e.isat ? `\n* ${e.name}: saturates at ${n(e.isat)} A in NETApps; exported linear` : ''}`;
+    case 'TX': {
+      const lp = spiceName({ kind: 'L', name: `${e.name}_P` } as Element), ls = spiceName({ kind: 'L', name: `${e.name}_S` } as Element);
+      return [`* ${e.name}: transformer 1 : ${n(e.n)}${e.isat ? `, its core saturating at ${n(e.isat)} A magnetising current in NETApps; exported linear` : ''}`,
+        `${lp} ${N(e.a)} ${N(e.b)} ${n(e.l1)}`, `${ls} ${N(e.c)} ${N(e.d)} ${n(e.l1 * e.n * e.n)}`,
+        `${spiceName({ kind: 'K', name: e.name } as Element)} ${lp} ${ls} ${n(e.k)}`].join('\n');
+    }
     case 'V': return `${nm} ${N(e.p)} ${N(e.n)} ${wave(e.dc, e.wave)}${ac(e)}`;
     case 'I': return `${nm} ${N(e.p)} ${N(e.n)} ${wave(e.dc, e.wave)}${ac(e)}`;
     case 'E': return `${nm} ${N(e.p)} ${N(e.n)} ${N(e.cp)} ${N(e.cn)} ${n(e.gain)}`;

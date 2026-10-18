@@ -184,7 +184,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'inductor':
-      out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance') });
+      out.push({ kind: 'L', name: ref, a: pin['1'], b: pin['2'], l: v('value', 'inductance'), ...(p.props.isat?.trim() ? { isat: v('isat', 'saturation current') } : {}) });
       if (p.props.rloss?.trim()) out.push({ kind: 'R', name: `${ref}_RL`, a: pin['1'], b: pin['2'], r: v('rloss', 'core loss resistance') });
       break;
     case 'transformer': {
@@ -194,8 +194,13 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       const a = `${ref}#p`, b = `${ref}#s`;
       out.push(
         { kind: 'R', name: `${ref}_RP`, a: pin['1'], b: a, r: Math.max(v('rp', 'primary resistance'), 1e-6) },
-        { kind: 'L', name: `${ref}_LP`, a, b: pin['2'], l: lp },
         { kind: 'R', name: `${ref}_RS`, a: pin['3'], b, r: Math.max(v('rs', 'secondary resistance'), 1e-6) },
+      );
+      // with a saturation current: one element whose core saturates (the leakage split evenly;
+      // while the core is linear it equals the coupled pair below)
+      if (p.props.isat?.trim()) out.push({ kind: 'TX', name: `${ref}_T`, a, b: pin['2'], c: b, d: pin['4'], l1: lp, n: ratio, k: Math.min(Math.max(k, 1e-6), 0.9999), isat: v('isat', 'saturation current') });
+      else out.push(
+        { kind: 'L', name: `${ref}_LP`, a, b: pin['2'], l: lp },
         { kind: 'L', name: `${ref}_LS`, a: b, b: pin['4'], l: lp * ratio * ratio },
         { kind: 'K', name: `${ref}_K`, l1: `${ref}_LP`, l2: `${ref}_LS`, k: Math.min(Math.max(k, 1e-6), 1) },
       );
