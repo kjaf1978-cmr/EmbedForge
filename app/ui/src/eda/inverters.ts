@@ -499,6 +499,9 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
  *  sine bridge alone (`stage: 'sine'`: the bus and the 15 V from bench sources). */
 export interface InverterHfOptions extends InverterLfOptions {
   stage?: 'dcdc' | 'sine';
+  /** Tests: a smaller capacitor for the DC-DC converter's overload timer (the product's 220 nF
+   *  latches it off about 0.5 s after it reaches its current limit for good). */
+  dcOverloadC?: string;
   busLoad?: string;
   /** Tests: the bus voltage feedback has failed (the optocoupler's LED open, DFMEA H-3). */
   feedbackOpen?: boolean;
@@ -698,9 +701,6 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RHVN', 'resistor', 20, 600, { value: '10k' }, { '1': V, '2': 'HVN' }, 1)
     .part('RHVH', 'resistor', -80, 800, { value: '100k' }, { '1': 'HVN', '2': 'VHI' })
     .part('DHV', 'diode', 20, 800, { value: '1N4148' }, { '2': 'ENL', '1': 'HVN' })
-    // the second comparator of this LM393 is the design's one spare (five on this side): + on
-    // ground, − on VREFL, so its output is held low
-    .part('USP', 'comparator', -180, 900, { value: 'LM393', pkg: 'PROTL' }, { '3': 'GND', '2': 'VREFL', '1': 'GND', '8': V, '4': 'GND' })
     .part('REN', 'resistor', 120, 600, { value: '10k' }, { '1': V, '2': 'ENL' }, 1)
     .part('RKA', 'resistor', -900, 820, { value: '22k' }, { '1': V, '2': 'BKA' }, 1)
     .part('QKA', 'npn', -780, 900, { value: 'BC547B' }, { '1': 'BKA', '2': 'ENL', '3': 'GND' })
@@ -709,6 +709,26 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RQE2', 'resistor', 280, 820, { value: '47k' }, { '1': 'BQE', '2': 'GND' }, 1)
     .part('RENN', 'resistor', 340, 600, { value: '10k' }, { '1': V, '2': 'ENNL' }, 1)
     .part('CDC1', 'capacitor', 120, 840, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+
+  // ---- the DC-DC converter's overload timer (the second comparator of the battery window's
+  // LM393): the command VC averaged over 0.22 s against 1.87 V, just below its 1.92 V ceiling,
+  // where it rests only while the current limit holds a lasting overload (5 kW at 42 V needs
+  // about 1.78 V; the bus's charge at the start and a motor start last too briefly). Then OLL
+  // rises, QOL pulls ENL low and DOLF holds the average up: the converter stays off until the
+  // battery is disconnected. Without it a shorted bus held the converter at its limit, the
+  // current transformer's clamp dissipating 2.3 W, until the heatsink cut-out (found in
+  // simulation)
+  nb.block('dc-dc overload')
+    .part('ROTA', 'resistor', -1420, 1380, { value: '10k' }, { '1': 'VREFL', '2': 'VOT' }, 1)
+    .part('ROTB', 'resistor', -1420, 1500, { value: '30.1k' }, { '1': 'VOT', '2': 'GND' }, 1)
+    .part('ROT', 'resistor', -1300, 1560, { value: '1M' }, { '1': 'VC', '2': 'VCF' })
+    .part('COT', 'capacitor', -1200, 1660, { value: o.dcOverloadC ?? '220n', vmax: '25' }, { '1': 'VCF', '2': 'GND' }, 1)
+    .part('USP', 'comparator', -1080, 1460, { value: 'LM393', pkg: 'PROTL' }, { '3': 'VCF', '2': 'VOT', '1': 'OLL', '8': V, '4': 'GND' })
+    .part('ROLP', 'resistor', -980, 1380, { value: '10k' }, { '1': V, '2': 'OLL' }, 1)
+    .part('DOLF', 'diode', -980, 1620, { value: '1N4148' }, { '2': 'OLL', '1': 'OLF' }, 1)
+    .part('ROLF', 'resistor', -1080, 1720, { value: '10k' }, { '1': 'OLF', '2': 'VCF' })
+    .part('ROLB', 'resistor', -900, 1440, { value: '47k' }, { '1': 'OLL', '2': 'BOL' })
+    .part('QOL', 'npn', -830, 1480, { value: 'BC547B' }, { '1': 'BOL', '2': 'ENL', '3': 'GND' });
 
   // ---- heatsink (MOSFETs and IGBTs on one heatsink): ENL low above 90 °C; the DC-DC converter
   // stops, and the sine bridge stops when the bus falls below its undervoltage level

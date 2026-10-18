@@ -60,7 +60,7 @@ describe('high-frequency inverter: the drawing', () => {
     }
     expect(find('HVG')).not.toBe(find('GND'));
   });
-  it('no wasted units (D31): every package full but two LM393 (five comparators on the low-voltage side, seven on the high-voltage side); the logic in one CD4001 and two CD4013, all used', () => {
+  it('no wasted units (D31): every package full but one LM393 (six comparators on the low-voltage side, the last one the DC-DC converter\'s overload timer; seven on the high-voltage side); the logic in one CD4001 and two CD4013, all used', () => {
     const bom = buildBom(sheet);
     const qty = (v: string, sym?: string) => bom.filter((l) => (l.value === v || l.raw === v) && (!sym || l.sym === sym)).reduce((a, l) => a + l.qty, 0);
     expect(qty('LM339')).toBe(2);
@@ -70,8 +70,9 @@ describe('high-frequency inverter: the drawing', () => {
     expect(bom.filter((l) => l.sym === 'nor2').reduce((a, l) => a + l.qty, 0)).toBe(1);
     expect(bom.filter((l) => l.sym === 'dff').reduce((a, l) => a + l.qty, 0)).toBe(2);
     const c = connectivity(sheet);
-    const spares = sheet.parts.filter((p) => p.sym === 'comparator' && c.pinNet.get(`${p.ref}.1`) === 'GND');
-    expect(spares.length).toBe(1); // the high-voltage side's spare has its output on HVG
+    const spare = (g: string) => sheet.parts.filter((p) => p.sym === 'comparator' && c.pinNet.get(`${p.ref}.1`) === g && c.pinNet.get(`${p.ref}.3`) === g);
+    expect(spare('GND').length).toBe(0);
+    expect(spare('HVG').length).toBe(1);
   });
 });
 
@@ -198,13 +199,19 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     expect(overRated(s)).toEqual([]);
   }, 7_200_000);
 
-  it('H-4 the 380 V bus shorted (0.5 Ω): the cycle-by-cycle limit holds the output inductor within its 40 A, nothing over its ratings for 20 ms', async () => {
-    const s = await runHF({ stage: 'dcdc', stop: '40m', precharged: true, busLoad: '0.5' });
+  it('H-4 the 380 V bus shorted (0.5 Ω): the cycle-by-cycle limit holds the output inductor within its 40 A, the overload timer latches the converter off, nothing over its ratings', async () => {
+    // the timer's capacitor 1 nF instead of 220 nF: it trips within milliseconds, not 0.5 s
+    const s = await runHF({ stage: 'dcdc', stop: '40m', precharged: true, busLoad: '0.5', dcOverloadC: '1n' });
     // the shorted bus cannot bring the inductor's current down while the bridge freewheels, so
     // every pulse starts at that current reflected (12 × 30 A, about 440 A with the ringing, in
     // 2 × IRFP4468 per switch rated 1280 A pulsed); the limit ends each pulse at once and holds
-    // it there. A lasting short then heats the heatsink until its cut-out stops the converter
-    expect(s.max(s.cur('LOB', '1').map(Math.abs), 0.016)).toBeLessThan(40);
+    // it there, until the timer stops the converter
+    expect(s.max(s.cur('LOB', '1').map(Math.abs))).toBeLessThan(40);
+    const kTrip = s.x.findIndex((t, k) => t > 1e-3 && s.r.v['ENL'][k] < 1);
+    expect(kTrip).toBeGreaterThan(0);
+    // latched: ENL stays low, the bridge stops and the inductor's current decays
+    expect(s.max(s.r.v['ENL'], s.x[kTrip] + 1e-3)).toBeLessThan(1);
+    expect(s.max(s.cur('TR1', '1').map(Math.abs), 0.035)).toBeLessThan(1);
     expect(overRated(s)).toEqual([]);
   }, 7_200_000);
 });
