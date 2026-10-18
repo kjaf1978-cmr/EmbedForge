@@ -5,6 +5,7 @@ import { FOOTPRINTS } from '../src/pcb/footprint';
 import { checkFootprint, EF_PROTO_STD, padGap, ring } from '../src/pcb/profile';
 import { footprintChoices, footprintOf, logicRailVoltage, pinsWithoutPad } from '../src/pcb/library';
 import { inverterHF, inverterLF } from '../src/eda/inverters';
+import { catalogueFor } from '../src/eda/catalogue';
 import { SYMBOLS } from '../src/eda/symbols';
 import { defaultProps, type Part } from '../src/eda/schematic';
 
@@ -82,6 +83,10 @@ describe('pin-outs from the datasheets', () => {
   });
   it('logic rail voltage from the name: +5V, 3V3, V12, V15H; none from VCC', () => {
     expect([logicRailVoltage('+5V'), logicRailVoltage('3V3'), logicRailVoltage('V12'), logicRailVoltage('V15H'), logicRailVoltage('VCC')]).toEqual([5, 3.3, 12, 15, null]);
+  });
+  it('the parts list orders the family the board is wired for: CD4013/CD4001 on V12, 74HC74/74HC02 on +5V', () => {
+    const mpn = (sym: string, raw: string) => catalogueFor({ qty: 1, refs: ['U1'], part: '', value: raw, details: '', standard: false, sym, raw })!.mpn;
+    expect([mpn('dff', 'V12'), mpn('nor2', 'V12'), mpn('dff', '+5V'), mpn('nor2', '+3V3')]).toEqual(['CD4013BE', 'CD4001BE', 'SN74HC74N', 'SN74HC02N']);
   });
   it('the inverters on their 12 V rail get CD4013 flip-flops and CD4001 NOR gates', () => {
     const logic = [...inverterLF().sheet.parts, ...inverterHF().sheet.parts].filter((p) => p.sym === 'dff' || p.sym === 'nor2');

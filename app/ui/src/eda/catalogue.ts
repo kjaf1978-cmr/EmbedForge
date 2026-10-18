@@ -6,6 +6,7 @@
 
 import type { BomLine } from './bom';
 import { parseValue } from './units';
+import { logicFamily } from '../pcb/library';
 
 export interface Offer { distributor: string; sku?: string; url?: string }
 export interface CatalogueEntry {
@@ -79,7 +80,11 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     TL074: e('TL074CN', 'Texas Instruments', 'quad JFET op-amp, DIP-14', 0.6, 0.3, 'estimate', any('DIP-14')),
   },
   tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V, TO-92', 0.3, 0.1, 'estimate', any('TO-92')) },
-  dff: { any: e('CD4013BE', 'Texas Instruments', 'dual D flip-flop, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')) },
+  // logic by family (the footprint's): CD4000 on a rail above 6 V, 74HC on 5 V and 3.3 V
+  dff: {
+    CD: e('CD4013BE', 'Texas Instruments', 'dual D flip-flop, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC74N', 'Texas Instruments', 'dual D flip-flop with preset and clear, 2–6 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+  },
   timer555: { NE555: e('NE555P', 'Texas Instruments', 'timer, DIP-8', 0.35, 0.12, 'estimate', any('DIP-8')) },
   opto: { PC817: e('PC817X1NSZ1B', 'Sharp', 'optocoupler, transistor output, DIP-4', 0.3, 0.1, 'estimate', any('DIP-4')) },
   lm317: { LM317HV: e('LM317HVT/NOPB', 'Texas Instruments', 'adjustable regulator, 60 V input–output, 1.5 A, TO-220', 2.2, 1.26, 'live', [{ distributor: 'Mouser', sku: '926-LM317HVT/NOPB' }, { distributor: 'RS', sku: '197-7244' }], 'on a heatsink of 8 K/W: Fischer SK 76 37,5 SA (RS 221-2176), about €3.50') },
@@ -98,7 +103,10 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   ntc: { '10k': e('NTCLE100E3103JB0', 'Vishay', 'NTC thermistor 10 kΩ, B 3977 K, radial (heatsink sensor)', 0.47, 0.27, 'live', [{ distributor: 'Farnell', sku: '1434160' }, { distributor: 'LCSC', sku: 'C141588' }, { distributor: 'RS', sku: '754-6645' }]) },
   terminal: { '5.08 mm, 1 pole': e('MKDS 1,5/ 2-5,08 (2 poles per block)', 'Phoenix Contact', 'PCB screw terminal 5.08 mm (control and sensors, per pole); mains and battery wiring: DIN-rail terminals PT 10 / PT 16 N', 0.4, 0.25, 'estimate', [{ distributor: 'RS', sku: '193-0564' }], 'power terminals PT 10 BK (RS 207-2871) about €1.00 per pole') },
   igbt: { IKW50N60T: e('IKW50N60TFKSA1', 'Infineon', 'IGBT 600 V 50 A TRENCHSTOP with anti-parallel diode, TO-247', 6.4, 4.3, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]) },
-  nor2: { any: e('CD4001BE', 'Texas Instruments', 'quad 2-input NOR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')) },
+  nor2: {
+    CD: e('CD4001BE', 'Texas Instruments', 'quad 2-input NOR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC02N', 'Texas Instruments', 'quad 2-input NOR, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
   inductor: { '470 µH': e('made to specification', 'magnetics supplier (sendust / Kool Mµ toroid)', 'power inductor 470 µH, 20–40 kHz, powder core, temperature class 155 °C: the bus inductor rated 40 A peak, the output inductors 80 A peak (as the parts list gives)', 42, 24, 'estimate', [{ distributor: 'magnetics supplier' }]),
   '56 µH': e('made to specification', 'magnetics supplier (Kool Mµ / powder-core toroid)', 'power inductor 56 µH at 100 A DC, 20 kHz, powder core, temperature class 155 °C', 105, 52, 'estimate', [{ distributor: 'magnetics supplier' }]) },
 };
@@ -170,8 +178,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
-    case 'dff': return BY_VALUE.dff.any; // its value is the supply rail
-    case 'nor2': return BY_VALUE.nor2.any;
+    case 'dff': case 'nor2': return BY_VALUE[line.sym][logicFamily(v)]; // its value is the supply rail
     default: return BY_VALUE[line.sym]?.[v] ?? null;
   }
 }

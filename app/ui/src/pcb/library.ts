@@ -83,10 +83,15 @@ export function logicRailVoltage(name: string): number | null {
   return m ? Number(`${m[1]}${m[2] ? `.${m[2]}` : ''}`) : null;
 }
 
-/** The logic package for a gate: CD4000 on a rail above 6 V, else 74HC. */
-function logicChoice(id: string, rail: string): FootprintChoice | undefined {
+/** The logic family for a supply rail: CD4000 above 6 V, else 74HC. */
+export function logicFamily(rail: string): 'HC' | 'CD' {
   const v = logicRailVoltage(rail);
-  return (v !== null && Math.abs(v) > HC_VMAX ? LOGIC_CD : LOGIC)[id];
+  return v !== null && Math.abs(v) > HC_VMAX ? 'CD' : 'HC';
+}
+
+/** The logic package for a gate on its rail. */
+function logicChoice(id: string, rail: string): FootprintChoice | undefined {
+  return (logicFamily(rail) === 'CD' ? LOGIC_CD : LOGIC)[id];
 }
 
 /** The footprints a part may have, the default first. */
