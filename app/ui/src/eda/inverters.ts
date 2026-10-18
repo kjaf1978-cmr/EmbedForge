@@ -521,7 +521,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   const V = 'V12', VH = 'V15H', G = 'HVG';
   const inv = o.stage !== 'dcdc';
   const vb = o.vbat ?? 52;
-  nb.wired = { rails: [V, VH, G], labelled: ['BF', 'AXA', 'BUS', 'LA', 'LB', 'SRCL', 'CSR', 'Q50H', 'REF', 'FBA', 'FBK', 'OVA', 'OVK', 'ENL', 'ENNL', 'VREFL', 'SDL', 'STOPL', 'BLK', 'AN', 'A', 'B', 'KEN', 'Q50',
+  nb.wired = { rails: [V, VH, G], labelled: ['BF', 'AXA', 'BUS', 'LA', 'LB', 'BUSD', 'CSR', 'Q50H', 'REF', 'FBA', 'FBK', 'OVA', 'OVK', 'ENL', 'ENNL', 'VREFL', 'SDL', 'STOPL', 'BLK', 'AN', 'A', 'B', 'KEN', 'Q50',
     'HBUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'SRS', 'OUTL', 'VME', 'STOP', 'SD', 'SP', 'FLT'] };
   nb.para('INVERTER, one 5 kW unit, high-frequency type: 48 V LiFePO4 battery (16 cells, 42 … 58.4 V) to 230 V 50 Hz. Isolated DC-DC converter (phase-shifted MOSFET full bridge at 20 kHz, peak current-mode, ferrite transformer 1 : 12, SiC rectifier) to a 380 V bus; IGBT full bridge, one leg at 20 kHz with an LC filter, the other at 50 Hz (N bonded to PE). Surge: twice the rated current for motor starts, cycle by cycle limited.', -1400, -420)
     .para('Protections (DFMEA section 6): pre-charge before the battery contactor closes; battery low cut-out 42 V (restart 47 V) and high cut-out 61 V; heatsink above 90 °C; bus overvoltage (own divider, reference and optocoupler) stops the DC-DC converter; bus undervoltage stops the sine bridge; cycle-by-cycle current limits in both converters; output overvoltage from its own sense transformer and reference (latched). WARNING: the bus holds 380 V for minutes after switch-off (bleeder 94 kΩ): wait 10 minutes.', -1400, -340);
@@ -550,9 +550,9 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   ([['A', -150, 'LA'], ['B', 550, 'LB']] as const).forEach(([leg, x0, sw]) => {
     for (let k = 0; k < 2; k++) {
       const x = x0 + 120 * k;
-      nb.part(`QH${leg}${k + 1}`, 'nmos', x, -160, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GH${leg}${k + 1}`, '2': 'BUS', '3': sw })
+      nb.part(`QH${leg}${k + 1}`, 'nmos', x, -160, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GH${leg}${k + 1}`, '2': 'BUSD', '3': sw })
         .part(`RGH${leg}${k + 1}`, 'resistor', x - 60, -240, { value: '4.7' }, { '1': `EH${leg}`, '2': `GH${leg}${k + 1}` })
-        .part(`QL${leg}${k + 1}`, 'nmos', x, 40, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${leg}${k + 1}`, '2': sw, '3': 'SRCL' })
+        .part(`QL${leg}${k + 1}`, 'nmos', x, 40, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${leg}${k + 1}`, '2': sw, '3': 'GND' })
         .part(`RGL${leg}${k + 1}`, 'resistor', x - 60, 120, { value: '4.7' }, { '1': `EL${leg}`, '2': `GL${leg}${k + 1}` });
     }
     nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': leg, '2': 'SDL', '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': sw, '4': `LO${leg}` })
@@ -567,16 +567,21 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
       .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
   });
 
-  // the current in the bridge's return: a current transformer (1 turn : 200, one fast diode,
-  // UF4007: the reset swing reverses it by 40 V, a 1N5819's rating; 1.2 Ω: 6 mV/A; 1k reset it between the pulses: 4.7k, reflected 0.12 Ω, gave −17 V spikes
-  // on the bridge when the dead time returns current through it). It sees the transformer's current while
+  // the current in the bridge's supply, between the bus capacitors and the high-side drains: a
+  // current transformer (1 turn : 200, one fast diode, UF4007: the reset swing reverses it by
+  // 40 V, a 1N5819's rating; 1.2 Ω: 6 mV/A; 1k reset it between the pulses: 4.7k, reflected
+  // 0.12 Ω, gave −17 V spikes on the bridge when the dead time returns current through it). In
+  // the return its few nH of leakage carried the commutating current: the low-side sources
+  // jumped −16 … +6 V against the drivers' ground, the gates and the bootstraps saw 21 V, and
+  // the spikes ended the pulses early (5 kW held the bus at only 300 V; found in simulation).
+  // It sees the transformer's current while
   // the bridge drives it, from zero, offset included (not the freewheeling current inside the
   // bridge), so a half period with a DC offset ends sooner: the flux stays balanced. In series
   // with the winding (bipolar, never zero) it could not see the offset, and 18 A of DC built up
   // in the primary; a 0.47 mΩ shunt gave 40 mV at 90 A, too little for the comparator (found in
   // simulation)
   nb.block('current sense')
-    .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999' }, { '1': 'SRCL', '2': 'GND', '3': 'CTA', '4': 'GND' })
+    .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999' }, { '1': 'BUS', '2': 'BUSD', '3': 'CTA', '4': 'GND' })
     .part('RCR', 'resistor', -440, 280, { value: '1k' }, { '1': 'CTA', '2': 'GND' }, 1)
     .part('DC1', 'diode', -380, 180, { value: 'UF4007' }, { '2': 'CTA', '1': 'CSR' })
     .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '0.5' }, { '1': 'CSR', '2': 'GND' }, 1);
