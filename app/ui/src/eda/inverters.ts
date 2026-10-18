@@ -279,11 +279,14 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // and valley detectors give the triangle's real extremes, so the half cycles join without a
   // step at the zero crossing
   if (c.hybrid) nb.block('hybrid modulation').part('UPK', 'opamp', -1250, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'PKV', '6': 'PKD', '7': V, '4': G })
-    .part('DPK', 'diode', -1130, 2410, { value: '1N4148' }, { '2': 'PKD', '1': 'PKV' })
+    .part('DPK', 'diode', -1130, 2410, { value: '1N4148' }, { '2': 'PKD', '1': 'PKR' })
+    // 1k: the op-amp charges 1 µF from 0 V at power-up (0.22 A without it, found in the stress check)
+    .part('RPKS', 'resistor', -1080, 2350, { value: '1k' }, { '1': 'PKR', '2': 'PKV' })
     .part('CPK', 'capacitor', -1030, 2530, { value: '1u', vmax: '25' }, { '1': 'PKV', '2': G }, 1)
     .part('RPK', 'resistor', -950, 2530, { value: '1M' }, { '1': 'PKV', '2': 'VMID' }, 1)
     .part('UVL', 'opamp', -850, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'VLV', '6': 'VLD', '7': V, '4': G })
-    .part('DVL', 'diode', -730, 2410, { value: '1N4148' }, { '2': 'VLV', '1': 'VLD' })
+    .part('DVL', 'diode', -730, 2410, { value: '1N4148' }, { '2': 'VLR', '1': 'VLD' })
+    .part('RVLS', 'resistor', -680, 2350, { value: '1k' }, { '1': 'VLV', '2': 'VLR' })
     .part('CVL', 'capacitor', -630, 2530, { value: '1u', vmax: '25' }, { '1': 'VLV', '2': G }, 1)
     .part('RVL', 'resistor', -550, 2530, { value: '1M' }, { '1': 'VLV', '2': 'VMID' }, 1)
     // SEL: the peak while INB is high (negative half cycle), else the valley
@@ -308,11 +311,21 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // VME until the primary's mean voltage is zero; QDC resets it while the bridge is stopped.
   // With 10 µF (0.135 s) a 1 % start-up asymmetry held for 0.1 s: 25–60 mVs, a fifth to a
   // half of the core's peak flux (found in simulation)
-  nb.block('dc servo')
-    .part('RDA1', 'resistor', 1000, 900, { value: '470k' }, { '1': 'SWA', '2': 'NDC' })
-    .part('RDA2', 'resistor', 1000, 1000, { value: '47k' }, { '1': 'NDC', '2': 'VMID' })
-    .part('RDB1', 'resistor', 1000, 1150, { value: '470k' }, { '1': c.swb ?? 'SWB', '2': 'PDC' })
-    .part('RDB2', 'resistor', 1100, 1250, { value: '47k' }, { '1': 'PDC', '2': 'VMID' }, 1)
+  // Hybrid: the legs swing 0 … 380 V about the control's ground, and their mean is 190 V: two
+  // 2.2M in series (190 V each) keep the inputs at about 9.4 V, inside the TL074's range (÷11
+  // put them at 24 V, above its supply, and the servo ran away: the output carried up to 250 V
+  // DC and the overvoltage latch tripped, found in simulation); the loop's gain is 7 times the
+  // 50 Hz unit's (the whole bus per volt of VME), and 4.4 MΩ bring its time constant back to
+  // about 40 ms, far below 50 Hz
+  nb.block('dc servo');
+  if (c.hybrid) nb.part('RDA1', 'resistor', 900, 900, { value: '2.2M' }, { '1': 'SWA', '2': 'NDA' })
+    .part('RDA1B', 'resistor', 1000, 900, { value: '2.2M' }, { '1': 'NDA', '2': 'NDC' });
+  else nb.part('RDA1', 'resistor', 1000, 900, { value: '470k' }, { '1': 'SWA', '2': 'NDC' });
+  nb.part('RDA2', 'resistor', 1000, 1000, { value: '47k' }, { '1': 'NDC', '2': 'VMID' });
+  if (c.hybrid) nb.part('RDB1', 'resistor', 920, 1230, { value: '2.2M' }, { '1': c.swb ?? 'SWB', '2': 'PDA' })
+    .part('RDB1B', 'resistor', 1000, 1150, { value: '2.2M' }, { '1': 'PDA', '2': 'PDC' });
+  else nb.part('RDB1', 'resistor', 1000, 1150, { value: '470k' }, { '1': c.swb ?? 'SWB', '2': 'PDC' });
+  nb.part('RDB2', 'resistor', 1100, 1250, { value: '47k' }, { '1': 'PDC', '2': 'VMID' }, 1)
     .part('CDB', 'capacitor', 1000, 1250, { value: '2.2u', vmax: '25' }, { '1': 'PDC', '2': 'VMID' }, 1)
     .part('UDC', 'opamp', 1200, 1050, { value: 'TL074', pkg: 'SIG1' }, { '3': 'PDC', '2': 'NDC', '6': 'VME', '7': V, '4': G })
     .part('CDI', 'capacitor', 1200, 900, { value: '2.2u', vmax: '25' }, { '1': 'NDC', '2': 'VME' })
@@ -468,9 +481,10 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
 }
 
 /** Options of the high-frequency inverter: as the 50 Hz-transformer unit, and for tests the DC-DC
- *  converter alone (`stage: 'dcdc'`: no sine bridge, a resistor `busLoad` on the 380 V bus). */
+ *  converter alone (`stage: 'dcdc'`: no sine bridge, a resistor `busLoad` on the 380 V bus) or the
+ *  sine bridge alone (`stage: 'sine'`: the bus and the 15 V from bench sources). */
 export interface InverterHfOptions extends InverterLfOptions {
-  stage?: 'dcdc';
+  stage?: 'dcdc' | 'sine';
   busLoad?: string;
   /** Tests: the bus voltage feedback has failed (the optocoupler's LED open, DFMEA H-3). */
   feedbackOpen?: boolean;
@@ -553,8 +567,8 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
       .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
   });
 
-  // the current in the bridge's return: a current transformer (1 turn : 200, one Schottky diode,
-  // 1.2 Ω: 6 mV/A; 1k reset it between the pulses: 4.7k, reflected 0.12 Ω, gave −17 V spikes
+  // the current in the bridge's return: a current transformer (1 turn : 200, one fast diode,
+  // UF4007: the reset swing reverses it by 40 V, a 1N5819's rating; 1.2 Ω: 6 mV/A; 1k reset it between the pulses: 4.7k, reflected 0.12 Ω, gave −17 V spikes
   // on the bridge when the dead time returns current through it). It sees the transformer's current while
   // the bridge drives it, from zero, offset included (not the freewheeling current inside the
   // bridge), so a half period with a DC offset ends sooner: the flux stays balanced. In series
@@ -564,8 +578,8 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.block('current sense')
     .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999' }, { '1': 'SRCL', '2': 'GND', '3': 'CTA', '4': 'GND' })
     .part('RCR', 'resistor', -440, 280, { value: '1k' }, { '1': 'CTA', '2': 'GND' }, 1)
-    .part('DC1', 'diode', -380, 180, { value: '1N5819' }, { '2': 'CTA', '1': 'CSR' })
-    .part('RBD', 'resistor', -300, 260, { value: '1.2' }, { '1': 'CSR', '2': 'GND' }, 1);
+    .part('DC1', 'diode', -380, 180, { value: 'UF4007' }, { '2': 'CTA', '1': 'CSR' })
+    .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '0.5' }, { '1': 'CSR', '2': 'GND' }, 1);
 
   // ---- transformer, auxiliary transformer, SiC rectifier, filter, the 380 V bus
   nb.block('dc-dc output')
@@ -575,10 +589,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     // the snubber damps the ringing of the leakage inductance with the diodes' capacitance
     .part('RSN', 'resistor', 1370, -220, { value: '470', pmax: '10' }, { '1': 'S1', '2': 'SNB' })
     .part('CSN', 'capacitor', 1470, -220, { value: '220p', vmax: '2000' }, { '1': 'SNB', '2': 'S2' })
-    .part('DR1', 'diode', 1400, -160, { value: 'C4D20120A' }, { '2': 'S1', '1': 'RP' }, 3)
-    .part('DR2', 'diode', 1520, -160, { value: 'C4D20120A' }, { '2': 'S2', '1': 'RP' }, 3)
-    .part('DR3', 'diode', 1400, 40, { value: 'C4D20120A' }, { '2': G, '1': 'S1' }, 3)
-    .part('DR4', 'diode', 1520, 40, { value: 'C4D20120A' }, { '2': G, '1': 'S2' }, 3)
+    .part('DR1', 'diode', 1400, -160, { value: 'C4D20120A', heatsink: '2' }, { '2': 'S1', '1': 'RP' }, 3)
+    .part('DR2', 'diode', 1520, -160, { value: 'C4D20120A', heatsink: '2' }, { '2': 'S2', '1': 'RP' }, 3)
+    .part('DR3', 'diode', 1400, 40, { value: 'C4D20120A', heatsink: '2' }, { '2': G, '1': 'S1' }, 3)
+    .part('DR4', 'diode', 1520, 40, { value: 'C4D20120A', heatsink: '2' }, { '2': G, '1': 'S2' }, 3)
     // its core losses (about 6 W) damp its ringing with the diodes while the current is zero
     .part('LOB', 'inductor', 1650, -160, { value: '470u', imax: '40', rloss: '15k' }, { '1': 'RP', '2': 'HBUS' });
   const hpre: Record<string, string> = o.precharged ? { ic: '380' } : {};
@@ -767,7 +781,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RFB3', 'resistor', 1400, 740, { value: '9.76k' }, { '1': 'FBS', '2': G }, 1)
     .part('UFB', 'tl431', 1520, 700, { value: 'TL431' }, { '1': 'FBS', '2': G, '3': 'FBK' }, 3)
     .part('RFC', 'resistor', 1620, 640, { value: '33k' }, { '1': 'FBK', '2': 'FBC' })
-    .part('CFC', 'capacitor', 1620, 740, { value: '100n', vmax: '50' }, { '1': 'FBC', '2': 'FBS' })
+    .part('CFC', 'capacitor', 1620, 740, { value: '100n', vmax: '50', ...(o.precharged ? { ic: '11' } : {}) }, { '1': 'FBC', '2': 'FBS' })
     .part('RFL', 'resistor', 1500, 440, { value: '1k' }, { '1': VH, '2': o.feedbackOpen ? 'FBX' : 'FBA' })
     .part('RFBI', 'resistor', 1640, 520, { value: '1k' }, { '1': VH, '2': 'FBK' });
   // independent bus overvoltage: own divider, the HV reference, LM393 with hysteresis; above 427 V
@@ -867,7 +881,17 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   if (inv) nb.v('OUTL').v('SINE').v('VA').v('HBUS').v('EN').i('LF1', '1');
   else nb.v('HBUS').v('VC').v('ENL').i('TR1', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
+  // the sine bridge alone (`stage: 'sine'`, for tests): the bench feeds the bus and the 15 V of
+  // the high-voltage side; the DC-DC converter and its control are left out
+  if (o.stage === 'sine') nb.block('bench').note('TEST BENCH: the bus and the 15 V from sources', 1880, 860)
+    .part('VBSB', 'battery', 1960, 940, { value: '381', rint: '0.05' }, { '1': 'HBUS', '2': G }, 1)
+    .part('V15B', 'battery', 2060, 940, { value: '15', rint: '0.05' }, { '1': VH, '2': G }, 1);
   const sheet = nb.done();
+  if (o.stage === 'sine') {
+    const gone = new Set(['dc-dc bridge', 'current sense', 'dc-dc output', 'hv supply', 'dc-dc control', 'bus feedback', 'bus overvoltage']);
+    const drop = new Set([...nb.ids.entries()].filter(([k]) => gone.has(nb.blockOf(k))).map(([, id]) => id));
+    sheet.parts = sheet.parts.filter((p) => !drop.has(p.id));
+  }
   if (o.temp !== undefined) sheet.temp = String(o.temp);
   // a run that starts with the bus charged: every capacitor of the high-voltage side's 15 V rail
   // starts charged with it (the decoupling at 0 V pulled the rail down to 1.5 V at the start)

@@ -17,7 +17,7 @@ const TEST_BLOCKS = new Set(['bench', 'load', 'battery']);
 /** Netlist-style sheet builder: parts at given positions, nets as labels on their pins. */
 export class NB {
   s = emptySheet();
-  private ids = new Map<string, string>();
+  readonly ids = new Map<string, string>();
   private probes = 0;
   /** The functional block of the parts placed next (for the drawing: see `wired`). */
   private cur = '';
