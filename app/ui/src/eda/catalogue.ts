@@ -107,6 +107,30 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     CD: e('CD4001BE', 'Texas Instruments', 'quad 2-input NOR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
     HC: e('SN74HC02N', 'Texas Instruments', 'quad 2-input NOR, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
   },
+  and2: {
+    CD: e('CD4081BE', 'Texas Instruments', 'quad 2-input AND, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC08N', 'Texas Instruments', 'quad 2-input AND, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
+  nand2: {
+    CD: e('CD4011BE', 'Texas Instruments', 'quad 2-input NAND, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC00N', 'Texas Instruments', 'quad 2-input NAND, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
+  or2: {
+    CD: e('CD4071BE', 'Texas Instruments', 'quad 2-input OR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC32N', 'Texas Instruments', 'quad 2-input OR, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
+  xor2: {
+    CD: e('CD4070BE', 'Texas Instruments', 'quad 2-input exclusive OR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC86N', 'Texas Instruments', 'quad 2-input exclusive OR, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
+  not: {
+    CD: e('CD4069UBE', 'Texas Instruments', 'hex inverter, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
+    HC: e('SN74HC04N', 'Texas Instruments', 'hex inverter, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
+  schmitt: {
+    CD: e('CD40106BE', 'Texas Instruments', 'hex Schmitt-trigger inverter, CMOS 3–18 V, DIP-14', 0.5, 0.25, 'estimate', any('DIP-14')),
+    HC: e('SN74HC14N', 'Texas Instruments', 'hex Schmitt-trigger inverter, 2–6 V, DIP-14', 0.4, 0.15, 'estimate', any('DIP-14')),
+  },
   inductor: { '470 µH': e('made to specification', 'magnetics supplier (sendust / Kool Mµ toroid)', 'power inductor 470 µH, 20–40 kHz, powder core, temperature class 155 °C: the bus inductor rated 40 A peak, the output inductors 80 A peak (as the parts list gives)', 42, 24, 'estimate', [{ distributor: 'magnetics supplier' }]),
   '56 µH': e('made to specification', 'magnetics supplier (Kool Mµ / powder-core toroid)', 'power inductor 56 µH at 100 A DC, 20 kHz, powder core, temperature class 155 °C', 105, 52, 'estimate', [{ distributor: 'magnetics supplier' }]) },
 };
@@ -178,7 +202,8 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
-    case 'dff': case 'nor2': return BY_VALUE[line.sym][logicFamily(v)]; // its value is the supply rail
+    case 'dff': case 'nor2': case 'and2': case 'nand2': case 'or2': case 'xor2': case 'not': case 'schmitt':
+      return BY_VALUE[line.sym][logicFamily(v)]; // its value is the supply rail
     default: return BY_VALUE[line.sym]?.[v] ?? null;
   }
 }

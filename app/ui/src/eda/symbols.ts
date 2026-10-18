@@ -136,7 +136,7 @@ const LOGIC: SymbolDef[] = [
   },
   {
     id: 'dff', name: 'D flip-flop', category: 'Logic', keywords: ['u', 'flip-flop', 'flipflop', 'd-type', 'latch', '7474', 'register', 'divider', 'logic'], prefix: 'U', logic: true,
-    description: 'D-type flip-flop (74HC74-like, without set and reset): on each rising edge of CLK, Q takes the level of D; Q̄ is its opposite. Q starts low. Switches at half the supply rail; outputs through 50 Ω.',
+    description: 'D-type flip-flop (one half of a 74HC74, or of a CD4013 on a rail above 6 V; set and reset are not drawn): on each rising edge of CLK, Q takes the level of D; Q̄ is its opposite. Q starts low. Switches at half the supply rail; outputs through 50 Ω.',
     pins: [{ id: '1', name: 'D', x: -40, y: -10, type: 'input' }, { id: '2', name: 'CLK', x: -40, y: 10, type: 'input' },
       { id: '3', name: 'Q', x: 40, y: -10, type: 'output' }, { id: '4', name: 'Q̄', x: 40, y: 10, type: 'output' }],
     refAt: { x: 0, y: -30 }, valAt: { x: 0, y: 36 }, simulated: true,

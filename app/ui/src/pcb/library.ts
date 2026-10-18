@@ -67,7 +67,7 @@ const CD = (chip: string, m: Record<string, string>, extra: Partial<FootprintCho
   map('DIP-14', m, { rail: ['14'], gnd: ['7'], note: `gate 1 of a CD${chip}; tie the inputs of the unused gates to VSS`, ...extra });
 const LOGIC_CD: Record<string, FootprintChoice> = {
   and2: CD('4081', { 1: '1', 2: '2', 3: '3' }), nand2: CD('4011', { 1: '1', 2: '2', 3: '3' }), or2: CD('4071', { 1: '1', 2: '2', 3: '3' }), xor2: CD('4070', { 1: '1', 2: '2', 3: '3' }),
-  nor2: CD('4001', { 1: '1', 2: '2', 3: '3' }), not: CD('4069', { 1: '1', 2: '2' }), schmitt: CD('40106', { 1: '1', 2: '2' }),
+  nor2: CD('4001', { 1: '1', 2: '2', 3: '3' }), not: CD('4069UB', { 1: '1', 2: '2' }), schmitt: CD('40106', { 1: '1', 2: '2' }),
   // RESET and SET are active high, so they go to VSS (the 74HC74's CLR and PRE go to VCC)
   dff: CD('4013', { 1: '5', 2: '3', 3: '1', 4: '2' }, { gnd: ['7', '4', '6'], note: 'flip-flop 1 of a CD4013; RESET and SET (pins 4, 6) tied to VSS' }),
 };

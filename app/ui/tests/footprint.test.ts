@@ -88,6 +88,14 @@ describe('pin-outs from the datasheets', () => {
     const mpn = (sym: string, raw: string) => catalogueFor({ qty: 1, refs: ['U1'], part: '', value: raw, details: '', standard: false, sym, raw })!.mpn;
     expect([mpn('dff', 'V12'), mpn('nor2', 'V12'), mpn('dff', '+5V'), mpn('nor2', '+3V3')]).toEqual(['CD4013BE', 'CD4001BE', 'SN74HC74N', 'SN74HC02N']);
   });
+  it('every logic symbol has a catalogue part in both families, matching its footprint', () => {
+    for (const s of SYMBOLS.filter((x) => x.logic)) for (const raw of ['V12', '+5V']) {
+      const cat = catalogueFor({ qty: 1, refs: ['U1'], part: '', value: raw, details: '', standard: false, sym: s.id, raw });
+      expect(cat, `${s.id} on ${raw}`).not.toBeNull();
+      const chip = footprintOf(part(s.id, { value: raw }))!.choice.note!.match(/(74HC\w+|CD\w+)/)![1];
+      expect(cat!.mpn, `${s.id} on ${raw}`).toContain(chip);
+    }
+  });
   it('the inverters on their 12 V rail get CD4013 flip-flops and CD4001 NOR gates', () => {
     const logic = [...inverterLF().sheet.parts, ...inverterHF().sheet.parts].filter((p) => p.sym === 'dff' || p.sym === 'nor2');
     expect(logic.filter((p) => p.sym === 'dff').length).toBeGreaterThan(0);
