@@ -824,10 +824,14 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
         .part(`RGIL${leg}`, 'resistor', x0 - 70, 120, { value: '10' }, { '1': `LOI${leg}`, '2': `GIL${leg}` })
         .part(`RGEL${leg}`, 'resistor', x0 + 70, 120, { value: '10k' }, { '1': `GIL${leg}`, '2': 'SRC' }, 1)
         .part(`UDI${leg}`, 'hbdriver', x0, 300, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '2': 'SD', '8': VH, '3': G, '7': `VBI${leg}`, '6': `HOI${leg}`, '5': sw, '4': `LOI${leg}` })
-        .part(`DBI${leg}`, 'diode', x0 + 120, 220, { value: 'UF4007' }, { '2': VH, '1': `VBI${leg}` })
-        .part(`CBI${leg}`, 'capacitor', x0 + 160, 300, { value: '2.2u', vmax: '25' }, { '1': `VBI${leg}`, '2': sw }, 1)
+        .part(`DBI${leg}`, 'diode', x0 + 120, 220, { value: 'UF4007' }, { '2': leg === 'B' ? 'VBRB' : VH, '1': `VBI${leg}` })
+        // leg B's high side conducts for a whole negative half cycle (10 ms) on its bootstrap:
+        // the 10k gate resistor and the driver take about 1.6 mA, which emptied 2.2 µF by 7 V,
+        // below the driver's undervoltage lockout; 22 µF lose 0.7 V, charged through 10 Ω
+        .part(`CBI${leg}`, 'capacitor', x0 + 160, 300, { value: leg === 'B' ? '22u' : '2.2u', vmax: '25' }, { '1': `VBI${leg}`, '2': sw }, 1)
         .part(`CDI${leg}`, 'capacitor', x0 - 100, 380, { value: '1u', vmax: '25' }, { '1': VH, '2': G }, 1);
     });
+    nb.part('RBSB', 'resistor', 2840, 190, { value: '10' }, { '1': VH, '2': 'VBRB' });
     // shunt in the bridge return: ±104 mV is the current window's limit (±69 A, 2.2 × the rated
     // peak of 31 A)
     nb.part('RSHI', 'resistor', 2570, 180, { value: '1.5m', pmax: '3' }, { '1': 'SRC', '2': G }, 1);
