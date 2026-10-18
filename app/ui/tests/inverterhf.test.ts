@@ -92,6 +92,23 @@ const overRated = (s: Awaited<ReturnType<typeof runHF>>) => {
   return smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over' && !test.has(x.ref)).map((x) => `${x.ref} ${x.what}`);
 };
 
+/** The output at the rated load from t1 on: 230 V ± 3 %, THD below 3 %, 50 Hz, mean below 1 V (H-12). */
+function checkOutput(s: Awaited<ReturnType<typeof runHF>>, t1: number) {
+  const out = s.r.v['OUTL'];
+  const k0 = s.x.findIndex((t) => t >= t1), xs = s.x.slice(k0), ys = out.slice(k0), T = xs[xs.length - 1] - xs[0];
+  const h = (n: number) => { let a = 0, b = 0; for (let k = 1; k < xs.length; k++) { const d = xs[k] - xs[k - 1], w = 2 * Math.PI * 50 * n * xs[k]; a += ys[k] * Math.cos(w) * d; b += ys[k] * Math.sin(w) * d; } return (Math.hypot(a, b) * 2) / T; };
+  const h1 = h(1), thd = Math.sqrt([...Array(14)].reduce((m, _, i) => m + h(i + 2) ** 2, 0)) / h1;
+  expect(h1 / Math.SQRT2).toBeGreaterThan(230 * 0.97);
+  expect(h1 / Math.SQRT2).toBeLessThan(230 * 1.03);
+  expect(thd).toBeLessThan(0.03);
+  const zc: number[] = []; for (let k = k0 + 1; k < s.x.length; k++) if (out[k - 1] < 0 && out[k] >= 0) zc.push(s.x[k - 1] + (-out[k - 1] / (out[k] - out[k - 1])) * (s.x[k] - s.x[k - 1]));
+  expect(zc.length).toBeGreaterThanOrEqual(2);
+  expect(Math.abs((zc.length - 1) / (zc[zc.length - 1] - zc[0]) - 50)).toBeLessThan(1);
+  // H-12: the output's mean below 1 V
+  expect(Math.abs(s.mean(out, t1))).toBeLessThan(1);
+  expect(s.max(out.map(Math.abs))).toBeLessThan(230 * Math.SQRT2 * 1.08);
+}
+
 describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)', () => {
   it('H-1 connecting the battery: pre-charge, the contactor closes above 91 %, the converter charges the bus to 381 V without overvoltage, the sine bridge waits for 355 V', async () => {
     // the pre-charge takes about 0.11 s (10 Ω, 4.7 mF), the contactor 14 ms, the bus about 40 ms
@@ -123,24 +140,19 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
 
   it('start-up at the rated load (5 kW), 52 V: 230 V 50 Hz, THD below 3 %, no DC at the output, the bus within 381 V ± 6 %, the transformer without DC, every part within its ratings', async () => {
     const s = await runHF({ stop: '160m', precharged: true });
-    const out = s.r.v['OUTL'], t1 = 0.12;
-    const k0 = s.x.findIndex((t) => t >= t1), xs = s.x.slice(k0), ys = out.slice(k0), T = xs[xs.length - 1] - xs[0];
-    const h = (n: number) => { let a = 0, b = 0; for (let k = 1; k < xs.length; k++) { const d = xs[k] - xs[k - 1], w = 2 * Math.PI * 50 * n * xs[k]; a += ys[k] * Math.cos(w) * d; b += ys[k] * Math.sin(w) * d; } return (Math.hypot(a, b) * 2) / T; };
-    const h1 = h(1), thd = Math.sqrt([...Array(14)].reduce((m, _, i) => m + h(i + 2) ** 2, 0)) / h1;
-    expect(h1 / Math.SQRT2).toBeGreaterThan(230 * 0.97);
-    expect(h1 / Math.SQRT2).toBeLessThan(230 * 1.03);
-    expect(thd).toBeLessThan(0.03);
-    const zc: number[] = []; for (let k = k0 + 1; k < s.x.length; k++) if (out[k - 1] < 0 && out[k] >= 0) zc.push(s.x[k - 1] + (-out[k - 1] / (out[k] - out[k - 1])) * (s.x[k] - s.x[k - 1]));
-    expect(zc.length).toBeGreaterThanOrEqual(2);
-    expect(Math.abs((zc.length - 1) / (zc[zc.length - 1] - zc[0]) - 50)).toBeLessThan(1);
-    // H-12: the output's mean below 1 V
-    expect(Math.abs(s.mean(out, t1))).toBeLessThan(1);
+    const t1 = 0.12;
+    checkOutput(s, t1);
     // the bus: 381 V, its 100 Hz ripple included
     const bus = s.r.v['HBUS'].map((v, k) => v - s.r.v['HVG'][k]);
     expect(s.min(bus, t1)).toBeGreaterThan(381 * 0.94);
     expect(s.max(bus, t1)).toBeLessThan(381 * 1.06);
-    expect(s.max(out.map(Math.abs))).toBeLessThan(230 * Math.SQRT2 * 1.08);
     // H-3, H-6, H-8, H-9: every product part within its ratings
+    expect(overRated(s)).toEqual([]);
+  }, 7_200_000);
+
+  it('the sine bridge alone (bus and 15 V from the bench), 5 kW: 230 V 50 Hz, THD below 3 %, no DC at the output, every part within its ratings', async () => {
+    const s = await runHF({ stage: 'sine', stop: '160m', precharged: true });
+    checkOutput(s, 0.12);
     expect(overRated(s)).toEqual([]);
   }, 7_200_000);
 
