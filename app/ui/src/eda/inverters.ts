@@ -594,7 +594,12 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('TCT', 'transformer', -520, 200, { value: '200', lp: '2u', rp: '0.1m', rs: '2', k: '0.999' }, { '1': 'BUS', '2': 'BUSD', '3': 'CTA', '4': 'GND' })
     .part('RCR', 'resistor', -440, 280, { value: '1k' }, { '1': 'CTA', '2': 'GND' }, 1)
     .part('DC1', 'diode', -380, 180, { value: 'UF4007' }, { '2': 'CTA', '1': 'CSR' })
-    .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '0.5' }, { '1': 'CSR', '2': 'GND' }, 1);
+    .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '2' }, { '1': 'CSR', '2': 'GND' }, 1)
+    // the reverse clamp: while the dead time returns current to the bus (360 A when the bus is
+    // shorted) the diode DC1 blocks and the secondary current had only the 1k: 1.8 kV on the
+    // secondary. DCR and the 13 V Zener take it at 14 V, which also resets the core quickly
+    .part('DCR', 'diode', -440, 400, { value: 'UF4007' }, { '2': 'CZC', '1': 'CTA' }, 3)
+    .part('DZC', 'zener', -380, 460, { value: '1N4743A' }, { '1': 'GND', '2': 'CZC' }, 3);
 
   // ---- transformer, auxiliary transformer, SiC rectifier, filter, the 380 V bus
   nb.block('dc-dc output')

@@ -65,6 +65,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     BZX55C3V3: e('BZX55C3V3', 'Vishay', 'Zener diode 3.3 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C12: e('BZX55C12', 'Vishay', 'Zener diode 12 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C13: e('BZX55C13', 'Vishay', 'Zener diode 13 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
+    '1N4743A': e('1N4743A', 'various', 'Zener diode 13 V 1 W, DO-41', 0.1, 0.03, 'estimate', any('DO-41')),
   },
   bridge: { DB107: e('DB107', 'various', 'bridge rectifier 1 A 1000 V, DIP-4', 0.3, 0.08, 'estimate', any('DIP-4')) },
   tvs: { '5KP64A': e('5KP64A', 'Littelfuse', 'TVS diode 5 kW, 64 V stand-off, P600', 1.55, 1.15, 'live', [{ distributor: 'Farnell', sku: '3392434', url: 'https://uk.farnell.com/littelfuse/5kp64a/tvs-diode-unidir-64v-p600/dp/3392434' }]) },

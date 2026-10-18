@@ -121,7 +121,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
       if (v === 'STTH6003') return [map('TO-247_Vertical', { 1: '2', 2: '1' }, { note: 'anode on pad 1, cathode on the centre pad and the tab; pad 3 unused' })];
       return [k];
     }
-    case 'zener': return [map('D_DO-35', { 1: '1', 2: '2' })];
+    case 'zener': return [map(v.startsWith('1N47') ? 'D_DO-41' : 'D_DO-35', { 1: '1', 2: '2' })];
     case 'led': return [map('LED_D5.0', { 1: '1', 2: '2' }, { note: 'pad 1 (square) is the cathode, the short leg' })];
     case 'tvs': return [map(v.startsWith('5KP') ? 'D_P600' : 'D_SMA', { 1: '1', 2: '2' }, { note: v.endsWith('CA') ? 'bidirectional: either way round' : 'pad 1 (band) is the cathode, on the protected line' })];
     case 'bridge': return [map('Bridge_Inline_4', { 3: '1', 1: '2', 2: '3', 4: '4' }, { note: 'inline + ~ ~ −: check the marking on the body' })];

@@ -44,8 +44,8 @@ export function tvsJunction(m: TvsModel, vbr = m.vbr): DiodeModel {
   return { is: 1e-12, n: 1, rs: (m.vc - m.vbr) / m.ipp, bv: vbr, ibv: 10e-3 };
 }
 
-export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13]] as [string, number][])
-  .map(([name, v]) => ({ name, note: `Zener diode ${v} V, 500 mW`, model: { is: 1e-14, n: 1, rs: 2, bv: v, ibv: 5e-3 } }));
+export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13], ['1N4743A', 13, 1]] as [string, number, number?][])
+  .map(([name, v, w]) => ({ name, note: `Zener diode ${v} V, ${w ? `${w} W` : '500 mW'}`, model: { is: 1e-14, n: 1, rs: w ? 0.5 : 2, bv: v, ibv: 5e-3 } }));
 
 /** LED model from its forward voltage at 20 mA (N = 1.9, RS = 5 Ω). The junction voltage of
  *  a diode at a fixed current changes by (V_j − EG − XTI·V_T)/T per kelvin; EG is chosen so

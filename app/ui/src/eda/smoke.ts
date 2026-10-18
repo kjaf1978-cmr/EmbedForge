@@ -38,7 +38,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   tl431: { TL431: { Vka: 37, Ik: 0.1, P: 0.62 }, TLV431: { Vka: 6, Ik: 0.015, P: 0.62 } },
   comparator: { '*': { Vs: 36, Iout: 0.016 } },
   hbdriver: { '*': { Vs: 20, Vb: 600 } },
-  zener: { '*': { P: 0.5 } },
+  zener: { '*': { P: 0.5 }, '1N4743A': { P: 1 } },
   led: { '*': { If: 0.03, Vr: 5 } },
   npn: { '2N3904': { Vce: 40, Ic: 0.2, P: 0.625 }, BC547B: { Vce: 45, Ic: 0.1, P: 0.5 }, '2N2222A': { Vce: 40, Ic: 0.8, P: 0.5 }, BD139: { Vce: 80, Ic: 1.5, P: 1.25 }, D44H11: { Vce: 80, Ic: 20, P: 2 }, MJE340: { Vce: 300, Ic: 0.5, P: 1.25 } },
   pnp: { '2N3906': { Vce: 40, Ic: 0.2, P: 0.625 }, BC557B: { Vce: 45, Ic: 0.1, P: 0.5 }, BD140: { Vce: 80, Ic: 1.5, P: 1.25 }, D45H11: { Vce: 80, Ic: 20, P: 2 } },
