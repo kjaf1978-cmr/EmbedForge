@@ -280,14 +280,17 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // step at the zero crossing
   if (c.hybrid) nb.block('hybrid modulation').part('UPK', 'opamp', -1250, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'PKV', '6': 'PKD', '7': V, '4': G })
     .part('DPK', 'diode', -1130, 2410, { value: '1N4148' }, { '2': 'PKD', '1': 'PKR' })
-    // 1k: the op-amp charges 1 µF from 0 V at power-up (0.22 A without it, found in the stress check)
+    // 1k: the op-amp charges 1 µF at power-up (0.22 A without it, found in the stress check).
+    // Both capacitors on VMID, so they start at the triangle's centre: on the ground the valley
+    // started 7.5 V low and rose only through 1M (1 s); the positive half cycles had no pulses
+    // and the output carried −85 V DC (found in simulation)
     .part('RPKS', 'resistor', -1080, 2350, { value: '1k' }, { '1': 'PKR', '2': 'PKV' })
-    .part('CPK', 'capacitor', -1030, 2530, { value: '1u', vmax: '25' }, { '1': 'PKV', '2': G }, 1)
+    .part('CPK', 'capacitor', -1030, 2530, { value: '1u', vmax: '25' }, { '1': 'PKV', '2': 'VMID' }, 1)
     .part('RPK', 'resistor', -950, 2530, { value: '1M' }, { '1': 'PKV', '2': 'VMID' }, 1)
     .part('UVL', 'opamp', -850, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'VLV', '6': 'VLD', '7': V, '4': G })
     .part('DVL', 'diode', -730, 2410, { value: '1N4148' }, { '2': 'VLR', '1': 'VLD' })
     .part('RVLS', 'resistor', -680, 2350, { value: '1k' }, { '1': 'VLV', '2': 'VLR' })
-    .part('CVL', 'capacitor', -630, 2530, { value: '1u', vmax: '25' }, { '1': 'VLV', '2': G }, 1)
+    .part('CVL', 'capacitor', -630, 2530, { value: '1u', vmax: '25' }, { '1': 'VLV', '2': 'VMID' }, 1)
     .part('RVL', 'resistor', -550, 2530, { value: '1M' }, { '1': 'VLV', '2': 'VMID' }, 1)
     // SEL: the peak while INB is high (negative half cycle), else the valley
     .part('QSP', 'nmos', -450, 2430, { value: '2N7000' }, { '1': 'INB', '2': 'PKV', '3': 'SEL' })
