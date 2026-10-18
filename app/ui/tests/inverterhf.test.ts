@@ -45,14 +45,29 @@ describe('high-frequency inverter: the drawing', () => {
     });
     expect(both.map((p) => p.ref)).toEqual([]);
   });
-  it('no wasted units (D31): every package full but two LM393 (five comparators on the low-voltage side, seven on the high-voltage side) and one CD4013 (three flip-flops)', () => {
+  it('the controls of the two sides are joined only where intended: merging nets through every part but the sine bridge, its output, the transformers, optocouplers and Y2 capacitors keeps PE and the bus negative apart (a net name shared by mistake would join them)', () => {
+    const c = connectivity(sheet);
+    const y2 = (p: { sym: string; props: Record<string, string> }) => p.sym === 'capacitor' && p.props.vmax === '1600';
+    // the power path joins the sides by design (leg B's node is N); so does the DC servo's
+    // divider from N
+    const bridging = (p: { id: string; ref: string }) => ['bridge', 'output'].includes(nb.blockOf(p.id)) || p.ref === nb.refOf(sheet, 'RDB1');
+    const parent = new Map<string, string>();
+    const find = (a: string): string => { while (parent.has(a) && parent.get(a) !== a) a = parent.get(a)!; return a; };
+    for (const p of sheet.parts) {
+      if (p.props.scope === 'test' || ['transformer', 'opto'].includes(p.sym) || y2(p) || bridging(p)) continue;
+      const nets = [...c.pinNet.entries()].filter(([k]) => k.startsWith(`${p.ref}.`)).map(([, v]) => find(v));
+      for (const n of nets.slice(1)) if (n !== nets[0]) parent.set(n, nets[0]);
+    }
+    expect(find('HVG')).not.toBe(find('GND'));
+  });
+  it('no wasted units (D31): every package full but two LM393 (five comparators on the low-voltage side, seven on the high-voltage side); the logic in one CD4001 and two CD4013, all used', () => {
     const bom = buildBom(sheet);
     const qty = (v: string, sym?: string) => bom.filter((l) => (l.value === v || l.raw === v) && (!sym || l.sym === sym)).reduce((a, l) => a + l.qty, 0);
     expect(qty('LM339')).toBe(2);
     expect(qty('LM393')).toBe(4);
     expect(qty('TL074')).toBe(2);
     expect(qty('LM358')).toBe(1);
-    expect(bom.filter((l) => l.sym === 'nor2').reduce((a, l) => a + l.qty, 0)).toBe(2);
+    expect(bom.filter((l) => l.sym === 'nor2').reduce((a, l) => a + l.qty, 0)).toBe(1);
     expect(bom.filter((l) => l.sym === 'dff').reduce((a, l) => a + l.qty, 0)).toBe(2);
     const c = connectivity(sheet);
     const spares = sheet.parts.filter((p) => p.sym === 'comparator' && c.pinNet.get(`${p.ref}.1`) === 'GND');

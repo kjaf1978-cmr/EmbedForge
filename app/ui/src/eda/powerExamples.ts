@@ -89,6 +89,8 @@ export class NB {
     }
     return s;
   }
+  /** The functional block a part was placed in (by its id). */
+  blockOf(id: string): string { return this.blocks.get(id) ?? ''; }
   /** Reference of a placed part after annotation. */
   refOf(sheet: Sheet, key: string): string { return sheet.parts.find((p) => p.id === this.ids.get(key))!.ref; }
 }

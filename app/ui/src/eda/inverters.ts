@@ -278,12 +278,12 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // + 2·(SINE − VMID) with the triangle (the same gain as the unipolar bridge); precision peak
   // and valley detectors give the triangle's real extremes, so the half cycles join without a
   // step at the zero crossing
-  if (c.hybrid) nb.block('hybrid modulation').part('UPK', 'opamp', -1250, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'PKV', '6': 'PKO', '7': V, '4': G })
-    .part('DPK', 'diode', -1130, 2410, { value: '1N4148' }, { '2': 'PKO', '1': 'PKV' })
+  if (c.hybrid) nb.block('hybrid modulation').part('UPK', 'opamp', -1250, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'PKV', '6': 'PKD', '7': V, '4': G })
+    .part('DPK', 'diode', -1130, 2410, { value: '1N4148' }, { '2': 'PKD', '1': 'PKV' })
     .part('CPK', 'capacitor', -1030, 2530, { value: '1u', vmax: '25' }, { '1': 'PKV', '2': G }, 1)
     .part('RPK', 'resistor', -950, 2530, { value: '1M' }, { '1': 'PKV', '2': 'VMID' }, 1)
-    .part('UVL', 'opamp', -850, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'VLV', '6': 'VLO', '7': V, '4': G })
-    .part('DVL', 'diode', -730, 2410, { value: '1N4148' }, { '2': 'VLV', '1': 'VLO' })
+    .part('UVL', 'opamp', -850, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'VLV', '6': 'VLD', '7': V, '4': G })
+    .part('DVL', 'diode', -730, 2410, { value: '1N4148' }, { '2': 'VLV', '1': 'VLD' })
     .part('CVL', 'capacitor', -630, 2530, { value: '1u', vmax: '25' }, { '1': 'VLV', '2': G }, 1)
     .part('RVL', 'resistor', -550, 2530, { value: '1M' }, { '1': 'VLV', '2': 'VMID' }, 1)
     // SEL: the peak while INB is high (negative half cycle), else the valley
@@ -482,10 +482,10 @@ export interface InverterHfOptions extends InverterLfOptions {
  *
  * DC-DC converter: MOSFET full bridge (2 × IRFP4468 per switch) at 20 kHz, phase-shifted: leg A
  * a 50 % square, leg B the same square shifted, so the ferrite transformer (1 : 12, gapped) gets
- * ±V(battery) for the part P of each half period and freewheels for the rest. P ends when the
- * primary current reaches the command (peak current-mode control: each half period ends at the
- * same current, so the transformer's flux stays balanced, and the current command is also the
- * cycle-by-cycle limit). SiC Schottky bridge (no reverse recovery), 470 µH, 4 × 470 µF 450 V. The
+ * ±V(battery) from leg A's edge until leg B follows and freewheels for the rest. Leg B follows
+ * when the primary current reaches the command (peak current-mode control: each half period
+ * ends at the same current, so the transformer's flux stays balanced, and the current command
+ * is also the cycle-by-cycle limit). SiC Schottky bridge (no reverse recovery), 470 µH, 4 × 470 µF 450 V. The
  * bus is regulated to 380 V by a TL431 on the high-voltage side through an optocoupler.
  *
  * The low-voltage side (battery, contactor, battery window, heatsink, the DC-DC control) is
@@ -507,7 +507,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   const V = 'V12', VH = 'V15H', G = 'HVG';
   const inv = o.stage !== 'dcdc';
   const vb = o.vbat ?? 52;
-  nb.wired = { rails: [V, VH, G], labelled: ['BF', 'AXA', 'BUS', 'LA', 'LB', 'SRCL', 'CSR', 'Q50H', 'REF', 'FBA', 'FBK', 'OVA', 'OVK', 'ENL', 'ENNL', 'VREFL', 'SDL', 'STOPL', 'BLK', 'PA', 'AN', 'A', 'B', 'KEN', 'Q50',
+  nb.wired = { rails: [V, VH, G], labelled: ['BF', 'AXA', 'BUS', 'LA', 'LB', 'SRCL', 'CSR', 'Q50H', 'REF', 'FBA', 'FBK', 'OVA', 'OVK', 'ENL', 'ENNL', 'VREFL', 'SDL', 'STOPL', 'BLK', 'AN', 'A', 'B', 'KEN', 'Q50',
     'HBUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'SRS', 'OUTL', 'VME', 'STOP', 'SD', 'SP', 'FLT'] };
   nb.para('INVERTER, one 5 kW unit, high-frequency type: 48 V LiFePO4 battery (16 cells, 42 … 58.4 V) to 230 V 50 Hz. Isolated DC-DC converter (phase-shifted MOSFET full bridge at 20 kHz, peak current-mode, ferrite transformer 1 : 12, SiC rectifier) to a 380 V bus; IGBT full bridge, one leg at 20 kHz with an LC filter, the other at 50 Hz (N bonded to PE). Surge: twice the rated current for motor starts, cycle by cycle limited.', -1400, -420)
     .para('Protections (DFMEA section 6): pre-charge before the battery contactor closes; battery low cut-out 42 V (restart 47 V) and high cut-out 61 V; heatsink above 90 °C; bus overvoltage (own divider, reference and optocoupler) stops the DC-DC converter; bus undervoltage stops the sine bridge; cycle-by-cycle current limits in both converters; output overvoltage from its own sense transformer and reference (latched). WARNING: the bus holds 380 V for minutes after switch-off (bleeder 94 kΩ): wait 10 minutes.', -1400, -340);
@@ -692,26 +692,32 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('U3', 'opto', -620, 1060, { value: 'PC817' }, { '1': 'L50A', '2': 'GND', '4': 'Q50H', '3': G })
     .part('R50H', 'resistor', -660, 940, { value: '2.2k' }, { '1': VH, '2': 'Q50H' }, 1);
 
-  // ---- DC-DC control: 555 at 40 kHz (93 % charge, 1.7 µs discharge: the blanking BLK between the
-  // half periods); A toggles at each blanking (CD4013: 20 kHz, 50 %); the pulse PA from the end
-  // of the blanking until the primary current reaches the command (latch of two CD4001 gates);
-  // B = A ⊕ PA (four NOR gates: B = XNOR(Ā, PA))
+  // ---- DC-DC control, a phase-shifted bridge with peak current-mode: a 555 at 40 kHz (93 %
+  // charge, 1.7 µs discharge: the blanking BLK between the half periods). Leg A toggles at the
+  // end of each blanking (CD4013: 20 kHz, 50 %), which starts the power pulse; leg B takes A's
+  // level when the primary current reaches the command (latch of two CD4001 gates, set by OC,
+  // reset during the blanking), or at the next blanking: the pulse ends and the bridge
+  // freewheels. Each leg switches once per half period. With B = A ⊕ PA (both legs flipping
+  // together at each blanking, leg B three times per half period) the dead times differed
+  // between the two directions and 8 A of DC stayed in the transformer (found in simulation)
   nb.block('dc-dc control')
     .part('U40', 'timer555', -400, 1100, { value: 'NE555' }, { '8': V, '4': V, '7': 'D40', '6': 'T40', '2': 'T40', '3': 'O40', '5': 'K40', '1': 'GND' })
     .part('RA40', 'resistor', -520, 1010, { value: '31.6k' }, { '1': V, '2': 'D40' }, 1)
     .part('RB40', 'resistor', -520, 1130, { value: '2.15k' }, { '1': 'D40', '2': 'T40' }, 1)
     .part('CT40', 'capacitor', -520, 1250, { value: '1n', vmax: '50' }, { '1': 'T40', '2': 'GND' }, 1)
     .part('CK40', 'capacitor', -280, 1230, { value: '10n', vmax: '50' }, { '1': 'K40', '2': 'GND' }, 1)
-    .part('G1', 'nor2', -160, 1100, { value: V, pkg: 'NOR1' }, { '1': 'O40', '2': 'O40', '3': 'BLK' })
-    .part('UFA', 'dff', -20, 1000, { value: V, pkg: 'FFA' }, { '1': 'AN', '2': 'BLK', '3': 'A', '4': 'AN' })
+    // BLK = O40 inverted (a transistor: the four gates of one CD4001 are taken)
+    .part('RBK', 'resistor', -200, 1000, { value: '10k' }, { '1': 'O40', '2': 'BBK' })
+    .part('QBK', 'npn', -100, 1060, { value: 'BC547B' }, { '1': 'BBK', '2': 'BLK', '3': 'GND' })
+    .part('RCK', 'resistor', -100, 960, { value: '4.7k' }, { '1': V, '2': 'BLK' }, 1)
+    .part('UFA', 'dff', 20, 1000, { value: V, pkg: 'FFA' }, { '1': 'AN', '2': 'O40', '3': 'A', '4': 'AN' })
     // the latch: OC sets it, the blanking resets it
     .part('G2', 'nor2', -20, 1150, { value: V, pkg: 'NOR1' }, { '1': 'BLK', '2': 'QCN', '3': 'QC' })
     .part('G3', 'nor2', -20, 1270, { value: V, pkg: 'NOR1' }, { '1': 'OC', '2': 'QC', '3': 'QCN' })
-    .part('G4', 'nor2', 120, 1200, { value: V, pkg: 'NOR1' }, { '1': 'BLK', '2': 'QC', '3': 'PA' })
-    .part('G5', 'nor2', 260, 1050, { value: V, pkg: 'NOR2' }, { '1': 'AN', '2': 'PA', '3': 'X1' })
-    .part('G6', 'nor2', 400, 1000, { value: V, pkg: 'NOR2' }, { '1': 'AN', '2': 'X1', '3': 'X2' })
-    .part('G7', 'nor2', 400, 1120, { value: V, pkg: 'NOR2' }, { '1': 'PA', '2': 'X1', '3': 'X3' })
-    .part('G8', 'nor2', 540, 1060, { value: V, pkg: 'NOR2' }, { '1': 'X2', '2': 'X3', '3': 'B' })
+    // CKB = QC or BLK: B follows A at the current trip, at the latest at the blanking
+    .part('G4', 'nor2', 160, 1200, { value: V, pkg: 'NOR1' }, { '1': 'QC', '2': 'BLK', '3': 'CKN' })
+    .part('G5', 'nor2', 300, 1200, { value: V, pkg: 'NOR1' }, { '1': 'CKN', '2': 'CKN', '3': 'CKB' })
+    .part('UFB', 'dff', 440, 1060, { value: V, pkg: 'FFA' }, { '1': 'A', '2': 'CKB', '3': 'B', '4': 'BN' })
     .part('CDL', 'capacitor', 120, 1320, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     // peak current: the current transformer's signal (0.5 µs filter against the turn-on spike)
     // plus the slope compensation (the 555 ramp, AC-coupled, 0.68 V; biased 0.34 V up from
@@ -765,16 +771,21 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RFL', 'resistor', 1500, 440, { value: '1k' }, { '1': VH, '2': o.feedbackOpen ? 'FBX' : 'FBA' })
     .part('RFBI', 'resistor', 1640, 520, { value: '1k' }, { '1': VH, '2': 'FBK' });
   // independent bus overvoltage: own divider, the HV reference, LM393 with hysteresis; above 427 V
-  // its output pulls U2's LED on and the DC-DC converter stops until the bus is below 407 V
+  // its output pulls U2's LED on and the DC-DC converter stops until the bus is below 405 V. The
+  // output has its own pull-up and the hysteresis is high-impedance (12k/100k, 200k), so the LED
+  // stays dark while the comparator is off (with 20k straight from the LED's cathode the LED
+  // carried 0.45 mA through the hysteresis and held the converter's enable half low, found in
+  // simulation)
   nb.block('bus overvoltage')
     .part('RBO1', 'resistor', 1800, 520, { value: '750k' }, { '1': 'HBUS', '2': 'BOM' }, 1)
     .part('RBO2', 'resistor', 1800, 620, { value: '750k' }, { '1': 'BOM', '2': 'BOS' }, 1)
     .part('RBO3', 'resistor', 1800, 740, { value: '7.87k' }, { '1': 'BOS', '2': G }, 1)
-    .part('RBV1', 'resistor', 1920, 560, { value: '1.2k' }, { '1': 'VREF', '2': 'BOR' }, 1)
-    .part('RBV2', 'resistor', 1920, 680, { value: '10k' }, { '1': 'BOR', '2': G }, 1)
+    .part('RBV1', 'resistor', 1920, 560, { value: '12k' }, { '1': 'VREF', '2': 'BOR' }, 1)
+    .part('RBV2', 'resistor', 1920, 680, { value: '100k' }, { '1': 'BOR', '2': G }, 1)
     .part('UBOV', 'comparator', 2060, 620, { value: 'LM393', pkg: 'PROT' }, { '3': 'BOR', '2': 'BOS', '1': 'OVK', '8': VH, '4': G })
-    .part('RBOH', 'resistor', 2060, 740, { value: '20k' }, { '1': 'OVK', '2': 'BOR' })
-    .part('ROVL', 'resistor', 2180, 520, { value: '4.7k' }, { '1': VH, '2': 'OVA' });
+    .part('RBOH', 'resistor', 2060, 740, { value: '200k' }, { '1': 'OVK', '2': 'BOR' })
+    .part('ROVL', 'resistor', 2180, 520, { value: '4.7k' }, { '1': VH, '2': 'OVA' })
+    .part('ROVP', 'resistor', 2180, 640, { value: '2.2k' }, { '1': VH, '2': 'OVK' }, 1);
 
   if (!inv) {
     nb.block('load').note('TEST LOAD (not part of the product): the bus', 2300, -220)
