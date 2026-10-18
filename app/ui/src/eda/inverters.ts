@@ -5,6 +5,7 @@
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
 import { connectivity } from './connectivity';
+import { parseValue } from './units';
 
 /** Options of the 50 Hz-transformer inverter: battery voltage (V), load (Ω at 230 V; 0: none),
  *  air and heatsink temperatures (°C), simulated time, and short timings for tests. */
@@ -25,6 +26,9 @@ export interface InverterLfOptions {
   /** Tests (D32 temperature corners): the junction temperature of every part on a heatsink
    *  (the power semiconductors), heated by their losses; `temp` sets the ambient for the rest. */
   tj?: number;
+  /** Tests (D32 ageing): the electrolytic capacitors at their end of life: 80 % of their
+   *  capacitance and twice their ESR (the usual end-of-life criteria). */
+  aged?: boolean;
   /** Tests: a motor start, the worst part of it: a locked-rotor induction motor (about 85 A at
    *  230 V, six times the rating of a 2.2 kW motor) connected by a relay from `at` for `for`
    *  seconds. */
@@ -238,6 +242,10 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   const sheet = nb.done();
   if (o.temp !== undefined) sheet.temp = String(o.temp);
   if (o.tj !== undefined) for (const p of sheet.parts) if (p.props.heatsink?.trim()) p.props = { ...p.props, tj: String(o.tj) };
+  if (o.aged) for (const p of sheet.parts) if (p.sym === 'capacitor_pol') {
+    const c = parseValue(p.props.value), r = p.props.esr?.trim() ? parseValue(p.props.esr) : null;
+    p.props = { ...p.props, value: String(0.8 * (c ?? 0)), ...(r !== null ? { esr: String(2 * r) } : {}) };
+  }
   return { sheet, nb };
 }
 
@@ -972,6 +980,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   }
   if (o.temp !== undefined) sheet.temp = String(o.temp);
   if (o.tj !== undefined) for (const p of sheet.parts) if (p.props.heatsink?.trim()) p.props = { ...p.props, tj: String(o.tj) };
+  if (o.aged) for (const p of sheet.parts) if (p.sym === 'capacitor_pol') {
+    const c = parseValue(p.props.value), r = p.props.esr?.trim() ? parseValue(p.props.esr) : null;
+    p.props = { ...p.props, value: String(0.8 * (c ?? 0)), ...(r !== null ? { esr: String(2 * r) } : {}) };
+  }
   // a run that starts with the bus charged: every capacitor of the high-voltage side's 15 V rail
   // starts charged with it (the decoupling at 0 V pulled the rail down to 1.5 V at the start)
   if (o.precharged) {
