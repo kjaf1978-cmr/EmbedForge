@@ -1251,6 +1251,11 @@ export class Engine {
       if (!conv && it === maxIter) this.noConv = this.worstUnknown(x, b);
       if (!conv && it === maxIter && (globalThis as { __simDebug?: (s: string) => void }).__simDebug) this.debugNewton(x, b, c);
       if (conv) for (const d of this.devices) if (d.converged && !d.converged(b)) { conv = false; break; }
+      // Newton cycling between two states (an op amp's output stage between its limits while
+      // several comparators switch in the same step) never settles: after 30 iterations take
+      // half steps, which break the cycle (the high-frequency inverter at −10 °C, found in
+      // simulation). A converged point meets the same tolerances either way
+      if (!conv && c.mode === 'tran' && it > 30) for (let i = 0; i < b.length; i++) b[i] = x[i] + 0.5 * (b[i] - x[i]);
       x = b;
       c.x = x;
       if (conv && it > 1) {
