@@ -253,6 +253,6 @@ Verified by simulation (tests/inverter.test.ts; the runs with the bridge switchi
 | 5 kW at 58.4 V, fully charged (I-7) | every part within its ratings, MOSFET voltage at turn-off included |
 | motor start at half load (I-4): locked rotor, about 85 A, for 50 ms | the current limit holds, nothing trips, back to 230 V −10 % … +5 % about 40 ms after the disconnect; the first half cycle after the disconnect peaks at 127 % (bound 130 %); no product part over its ratings |
 
-Reliability (RELIABILITY.md): 234 parts, 1958 FIT, 58 years at 45 °C. Still to do for P7a:
+Reliability (RELIABILITY.md): 238 parts, 1956 FIT, 58 years at 45 °C. Still to do for P7a:
 a person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
 default) take about 12 minutes.

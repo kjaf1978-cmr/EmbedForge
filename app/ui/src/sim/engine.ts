@@ -1092,6 +1092,19 @@ export class Engine {
   private Abuf?: Float64Array;
   /** The unknown farthest from convergence after the last failed Newton solution. */
   private noConv = '';
+  /** Diagnosis of a failed Newton solve (tests set globalThis.__simDebug): the unknowns that
+   *  moved most in the last iteration. */
+  private debugNewton(x: Float64Array, b: Float64Array, c: Ctx) {
+    const names = new Map<number, string>();
+    for (const [name, k] of this.nodeIndex) names.set(k, name);
+    for (const d of this.devices) { const br = (d as { branch?: number }).branch; if (br !== undefined) names.set(br, `I(${d.el.name})`); }
+    const rows = [...b.keys()].map((i) => ({ i, d: Math.abs(b[i] - x[i]) / (RELTOL * Math.max(Math.abs(b[i]), Math.abs(x[i])) + (i < this.nNodes ? VNTOL : ABSTOL)) })).sort((p, q) => q.d - p.d).slice(0, 12);
+    (globalThis as { __simDebug?: (s: string) => void }).__simDebug!(`t=${c.t.toExponential(4)} h=${c.h.toExponential(2)} ` + rows.map(({ i }) => `${names.get(i) ?? i}: ${x[i].toPrecision(5)}→${b[i].toPrecision(5)}`).join(' | '));
+  }
+
+  /** Iterative refinement of each linear solve (switched on when a transient would fail). */
+  private refine = false;
+
   private worstUnknown(x: Float64Array, b: Float64Array): string {
     let worst = -1, ratio = 0;
     for (let i = 0; i < b.length; i++) {
@@ -1114,6 +1127,7 @@ export class Engine {
       // the fill-reducing order is found once per analysis mode, from the first matrix
       if (!this.order || this.orderMode !== c.mode || this.order.length !== c.n) { this.order = minDegreeOrder(c.A, c.n); this.orderMode = c.mode; this.solver = new SparseSolver(this.order); }
       if (!this.solver!.solve(c.A, b, c.pat)) return -1;
+      if (this.refine) this.solver!.refine(c.A, c.z, b, c.pat);
       for (let i = 0; i < b.length; i++) if (!Number.isFinite(b[i])) return -1;
       let conv = !c.noncon && !c.init, vconv = conv;
       if (conv) {
@@ -1128,6 +1142,7 @@ export class Engine {
       if (!conv && vconv && c.mode === 'tran' && it === maxIter) for (const d of this.devices) if (d.converged && !d.converged(b)) { vconv = false; break; }
       if (!conv && vconv && c.mode === 'tran' && it === maxIter) { x = b; c.x = x; this.assemble(c); return it; }
       if (!conv && it === maxIter) this.noConv = this.worstUnknown(x, b);
+      if (!conv && it === maxIter && (globalThis as { __simDebug?: (s: string) => void }).__simDebug) this.debugNewton(x, b, c);
       if (conv) for (const d of this.devices) if (d.converged && !d.converged(b)) { conv = false; break; }
       x = b;
       c.x = x;
@@ -1265,6 +1280,10 @@ export class Engine {
       const it = this.newton(c, 100, false);
       if (it < 0) {
         h = hh / 8;
+        // before giving up: once for the rest of the run, refine every linear solve (a floating
+        // circuit, tied to ground only weakly, lost Newton's convergence in round-off as the
+        // step shrank), and try again from a moderate step
+        if (h < hmin && !this.refine) { this.refine = true; h = hEvent; continue; }
         if (h < hmin) {
           const e = new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence${this.noConv ? `, last at the ${this.noConv}` : ''})`);
           e.partial = out;

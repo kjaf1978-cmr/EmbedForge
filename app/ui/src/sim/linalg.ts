@@ -144,6 +144,12 @@ export class SparseSolver {
   private xs: Float64Array;
   private alive: Uint8Array;
   private piv: Int32Array;
+  // the elimination's multipliers in their order (row, factor), each step k from eStart[k]: a
+  // second right-hand side is solved with the same factors (iterative refinement)
+  private eRow = new Int32Array(64);
+  private eF = new Float64Array(64);
+  private eLen = 0;
+  private eStart: Int32Array;
   constructor(perm: Int32Array) {
     const n = perm.length;
     this.n = n; this.perm = perm; this.inv = new Int32Array(n);
@@ -152,6 +158,14 @@ export class SparseSolver {
     this.rowCols = Array.from({ length: n }, () => new Int32Array(8)); this.rowLen = new Int32Array(n);
     this.colRows = Array.from({ length: n }, () => new Int32Array(8)); this.colLen = new Int32Array(n);
     this.bb = new Float64Array(n); this.xs = new Float64Array(n); this.alive = new Uint8Array(n); this.piv = new Int32Array(n);
+    this.eStart = new Int32Array(n + 1);
+  }
+  private pushElim(i: number, f: number) {
+    if (this.eLen === this.eRow.length) {
+      const r = new Int32Array(this.eLen * 2); r.set(this.eRow); this.eRow = r;
+      const g = new Float64Array(this.eLen * 2); g.set(this.eF); this.eF = g;
+    }
+    this.eRow[this.eLen] = i; this.eF[this.eLen++] = f;
   }
   private pushRow(i: number, j: number) {
     let a = this.rowCols[i];
@@ -218,7 +232,9 @@ export class SparseSolver {
       this.bb[i] = b[perm[i]]; this.alive[i] = 1;
     }
     const bb = this.bb, alive = this.alive;
+    this.eLen = 0;
     for (let k = 0; k < n; k++) {
+      this.eStart[k] = this.eLen;
       const rows = this.colRows[k], nr = this.colLen[k];
       let max = 0, p = -1;
       for (let q = 0; q < nr; q++) {
@@ -237,6 +253,7 @@ export class SparseSolver {
         const ri = i * n, f = W[ri + k] / pk;
         if (f === 0) continue;
         W[ri + k] = 0;
+        this.pushElim(i, f);
         for (let t = 0; t < pm; t++) {
           const j = pcols[t];
           if (j <= k) continue;
@@ -256,6 +273,38 @@ export class SparseSolver {
       xs[k] = s / W[rp + k];
     }
     for (let k = 0; k < n; k++) b[perm[k]] = xs[k];
+    this.eStart[n] = this.eLen;
     return true;
+  }
+
+  /** One step of iterative refinement after solve(): x += A⁻¹·(b − A·x) with the factors just
+   *  computed, the residual in extended precision. It removes most of the round-off of an
+   *  ill-conditioned matrix (a floating circuit tied to ground only weakly). `pat` lists A's non-zeros (else all are read). */
+  refine(A: Float64Array, b: Float64Array, x: Float64Array, pat?: { list: Int32Array; len: number }) {
+    const n = this.n, W = this.W, perm = this.perm, bb = this.bb, xs = this.xs;
+    // the residual in about twice the precision (compensated: Dekker's product and Knuth's sum,
+    // the Ogita–Rump–Oishi Dot2): in plain doubles it is lost in the cancellation it measures
+    const s = new Float64Array(n), c = new Float64Array(n);
+    for (let i = 0; i < n; i++) s[i] = b[i];
+    const acc = (i: number, a: number, y: number) => {
+      const p = a * y;
+      const ca = 134217729 * a, ah = ca - (ca - a), al = a - ah, cy = 134217729 * y, yh = cy - (cy - y), yl = y - yh;
+      const ep = al * yl - (((p - ah * yh) - al * yh) - ah * yl);
+      const sum = s[i] - p, z = sum - s[i], es = (s[i] - (sum - z)) + (-p - z);
+      s[i] = sum; c[i] += es - ep;
+    };
+    if (pat) for (let q = 0; q < pat.len; q++) { const k = pat.list[q], i = (k / n) | 0; if (A[k] !== 0) acc(i, A[k], x[k % n]); }
+    else for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (A[i * n + j] !== 0) acc(i, A[i * n + j], x[j]);
+    const r = new Float64Array(n);
+    for (let i = 0; i < n; i++) r[i] = s[i] + c[i];
+    for (let i = 0; i < n; i++) bb[i] = r[perm[i]];
+    for (let k = 0; k < n; k++) { const p = this.piv[k]; for (let q = this.eStart[k]; q < this.eStart[k + 1]; q++) bb[this.eRow[q]] -= this.eF[q] * bb[p]; }
+    for (let k = n - 1; k >= 0; k--) {
+      const p = this.piv[k], rp = p * n, cols = this.rowCols[p], m = this.rowLen[p];
+      let s = bb[p];
+      for (let t = 0; t < m; t++) { const j = cols[t]; if (j > k) s -= W[rp + j] * xs[j]; }
+      xs[k] = s / W[rp + k];
+    }
+    for (let k = 0; k < n; k++) x[perm[k]] += xs[k];
   }
 }
