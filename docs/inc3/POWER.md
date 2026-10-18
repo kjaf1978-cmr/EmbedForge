@@ -256,3 +256,29 @@ Verified by simulation (tests/inverter.test.ts; the runs with the bridge switchi
 Reliability (RELIABILITY.md): 238 parts, 1956 FIT, 58 years at 45 °C. Still to do for P7a:
 a person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
 default) take about 12 minutes.
+
+### P7b — inverter, high-frequency type (one 5 kW unit, 48 V; DFMEA section 6)
+
+Example `inverter-hf` (src/eda/inverters.ts, `inverterHF`): the same battery side as P7a (class
+T fuse, pre-charge, 150 A contactor, battery window, heatsink NTC) feeds a phase-shifted full
+bridge at 40 kHz (2 × IRFP4468 per switch, bipolar gate buffers) → a 1:12 ferrite transformer
+(reinforced isolation between the battery and the 230 V side) → four C4D20120A SiC rectifier
+diodes, 470 µH and 4 × 470 µF 450 V → a regulated 381 V bus → an IGBT full bridge
+(IKW50N60T, IR2184 drivers) → 470 µH and 10 µF → 230 V 50 Hz.
+
+- DC-DC control on the battery side: 555 clock, two D flip-flops for the two legs (leg B
+  clocked by the end of the current-mode ramp), peak current sensed by a 1:200 current
+  transformer in the bridge return (so it also sees the DC that would walk the core into
+  saturation) with slope compensation, soft start, and the bus voltage fed back across the
+  barrier by a TL431 and an optocoupler.
+- Bus side: an auxiliary 15 V supply from a small 1:1 transformer on leg A (a 50 % square
+  at any load, so it does not collapse at no load), its undervoltage lockout, a bus window
+  (starts at 355 V, stops at 325 V) and an independent latched bus overvoltage protection
+  (LM393, 427 V trip) that switches the converter off through a second optocoupler.
+- Sine bridge: hybrid modulation. Leg B switches at 50 Hz and holds the neutral at the
+  protective earth (bonded on the battery side), leg A carries the 20 kHz PWM. The output
+  therefore has no 20 kHz common-mode voltage. The Y capacitors from the bus to earth do
+  not ring, and only one filter inductor is needed. The voltage loop, current limit,
+  overload timer and output overvoltage protection are the same circuits as P7a
+  (`inverterControl`), supplied from the 15 V on the bus side. The 50 Hz reference comes
+  from the battery side through an optocoupler.
