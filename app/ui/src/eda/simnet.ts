@@ -310,7 +310,8 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'D', name: `${ref}_DP`, a: ep, k: ar, model: dm, fixedTemp: true },
         { kind: 'D', name: `${ref}_DM`, a: em, k: ar, model: dm, fixedTemp: true },
         { kind: 'R', name: `${ref}_RCH`, a: ar, b: arm, r: 5e3 },
-        { kind: 'C', name: `${ref}_CA`, a: arm, b: '0', c: 1e-6 },
+        // `closed`: the armature starts pulled in (a run that starts from the steady state)
+        { kind: 'C', name: `${ref}_CA`, a: arm, b: '0', c: 1e-6, ...(p.props.closed === 'true' ? { ic: 10 } : {}) },
         { kind: 'R', name: `${ref}_RA`, a: arm, b: '0', r: 20e3 },
       );
       // pull-in at 8.5 V (85 %), drop-out at 4 V (40 %)

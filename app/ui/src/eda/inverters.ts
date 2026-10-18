@@ -539,7 +539,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('F1', 'fuse', -1050, -160, { value: '200', r: '0.3m' }, { '1': 'BP', '2': 'BF' })
     .part('DPC', 'diode', -900, -260, { value: '1N5408' }, { '2': 'BF', '1': 'PCA' })
     .part('RPC', 'resistor', -780, -260, { value: '10', pmax: '50' }, { '1': 'PCA', '2': 'BUS' })
-    .part('K1', 'contactor', -820, -100, { value: '150 A DC, coil 48 V' }, { A1: 'AXA', A2: 'KC', '1': 'BF', '2': 'BUS', '13': 'BKA', '14': 'GND' })
+    .part('K1', 'contactor', -820, -100, { value: '150 A DC, coil 48 V', ...(o.precharged ? { closed: 'true' } : {}) }, { A1: 'AXA', A2: 'KC', '1': 'BF', '2': 'BUS', '13': 'BKA', '14': 'GND' })
     .part('DK', 'diode', -950, -20, { value: '1N4007' }, { '2': 'KC', '1': 'AXA' }, 3)
     .part('QK', 'nmos', -900, 90, { value: 'IRF540N' }, { '1': 'KEN', '2': 'KC', '3': 'GND' });
   nb.block('bus');
@@ -768,7 +768,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('U1', 'opto', 140, 1500, { value: 'PC817' }, { '1': 'FBA', '2': 'FBK', '4': 'VC', '3': 'GND' })
     .part('QSC', 'pnp', 280, 1450, { value: 'BC557B' }, { '1': 'VSSL', '2': 'GND', '3': 'VC' })
     .part('RSSL', 'resistor', 380, 1380, { value: '100k' }, { '1': 'VREFL', '2': 'VSSL' }, 1)
-    .part('CSSL', 'capacitor', 380, 1500, { value: '220n', vmax: '25' }, { '1': 'VSSL', '2': 'GND' }, 1)
+    .part('CSSL', 'capacitor', 380, 1500, { value: '220n', vmax: '25', ...(o.precharged ? { ic: '2.5' } : {}) }, { '1': 'VSSL', '2': 'GND' }, 1)
     .part('QSSL', 'npn', 480, 1580, { value: 'BC547B' }, { '1': 'BSSL', '2': 'VSSL', '3': 'GND' })
     .part('RQSL', 'resistor', 480, 1680, { value: '100k' }, { '1': 'ENNL', '2': 'BSSL' })
     // ENL low (or the bus overvoltage) turns all four switches off through both drivers' SD
