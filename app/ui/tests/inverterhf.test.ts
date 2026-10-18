@@ -94,7 +94,8 @@ const overRated = (s: Awaited<ReturnType<typeof runHF>>) => {
 
 describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)', () => {
   it('H-1 connecting the battery: pre-charge, the contactor closes above 91 %, the converter charges the bus to 381 V without overvoltage, the sine bridge waits for 355 V', async () => {
-    const s = await runHF({ stop: '70m' });
+    // the pre-charge takes about 0.11 s (10 Ω, 4.7 mF), the contactor 14 ms, the bus about 40 ms
+    const s = await runHF({ stop: '180m' });
     const ibat = s.cur('BAT', '1').map(Math.abs), kClose = s.x.findIndex((t, k) => t > 1e-3 && s.r.v['BKA'][k] < 0.3);
     expect(kClose).toBeGreaterThan(0);
     expect(s.max(ibat.slice(0, kClose))).toBeLessThan(5.5);

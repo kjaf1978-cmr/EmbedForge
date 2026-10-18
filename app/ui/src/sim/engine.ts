@@ -1278,6 +1278,8 @@ export class Engine {
       // 100 iterations: a comparator output transistor entering saturation creeps tens of mV per
       // iteration and needed more than 50 (the step then shrank until the matrix lost precision)
       const it = this.newton(c, 100, false);
+      const stats = (globalThis as { __simStats?: Record<string, number> }).__simStats;
+      if (stats) stats[it < 0 ? 'newtonFail' : 'solve'] = (stats[it < 0 ? 'newtonFail' : 'solve'] ?? 0) + 1;
       if (it < 0) {
         h = hh / 8;
         // before giving up: once for the rest of the run, refine every linear solve (a floating
@@ -1294,10 +1296,15 @@ export class Engine {
       // truncation error: reject a step that is too long for the reactive parts
       let hLte = Infinity;
       for (const d of this.devices) if (d.lte) hLte = Math.min(hLte, d.lte(c.x, c));
-      if (hLte < 0.9 * hh && hh > hmin * 10) { h = Math.max(hLte * 0.9, hh / 8, hmin * 10); continue; }
+      if (hLte < 0.9 * hh && hh > hmin * 10) {
+        if (stats) { let worst = ''; let w = Infinity; for (const d of this.devices) { const l = d.lte?.(c.x, c) ?? Infinity; if (l < w) { w = l; worst = d.el.name.replace(/_.*/, ''); } } stats[`lte:${worst}`] = (stats[`lte:${worst}`] ?? 0) + 1; }
+        h = Math.max(hLte * 0.9, hh / 8, hmin * 10); continue;
+      }
       // a discrete state (555 latch) would change: find the instant to within hEvent first
       const flips = this.devices.filter((d) => d.pending?.(c.x));
+      if (stats) for (const d of flips) stats[`flip:${d.el.name.replace(/_.*/, '')}`] = (stats[`flip:${d.el.name.replace(/_.*/, '')}`] ?? 0) + 1;
       if (flips.length && hh > hEvent) { h = Math.max(hh / 4, hEvent); continue; }
+      if (stats) { stats.accepted = (stats.accepted ?? 0) + 1; const b = `h:1e${Math.floor(Math.log10(hh))}`; stats[b] = (stats[b] ?? 0) + 1; }
       this.x = c.x;
       for (const d of this.devices) d.accept?.(c, c.x);
       t += hh;
