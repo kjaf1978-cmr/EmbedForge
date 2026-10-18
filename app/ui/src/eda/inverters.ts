@@ -855,9 +855,12 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('CFC', 'capacitor', 1620, 740, { value: '100n', vmax: '50', ...(o.precharged ? { ic: '11' } : {}) }, { '1': 'FBC', '2': 'FBS' })
     .part('RFL', 'resistor', 1500, 440, { value: '1k' }, { '1': VH, '2': o.feedbackOpen ? 'FBX' : 'FBA' })
     .part('RFBI', 'resistor', 1640, 520, { value: '1k' }, { '1': VH, '2': 'FBK' });
-  // independent bus overvoltage: own divider, the HV reference, LM393 with hysteresis; above 427 V
-  // its output pulls U2's LED on and the DC-DC converter stops until the bus is below 405 V. The
-  // output has its own pull-up and the hysteresis is high-impedance (12k/100k, 200k), so the LED
+  // independent bus overvoltage: own divider, the HV reference, LM393 with hysteresis; above 425 V
+  // its output pulls U2's LED on and the DC-DC converter stops until the bus is below 404 V
+  // (17.4k/100k from VREF: 2.125 V through 14.8 kΩ; 2M from the output moves it ±0.05 V). With
+  // 12k/100k and 200k the hysteresis lifted the trip to 550 V while the output was high: with the
+  // feedback lost the bus reached 548 V (H-3, found in simulation). The
+  // output has its own pull-up and the hysteresis is high-impedance, so the LED
   // stays dark while the comparator is off (with 20k straight from the LED's cathode the LED
   // carried 0.45 mA through the hysteresis and held the converter's enable half low, found in
   // simulation)
@@ -865,10 +868,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RBO1', 'resistor', 1800, 520, { value: '750k' }, { '1': 'HBUS', '2': 'BOM' }, 1)
     .part('RBO2', 'resistor', 1800, 620, { value: '750k' }, { '1': 'BOM', '2': 'BOS' }, 1)
     .part('RBO3', 'resistor', 1800, 740, { value: '7.87k' }, { '1': 'BOS', '2': G }, 1)
-    .part('RBV1', 'resistor', 1920, 560, { value: '12k' }, { '1': 'VREF', '2': 'BOR' }, 1)
+    .part('RBV1', 'resistor', 1920, 560, { value: '17.4k' }, { '1': 'VREF', '2': 'BOR' }, 1)
     .part('RBV2', 'resistor', 1920, 680, { value: '100k' }, { '1': 'BOR', '2': G }, 1)
     .part('UBOV', 'comparator', 2060, 620, { value: 'LM393', pkg: 'PROT' }, { '3': 'BOR', '2': 'BOS', '1': 'OVK', '8': VH, '4': G })
-    .part('RBOH', 'resistor', 2060, 740, { value: '200k' }, { '1': 'OVK', '2': 'BOR' })
+    .part('RBOH', 'resistor', 2060, 740, { value: '2M' }, { '1': 'OVK', '2': 'BOR' })
     .part('ROVL', 'resistor', 2180, 520, { value: '4.7k' }, { '1': VH, '2': 'OVA' })
     .part('ROVP', 'resistor', 2180, 640, { value: '2.2k' }, { '1': VH, '2': 'OVK' }, 1);
 
