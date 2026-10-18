@@ -898,7 +898,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   const sheet = nb.done();
   if (o.stage === 'sine') {
     const gone = new Set(['dc-dc bridge', 'current sense', 'dc-dc output', 'hv supply', 'dc-dc control', 'bus feedback', 'bus overvoltage']);
-    const drop = new Set([...nb.ids.entries()].filter(([k]) => gone.has(nb.blockOf(k))).map(([, id]) => id));
+    const drop = new Set([...nb.ids.values()].filter((id) => gone.has(nb.blockOf(id))));
     sheet.parts = sheet.parts.filter((p) => !drop.has(p.id));
   }
   if (o.temp !== undefined) sheet.temp = String(o.temp);
