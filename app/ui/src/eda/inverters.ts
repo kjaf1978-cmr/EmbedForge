@@ -632,12 +632,13 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RBD', 'resistor', -300, 260, { value: '1.2', pmax: '2' }, { '1': 'CSR', '2': 'GND' }, 1)
     // the reverse clamp: while the dead time returns current to the bus (360 A when the bus is
     // shorted) the diode DC1 blocks and the secondary current had only the 1k: 1.8 kV on the
-    // secondary. DCR and 4.7 Ω take it at about 9 V. With the bus shorted the bridge's input
-    // is negative almost half the time and the clamp carries 0.7 A rms: 2.3 W (a 13 V 1 W
-    // Zener here and a 2 W resistor were over their ratings, found in the stress check), so a
-    // 5 W wirewound; a lasting short ends at the heatsink cut-out
+    // secondary. DCR and a 24 V 5 W Zener take it, and the same 24 V resets the core within the
+    // 4 µs blanking (through 4.7 Ω the reset stayed below 1 V, the core saturated at high duty
+    // and the current limit failed: 47 A in the output inductor, found in simulation). With the
+    // bus shorted the clamp carries about 0.7 A r.m.s. until the overload timer stops the
+    // converter (a 13 V 1 W Zener and a 2 W resistor were over their ratings there)
     .part('DCR', 'diode', -440, 400, { value: 'UF4007' }, { '2': 'CZC', '1': 'CTA' }, 3)
-    .part('RCZ', 'resistor', -380, 460, { value: '4.7', pmax: '5' }, { '1': 'GND', '2': 'CZC' }, 1);
+    .part('DZC', 'zener', -380, 460, { value: '1N5359B' }, { '1': 'GND', '2': 'CZC' }, 3);
 
   // ---- transformer, auxiliary transformer, SiC rectifier, filter, the 380 V bus
   nb.block('dc-dc output')
@@ -785,8 +786,11 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('U3', 'opto', -620, 1060, { value: 'PC817' }, { '1': 'L50A', '2': 'GND', '4': 'Q50H', '3': G })
     .part('R50H', 'resistor', -660, 940, { value: '2.2k' }, { '1': VH, '2': 'Q50H' }, 1);
 
-  // ---- DC-DC control, a phase-shifted bridge with peak current-mode: a 555 at 40 kHz (93 %
-  // charge, 1.7 µs discharge: the blanking BLK between the half periods). Leg A toggles at the
+  // ---- DC-DC control, a phase-shifted bridge with peak current-mode: a 555 at 40 kHz (84 %
+  // charge, 4 µs discharge: the blanking BLK between the half periods, which is also the
+  // current transformer's reset time: at most 84 % on, 24 V × 4 µs resets the 4.2 V × 21 µs of
+  // a full pulse; with 1.7 µs the core walked into saturation at high duty, the limit failed and
+  // the output inductor reached 47 A, found in simulation with the saturating core). Leg A toggles at the
   // end of each blanking (CD4013: 20 kHz, 50 %), which starts the power pulse; leg B takes A's
   // level when the primary current reaches the command (latch of two CD4001 gates, set by OC,
   // reset during the blanking), or at the next blanking: the pulse ends and the bridge
@@ -795,8 +799,8 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   // between the two directions and 8 A of DC stayed in the transformer (found in simulation)
   nb.block('dc-dc control')
     .part('U40', 'timer555', -400, 1100, { value: 'NE555' }, { '8': V, '4': V, '7': 'D40', '6': 'T40', '2': 'T40', '3': 'O40', '5': 'K40', '1': 'GND' })
-    .part('RA40', 'resistor', -520, 1010, { value: '31.6k' }, { '1': V, '2': 'D40' }, 1)
-    .part('RB40', 'resistor', -520, 1130, { value: '2.15k' }, { '1': 'D40', '2': 'T40' }, 1)
+    .part('RA40', 'resistor', -520, 1010, { value: '24.3k' }, { '1': V, '2': 'D40' }, 1)
+    .part('RB40', 'resistor', -520, 1130, { value: '5.76k' }, { '1': 'D40', '2': 'T40' }, 1)
     .part('CT40', 'capacitor', -520, 1250, { value: '1n', vmax: '50' }, { '1': 'T40', '2': 'GND' }, 1)
     .part('CK40', 'capacitor', -280, 1230, { value: '10n', vmax: '50' }, { '1': 'K40', '2': 'GND' }, 1)
     // BLK = O40 inverted (a transistor: the four gates of one CD4001 are taken)

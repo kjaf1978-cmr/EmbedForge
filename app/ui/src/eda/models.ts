@@ -44,7 +44,7 @@ export function tvsJunction(m: TvsModel, vbr = m.vbr): DiodeModel {
   return { is: 1e-12, n: 1, rs: (m.vc - m.vbr) / m.ipp, bv: vbr, ibv: 10e-3 };
 }
 
-export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13], ['1N4743A', 13, 1]] as [string, number, number?][])
+export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13], ['1N4743A', 13, 1], ['1N5359B', 24, 5]] as [string, number, number?][])
   .map(([name, v, w]) => ({ name, note: `Zener diode ${v} V, ${w ? `${w} W` : '500 mW'}`, model: { is: 1e-14, n: 1, rs: w ? 0.5 : 2, bv: v, ibv: 5e-3 } }));
 
 /** LED model from its forward voltage at 20 mA (N = 1.9, RS = 5 Ω). The junction voltage of
