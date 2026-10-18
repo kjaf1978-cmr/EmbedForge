@@ -278,7 +278,7 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // + 2·(SINE − VMID) with the triangle (the same gain as the unipolar bridge); precision peak
   // and valley detectors give the triangle's real extremes, so the half cycles join without a
   // step at the zero crossing
-  if (c.hybrid) nb.block('hybrid modulation').part('UPK', 'opamp', -1250, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'PKV', '6': 'PKD', '7': V, '4': G })
+  if (c.hybrid) nb.block('hybrid modulation').part('UPK', 'opamp', -1250, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'PKN', '6': 'PKD', '7': V, '4': G })
     .part('DPK', 'diode', -1130, 2410, { value: '1N4148' }, { '2': 'PKD', '1': 'PKR' })
     // 1k: the op-amp charges 1 µF at power-up (0.22 A without it, found in the stress check).
     // The peak's capacitor on the ground, the valley's on the 15 V: each starts on the side its
@@ -288,24 +288,33 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     // buffer with 2 µF and it oscillated (found in simulation)
     .part('RPKS', 'resistor', -1080, 2350, { value: '1k' }, { '1': 'PKR', '2': 'PKV' })
     .part('CPK', 'capacitor', -1030, 2530, { value: '1u', vmax: '25' }, { '1': 'PKV', '2': G }, 1)
-    .part('RPK', 'resistor', -950, 2530, { value: '1M' }, { '1': 'PKV', '2': 'VMID' }, 1)
-    .part('UVL', 'opamp', -850, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'VLV', '6': 'VLD', '7': V, '4': G })
+    .part('RPK', 'resistor', -950, 2530, { value: '1M' }, { '1': 'PKV', '2': 'PKN' }, 1)
+    // between the peaks DPK2 holds the op-amp in its loop, 0.6 V below the triangle, and 1M from
+    // the capacitor closes it (the slow droop of the reading): at the next peak the output only
+    // has 1.3 V to slew. From its rail (10 V, 0.8 µs) the reading stayed 0.2 V inside the
+    // triangle, the duty could not reach 0 or 1 at the zero crossings, and each crossing
+    // stepped by 40 V and rang: THD 5 % (found in simulation)
+    .part('DPK2', 'diode', -1130, 2510, { value: '1N4148' }, { '2': 'PKN', '1': 'PKD' })
+    .part('UVL', 'opamp', -850, 2450, { value: 'TL072', pkg: 'SIG3' }, { '3': 'TRI', '2': 'VLN', '6': 'VLD', '7': V, '4': G })
     .part('DVL', 'diode', -730, 2410, { value: '1N4148' }, { '2': 'VLR', '1': 'VLD' })
     .part('RVLS', 'resistor', -680, 2350, { value: '1k' }, { '1': 'VLV', '2': 'VLR' })
     .part('CVL', 'capacitor', -630, 2530, { value: '1u', vmax: '25' }, { '1': 'VLV', '2': V }, 1)
-    .part('RVL', 'resistor', -550, 2530, { value: '1M' }, { '1': 'VLV', '2': 'VMID' }, 1)
+    .part('RVL', 'resistor', -550, 2530, { value: '1M' }, { '1': 'VLV', '2': 'VLN' }, 1)
+    .part('DVL2', 'diode', -730, 2510, { value: '1N4148' }, { '2': 'VLD', '1': 'VLN' })
     // SEL: the peak while INB is high (negative half cycle), else the valley
     .part('QSP', 'nmos', -450, 2430, { value: '2N7000' }, { '1': 'INB', '2': 'PKV', '3': 'SEL' })
     .part('QSV', 'nmos', -450, 2620, { value: '2N7000' }, { '1': 'INBN', '2': 'SEL', '3': 'VLV' })
     .part('RBB', 'resistor', -330, 2680, { value: '47k' }, { '1': 'INB', '2': 'BIB' })
     .part('QBI', 'npn', -230, 2720, { value: 'BC547B' }, { '1': 'BIB', '2': 'INBN', '3': G })
     .part('RCB', 'resistor', -230, 2590, { value: '10k' }, { '1': V, '2': 'INBN' }, 1)
-    // REF = SEL + 2·SINE − 2·VMID: (SEL + 2·SINE)/3 at +, gain 3 about VMID
-    .part('RS1', 'resistor', -100, 2420, { value: '20k' }, { '1': 'SEL', '2': 'SUMP' })
-    .part('RS2', 'resistor', -100, 2500, { value: '10k' }, { '1': 'SINE', '2': 'SUMP' })
+    // REF = SEL + 2·SINE − 2·VMID: (SEL + 2·SINE)/3 at +, gain 3 about VMID; 200k/100k: the
+    // selected detector's capacitor is loaded by 10 µA (20k took 0.1 mA, 5 nC to restore per
+    // period)
+    .part('RS1', 'resistor', -100, 2420, { value: '200k' }, { '1': 'SEL', '2': 'SUMP' })
+    .part('RS2', 'resistor', -100, 2500, { value: '100k' }, { '1': 'SINE', '2': 'SUMP' })
     .part('USUM', 'opamp', 20, 2450, { value: 'TL074', pkg: 'SIG2' }, { '3': 'SUMP', '2': 'SUMN', '6': 'REF', '7': V, '4': G })
-    .part('RSG', 'resistor', 120, 2560, { value: '10k' }, { '1': 'SUMN', '2': 'VMID' }, 1)
-    .part('RSF', 'resistor', 120, 2350, { value: '20k' }, { '1': 'SUMN', '2': 'REF' });
+    .part('RSG', 'resistor', 120, 2560, { value: '100k' }, { '1': 'SUMN', '2': 'VMID' }, 1)
+    .part('RSF', 'resistor', 120, 2350, { value: '200k' }, { '1': 'SUMN', '2': 'REF' });
   else nb.part('RN1', 'resistor', 640, 1000, { value: '10k' }, { '1': 'SINE', '2': 'NSB' })
     .part('RN2', 'resistor', 740, 1100, { value: '10k' }, { '1': 'NSB', '2': 'SINEB' })
     .part('UNB', 'opamp', 760, 1000, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NSB', '6': 'SINEB', '7': V, '4': G });
