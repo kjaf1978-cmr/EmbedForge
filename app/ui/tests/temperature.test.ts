@@ -111,3 +111,22 @@ describe('temperature on the schematic', () => {
     expect(schematicSpice(sheet)).not.toMatch(/\.temp/);
   });
 });
+
+describe('junction temperature of one part (D32)', () => {
+  it('a power MOSFET with tj 125 °C conducts with a higher on-resistance than the same part at the circuit\'s 27 °C (datasheet: about 1.7 ×)', async () => {
+    const { deck } = await import('./deck');
+    const { simulate } = await import('../src/sim/run');
+    const vds = (tj?: string) => {
+      const { sheet } = deck([['vdc', { value: '12' }, { '1': 'G', '2': 'GND' }], ['vdc', { value: '5' }, { '1': 'S5', '2': 'GND' }],
+        ['resistor', { value: '0.05' }, { '1': 'S5', '2': 'D' }],
+        ['nmos', { value: 'IRFP4468', ...(tj ? { tj } : {}) }, { '1': 'G', '2': 'D', '3': 'GND' }]]);
+      sheet.sim = { type: 'op' };
+      const r = simulate(sheet);
+      if ('error' in r) throw new Error(r.error);
+      return r.v['D'][0];
+    };
+    const cold = vds(), hot = vds('125');
+    expect(hot / cold).toBeGreaterThan(1.4);
+    expect(hot / cold).toBeLessThan(2.2);
+  });
+});

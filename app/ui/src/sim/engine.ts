@@ -1109,7 +1109,7 @@ export class Engine {
     for (const e of circuit.elements) if (e.kind === 'T') timerNode.set(e.name, node(`${e.name}#n13`, false));
     let k = this.nNodes;
     const br = () => k++;
-    const tk = (circuit.temp ?? 27) + 273.15, at = (e: { fixedTemp?: boolean }) => (e.fixedTemp ? TNOM : tk);
+    const tk = (circuit.temp ?? 27) + 273.15, at = (e: { fixedTemp?: boolean; tempC?: number }) => (e.fixedTemp ? TNOM : e.tempC !== undefined ? e.tempC + 273.15 : tk);
     if (!(tk > 0)) throw new SimError(`temperature ${circuit.temp} °C is below absolute zero`);
     for (const e of circuit.elements) {
       const ix = (s: string) => node(s);

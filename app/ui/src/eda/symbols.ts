@@ -95,6 +95,8 @@ const H = { refAt: { x: 0, y: -14 }, valAt: { x: 0, y: 18 } };
  *  heatsink together). Empty: the part stands in free air. The stress check then rates its power
  *  from the junction temperature limit. */
 const HEATSINK: ParamDef = { key: 'heatsink', label: 'Heatsink (case to air)', kind: 'value', unit: 'K/W', default: '', help: 'Thermal resistance from the case to the surrounding air, with the insulating pad (e.g. 0.5 K/W pad + 1.2 K/W heatsink = 1.7). Empty: no heatsink.' };
+/** The junctions' own temperature for the simulation (a power part heated by its losses, D32); empty: the circuit's temperature. */
+const TJ: ParamDef = { key: 'tj', label: 'Junction temperature', kind: 'value', unit: '°C', default: '', help: 'optional: simulate this part\'s junctions at their own temperature (heated by its losses), not the circuit\'s; empty = the circuit temperature' };
 
 const VV = { refAt: { x: 22, y: -6 }, valAt: { x: 22, y: 8 } };
 
@@ -324,7 +326,7 @@ export const SYMBOLS: SymbolDef[] = [
     description: 'Diode; current flows from anode (left) to cathode (bar).',
     pins: [{ id: '2', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '1', name: 'K', x: 30, y: 0, type: 'passive' }], ...H, simulated: true,
     gfx: () => [path('M -30 0 H -8 M 8 0 H 30 M 8 -9 V 9', 'none', 2), path('M -8 -9 L 8 0 L -8 9 Z', fg)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(DIODES.map((m) => m.name)), default: '1N4148' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(DIODES.map((m) => m.name)), default: '1N4148' }, params: [HEATSINK, TJ, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'zener', name: 'Zener diode', category: 'Semiconductors', keywords: ['z', 'zener', 'reference', 'regulator'], prefix: 'D',
@@ -352,7 +354,7 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '1', name: 'B', x: -30, y: 0, type: 'input' }, { id: '2', name: 'C', x: 10, y: -30, type: 'passive' }, { id: '3', name: 'E', x: 10, y: 30, type: 'passive' }],
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -6 M -6 -12 V 12', 'none', 2), path('M -6 -5 L 10 -18 V -30 M -6 5 L 10 18 V 30'), arrowHead(-6, 5, 7, 15.6)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'npn').map((m) => m.name)), default: '2N3904' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'npn').map((m) => m.name)), default: '2N3904' }, params: [HEATSINK, TJ, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'pnp', name: 'PNP transistor', category: 'Semiconductors', keywords: ['q', 'bjt', 'transistor', 'bc557', '2n3906'], prefix: 'Q',
@@ -360,7 +362,7 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '1', name: 'B', x: -30, y: 0, type: 'input' }, { id: '2', name: 'C', x: 10, y: 30, type: 'passive' }, { id: '3', name: 'E', x: 10, y: -30, type: 'passive' }],
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -6 M -6 -12 V 12', 'none', 2), path('M -6 -5 L 10 -18 V -30 M -6 5 L 10 18 V 30'), arrowHead(10, -18, -3, -7.4)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'pnp').map((m) => m.name)), default: '2N3906' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(BJTS.filter((m) => m.model.type === 'pnp').map((m) => m.name)), default: '2N3906' }, params: [HEATSINK, TJ, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'nmos', name: 'N-channel MOSFET', category: 'Semiconductors', keywords: ['m', 'mosfet', 'fet', 'transistor', '2n7000', 'irlz44n', 'logic level'], prefix: 'Q',
@@ -369,7 +371,7 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -10 M -10 -12 V 12', 'none', 2), path('M -4 -14 V -7 M -4 -3 V 3 M -4 7 V 14', 'none', 2),
       path('M -4 -11 H 10 V -30 M -4 11 H 10 V 30 M 10 0 V 11'), path('M 10 0 H 2'), arrowHead(10, 0, -3, 0, 6, 3)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'nmos').map((m) => m.name)), default: '2N7000' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'nmos').map((m) => m.name)), default: '2N7000' }, params: [HEATSINK, TJ, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'pmos', name: 'P-channel MOSFET', category: 'Semiconductors', keywords: ['m', 'mosfet', 'fet', 'transistor', 'high side', 'bs250'], prefix: 'Q',
@@ -378,7 +380,7 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 30, y: -6 }, valAt: { x: 30, y: 8 }, simulated: true,
     gfx: () => [circle(2, 0, 20), path('M -30 0 H -10 M -10 -12 V 12', 'none', 2), path('M -4 -14 V -7 M -4 -3 V 3 M -4 7 V 14', 'none', 2),
       path('M -4 -11 H 10 V -30 M -4 11 H 10 V 30 M 10 0 V -11'), path('M -3 0 H 4'), arrowHead(-4, 0, 9, 0, 6, 3)],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'pmos').map((m) => m.name)), default: 'BS250' }, params: [HEATSINK, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(MOSFETS.filter((m) => m.model.type === 'pmos').map((m) => m.name)), default: 'BS250' }, params: [HEATSINK, TJ, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
   },
   {
     id: 'tvs', name: 'TVS diode', category: 'Semiconductors', keywords: ['d', 'tvs', 'transient', 'suppressor', 'esd', 'surge', 'protection', 'smaj', 'transil'], prefix: 'D',
@@ -407,7 +409,7 @@ export const SYMBOLS: SymbolDef[] = [
     gfx: (p) => [circle(2, 0, 20), path('M -30 0 H -12 M -12 -10 V 10', 'none', 2), path('M -7 -12 V 12', 'none', 2),
       path('M -7 -6 L 10 -18 V -30 M -7 6 L 10 18 V 30'), arrowHead(-7, 6, 7, 15.6),
       ...(findModel(IGBTS, p.value ?? '').model.diode ? [path('M 10 -24 H 26 V 24 H 10'), path('M 20 6 H 32 L 26 -4 Z', fg), path('M 20 -4 H 32')] : [])],
-    value: { key: 'value', label: 'Model', kind: 'select', options: opts(IGBTS.map((m) => m.name)), default: 'IKW30N60T' }, params: [HEATSINK, ],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(IGBTS.map((m) => m.name)), default: 'IKW30N60T' }, params: [HEATSINK, TJ],
   },
   {
     id: 'opto', name: 'Optocoupler', category: 'Semiconductors', keywords: ['u', 'opto', 'optocoupler', 'optoisolator', 'pc817', 'isolation', 'phototransistor'], prefix: 'U',

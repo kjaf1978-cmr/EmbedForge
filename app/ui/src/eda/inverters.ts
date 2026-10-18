@@ -22,6 +22,9 @@ export interface InverterLfOptions {
   /** Tests: a smaller overload-timer capacitor (the product's 22 µF trips after about 0.9 s
    *  at the current limit). */
   overloadC?: string;
+  /** Tests (D32 temperature corners): the junction temperature of every part on a heatsink
+   *  (the power semiconductors), heated by their losses; `temp` sets the ambient for the rest. */
+  tj?: number;
   /** Tests: a motor start, the worst part of it: a locked-rotor induction motor (about 85 A at
    *  230 V, six times the rating of a 2.2 kW motor) connected by a relay from `at` for `for`
    *  seconds. */
@@ -234,6 +237,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
   const sheet = nb.done();
   if (o.temp !== undefined) sheet.temp = String(o.temp);
+  if (o.tj !== undefined) for (const p of sheet.parts) if (p.props.heatsink?.trim()) p.props = { ...p.props, tj: String(o.tj) };
   return { sheet, nb };
 }
 
@@ -964,6 +968,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     sheet.parts = sheet.parts.filter((p) => !drop.has(p.id));
   }
   if (o.temp !== undefined) sheet.temp = String(o.temp);
+  if (o.tj !== undefined) for (const p of sheet.parts) if (p.props.heatsink?.trim()) p.props = { ...p.props, tj: String(o.tj) };
   // a run that starts with the bus charged: every capacitor of the high-voltage side's 15 V rail
   // starts charged with it (the decoupling at 0 V pulled the rail down to 1.5 V at the start)
   if (o.precharged) {

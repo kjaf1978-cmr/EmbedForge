@@ -70,6 +70,11 @@ export function buildSimNet(sheet: Sheet, conn: Connectivity = connectivity(shee
     }
     const before = elements.length;
     partElements(p, pinNode, elements, errors, warnings, typeof sheetT === 'number' ? sheetT : 27);
+    // `tj`: the part's junctions run at their own temperature (a power semiconductor heated by
+    // its losses, D32), not the circuit's
+    const tj = p.props.tj?.trim() ? parseValue(p.props.tj) : null;
+    if (p.props.tj?.trim() && tj === null) errors.push(`${p.ref}: the junction temperature is not a number`);
+    if (tj !== null) for (const e of elements.slice(before)) if ((e.kind === 'D' || e.kind === 'Q' || e.kind === 'M') && !e.fixedTemp) e.tempC = tj;
     parts.set(p.ref, { ref: p.ref, elements: elements.slice(before).map((e) => e.name), pinNode });
   }
 

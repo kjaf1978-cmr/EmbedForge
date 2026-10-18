@@ -47,9 +47,10 @@ export type Element =
   | { kind: 'G'; name: string; p: string; n: string; cp: string; cn: string; gm: number }
   /** fixedTemp: part of a macro model (op-amp clamps, regulator pass transistor), kept at
    *  27 °C whatever the circuit temperature, because the macro model's behaviour is fitted there. */
-  | { kind: 'D'; name: string; a: string; k: string; model: DiodeModel; fixedTemp?: boolean }
-  | { kind: 'Q'; name: string; c: string; b: string; e: string; model: BjtModel; fixedTemp?: boolean }
-  | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel; fixedTemp?: boolean }
+  /** tempC: this junction's own temperature (°C), instead of the circuit's (a heated power part). */
+  | { kind: 'D'; name: string; a: string; k: string; model: DiodeModel; fixedTemp?: boolean; tempC?: number }
+  | { kind: 'Q'; name: string; c: string; b: string; e: string; model: BjtModel; fixedTemp?: boolean; tempC?: number }
+  | { kind: 'M'; name: string; d: string; g: string; s: string; model: MosModel; fixedTemp?: boolean; tempC?: number }
   /** Coupling of two inductors (by element name): M = k·√(L1·L2), dots at each inductor's first node. */
   | { kind: 'K'; name: string; l1: string; l2: string; k: number }
   /** Current-controlled switch (SPICE W): on above it + ih, off below it − ih, where the control
