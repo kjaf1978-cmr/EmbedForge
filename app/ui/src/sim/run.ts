@@ -204,10 +204,12 @@ export function monteCarloSheets(sheet: Sheet): { label: string; sheet: Sheet }[
     const parts = sheet.parts.map((p) => {
       const kind = MC_KINDS[p.sym];
       const v = kind ? parseValue(p.props.value ?? '') : null;
-      if (!kind || v === null || !tol[kind]) return p;
+      // a part's own tolerance (a precision resistor) replaces the analysis's for its kind
+      const own = p.props.tol?.trim() ? parseValue(p.props.tol) : null, t = own !== null ? own / 100 : kind ? tol[kind] : 0;
+      if (!kind || v === null || !t) return p;
       // d in [−1, 1]: Gaussian with σ = 1/3 (the tolerance is 3 σ) clipped at ±1, or even
       const d = mc.dist === 'gauss' ? Math.max(-1, Math.min(1, gauss() / 3)) : 2 * rand() - 1;
-      return { ...p, props: { ...p.props, value: String(v * (1 + tol[kind] * d)) } };
+      return { ...p, props: { ...p.props, value: String(v * (1 + t * d)) } };
     });
     out.push({ label: `run ${k}`, sheet: { ...sheet, parts, mc: undefined, step: undefined } });
   }

@@ -80,7 +80,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     TL072: e('TL072CP', 'Texas Instruments', 'dual JFET op-amp, DIP-8', 0.7, 0.3, 'estimate', any('DIP-8')),
     TL074: e('TL074CN', 'Texas Instruments', 'quad JFET op-amp, DIP-14', 0.6, 0.3, 'estimate', any('DIP-14')),
   },
-  tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V, TO-92', 0.3, 0.1, 'estimate', any('TO-92')) },
+  tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 1 %, TO-92', 0.3, 0.1, 'estimate', any('TO-92')), TL431B: e('TL431BCLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 0.5 %, TO-92', 0.45, 0.15, 'estimate', any('TO-92')) },
   // logic by family (the footprint's): CD4000 on a rail above 6 V, 74HC on 5 V and 3.3 V
   dff: {
     CD: e('CD4013BE', 'Texas Instruments', 'dual D flip-flop, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
@@ -168,8 +168,10 @@ function capacitor(value: string, vmax: number, pol: boolean): CatalogueEntry {
   return e(`C0G ceramic ${value}F ${vmax} V, 5.08 mm`, 'KEMET / Vishay', `${value}F ${vmax} V C0G ceramic`, 0.1, 0.03, 'estimate', any('5.08 mm'));
 }
 
-function resistor(value: string, pmax: number): CatalogueEntry {
+function resistor(value: string, pmax: number, tol = 1): CatalogueEntry {
   const r = parseValue(value) ?? 0;
+  // a precision divider (D32): thin film 0.1 %, 25 ppm/K
+  if (tol <= 0.1 && pmax <= 0.6) return e(`thin film ${value}Ω 0.6 W, 0.1 %, 25 ppm/K, 350 V (e.g. Vishay MBB 0207 / Yageo MFP)`, 'Vishay / Yageo', `resistor ${value}Ω, 0207, 0.1 %`, 0.45, 0.25, 'estimate', any('0207 0.1 %'));
   if (r > 0 && r < 0.5e-3) return e(`busbar shunt ${value}Ω, 10 W, 1 % (e.g. Isabellenhütte BVR series)`, 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %, four-terminal`, 9, 6, 'estimate', [{ distributor: 'RS / Isabellenhütte' }]);
   if (r > 0 && r <= 0.01) return e('BVN-M-R001-1.0', 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %`, 4, 2.5, 'estimate', [{ distributor: 'RS', sku: '193-0103' }]);
   if (pmax >= 25) return e(`aluminium-housed ${value}Ω ${pmax} W (e.g. Arcol HS50)`, 'Arcol / TE', `resistor ${value}Ω, ${pmax} W, on the chassis`, 4.5, 3, 'estimate', any('aluminium-housed'));
@@ -195,7 +197,7 @@ const num = (details: string, label: string): number => {
 export function catalogueFor(line: BomLine): CatalogueEntry | null {
   const v = line.raw;
   switch (line.sym) {
-    case 'resistor': return resistor(v, num(line.details, 'power rating') || 0.25);
+    case 'resistor': return resistor(v, num(line.details, 'power rating') || 0.25, num(line.details, 'tolerance') || 1);
     case 'capacitor': return capacitor(v, num(line.details, 'voltage rating') || 50, false);
     case 'capacitor_pol': return capacitor(v, num(line.details, 'voltage rating') || 25, true);
     case 'fuse': return fuse(v);

@@ -113,7 +113,8 @@ export const OPTOS: NamedModel<OptoModel>[] = [
 /** Shunt references: reference voltage between REF and anode; the cathode sinks what holds REF there. */
 export interface ShuntRefModel { vref: number }
 export const SHUNT_REFS: NamedModel<ShuntRefModel>[] = [
-  { name: 'TL431', note: 'adjustable shunt regulator, 2.495 V reference, 2.5 to 36 V, 1 to 100 mA', model: { vref: 2.495 } },
+  { name: 'TL431', note: 'adjustable shunt regulator, 2.495 V reference (1 %), 2.5 to 36 V, 1 to 100 mA', model: { vref: 2.495 } },
+  { name: 'TL431B', note: 'adjustable shunt regulator, 2.495 V reference (0.5 %), 2.5 to 36 V, 1 to 100 mA', model: { vref: 2.495 } },
   { name: 'TLV431', note: 'low-voltage adjustable shunt regulator, 1.24 V reference, 1.24 to 6 V', model: { vref: 1.24 } },
 ];
 

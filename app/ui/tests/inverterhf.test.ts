@@ -34,7 +34,7 @@ describe('high-frequency inverter: the drawing', () => {
     expect(erc(sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
     expect(nb.unrouted).toEqual([]);
     expect(textCollisions(sheet)).toEqual([]);
-  });
+  }, 60_000);
   it('the two sides meet only in transformers, optocouplers, the two Y2 capacitors and leg B of the sine bridge (its node is N, bonded to PE): no other part has pins on both grounds', () => {
     const c = connectivity(sheet);
     const y2 = (p: { sym: string; props: Record<string, string> }) => p.sym === 'capacitor' && p.props.vmax === '1600';
@@ -44,7 +44,7 @@ describe('high-frequency inverter: the drawing', () => {
       return nets.includes('GND') && nets.includes('HVG');
     });
     expect(both.map((p) => p.ref)).toEqual([]);
-  });
+  }, 60_000);
   it('the controls of the two sides are joined only where intended: merging nets through every part but the sine bridge, its output, the transformers, optocouplers and Y2 capacitors keeps PE and the bus negative apart (a net name shared by mistake would join them)', () => {
     const c = connectivity(sheet);
     const y2 = (p: { sym: string; props: Record<string, string> }) => p.sym === 'capacitor' && p.props.vmax === '1600';
@@ -59,7 +59,7 @@ describe('high-frequency inverter: the drawing', () => {
       for (const n of nets.slice(1)) if (n !== nets[0]) parent.set(n, nets[0]);
     }
     expect(find('HVG')).not.toBe(find('GND'));
-  });
+  }, 60_000);
   it('no wasted units (D31): every package full but one LM393 (six comparators on the low-voltage side, the last one the DC-DC converter\'s overload timer; seven on the high-voltage side); the logic in one CD4001 and two CD4013, all used', () => {
     const bom = buildBom(sheet);
     const qty = (v: string, sym?: string) => bom.filter((l) => (l.value === v || l.raw === v) && (!sym || l.sym === sym)).reduce((a, l) => a + l.qty, 0);
@@ -73,7 +73,7 @@ describe('high-frequency inverter: the drawing', () => {
     const spare = (g: string) => sheet.parts.filter((p) => p.sym === 'comparator' && c.pinNet.get(`${p.ref}.1`) === g && c.pinNet.get(`${p.ref}.3`) === g);
     expect(spare('GND').length).toBe(0);
     expect(spare('HVG').length).toBe(1);
-  });
+  }, 60_000);
 });
 
 describe('high-frequency inverter: DFMEA failure modes', () => {

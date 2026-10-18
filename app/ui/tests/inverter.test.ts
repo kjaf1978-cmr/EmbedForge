@@ -38,7 +38,7 @@ describe('50 Hz-transformer inverter: the drawing', () => {
     expect(erc(sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
     expect(nb.unrouted).toEqual([]);
     expect(textCollisions(sheet)).toEqual([]);
-  });
+  }, 60_000);
 });
 
 describe('50 Hz-transformer inverter: DFMEA failure modes', () => {

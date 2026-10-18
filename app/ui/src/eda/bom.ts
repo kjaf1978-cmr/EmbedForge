@@ -34,7 +34,7 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     // ratings are always listed (what to buy); other parameters when they differ from the default
     const RATING = new Set(['vmax', 'pmax', 'imax']);
     const details = s.params
-      .filter((d) => d.key !== 'spice' && d.key !== 'curve' && (RATING.has(d.key) || (p.props[d.key] ?? d.default) !== d.default))
+      .filter((d) => d.key !== 'spice' && d.key !== 'curve' && d.key !== 'tj' && (RATING.has(d.key) || (p.props[d.key] ?? d.default) !== d.default))
       .map((d) => { const v = p.props[d.key] ?? d.default, n = d.unit ? parseValue(v) : null; return `${d.label.toLowerCase()} ${n !== null && d.unit && d.unit !== '%' && d.unit !== '°' ? formatValue(n, d.unit) : `${v}${d.unit ?? ''}`}`; })
       .join('; ');
     if (card && !('error' in card)) value = `${card.name} (SPICE model)`;
