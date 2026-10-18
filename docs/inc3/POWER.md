@@ -268,17 +268,24 @@ diodes, 470 µH and 4 × 470 µF 450 V → a regulated 381 V bus → an IGBT ful
 
 - DC-DC control on the battery side: 555 clock, two D flip-flops for the two legs (leg B
   clocked by the end of the current-mode ramp), peak current sensed by a 1:200 current
-  transformer in the bridge return (so it also sees the DC that would walk the core into
-  saturation) with slope compensation, soft start, and the bus voltage fed back across the
+  transformer in the bridge's supply (so it also sees the DC that would walk the core into
+  saturation; in the return its burden lifted the low MOSFETs' sources by 16 V) with slope
+  compensation, a 4 µs leading-edge blanking in which the transformer resets through a
+  24 V 5 W Zener (it then never saturates, even at the highest duty), soft start, and the bus voltage fed back across the
   barrier by a TL431 and an optocoupler.
 - Bus side: an auxiliary 15 V supply from a small 1:1 transformer on leg A (a 50 % square
   at any load, so it does not collapse at no load), its undervoltage lockout, a bus window
   (starts at 355 V, stops at 325 V) and an independent latched bus overvoltage protection
-  (LM393, 427 V trip) that switches the converter off through a second optocoupler.
+  (LM393, 425 V trip, 404 V release, precision dividers) that switches the converter off through a second optocoupler.
 - Sine bridge: hybrid modulation. Leg B switches at 50 Hz and holds the neutral at the
   protective earth (bonded on the battery side), leg A carries the 20 kHz PWM. The output
   therefore has no 20 kHz common-mode voltage. The Y capacitors from the bus to earth do
   not ring, and only one filter inductor is needed. The voltage loop, current limit,
   overload timer and output overvoltage protection are the same circuits as P7a
   (`inverterControl`), supplied from the 15 V on the bus side. The 50 Hz reference comes
-  from the battery side through an optocoupler.
+  from the battery side through an optocoupler; the neutral leg's peak and valley detectors
+  are closed-loop (an op amp with its diode inside the loop) so they follow the bus without
+  the 0.2 V slew error that raised the THD to 5 %.
+- DC-DC overload: if the current-mode command stays at its ceiling for about 0.5 s (a short on the
+  bus, or a load above what the battery side can carry), an LM393 timer latches the
+  converter off; a bus short (H-4) is therefore not a sustained current limit.
