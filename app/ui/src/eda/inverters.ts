@@ -570,6 +570,11 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
       .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
   });
 
+  // 2 × 2.2 µF film right across the bridge: the commutation loop closes through them, not
+  // through the current transformer's leakage (without them the drains rang at each edge with
+  // the MOSFETs' capacitance, and the simulation took six times as long); the transformer still
+  // sees the pulse current, which they cannot supply for more than a fraction of a microsecond
+  for (let k = 0; k < 2; k++) nb.part(`CBD${k + 1}`, 'capacitor', 250 + 70 * k, -60, { value: '2.2u', vmax: '100' }, { '1': 'BUSD', '2': 'GND' }, 1);
   // the current in the bridge's supply, between the bus capacitors and the high-side drains: a
   // current transformer (1 turn : 200, one fast diode, UF4007: the reset swing reverses it by
   // 40 V, a 1N5819's rating; 1.2 Ω: 6 mV/A; 1k reset it between the pulses: 4.7k, reflected
