@@ -326,6 +326,12 @@ export function coreFlux(l: number, i: number, isat?: number, r = 1 / 50): [numb
  *  max(isat, |last|/2) from the last iterate. Across the knee the incremental inductance
  *  changes 50 to 200 times, and an unlimited step overshoots back and forth (the transient
  *  failed to converge, found in the unit tests). */
+/** A saturating core integrates with backward Euler only near its knee (above 60 % of isat,
+ *  where its inductance starts to fall): below it the inductance is within 1.2 % of its
+ *  linear value and the trapezoidal rule is stable and needs far fewer steps (with backward
+ *  Euler everywhere the output inductor alone forced 300 000 extra steps per 14 ms). */
+export const nearKnee = (i: number, isat?: number) => !!isat && Math.abs(i) > 0.6 * isat;
+
 function satLimit(i: number, last: number, isat: number) {
   const d = Number((globalThis as { __satLim?: number }).__satLim ?? 1) * Math.max(isat, 0.5 * Math.abs(last));
   return Math.min(Math.max(i, last - d), last + d);
@@ -338,7 +344,7 @@ class Inductor extends Branch {
    *  core's flux (linear without isat), linearised at the iterate i₀ (incremental L = dφ/di):
    *  Backward Euler:  v − (L/h)·i = (φ(i₀) − L·i₀ − φ₋)/h
    *  Trapezoidal:     v − (2L/h)·i = (2/h)·(φ(i₀) − L·i₀ − φ₋) − v₋
-   *  A saturating core always with Backward Euler (see the transformer below).
+   *  A saturating core near its knee with Backward Euler (see the transformer below).
    *  At DC it is a short (v = 0); at a power-on start (uic) its current is held at 0. */
   load(c: Ctx) {
     if (c.mode === 'dc' && c.uic) { add(c, this.p, this.k, 1); add(c, this.q, this.k, -1); add(c, this.k, this.k, 1); return; }
@@ -347,7 +353,7 @@ class Inductor extends Branch {
     let i0 = 0;
     if (this.el.isat) { i0 = c.init ? this.iprev : satLimit(c.x[this.k], this.iIt, this.el.isat); this.iIt = i0; }
     const [f0, L] = coreFlux(this.el.l, i0, this.el.isat), off = f0 - L * i0 - this.fprev;
-    if (c.method === 'be' || this.el.isat) { const r = L / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, off / c.h); }
+    if (c.method === 'be' || nearKnee(this.iprev, this.el.isat)) { const r = L / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, off / c.h); }
     else { const r = (2 * L) / c.h; add(c, this.k, this.k, -r); rhs(c, this.k, (2 * off) / c.h - this.vprev); }
   }
   flux(i: number) { return coreFlux(this.el.l, i, this.el.isat)[0]; }
@@ -366,7 +372,7 @@ class Inductor extends Branch {
   lte(x: Float64Array, c: Ctx) {
     const i = x[this.k], v = V(x, this.p) - V(x, this.q), f = this.flux(i);
     const tol = Math.max(VNTOL + RELTOL * Math.max(Math.abs(v), Math.abs(this.vprev)), (RELTOL * Math.max(Math.abs(f), Math.abs(this.fprev), CHGTOL)) / c.h);
-    return lteStep(this.hist, c.t, f, c.h, this.el.isat ? 'be' : c.method, tol);
+    return lteStep(this.hist, c.t, f, c.h, nearKnee(this.iprev, this.el.isat) ? 'be' : c.method, tol);
   }
   loadAC(c: AcCtx) {
     addc(c, this.p, this.k, 1, 0); addc(c, this.q, this.k, -1, 0); addc(c, this.k, this.p, 1, 0); addc(c, this.k, this.q, -1, 0);
@@ -402,10 +408,10 @@ class SatTransformer implements Device {
     const [f0, ld] = coreFlux(lm, im, this.el.isat, 1 / 200), off = f0 - ld * im;
     // λ1 ≈ (ll1 + ld)·i1 + n·ld·i2 + off; λ2 ≈ n·ld·i1 + (ll2 + n²·ld)·i2 + n·off
     const m = [[ll1 + ld, n * ld], [n * ld, ll2 + n * n * ld]], o = [off, n * off];
-    // a saturating core always with backward Euler: the trapezoidal rule only holds a stiff
-    // mode (a winding into a high impedance) at −1 per step, and with the inductance changing
-    // from step to step that mode grew without bound (found in the unit tests)
-    const s = c.method === 'be' || this.el.isat ? 1 : 2;
+    // a saturating core near its knee with backward Euler: the trapezoidal rule only holds a
+    // stiff mode (a winding into a high impedance) at −1 per step, and with the inductance
+    // changing from step to step that mode grew without bound (found in the unit tests)
+    const s = c.method === 'be' || nearKnee(this.ip[0] + this.el.n * this.ip[1], this.el.isat) ? 1 : 2;
     for (let w = 0; w < 2; w++) {
       const k = w ? k2 : k1;
       add(c, k, k1, -(s * m[w][0]) / c.h); add(c, k, k2, -(s * m[w][1]) / c.h);
@@ -428,7 +434,7 @@ class SatTransformer implements Device {
     let h = Infinity;
     for (let w = 0; w < 2; w++) {
       const tol = Math.max(VNTOL + RELTOL * Math.max(Math.abs(v[w]), Math.abs(this.vp[w])), (RELTOL * Math.max(Math.abs(lam[w]), Math.abs(this.lp[w]), CHGTOL)) / c.h);
-      h = Math.min(h, lteStep(this.hist[w], c.t, lam[w], c.h, this.el.isat ? 'be' : c.method, tol));
+      h = Math.min(h, lteStep(this.hist[w], c.t, lam[w], c.h, nearKnee(this.ip[0] + this.el.n * this.ip[1], this.el.isat) ? 'be' : c.method, tol));
       if (h < 1e-12 && (globalThis as { __simDebug?: (s: string) => void }).__simDebug) (globalThis as { __simDebug?: (s: string) => void }).__simDebug!(`TXLTE w=${w} h=${h.toExponential(2)} lam=${lam[w]} hist=${JSON.stringify(this.hist[w])} i=${x[this.k1]},${x[this.k2]} v=${v[w]} tol=${tol}`);
     }
     return h;
