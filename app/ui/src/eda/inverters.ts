@@ -301,9 +301,13 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     .part('CVL', 'capacitor', -630, 2530, { value: '1u', vmax: '25' }, { '1': 'VLV', '2': V }, 1)
     .part('RVL', 'resistor', -550, 2530, { value: '1M' }, { '1': 'VLV', '2': 'VLN' }, 1)
     .part('DVL2', 'diode', -730, 2510, { value: '1N4148' }, { '2': 'VLD', '1': 'VLN' })
-    // SEL: the peak while INB is high (negative half cycle), else the valley
-    .part('QSP', 'nmos', -450, 2430, { value: '2N7000' }, { '1': 'INB', '2': 'PKV', '3': 'SEL' })
-    .part('QSV', 'nmos', -450, 2620, { value: '2N7000' }, { '1': 'INBN', '2': 'SEL', '3': 'VLV' })
+    // SEL: the peak while INB is high (negative half cycle), else the valley; 470 Ω in each
+    // path: while INB and INBN overlap at a zero crossing the two switches joined the
+    // detectors' capacitors, 3.4 V apart, with 0.34 A (found in the stress check)
+    .part('QSP', 'nmos', -450, 2430, { value: '2N7000' }, { '1': 'INB', '2': 'PKV', '3': 'SELP' })
+    .part('RSLP', 'resistor', -380, 2480, { value: '470' }, { '1': 'SELP', '2': 'SEL' }, 1)
+    .part('QSV', 'nmos', -450, 2620, { value: '2N7000' }, { '1': 'INBN', '2': 'SELV', '3': 'VLV' })
+    .part('RSLV', 'resistor', -380, 2570, { value: '470' }, { '1': 'SEL', '2': 'SELV' }, 1)
     .part('RBB', 'resistor', -330, 2680, { value: '47k' }, { '1': 'INB', '2': 'BIB' })
     .part('QBI', 'npn', -230, 2720, { value: 'BC547B' }, { '1': 'BIB', '2': 'INBN', '3': G })
     .part('RCB', 'resistor', -230, 2590, { value: '10k' }, { '1': V, '2': 'INBN' }, 1)
