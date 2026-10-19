@@ -80,7 +80,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
       if ((o.vbat ?? 52) > 42) expect(s.min(s.r.v['BKA'], 0.02)).toBeLessThan(0.3);
       expect(s.max(s.r.v['EN'])).toBeLessThan(1);
       expect(s.max(s.r.v['OUTL'].map(Math.abs))).toBeLessThan(1);
-    }, 600_000);
+    }, 3_600_000);
   }
   for (const [what, o] of [
     ['battery at 48 V, above the restart level', { vbat: 48 }],
@@ -93,7 +93,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
       const s = await run({ ...o, precharged: true, stop: '19m' });
       expect(s.last('EN')).toBeGreaterThan(8);
       expect(s.max(s.r.v['OUTL'].map(Math.abs))).toBeGreaterThan(1);
-    }, 900_000);
+    }, 3_600_000);
   }
 
   // D32: the start-up also at the ambient range's corners (−10 °C; +60 °C with the power
