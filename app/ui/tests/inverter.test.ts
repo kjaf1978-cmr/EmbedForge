@@ -163,7 +163,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   it('I-10 the voltage loop has lost its sense (winding open): the output rises, the independent protection trips below 270 V and holds the bridge off', async () => {
     // the protection's 21 ms filter (it rides through one disconnect peak): it trips about 60 ms
     // after the output starts rising
-    const s = await run({ stop: '200m', precharged: true, senseOpen: true });
+    const s = await run({ stop: '260m', precharged: true, senseOpen: true });
     const out = s.r.v['OUTL'];
     expect(s.max(out.map(Math.abs))).toBeLessThan(270 * Math.SQRT2 * 1.1);
     expect(s.last('FLT')).toBeGreaterThan(5);
