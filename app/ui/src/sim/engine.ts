@@ -1380,7 +1380,7 @@ export class Engine {
     const sorted = [...bps].sort((a, b) => a - b);
     let bi = 0;
     // start with small steps: a switch-on (uic) or a source corner at t = 0 is often fast
-    let t = 0, h = Math.min(hmax, sorted[0]) / (uic ? 1000 : 10), afterBreak = true, damp = false;
+    let t = 0, h = Math.min(hmax, sorted[0]) / (uic ? 1000 : 10), afterBreak = true, damp = false, rescue = 0;
     const eps = tstop * 1e-12;
     while (t < tstop - eps) {
       while (bi < sorted.length && sorted[bi] <= t + eps) bi++;
@@ -1398,6 +1398,11 @@ export class Engine {
         // circuit, tied to ground only weakly, lost Newton's convergence in round-off as the
         // step shrank), and try again from a moderate step
         if (h < hmin && !this.refine) { this.refine = true; h = hEvent; continue; }
+        // a point where Newton cycles for every step from hEvent down: the same state from a
+        // differently sized backward-Euler step converges (the high-frequency inverter at
+        // −10 °C failed at one instant that either temperature alone passed: found in
+        // simulation); up to six such restarts at one point
+        if (h < hmin && rescue < 6) { rescue++; damp = true; h = hEvent * 0.37 ** rescue; continue; }
         if (h < hmin) {
           const e = new SimError(`transient: time step too small at t = ${t.toExponential(3)} s (no convergence${this.noConv ? `, last at the ${this.noConv}` : ''})`);
           e.partial = out;
@@ -1420,6 +1425,7 @@ export class Engine {
       this.x = c.x;
       for (const d of this.devices) d.accept?.(c, c.x);
       t += hh;
+      rescue = 0;
       // thin: keep a point only once a print step has passed since the last one kept
       if (!thin || t - out.x[out.x.length - 1] >= tstep * (1 - 1e-9) || t >= tstop - eps) this.record(c, out, t);
       if (out.x.length > maxPoints) throw new SimError(`transient: more than ${maxPoints} time points; use a larger step`);
