@@ -189,7 +189,7 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
   }, 43_200_000);
 
   it('H-10 the voltage loop has lost its sense: the independent protection trips below 270 V and holds the bridge off', async () => {
-    const s = await runHF({ stop: '220m', precharged: true, senseOpen: true });
+    const s = await runHF({ stop: '280m', precharged: true, senseOpen: true });
     const out = s.r.v['OUTL'];
     expect(s.max(out.map(Math.abs))).toBeLessThan(270 * Math.SQRT2 * 1.1);
     expect(s.last('FLT') - s.last('HVG')).toBeGreaterThan(5);
