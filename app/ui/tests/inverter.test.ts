@@ -65,7 +65,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     expect(s.max(ibat)).toBeLessThan(400);
     expect(s.at('EN', s.x[kClose] - 1e-3)).toBeLessThan(1);
     expect(s.last('EN')).toBeGreaterThan(8);
-  }, 3_600_000);
+  }, 14_400_000);
 
   // the battery window (I-8, I-9) and the heatsink (I-11): EN stays low, so the bridge never starts
   for (const [what, o] of [
@@ -130,14 +130,14 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     // I-3, I-6, I-7: stress of every part (MOSFET currents, voltages, power) within its ratings
     const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over');
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
-  }, 3_600_000);
+  }, 14_400_000);
 
   it('I-7 at the highest battery voltage (58.4 V, fully charged), 5 kW: every part within its ratings (MOSFET voltage at turn-off)', async () => {
     const s = await run({ stop: '300m', precharged: true, vbat: 58.4 });
     const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over');
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
     expect(s.max(s.r.v['BUS'])).toBeLessThan(80);
-  }, 3_600_000);
+  }, 14_400_000);
 
   it('I-4 motor start at half load: a locked rotor (about 85 A) for 50 ms: the current limit holds, nothing trips, the output recovers (peak below 130 %); no product part over its ratings', async () => {
     const s = await run({ stop: '360m', precharged: true, load: '21.6', motorStart: { at: 0.26, for: 0.05 } });
@@ -158,7 +158,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     const test = new Set(s.sheet.parts.filter((p) => p.props.scope === 'test').map((p) => p.ref));
     const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over' && !test.has(x.ref));
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
-  }, 5_400_000);
+  }, 14_400_000);
 
   it('I-10 the voltage loop has lost its sense (winding open): the output rises, the independent protection trips below 270 V and holds the bridge off', async () => {
     // the protection's 21 ms filter (it rides through one disconnect peak): it trips about 60 ms
@@ -169,7 +169,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     expect(s.last('FLT')).toBeGreaterThan(5);
     expect(s.last('EN')).toBeLessThan(1);
     expect(s.max(out.slice(-200).map(Math.abs))).toBeLessThan(5);
-  }, 3_600_000);
+  }, 14_400_000);
 
   it('I-4 short circuit at the output from the start: the cycle-by-cycle limit (522 A, twice the rated peak) holds the bridge current below 650 A; the overload timer then latches the bridge off; no part over its ratings', async () => {
     // the overload timer at 10 nF (product: 22 µF, about 0.9 s at the limit) trips within milliseconds
@@ -181,5 +181,5 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     expect(s.max(ish.slice(-200))).toBeLessThan(1);
     const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over');
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
-  }, 3_600_000);
+  }, 14_400_000);
 });

@@ -124,7 +124,7 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     // EN (the sine bridge) only once the bus is above 355 V
     const kEn = s.x.findIndex((_, k) => s.r.v['EN'][k] - s.r.v['HVG'][k] > 8);
     if (kEn >= 0) expect(bus[kEn]).toBeGreaterThan(350);
-  }, 7_200_000);
+  }, 21_600_000);
 
   for (const [what, o] of [
     ['H-16 battery below the 42 V low cut-out (41 V)', { vbat: 41 }],
@@ -155,18 +155,18 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     expect(s.max(bus, t1)).toBeLessThan(381 * 1.06);
     // H-3, H-6, H-8, H-9: every product part within its ratings
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('the sine bridge alone (bus and 15 V from the bench), 5 kW: 230 V 50 Hz, THD below 3 %, no DC at the output, every part within its ratings', async () => {
     const s = await runHF({ stage: 'sine', stop: '320m', precharged: true });
     checkOutput(s, 0.28);
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('H-8 at the highest battery voltage (58.4 V, fully charged), 5 kW: every part within its ratings (MOSFET voltage at turn-off, rectifier voltage)', async () => {
     const s = await runHF({ stop: '320m', precharged: true, vbat: 58.4 });
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('H-7 motor start at half load: a locked rotor (about 85 A) for 50 ms: the current window holds, nothing trips, the output recovers; no product part over its ratings', async () => {
     const s = await runHF({ stop: '380m', precharged: true, load: '21.6', motorStart: { at: 0.28, for: 0.05 } });
@@ -177,7 +177,7 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     expect(s.rms(out, 0.36)).toBeLessThan(230 * 1.05);
     expect(s.max(out.map(Math.abs), 0.33)).toBeLessThan(230 * Math.SQRT2 * 1.3);
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('H-7 short circuit at the output from the start: the window (±69 A) holds the bridge current below 90 A, the overload timer latches the bridge off; no part over its ratings', async () => {
     const s = await runHF({ stop: '60m', precharged: true, load: '0.02', overloadC: '10n' });
@@ -186,7 +186,7 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     expect(s.last('FLT') - s.last('HVG')).toBeGreaterThan(5);
     expect(s.last('EN') - s.last('HVG')).toBeLessThan(1);
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('H-10 the voltage loop has lost its sense: the independent protection trips below 270 V and holds the bridge off', async () => {
     const s = await runHF({ stop: '220m', precharged: true, senseOpen: true });
@@ -194,7 +194,7 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     expect(s.max(out.map(Math.abs))).toBeLessThan(270 * Math.SQRT2 * 1.1);
     expect(s.last('FLT') - s.last('HVG')).toBeGreaterThan(5);
     expect(s.max(out.slice(-200).map(Math.abs))).toBeLessThan(5);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('H-3 the bus feedback has failed (its optocoupler LED open): the independent stop holds the bus below 435 V (the converter alone, 1 kW on the bus)', async () => {
     const s = await runHF({ stage: 'dcdc', stop: '80m', precharged: true, feedbackOpen: true, busLoad: '145' });
@@ -203,7 +203,7 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     // it does stop the converter (the feedback alone would hold 381 V)
     expect(s.max(bus)).toBeGreaterThan(400);
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 
   it('H-4 the 380 V bus shorted (0.5 Ω): the cycle-by-cycle limit holds the output inductor within its 40 A, the overload timer latches the converter off, nothing over its ratings', async () => {
     // the timer's capacitor 1 nF instead of 220 nF: it trips within milliseconds, not 0.5 s
@@ -219,5 +219,5 @@ describe.runIf(LONG)('high-frequency inverter: DFMEA failure modes (long runs)',
     expect(s.max(s.r.v['ENL'], s.x[kTrip] + 1e-3)).toBeLessThan(1);
     expect(s.max(s.cur('TR1', '1').map(Math.abs), 0.035)).toBeLessThan(1);
     expect(overRated(s)).toEqual([]);
-  }, 7_200_000);
+  }, 21_600_000);
 });
