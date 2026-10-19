@@ -443,7 +443,10 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
 
   // ---- voltage loop (the sense transformers' primaries are on the output, L to N): the output's rectified average (sense transformer, bridge, 10k / 1 µF:
   // about 9 ms; a peak detector here decayed in 180 ms and the start-up overshot to 370 V peak,
-  // found in simulation) against the soft-start reference VSS (22 ms); PI amplifier (P 0.47,
+  // found in simulation) against the soft-start reference VSS (47 ms: with 22 ms it rose faster than
+  // the averaged sense could follow, the output overshot to 348 V peak at 27 °C and 355 V at −10 °C
+  // with the peak limiter taking over and dipping to 224 V behind it, found in simulation, D32;
+  // the output reaches 99 % in about 0.22 s, as usual for an inverter); PI amplifier (P 0.47,
   // integral 45 /s) → VA, clamped at 3.3 V (full modulation) through 1k, stiff against the 200k summer
   nb.block('voltage loop')
     .part('TRS', 'transformer', -1300, 1950, SENSE_TR, { '1': o.senseOpen ? 'GND' : 'OUTL', '2': 'GND', '3': 'SAO', '4': 'SBO' })
@@ -458,7 +461,7 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     .part('RVO1', 'resistor', -720, 1950, { value: '57.6k' }, { '1': 'VSO', '2': 'SO' })
     .part('RVO2', 'resistor', -620, 2050, { value: '25.5k' }, { '1': 'SO', '2': G }, 1)
     .part('RSS', 'resistor', -560, 1880, { value: '100k' }, { '1': 'VREF', '2': 'VSS' }, 1)
-    .part('CSS', 'capacitor', -480, 2000, { value: o.softC ?? '220n', vmax: '50' }, { '1': 'VSS', '2': G }, 1)
+    .part('CSS', 'capacitor', -480, 2000, { value: o.softC ?? '470n', vmax: '50' }, { '1': 'VSS', '2': G }, 1)
     .part('QSS', 'npn', -400, 2080, { value: 'BC547B' }, { '1': 'BSS', '2': 'VSS', '3': G })
     // 100k: QSS empties CSS with its collector current alone (β × Ib); through 10k that was
     // above the BC547's 100 mA (found in the stress check)

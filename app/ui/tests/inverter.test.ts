@@ -103,10 +103,11 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     ['', {}], [' at +60 °C ambient (power junctions 125 °C)', { temp: 60, tj: 125 }],
     [' at −10 °C', { temp: -10, tj: -10 }], [' with the electrolytic capacitors at their end of life', { aged: true }],
   ] as [string, InverterLfOptions][]) it(`start-up at the rated load (5 kW, 10.7 Ω), 52 V${corner}: 230 V 50 Hz, THD below 3 %, no DC on the primary, every part within its ratings`, async () => {
-    const s = await run({ stop: '140m', precharged: true, ...o });
-    const out = s.r.v['OUTL'], t1 = 0.1;
+    const s = await run({ stop: '300m', precharged: true, ...o });
+    // the soft start (47 ms) has reached 99 % by about 0.22 s
+    const out = s.r.v['OUTL'], t1 = 0.26;
     // fundamental and harmonics over the last two periods
-    const k0 = s.x.findIndex((t) => t >= 0.1), xs = s.x.slice(k0), ys = out.slice(k0), T = xs[xs.length - 1] - xs[0];
+    const k0 = s.x.findIndex((t) => t >= t1), xs = s.x.slice(k0), ys = out.slice(k0), T = xs[xs.length - 1] - xs[0];
     const h = (n: number) => { let a = 0, b = 0; for (let k = 1; k < xs.length; k++) { const d = xs[k] - xs[k - 1], w = 2 * Math.PI * 50 * n * xs[k]; a += ys[k] * Math.cos(w) * d; b += ys[k] * Math.sin(w) * d; } return (Math.hypot(a, b) * 2) / T; };
     const h1 = h(1), thd = Math.sqrt([...Array(14)].reduce((m, _, i) => m + h(i + 2) ** 2, 0)) / h1;
     expect(h1 / Math.SQRT2).toBeGreaterThan(230 * 0.97);
@@ -119,7 +120,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
     // I-5: no DC in the transformer: the primary's mean current over the last period below 2 A
     // (1 % of the rated 182 A) and not ramping from one period to the next. (The bridge nodes
     // are stored every 5 µs, too coarse for their mean at 20 kHz; the current is smooth.)
-    const ip = s.cur('TR1', '1'), m1 = s.mean(ip, 0.12), m0 = s.mean(ip, t1) * 2 - m1; // 120–140 ms and 100–120 ms
+    const ip = s.cur('TR1', '1'), m1 = s.mean(ip, 0.28), m0 = s.mean(ip, t1) * 2 - m1; // 280–300 ms and 260–280 ms
     expect(Math.abs(m1)).toBeLessThan(2);
     // settling from the start-up varies by about 1 A per period; a DC runaway (the servo fault
     // found earlier) grew by 20–25 A per period
@@ -132,28 +133,28 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   }, 3_600_000);
 
   it('I-7 at the highest battery voltage (58.4 V, fully charged), 5 kW: every part within its ratings (MOSFET voltage at turn-off)', async () => {
-    const s = await run({ stop: '140m', precharged: true, vbat: 58.4 });
+    const s = await run({ stop: '300m', precharged: true, vbat: 58.4 });
     const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over');
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
     expect(s.max(s.r.v['BUS'])).toBeLessThan(80);
   }, 3_600_000);
 
   it('I-4 motor start at half load: a locked rotor (about 85 A) for 50 ms: the current limit holds, nothing trips, the output recovers (peak below 130 %); no product part over its ratings', async () => {
-    const s = await run({ stop: '240m', precharged: true, load: '21.6', motorStart: { at: 0.14, for: 0.05 } });
+    const s = await run({ stop: '360m', precharged: true, load: '21.6', motorStart: { at: 0.26, for: 0.05 } });
     const ish = s.cur('RSH', '1').map(Math.abs), out = s.r.v['OUTL'];
-    expect(s.max(ish, 0.14)).toBeLessThan(650);
+    expect(s.max(ish, 0.26)).toBeLessThan(650);
     expect(s.max(s.r.v['FLT'], 0.02)).toBeLessThan(1); // after the power-on instant
     // the battery sags under the limited current and EN dips to about 6.6 V: still enabled
-    expect(s.min(s.r.v['EN'], 0.13)).toBeGreaterThan(5);
+    expect(s.min(s.r.v['EN'], 0.25)).toBeGreaterThan(5);
     // after the motor: back near 230 V, and no overvoltage on the way (the protection trips at 262 V)
-    // the contact opens at the current zero near 197 ms; 25–45 ms later the output is back to
+    // the contact opens at the current zero near 317 ms; 25–45 ms later the output is back to
     // 94 % and rising (IEC 62040-3 allows about 100 ms)
-    expect(s.rms(out, 0.22)).toBeGreaterThan(230 * 0.9);
-    expect(s.rms(out, 0.22)).toBeLessThan(230 * 1.05);
+    expect(s.rms(out, 0.34)).toBeGreaterThan(230 * 0.9);
+    expect(s.rms(out, 0.34)).toBeLessThan(230 * 1.05);
     // one half cycle after the disconnect reaches about 412 V (127 % of the 325 V peak): the
     // locked-rotor current is broken at once, harsher than a real start, where the current
     // falls as the motor speeds up; the bound is 130 % (ITIC: 140 % up to 3 ms, 120 % longer)
-    expect(s.max(out.map(Math.abs), 0.19)).toBeLessThan(230 * Math.SQRT2 * 1.3);
+    expect(s.max(out.map(Math.abs), 0.31)).toBeLessThan(230 * Math.SQRT2 * 1.3);
     const test = new Set(s.sheet.parts.filter((p) => p.props.scope === 'test').map((p) => p.ref));
     const over = smoke(s.sheet, connectivity(s.sheet), s.r).rows.filter((x) => x.status === 'over' && !test.has(x.ref));
     expect(over.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
@@ -162,7 +163,7 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   it('I-10 the voltage loop has lost its sense (winding open): the output rises, the independent protection trips below 270 V and holds the bridge off', async () => {
     // the protection's 21 ms filter (it rides through one disconnect peak): it trips about 60 ms
     // after the output starts rising
-    const s = await run({ stop: '100m', precharged: true, senseOpen: true });
+    const s = await run({ stop: '200m', precharged: true, senseOpen: true });
     const out = s.r.v['OUTL'];
     expect(s.max(out.map(Math.abs))).toBeLessThan(270 * Math.SQRT2 * 1.1);
     expect(s.last('FLT')).toBeGreaterThan(5);
