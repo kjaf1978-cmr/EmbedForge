@@ -330,6 +330,11 @@ export function coreFlux(l: number, i: number, isat?: number, r = 1 / 50): [numb
  *  where its inductance starts to fall): below it the inductance is within 1.2 % of its
  *  linear value and the trapezoidal rule is stable and needs far fewer steps (with backward
  *  Euler everywhere the output inductor alone forced 300 000 extra steps per 14 ms). */
+/** A saturating core's current against the one its flux was linearised at: absolute part
+ *  relative to its saturation current. 1 pA (ABSTOL) could not be met while a magnetising
+ *  current crossed zero, and the step size collapsed (the high-frequency inverter at −10 °C,
+ *  found in simulation); 1 ppm of isat is far below any flux error that matters. */
+const MAG_ABSTOL = 1e-6;
 export const nearKnee = (i: number, isat?: number) => !!isat && Math.abs(i) > 0.6 * isat;
 
 function satLimit(i: number, last: number, isat: number) {
@@ -359,7 +364,7 @@ class Inductor extends Branch {
   flux(i: number) { return coreFlux(this.el.l, i, this.el.isat)[0]; }
   /** A saturating core has converged only where it was linearised (the step limit may still
    *  be walking its current towards the solution while every node voltage has settled). */
-  converged(x: Float64Array) { return !this.el.isat || Math.abs(x[this.k] - this.iIt) <= RELTOL * Math.max(Math.abs(x[this.k]), Math.abs(this.iIt)) + ABSTOL; }
+  converged(x: Float64Array) { return !this.el.isat || Math.abs(x[this.k] - this.iIt) <= RELTOL * Math.max(Math.abs(x[this.k]), Math.abs(this.iIt)) + MAG_ABSTOL * this.el.isat; }
   private hist: [number, number][] = [];
   initTran(x: Float64Array) { this.iprev = x[this.k]; this.iIt = this.iprev; this.vprev = 0; this.fprev = this.flux(this.iprev); this.hist = [[0, this.fprev]]; }
   accept(c: Ctx, x: Float64Array) {
@@ -390,7 +395,7 @@ class SatTransformer implements Device {
   private hist: [number, number][][] = [[], []];
   constructor(public el: Element & { kind: 'TX' }, private a: number, private b: number, private c2: number, private d: number, private k1: number, private k2: number) {}
   get branch() { return this.k1; }
-  converged(x: Float64Array) { const im = x[this.k1] + this.el.n * x[this.k2]; return !this.el.isat || Math.abs(im - this.imIt) <= RELTOL * Math.max(Math.abs(im), Math.abs(this.imIt)) + ABSTOL; }
+  converged(x: Float64Array) { const im = x[this.k1] + this.el.n * x[this.k2]; return !this.el.isat || Math.abs(im - this.imIt) <= RELTOL * Math.max(Math.abs(im), Math.abs(this.imIt)) + MAG_ABSTOL * this.el.isat; }
   private parts() { const { l1, n, k } = this.el; return { lm: k * l1, ll1: (1 - k) * l1, ll2: (1 - k) * n * n * l1, n }; }
   private lambda(i1: number, i2: number): [number, number] {
     const { lm, ll1, ll2, n } = this.parts(), f = coreFlux(lm, i1 + n * i2, this.el.isat, 1 / 200)[0];
@@ -1250,7 +1255,7 @@ export class Engine {
       if (!conv && vconv && c.mode === 'tran' && it === maxIter) { x = b; c.x = x; this.assemble(c); return it; }
       if (!conv && it === maxIter) this.noConv = this.worstUnknown(x, b);
       if (!conv && it === maxIter && (globalThis as { __simDebug?: (s: string) => void }).__simDebug) this.debugNewton(x, b, c);
-      if (conv) for (const d of this.devices) if (d.converged && !d.converged(b)) { conv = false; break; }
+      if (conv) for (const d of this.devices) if (d.converged && !d.converged(b)) { conv = false; if (it === maxIter) { this.noConv = `convergence of ${d.el.name}`; (globalThis as { __simDebug?: (s: string) => void }).__simDebug?.(`t=${c.t.toExponential(4)} h=${c.h.toExponential(2)} not converged: ${d.el.name}`); } break; }
       // Newton cycling between two states (an op amp's output stage between its limits while
       // several comparators switch in the same step) never settles: after 30 iterations take
       // half steps, which break the cycle (the high-frequency inverter at −10 °C, found in
