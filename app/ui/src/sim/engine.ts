@@ -901,12 +901,14 @@ class Mosfet implements Device {
   converged(x: Float64Array) {
     const sg = this.sgn, { gm, gds, rev, cd } = this.ss;
     const vgs = sg * (V(x, this.g) - V(x, this.s)), vds = sg * (V(x, this.d) - V(x, this.s));
-    if (!rev) {
-      if (vds < 0) return false;
-      return near(this.ids(vgs, vds)[0], cd + gm * (vgs - this.vgs) + gds * (vds - this.vds));
-    }
-    if (vds >= 0) return false;
-    return near(this.ids(vgs - vds, -vds)[0], cd + gm * (vgs - vds - (this.vgs - this.vds)) + gds * (-vds + this.vds));
+    // the channel current against its linearisation, also across vds = 0 (both forms meet
+    // there): an IGBT's internal MOSFET, off, sits at vds ≈ 0 and its sign flipped from one
+    // iteration to the next, which this check rejected every time (the high-frequency
+    // inverter at −10 °C, found in simulation)
+    const actual = vds >= 0 ? this.ids(vgs, vds)[0] : -this.ids(vgs - vds, -vds)[0];
+    const lin = !rev ? cd + gm * (vgs - this.vgs) + gds * (vds - this.vds)
+      : -(cd + gm * (vgs - vds - (this.vgs - this.vds)) + gds * (-vds + this.vds));
+    return near(actual, lin);
   }
   loadAC(c: AcCtx) {
     const { gm, gds, rev, gbd } = this.ss, g = this.g, d = this.d, s = this.s;
