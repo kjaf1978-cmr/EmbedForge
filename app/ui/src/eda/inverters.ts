@@ -480,11 +480,16 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     .part('RPL2', 'resistor', -1000, 2300, { value: '10k' }, { '1': 'PLA', '2': G }, 1)
     .part('DPL', 'diode', -900, 2200, { value: '1N4148' }, { '2': 'PLA', '1': 'NEA' })
     .part('RFEA', 'resistor', -260, 1840, { value: '47k' }, { '1': 'NEA', '2': 'FEA' })
-    .part('CFEA', 'capacitor', -140, 1840, { value: '220n', vmax: '25' }, { '1': 'FEA', '2': 'VAO' })
+    // the integrator's capacitor (and its reset QEA) on VA, the clamped side of RVA: its charge
+    // then cannot run past the 3.3 V clamp. On VAO it wound up to the op amp's rail behind the
+    // current limit during a motor start, and when the motor dropped the output stayed at 127 %
+    // for 15 ms until the overvoltage protection latched the bridge off (found in simulation,
+    // D32); VA follows VAO within millivolts otherwise (1k against the 200k summer)
+    .part('CFEA', 'capacitor', -140, 1840, { value: '220n', vmax: '25' }, { '1': 'FEA', '2': 'VA' })
     // while stopped, QEA empties the integrator: the bridge always starts from VA = 0 (without it
     // VA rested at 0.8 V and the start jumped to 207 V while the reference was at 16 %: found in
     // simulation)
-    .part('QEA', 'nmos', -40, 1760, { value: '2N7000' }, { '1': 'ENN', '2': 'FEA', '3': 'VAO' })
+    .part('QEA', 'nmos', -40, 1760, { value: '2N7000' }, { '1': 'ENN', '2': 'FEA', '3': 'VA' })
     .part('RVA', 'resistor', -120, 1950, { value: '1k' }, { '1': 'VAO', '2': 'VA' })
     .part('DZVA', 'zener', -20, 2050, { value: 'BZX55C3V3' }, { '1': 'VA', '2': G }, 1);
 
