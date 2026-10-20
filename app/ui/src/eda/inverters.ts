@@ -122,14 +122,12 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
 
   // ---- transformer, output filter, surge protection, output terminals
   nb.block('output')
-    // a 1.2 T design (25 % more core section than for 1.5 T): the knee at 137 % of the rated
-    // flux (27.5 V r.m.s.: 0.124 Wb·turn in 18.7 mH, 6.6 A magnetising; saturating towards
-    // 1.9 T). With the knee at 110 % (1.5 T) the core saturated after a motor start: the
-    // locked rotor's uneven half cycles and the 127 % half cycle when it dropped out left a flux
-    // offset, the primary drew 600 A at the current limit with the output at 0 V, and the
-    // uneven recovery tripped the output overvoltage protection (found in simulation, D32).
-    // A DC offset or a lasting overvoltage still saturates it (DFMEA I-5)
-    .part('TR1', 'transformer', 1400, -60, { value: '8.36', lp: '18.7m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
+    // the core's knee at 110 % of the rated flux (27.5 V r.m.s.: 0.124 Wb·turn in 15 mH,
+    // 8.3 A magnetising; a 1.5 T design saturating towards 1.9 T): a DC offset or a lasting
+    // overvoltage of the primary saturates it (DFMEA I-5). After a motor start it saturated
+    // (580 A) until the output voltage limit kept the bridge from the full-duty half cycles
+    // that the loop's late amplitude allowed (found in simulation, D32: I-4 checks it)
+    .part('TR1', 'transformer', 1400, -60, { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
     .part('COUT', 'capacitor', 1550, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
     .part('RVO', 'mov', 1650, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
     .part('X3', 'terminal', 1800, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)

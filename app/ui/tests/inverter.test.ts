@@ -140,18 +140,25 @@ describe.runIf(LONG)('50 Hz-transformer inverter: DFMEA failure modes (long runs
   }, 14_400_000);
 
   it('I-4 motor start at half load: a locked rotor (about 85 A) for 50 ms: the current limit holds, nothing trips, the output recovers (peak below 130 %); no product part over its ratings', async () => {
-    const s = await run({ stop: '360m', precharged: true, load: '21.6', motorStart: { at: 0.26, for: 0.05 } });
+    const s = await run({ stop: '420m', precharged: true, load: '21.6', motorStart: { at: 0.26, for: 0.05 } });
     const ish = s.cur('RSH', '1').map(Math.abs), out = s.r.v['OUTL'];
     expect(s.max(ish, 0.26)).toBeLessThan(650);
     expect(s.max(s.r.v['FLT'], 0.02)).toBeLessThan(1); // after the power-on instant
     // the battery sags under the limited current and EN dips to about 6.6 V: still enabled
     expect(s.min(s.r.v['EN'], 0.25)).toBeGreaterThan(5);
     // after the motor: back near 230 V, and no overvoltage on the way (the protection trips at 262 V)
-    // the contact opens at the current zero near 317 ms; 25–45 ms later the output is back to
-    // 94 % and rising (IEC 62040-3 allows about 100 ms)
-    expect(s.rms(out, 0.34)).toBeGreaterThan(230 * 0.9);
-    expect(s.rms(out, 0.34)).toBeLessThan(230 * 1.05);
-    // one half cycle after the disconnect reaches about 412 V (127 % of the 325 V peak): the
+    // the contact opens at the current zero near 318 ms; 60–100 ms later the output is within
+    // −10 … +5 % (IEC 62040-3 allows about 100 ms to recover; 22–42 ms after it, on the way,
+    // it read 239 … 243 V r.m.s.)
+    expect(s.rms(out, 0.38)).toBeGreaterThan(230 * 0.9);
+    expect(s.rms(out, 0.38)).toBeLessThan(230 * 1.05);
+    // the transformer stays out of deep saturation (D32): its magnetising current, primary
+    // minus the reflected secondary, below 1.5 × its saturation current. Before the output
+    // voltage limit the core saturated here (580 A)
+    const tr = s.sheet.parts.find((p) => p.ref === s.ref('TR1'))!, n = Number(tr.props.value), isat = Number(tr.props.isat);
+    const ip = s.cur('TR1', '1'), is = s.cur('TR1', '3');
+    expect(s.max(ip.map((v, k) => Math.abs(v + n * is[k])), 0.1)).toBeLessThan(1.5 * isat);
+    // one half cycle after the disconnect reaches about 387 V (119 % of the 325 V peak): the
     // locked-rotor current is broken at once, harsher than a real start, where the current
     // falls as the motor speeds up; the bound is 130 % (ITIC: 140 % up to 3 ms, 120 % longer)
     expect(s.max(out.map(Math.abs), 0.31)).toBeLessThan(230 * Math.SQRT2 * 1.3);
