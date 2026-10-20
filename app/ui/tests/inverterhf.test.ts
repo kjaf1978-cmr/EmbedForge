@@ -72,7 +72,7 @@ describe('high-frequency inverter: the drawing', () => {
     const c = connectivity(sheet);
     const spare = (g: string) => sheet.parts.filter((p) => p.sym === 'comparator' && c.pinNet.get(`${p.ref}.1`) === g && c.pinNet.get(`${p.ref}.3`) === g);
     expect(spare('GND').length).toBe(0);
-    expect(spare('HVG').length).toBe(1);
+    expect(spare('HVG').length).toBe(0);
   }, 60_000);
 });
 

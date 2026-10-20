@@ -239,7 +239,9 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
     .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' } });
+  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM393', pkg: 'OVL' } });
+  // the output voltage limit's LM393: its second comparator is the unit's one spare
+  nb.part('USPL', 'comparator', 1560, 1440, { value: 'LM393', pkg: 'OVL' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' });
 
   nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
@@ -260,7 +262,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
  *  ground, `q50` the 50 Hz square that switches the sine's square; `cmpT` the package of the
  *  triangle's comparator; `hybrid`: leg B switches at 50 Hz, leg A carries the PWM (else
  *  unipolar: leg B from the inverted sine); `swb` the net of leg B's node (default SWB). */
-export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; hybrid?: boolean; swb?: string }) {
+export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string }) {
   const { V, G } = c;
   // ---- the square VME ± VA/2: H = VMID + VA/2, L = 2·VME − H; QSQ connects SQ to L while Q50
   // is high, RSQ to H otherwise. VME = VMID + the DC servo's correction: the square's mean, and
@@ -432,6 +434,18 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     .part('CSTP', 'capacitor', 460, 1700, { value: '150p', vmax: '50' }, { '1': 'OCS', '2': G }, 1)
     .part('ROCS', 'resistor', 540, 1700, { value: '100k' }, { '1': 'OCS', '2': G }, 1)
     .part('DOS', 'diode', 480, 1380, { value: '1N4148' }, { '2': 'OCS', '1': 'STOP' })
+    // instantaneous output voltage limit: the rectified sense VRO, ahead of every filter, above
+    // about 355 V peak (109 %; the highest regulation, 230 V + 3 %, is 6 % below) releases OVC
+    // and stops the bridge through OCS as an overcurrent does. The loop alone cannot catch a load
+    // dump: its amplitude VA passes the sine's 70 Hz filter, half a cycle late, and when a
+    // motor dropped out the old full-amplitude sine held the bridge at 100 % for 3 ms (407 V),
+    // the loop overcorrected and swung back to 408 V, and the overvoltage protection latched
+    // the bridge off (found in simulation, D32)
+    .part('RVL1', 'resistor', 1200, 1380, { value: '54.9k' }, { '1': 'VRO', '2': 'VLC' }, 1)
+    .part('RVL2', 'resistor', 1200, 1500, { value: '10k' }, { '1': 'VLC', '2': G }, 1)
+    .part('UOV', 'comparator', 1320, 1440, c.cmpV, { '3': 'VLC', '2': 'VREF', '1': 'OVC', '8': V, '4': G })
+    .part('ROVC', 'resistor', 1440, 1380, { value: '2.2k' }, { '1': V, '2': 'OVC' }, 1)
+    .part('DOV', 'diode', 1440, 1520, { value: '1N4148' }, { '2': 'OVC', '1': 'OCS' })
     // overload timer: COL follows the mean of OCS (ROL, 4.8 s), which is 1.5 … 2.5 V while the
     // limit acts and 0 V otherwise; above OCH (0.34 V) after about 0.9 s at the limit, longer
     // than a motor start; UOT then lifts SP over the overvoltage
@@ -964,15 +978,15 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
       .part('CDCH', 'capacitor', 2880, 700, { value: '100n', vmax: '50' }, { '1': VH, '2': G }, 1)
       // undervoltage lockout of the 15 V: EN low below 13 V (the 15 V decays within milliseconds
       // once the converter stops, while the bus may still be charged: the control must not run on
-      // a failing supply); the second comparator of this LM393 is the side's one spare
+      // a failing supply); the second comparator of this LM393 is the output voltage limit (in
+      // inverterControl)
       .part('RUL1', 'resistor', 2980, 520, { value: '42.2k' }, { '1': VH, '2': 'ULS' }, 1)
       .part('RUL2', 'resistor', 2980, 640, { value: '10k' }, { '1': 'ULS', '2': G }, 1)
-      .part('UUV', 'comparator', 3100, 600, { value: 'LM393', pkg: 'UVH' }, { '3': 'ULS', '2': 'VREF', '1': 'EN', '8': VH, '4': G })
-      .part('USPH', 'comparator', 3100, 760, { value: 'LM393', pkg: 'UVH' }, { '3': G, '2': 'VREF', '1': G, '8': VH, '4': G });
+      .part('UUV', 'comparator', 3100, 600, { value: 'LM393', pkg: 'UVH' }, { '3': 'ULS', '2': 'VREF', '1': 'EN', '8': VH, '4': G });
 
     // ---- the control of the sine bridge (shared with the 50 Hz unit), drawn below
     nb.ox = 2050;
-    inverterControl(nb, o, { V: VH, G, q50: 'Q50H', cmpT: { value: 'LM393', pkg: 'CMPH' }, hybrid: true, swb: 'GND' });
+    inverterControl(nb, o, { V: VH, G, q50: 'Q50H', cmpT: { value: 'LM393', pkg: 'CMPH' }, cmpV: { value: 'LM393', pkg: 'UVH' }, hybrid: true, swb: 'GND' });
     nb.ox = 0;
   }
 
