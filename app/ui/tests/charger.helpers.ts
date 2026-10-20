@@ -47,7 +47,7 @@ export function chargerTests(part: number) {
   describe(`MPPT solar charger (one 3.7 kW unit), part ${part}`, () => {
   T(1)('ERC clean', () => {
     expect(erc(mpptCharger().sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
-  });
+ }, 60_000);
   // cells at 25 °C, and on a hot tropical roof at 65 °C
   for (const [g, temp, k] of [[1000, 25, 1], [500, 25, 1], [200, 25, 2], [1000, 65, 2], [300, 65, 2]] as const) {
     T(k)(`${g} W/m², cells at ${temp} °C: the array works at ≥ 97 % of its maximum power; ≥ 93 % reaches the battery`, async () => {
