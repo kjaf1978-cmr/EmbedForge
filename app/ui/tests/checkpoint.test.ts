@@ -37,3 +37,28 @@ describe('simulation checkpoints', () => {
     }
   }, 600_000);
 });
+
+describe('the long tests\' checkpoint files (checkpoint.ts)', () => {
+  it('cut off and resumed from the files: the same waveforms as straight through, the history before the cut within single precision', async () => {
+    const { useCheckpoint } = await import('./checkpoint');
+    const sheet = () => inverterLF({ precharged: true, stop: '1.2m' }).sheet;
+    const straight = simulate(sheet()) as SimResult;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ckpt-'));
+    let done = useCheckpoint(dir, 0);
+    const g = globalThis as G, save = g.__simCheckpoint!.save;
+    let saves = 0;
+    g.__simCheckpoint!.save = (s) => { if (++saves % 500 === 0) save(s); if (saves === 2100) throw new Error('cut off'); };
+    expect(() => simulate(sheet())).toThrow('cut off');
+    delete g.__simCheckpoint;
+    expect(fs.readdirSync(dir).length).toBe(5); // the head and four chunks
+    done = useCheckpoint(dir, 1e9);
+    const resumed = simulate(sheet()) as SimResult;
+    done();
+    expect(fs.readdirSync(dir)).toEqual([]);
+    expect(resumed.x).toEqual(straight.x);
+    for (const n of ['OUTL', 'VA', 'SWA', 'BUS']) {
+      const a = straight.v[n], b = resumed.v[n];
+      expect(Math.max(...a.map((v, k) => Math.abs(v - b[k]) / Math.max(1, Math.abs(v))))).toBeLessThan(1e-6);
+    }
+  }, 600_000);
+});
