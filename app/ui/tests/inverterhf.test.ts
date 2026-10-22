@@ -9,13 +9,16 @@ import { smoke } from '../src/eda/smoke';
 import { buildBom } from '../src/eda/bom';
 import { connectivity } from '../src/eda/connectivity';
 import { textCollisions } from './drawing.helpers';
+import { useCheckpoint } from './checkpoint';
 
 const LONG = !!process.env.LONG;
 
 async function runHF(o: InverterHfOptions) {
   const { sheet, nb } = inverterHF(o);
   await new Promise((r) => setTimeout(r, 500)); // let the reporter's pending update be answered before the worker blocks
+  const done = useCheckpoint(); // CKPT=<directory>: resumes after a restarted container
   const r = simulate(sheet) as SimResult;
+  done();
   expect('error' in r ? r.error : '').toBe('');
   const x = r.x, n = x.length;
   const ref = (key: string) => nb.refOf(sheet, key);

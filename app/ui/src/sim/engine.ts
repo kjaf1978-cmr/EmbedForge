@@ -1091,6 +1091,32 @@ export interface Waveforms {
 
 export interface OpResult { v: Record<string, number>; i: Record<string, number[]>; warnings: string[] }
 
+/** A long transient's checkpoint hooks (tests): `save` stores the state, `load` returns the last
+ *  one stored (or undefined), `every` the seconds of computing between two saves. */
+export interface SimCheckpoint { save(state: unknown): void; load(): unknown; every: number }
+interface CheckpointState {
+  finger: string; t: number; h: number; afterBreak: boolean; damp: boolean; bi: number;
+  x: Float64Array; refine: boolean; out: Waveforms; devs: Record<string, unknown>[]; order?: Int32Array | number[];
+}
+/** A device's own state: its fields but its element and the other devices it refers to
+ *  (a mutual inductance's inductors); objects it owns (a diode's junction capacitance) nested. */
+function snapDevice(d: object, top: Set<object>): Record<string, unknown> {
+  const o: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(d)) {
+    if (k === 'el' || typeof v === 'function' || (v && typeof v === 'object' && top.has(v))) continue;
+    const owned = v && typeof v === 'object' && !Array.isArray(v) && !ArrayBuffer.isView(v) && Object.getPrototypeOf(v) !== Object.prototype;
+    o[k] = owned ? { __dev: snapDevice(v as object, top) } : v;
+  }
+  return o;
+}
+function restoreDevice(d: object, s: Record<string, unknown>, top: Set<object>) {
+  const t = d as Record<string, unknown>;
+  for (const [k, v] of Object.entries(s)) {
+    if (v && typeof v === 'object' && '__dev' in (v as object)) restoreDevice(t[k] as object, (v as { __dev: Record<string, unknown> }).__dev, top);
+    else t[k] = v;
+  }
+}
+
 export class Engine {
   readonly nodeIndex = new Map<string, number>();
   /** User-visible node names (internal nodes excluded). */
@@ -1389,6 +1415,21 @@ export class Engine {
     // start with small steps: a switch-on (uic) or a source corner at t = 0 is often fast
     let t = 0, h = Math.min(hmax, sorted[0]) / (uic ? 1000 : 10), afterBreak = true, damp = false, rescue = 0;
     const eps = tstop * 1e-12;
+    // checkpoints for very long runs (tests only: the caller sets __simCheckpoint): the whole
+    // state every `every` seconds of computing, and a run that was cut off resumes from it
+    const ck = (globalThis as { __simCheckpoint?: SimCheckpoint }).__simCheckpoint;
+    const finger = `${this.devices.length}/${this.x.length}/${tstop}/${tstep}`;
+    let lastCk = Date.now();
+    const saved = ck?.load() as CheckpointState | undefined;
+    if (saved && saved.finger === finger) {
+      ({ t, h, afterBreak, damp, bi } = saved);
+      this.x = saved.x; this.refine = saved.refine;
+      // the same elimination order: round-off then follows the uninterrupted run exactly
+      if (saved.order) { this.order = saved.order as typeof this.order; this.orderMode = 'tran'; this.solver = new SparseSolver(this.order!); }
+      out.x = saved.out.x; out.v = saved.out.v; out.i = saved.out.i;
+      const top = new Set<object>(this.devices);
+      this.devices.forEach((d, k) => restoreDevice(d, saved.devs[k], top));
+    }
     while (t < tstop - eps) {
       while (bi < sorted.length && sorted[bi] <= t + eps) bi++;
       const nb = sorted[bi] ?? tstop;
@@ -1446,6 +1487,11 @@ export class Engine {
       if (afterBreak) {
         h = Math.min(h, hmax / 10); // restart small after a source corner or a state change
         for (const d of this.devices) d.resetHistory?.();
+      }
+      if (ck && Date.now() - lastCk > ck.every * 1000) {
+        const top = new Set<object>(this.devices);
+        ck.save({ finger, t, h, afterBreak, damp, bi, x: this.x, refine: this.refine, out, devs: this.devices.map((d) => snapDevice(d, top)), order: this.order ?? undefined } satisfies CheckpointState);
+        lastCk = Date.now();
       }
     }
     return out;
