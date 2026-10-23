@@ -20,7 +20,7 @@
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
 | UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 815 passed, 32 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
-| Inverter DFMEA runs (P7a) | `cd app/ui && npm run test:long` | 13 of 13 passed on the final design, motor start and 58.4 V included (section 3h) |
+| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a: all passed on the final design at −10 … +60 °C and with aged electrolytics; P7b: all passed but the 27 °C start-up (running) (section 3i) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9, and again 17 October with `PW_CHROMIUM=/opt/pw-browsers/chromium`); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
@@ -372,6 +372,69 @@ stress check flagged only the test bench's load resistor (rated 1.5 kW for a 5 k
 Measurement note: long runs store a point every 5 µs. That is fine for the output and the
 currents, but too coarse for the mean of the 20 kHz bridge nodes, so the DC check uses the
 primary current.
+
+## 3i. D32: magnetics, temperature, tolerances and ageing; inverter P7b (18–24 October 2026)
+
+Decision D32: effects that can be modelled (magnetic saturation, temperature, tolerances, ageing)
+are designed out, not left to the prototype. Both inverters were verified across −10 … +60 °C
+ambient (power junctions at 125 °C at the hot corner), with saturating cores for every magnetic
+part, worst-case tolerances of every threshold (tests/tolerances.test.ts) and electrolytics at
+their end of life (80 % capacitance, twice the ESR).
+
+Simulator, new or changed (each with the unit suite passing afterwards):
+
+- **Saturating cores:** inductors and transformers take a saturation current (`isat`); the flux
+  follows a sharp knee and levels off at about 1.3 × l·isat; backward Euler near the knee only;
+  the convergence check relative to isat (1 pA could not be met while a magnetising current
+  crossed zero). tests/magnetics.test.ts: flux curve, inrush, overvoltage, against the linear
+  model below the knee.
+- **Temperature per part** (`tj`, the power semiconductors' junctions) and **resistor
+  tolerances** (`tol`, in Monte Carlo and the worst-case table).
+- **IGBT capacitances** from the datasheets (Cies, Cres, Coes), as the MOSFETs already had:
+  without them a switching leg moved the high-frequency unit's floating 381 V side in
+  femtoseconds.
+- **Convergence:** damped Newton steps after 30 iterations (an op-amp output cycling between its
+  limits); up to six restarts of a time point from differently sized backward-Euler steps; a
+  MOSFET's convergence check across vds = 0 (an IGBT's internal MOSFET, off, flipped sign every
+  iteration); no truncation-error limit from a history that spreads by less than the solver's
+  tolerance (an IGBT's gate capacitance capped every step to 10⁻¹⁴ s and two runs crawled for
+  hours).
+- **Checkpoints** for the long runs (CKPT=<directory>): the whole state every 15 minutes, a run
+  cut off by a restarted container resumes; the waveforms in single-precision chunks.
+  tests/checkpoint.test.ts: resumed, the same waveforms as straight through (within 1 nV from
+  the engine's state, within single precision from the files).
+
+Design changes found by these runs (DFMEA.md I-4, I-5, I-14, H-7, H-20):
+
+- **Soft start 47 ms** (470 nF) instead of 22 ms: the 50 Hz unit overshot to 355 V peak at
+  −10 °C (limit 351 V), the loop's averaged sense could not follow the faster reference.
+- **Anti-windup:** the voltage loop's integrator on the clamped node.
+- **Instantaneous output voltage limit** (about 355 V peak, a comparator on the rectified sense
+  stopping the bridge as the current limit does): the loop's amplitude passes the 70 Hz sine
+  filter half a cycle late, and after a motor start the 50 Hz unit's output swung to 408 V, its
+  transformer saturated (580 A magnetising) and the overvoltage protection latched it off. A
+  1.2 T transformer core did not help and was not kept.
+- P7b: the current transformer resets through a 24 V 5 W Zener within a 4 µs blanking; the bus
+  overvoltage levels corrected (425 / 404 V); closed-loop detectors for the hybrid modulation;
+  a DC-DC overload timer.
+
+Long runs on the final circuits (October 20–24; the 50 Hz unit's runs 1 to 2 hours, the
+high-frequency unit's 2 to 16 hours):
+
+| Test | 50 Hz unit (P7a) | High-frequency unit (P7b) |
+|---|---|---|
+| start-up at 5 kW, 27 °C: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | passed | running |
+| the same at +60 °C (junctions 125 °C) | passed | passed |
+| the same at −10 °C | passed | passed |
+| the same with end-of-life electrolytics | passed | passed |
+| the sine bridge alone at 5 kW (bench bus) | — | passed |
+| connecting the battery (I-1, H-1) | passed | passed |
+| battery window and heatsink: no start (I-8, I-9, I-11, H-16) | passed | passed |
+| 5 kW at 58.4 V: stress check (I-7, H-8) | passed | passed |
+| short circuit at the output (I-4, H-7) | passed | passed |
+| motor start, locked rotor 85 A for 50 ms (I-4, H-7) | passed | passed |
+| loop sense open: protection trips and latches (I-10, H-10) | passed | passed |
+| bus feedback lost (H-3), bus shorted (H-4) | — | passed |
 
 ## 4. Usability (section 22 step 4)
 
