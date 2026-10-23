@@ -289,3 +289,13 @@ diodes, 470 µH and 4 × 470 µF 450 V → a regulated 381 V bus → an IGBT ful
 - DC-DC overload: if the current-mode command stays at its ceiling for about 0.5 s (a short on the
   bus, or a load above what the battery side can carry), an LM393 timer latches the
   converter off; a bus short (H-4) is therefore not a sustained current limit.
+- Shared with P7a since D32: soft start 47 ms (no overshoot at −10 °C), the voltage loop's
+  integrator on its clamped node (anti-windup), and an instantaneous output voltage limit at
+  about 355 V peak that stops the bridge through the current limit's path (a load dump is
+  clipped within a PWM period; the loop alone acts half a cycle late through the sine filter).
+- Verified by simulation on the final circuit (TEST_REPORT.md section 3i, DFMEA section 6):
+  start-up at 5 kW at +60 °C (junctions 125 °C), −10 °C and with end-of-life electrolytics
+  (230 V, THD below 3 %, no DC, bus within 381 V ± 6 %, every part within its ratings); the
+  sine bridge alone; the battery connection; the battery window and heatsink; 5 kW at 58.4 V;
+  short circuit and motor start at the output; the loop's sense open; the bus feedback lost and
+  the bus shorted. The 27 °C start-up is running.
