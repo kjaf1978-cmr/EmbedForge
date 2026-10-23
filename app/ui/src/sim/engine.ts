@@ -63,6 +63,13 @@ function lteStep(hist: [number, number][], t: number, q: number, h: number, meth
   const need = method === 'trap' ? 4 : 3;
   if (pts.length < need) return Infinity;
   const p = pts.slice(-need);
+  // below the solver's own tolerance the history is noise: a charge (or flux) that spreads by
+  // less than RELTOL over the points cannot show a truncation error. Its divided differences
+  // over femtosecond steps came out enormous, capped every next step to femtoseconds and the
+  // run crawled for hours (an IGBT's gate capacitance, the high-frequency inverter, found in
+  // simulation)
+  const ys = p.map(([, y]) => y), lo = Math.min(...ys), hi = Math.max(...ys);
+  if (hi - lo <= RELTOL * Math.max(Math.abs(lo), Math.abs(hi)) + CHGTOL) return Infinity;
   // divided differences
   let d = p.map(([, y]) => y);
   for (let o = 1; o < need; o++) d = d.slice(1).map((v, k) => (v - d[k]) / (p[k + o][0] - p[k][0]));
@@ -1462,7 +1469,7 @@ export class Engine {
       let hLte = Infinity;
       for (const d of this.devices) if (d.lte) hLte = Math.min(hLte, d.lte(c.x, c));
       if (hLte < 0.9 * hh && hh > hmin * 10) {
-        if (stats) { let worst = ''; let w = Infinity; for (const d of this.devices) { const l = d.lte?.(c.x, c) ?? Infinity; if (l < w) { w = l; worst = d.el.name.replace(/_.*/, ''); } } stats[`lte:${worst}`] = (stats[`lte:${worst}`] ?? 0) + 1; }
+        if (stats) { let worst = ''; let w = Infinity; for (const d of this.devices) { const l = d.lte?.(c.x, c) ?? Infinity; if (l < w) { w = l; worst = (globalThis as { __simStatsFull?: boolean }).__simStatsFull ? d.el.name : d.el.name.replace(/_.*/, ''); } } stats[`lte:${worst}`] = (stats[`lte:${worst}`] ?? 0) + 1; }
         h = Math.max(hLte * 0.9, hh / 8, hmin * 10); continue;
       }
       // a discrete state (555 latch) would change: find the instant to within hEvent first
