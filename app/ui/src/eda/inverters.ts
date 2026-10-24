@@ -405,6 +405,12 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     // conducted, held VME 0.6 V below NDC and the servo drove the primary to 14 V DC instead of
     // zero (found in simulation)
     .part('QDC', 'nmos', 1350, 950, { value: '2N7000' }, { '1': 'ENN', '2': 'NDC', '3': 'VME' });
+  // QDB empties CDB with CDI, so the servo restarts at VME = VMID. QDC alone left CDB at the
+  // stopped legs' divider voltage, and VME restarted that far above VMID, a starting offset the
+  // integrator then only held: the 12 V unit's square started 7 % off its triangle, the primary
+  // saw +1.2 V for the first 10 ms (a 40 % flux offset) and the core saturated every other half
+  // cycle (found in simulation). PDC stays above VMID, so QDB's body diode never conducts
+  if (!c.hybrid) nb.part('QDB', 'nmos', 1350, 1250, { value: '2N7000' }, { '1': 'ENN', '2': 'PDC', '3': 'VMID' });
 
   // ---- 20 kHz triangle: integrator (13.3k / 3.3 nF) and a comparator Schmitt trigger (1k
   // pull-up: its square swings about VMID ± 5.8 V, the triangle VMID ± 1.5 V): 21.9 kHz from the
