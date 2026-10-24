@@ -76,9 +76,11 @@ export const LF_VARIANTS = {
  */
 export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
-  const V = 'V12';
   const vr = LF_VARIANTS[o.cells ?? 16], vbat = o.vbat ?? vr.vbat;
-  nb.wired = { rails: [V], labelled: ['BF', 'AXA', 'VME', 'BUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'SRS', 'OUTL', 'VBS', 'Q50', 'KEN', 'STOP', 'SD'] };
+  // the control rail (V) and the bridge drivers' rail (VD): the same 12 V from the LM317HV, or,
+  // in the 12 V unit, the battery itself for the drivers and 9 V from an LDO for the control
+  const direct = vr.aux === 'direct', V = direct ? 'V9' : 'V12', VD = 'V12';
+  nb.wired = { rails: direct ? [V, VD] : [V], labelled: ['BF', 'AXA', 'VME', 'BUS', 'SWA', 'SWB', 'SRC', 'INA', 'INB', 'EN', 'ENN', 'VREF', 'VMID', 'VA', 'SINE', 'SINEB', 'TRI', 'SRS', 'OUTL', 'VBS', 'Q50', 'KEN', 'STOP', 'SD'] };
   nb.para(`INVERTER, one ${vr.kw} kW unit, 50 Hz transformer type: ${vr.bat} to 230 V 50 Hz. MOSFET full bridge (3 × IRFP4468 per switch) with unipolar sine PWM at 20 kHz; 50 Hz transformer ${vr.vprim}/230 V ${vr.kw} kVA; its leakage inductance and a 10 µF X2 capacitor filter the output. Surge: twice the rated current for motor starts, cycle by cycle limited.`, -1400, -420)
     .para(`Protections (DFMEA section 5): pre-charge before the battery contactor closes (a reversed battery closes nothing); cycle-by-cycle current limit; battery low cut-out ${vr.cut[0]} V (restart ${vr.cut[1]} V) and high cut-out ${vr.cut[2]} V; heatsink above 90 °C; output overvoltage from its own sense transformer and reference (latched). Every fault stops the bridge and the soft start begins again when it clears.`, -1400, -340);
 
@@ -125,17 +127,17 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
         .part(`QL${leg}${k + 1}`, 'nmos', x, 40, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${leg}${k + 1}`, '2': `SW${leg}`, '3': 'SRC' })
         .part(`RGL${leg}${k + 1}`, 'resistor', x - 60, 120, { value: '4.7' }, { '1': `EL${leg}`, '2': `GL${leg}${k + 1}` });
     }
-    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '2': 'SD', '8': V, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': `SW${leg}`, '4': `LO${leg}` })
-      .part(`DB${leg}`, 'diode', x0 + 240, 250, { value: '1N4148' }, { '2': V, '1': `VB${leg}` })
+    nb.part(`UD${leg}`, 'hbdriver', x0 + 120, 330, { value: 'IR2184-type 600 V' }, { '1': `IN${leg}`, '2': 'SD', '8': VD, '3': 'GND', '7': `VB${leg}`, '6': `HO${leg}`, '5': `SW${leg}`, '4': `LO${leg}` })
+      .part(`DB${leg}`, 'diode', x0 + 240, 250, { value: '1N4148' }, { '2': VD, '1': `VB${leg}` })
       .part(`CBS${leg}`, 'capacitor', x0 + 300, 330, { value: '2.2u', vmax: '25' }, { '1': `VB${leg}`, '2': `SW${leg}` }, 1)
       // high-side buffer between VB and SW, low-side buffer between 12 V and ground
       .part(`QBH${leg}`, 'npn', x0 + 400, -260, { value: 'D44H11' }, { '1': `HO${leg}`, '2': `VB${leg}`, '3': `EH${leg}` })
       .part(`QBHP${leg}`, 'pnp', x0 + 400, -140, { value: 'D45H11' }, { '1': `HO${leg}`, '2': `SW${leg}`, '3': `EH${leg}` })
-      .part(`QBL${leg}`, 'npn', x0 + 400, 60, { value: 'D44H11' }, { '1': `LO${leg}`, '2': V, '3': `EL${leg}` })
+      .part(`QBL${leg}`, 'npn', x0 + 400, 60, { value: 'D44H11' }, { '1': `LO${leg}`, '2': VD, '3': `EL${leg}` })
       .part(`QBLP${leg}`, 'pnp', x0 + 400, 180, { value: 'D45H11' }, { '1': `LO${leg}`, '2': 'GND', '3': `EL${leg}` })
       .part(`RHS${leg}`, 'resistor', x0 + 500, -200, { value: '10k' }, { '1': `EH${leg}`, '2': `SW${leg}` }, 1)
       .part(`RLS${leg}`, 'resistor', x0 + 500, 120, { value: '10k' }, { '1': `EL${leg}`, '2': 'GND' }, 1)
-      .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
+      .part(`CDD${leg}`, 'capacitor', x0 + 20, 410, { value: '1u', vmax: '25' }, { '1': VD, '2': 'GND' }, 1);
   });
   // current shunt in the bridge return (both directions)
   nb.part('RSH', 'resistor', 500, 260, { value: '0.2m', pmax: '10' }, { '1': 'SRC', '2': 'GND' }, 1);
@@ -178,9 +180,14 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('RA2', 'resistor', -1000, 460, { value: '2.05k' }, { '1': 'ADJ', '2': 'GND' }, 1);
   else nb
     .part('DAUX', 'diode', -1300, 300, { value: 'SS34' }, { '2': 'BF', '1': 'AXA' })
-    .part('RAUX', 'resistor', -1100, 300, { value: vr.raux, pmax: '1' }, { '1': 'AXA', '2': V });
+    .part('RAUX', 'resistor', -1100, 300, { value: vr.raux, pmax: '1' }, { '1': 'AXA', '2': VD })
+    .part('CAXD', 'capacitor', -1100, 420, { value: '10u', vmax: '25' }, { '1': VD, '2': 'GND' }, 1)
+    // the control's own 9 V: on the battery directly, the PWM triangle (its amplitude follows
+    // the rail), the mid-rail and every threshold moved with the bus ripple and the battery,
+    // and single cycles of the output carried up to 15 V mean (6 %; found in simulation)
+    .part('UAX', 'regulator', -1000, 300, { value: 'LM2940-9.0' }, { '1': VD, '2': 'GND', '3': V });
   nb
-    .part('CAX', 'capacitor', -820, 380, { value: '10u', vmax: '25' }, { '1': V, '2': 'GND' }, 1)
+    .part('CAX', 'capacitor', -820, 380, { value: direct ? '22u' : '10u', vmax: '25' }, { '1': V, '2': 'GND' }, 1)
     // the band-gap reference and the mid-rail (6 V) for the AC signals
     .part('RREF', 'resistor', -700, 300, { value: '2.2k' }, { '1': V, '2': 'VREF' }, 1)
     .part('UREF', 'tl431', -700, 420, { value: 'TL431B' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' }, 3)
@@ -265,7 +272,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
     .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM358', pkg: 'OVL' }, oc: vr.oc, rdc1: vr.rdc1, flux: true });
+  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM358', pkg: 'OVL' }, oc: vr.oc, rdc1: vr.rdc1, flux: true, ...(direct ? { tri: ['10k', '28.7k'] as [string, string] } : {}) });
 
   nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
@@ -286,7 +293,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
  *  ground, `q50` the 50 Hz square that switches the sine's square; `cmpT` the package of the
  *  triangle's comparator; `hybrid`: leg B switches at 50 Hz, leg A carries the PWM (else
  *  unipolar: leg B from the inverted sine); `swb` the net of leg B's node (default SWB). */
-export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string; oc?: string[]; rdc1?: string; flux?: boolean }) {
+export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string; oc?: string[]; rdc1?: string; flux?: boolean; tri?: [string, string] }) {
   const { V, G } = c;
   // ---- the square VME ± VA/2: H = VMID + VA/2, L = 2·VME − H; QSQ connects SQ to L while Q50
   // is high, RSQ to H otherwise. VME = VMID + the DC servo's correction: the square's mean, and
@@ -424,6 +431,7 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     .part('QFX', 'nmos', 1950, 1130, { value: '2N7000' }, { '1': 'ENN', '2': 'NFX', '3': 'VFX' })
     .part('RL3', 'resistor', -250, 1250, { value: '10k' }, { '1': 'VFX', '2': 'LN' });
 
+  // (the 12 V unit's control on 9 V: 10k and 28.7k keep the same ±1.6 V and 20 kHz)
   // ---- 20 kHz triangle: integrator (13.3k / 3.3 nF) and a comparator Schmitt trigger (1k
   // pull-up: its square swings about VMID ± 5.8 V, the triangle VMID ± 1.5 V): 21.9 kHz from the
   // RC, 20 kHz with the LM339's response time at each turn (15k gave 17.7 kHz in simulation).
@@ -431,12 +439,12 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // simulation's steps)
   nb.block('pwm')
     .part('UTI', 'opamp', -1300, 1500, { value: 'TL074', pkg: 'SIG2' }, { '3': 'VMID', '2': 'NTI', '6': 'TRI', '7': V, '4': G })
-    .part('RTI', 'resistor', -1420, 1420, { value: '13.3k' }, { '1': 'SQT', '2': 'NTI' })
+    .part('RTI', 'resistor', -1420, 1420, { value: c.tri?.[0] ?? '13.3k' }, { '1': 'SQT', '2': 'NTI' })
     .part('CTI', 'capacitor', -1300, 1400, { value: '3.3n', vmax: '50' }, { '1': 'NTI', '2': 'TRI' })
     .part('UST', 'comparator', -1100, 1500, c.cmpT, { '3': 'PST', '2': 'VMID', '1': 'SQT', '8': V, '4': G })
     .part('RSTU', 'resistor', -1000, 1400, { value: '1k' }, { '1': V, '2': 'SQT' }, 1)
     .part('RSA', 'resistor', -1100, 1400, { value: '10k' }, { '1': 'TRI', '2': 'PST' })
-    .part('RSB', 'resistor', -1000, 1600, { value: '38.3k' }, { '1': 'SQT', '2': 'PST' })
+    .part('RSB', 'resistor', -1000, 1600, { value: c.tri?.[1] ?? '38.3k' }, { '1': 'SQT', '2': 'PST' })
     // leg A on while SINE (unipolar) or REF (hybrid) is above the triangle; leg B while SINEB is
     // above it (unipolar), or in the negative half cycle (hybrid)
     .part('UPA', 'comparator', -850, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': c.hybrid ? 'REF' : 'SINE', '2': 'TRI', '1': 'INA', '8': V, '4': G })

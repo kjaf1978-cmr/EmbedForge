@@ -91,6 +91,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   timer555: { NE555: e('NE555P', 'Texas Instruments', 'timer, DIP-8', 0.35, 0.12, 'estimate', any('DIP-8')) },
   opto: { PC817: e('PC817X1NSZ1B', 'Sharp', 'optocoupler, transistor output, DIP-4', 0.3, 0.1, 'estimate', any('DIP-4')) },
+  regulator: { 'LM2940-9.0': e('LM2940CT-9.0/NOPB', 'Texas Instruments', 'low-dropout regulator 9 V, 1 A, input up to 26 V, TO-220', 2.4, 1.5, 'live', [{ distributor: 'Mouser', sku: '926-LM2940CT-9.0NOPB' }]) },
   lm317: { LM317HV: e('LM317HVT/NOPB', 'Texas Instruments', 'adjustable regulator, 60 V input–output, 1.5 A, TO-220', 2.2, 1.26, 'live', [{ distributor: 'Mouser', sku: '926-LM317HVT/NOPB' }, { distributor: 'RS', sku: '197-7244' }], 'on a heatsink of 8 K/W: Fischer SK 76 37,5 SA (RS 221-2176), about €3.50') },
   npn: {
     D44H11: e('D44H11G', 'onsemi', 'NPN 80 V 10 A switching, TO-220', 0.95, 0.45, 'estimate', any('TO-220')),

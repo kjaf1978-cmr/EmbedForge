@@ -155,6 +155,7 @@ export interface RegulatorModel { vout: number; dropout: number; iq: number; adj
 export const REGULATORS: NamedModel<RegulatorModel>[] = [
   { name: '7805', note: 'fixed 5 V, 1 A, dropout 2 V (L7805/LM7805 family)', model: { vout: 5, dropout: 2, iq: 5e-3 } },
   { name: '7809', note: 'fixed 9 V, 1 A, dropout 2 V', model: { vout: 9, dropout: 2, iq: 5e-3 } },
+  { name: 'LM2940-9.0', note: 'fixed 9 V, 1 A low-dropout (0.5 V at 1 A), input up to 26 V; 22 µF at its output', model: { vout: 9, dropout: 0.5, iq: 10e-3 } },
   { name: '7812', note: 'fixed 12 V, 1 A, dropout 2 V', model: { vout: 12, dropout: 2, iq: 5e-3 } },
   { name: 'AMS1117-3.3', note: 'fixed 3.3 V, 1 A low-dropout (1.1 V)', model: { vout: 3.3, dropout: 1.1, iq: 5e-3 } },
   { name: 'AMS1117-5.0', note: 'fixed 5 V, 1 A low-dropout (1.1 V)', model: { vout: 5, dropout: 1.1, iq: 5e-3 } },
