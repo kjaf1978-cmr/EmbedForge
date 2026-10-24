@@ -265,9 +265,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
     .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM393', pkg: 'OVL' }, oc: vr.oc, rdc1: vr.rdc1 });
-  // the output voltage limit's LM393: its second comparator is the unit's one spare
-  nb.part('USPL', 'comparator', 1560, 1440, { value: 'LM393', pkg: 'OVL' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' });
+  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM358', pkg: 'OVL' }, oc: vr.oc, rdc1: vr.rdc1, flux: true });
 
   nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
@@ -288,7 +286,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
  *  ground, `q50` the 50 Hz square that switches the sine's square; `cmpT` the package of the
  *  triangle's comparator; `hybrid`: leg B switches at 50 Hz, leg A carries the PWM (else
  *  unipolar: leg B from the inverted sine); `swb` the net of leg B's node (default SWB). */
-export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string; oc?: string[]; rdc1?: string }) {
+export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string; oc?: string[]; rdc1?: string; flux?: boolean }) {
   const { V, G } = c;
   // ---- the square VME ± VA/2: H = VMID + VA/2, L = 2·VME − H; QSQ connects SQ to L while Q50
   // is high, RSQ to H otherwise. VME = VMID + the DC servo's correction: the square's mean, and
@@ -397,9 +395,9 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     .part('RDB1B', 'resistor', 1000, 1150, { value: '2.2M' }, { '1': 'PDA', '2': 'PDC' });
   else nb.part('RDB1', 'resistor', 1000, 1150, { value: c.rdc1 ?? '470k' }, { '1': c.swb ?? 'SWB', '2': 'PDC' });
   nb.part('RDB2', 'resistor', 1100, 1250, { value: '47k' }, { '1': 'PDC', '2': 'VMID' }, 1)
-    .part('CDB', 'capacitor', 1000, 1250, { value: '2.2u', vmax: '25' }, { '1': 'PDC', '2': 'VMID' }, 1)
+    .part('CDB', 'capacitor', 1000, 1250, { value: c.flux ? '3.3u' : '2.2u', vmax: '25' }, { '1': 'PDC', '2': 'VMID' }, 1)
     .part('UDC', 'opamp', 1200, 1050, { value: 'TL074', pkg: 'SIG1' }, { '3': 'PDC', '2': 'NDC', '6': 'VME', '7': V, '4': G })
-    .part('CDI', 'capacitor', 1200, 900, { value: '2.2u', vmax: '25' }, { '1': 'NDC', '2': 'VME' })
+    .part('CDI', 'capacitor', 1200, 900, { value: c.flux ? '3.3u' : '2.2u', vmax: '25' }, { '1': 'NDC', '2': 'VME' })
     // source at VME: its body diode then points from VME to NDC, which runs about 1.8 V above
     // VME (the dividers carry the bridge's 26 V mean). The other way round the diode
     // conducted, held VME 0.6 V below NDC and the servo drove the primary to 14 V DC instead of
@@ -411,6 +409,20 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // saw +1.2 V for the first 10 ms (a 40 % flux offset) and the core saturated every other half
   // cycle (found in simulation). PDC stays above VMID, so QDB's body diode never conducts
   if (!c.hybrid) nb.part('QDB', 'nmos', 1350, 1250, { value: '2N7000' }, { '1': 'ENN', '2': 'PDC', '3': 'VMID' });
+  // the flux servo (50 Hz unit): UDC holds the primary's mean voltage at zero, which only keeps
+  // whatever flux offset the start left; its DC current then decays with the winding's L/R
+  // (0.5 s: the 12 V unit still carried 4.3 A, 2 % of its rated current, at 0.3 s; the 24 V unit
+  // 12 A, found in simulation). VME − VMID is the flux since the start, so UFX integrates it
+  // (33k / 1 µF) and adds it to the square's mean through UL (RL3): a PI loop on the flux, zero
+  // at 10 rad/s, which drives the offset itself to zero. The extra input raises the servo's gain
+  // by 1.5, and CDI/CDB (3.3 µF) restore its crossover (and the 50 Hz ripple on VME). QFX
+  // empties CFX while the bridge is stopped. LM358: its other half is the output voltage limit
+  if (c.flux) nb
+    .part('RFX', 'resistor', 1650, 1250, { value: '33k' }, { '1': 'VME', '2': 'NFX' })
+    .part('CFX', 'capacitor', 1780, 1130, { value: '1u', vmax: '25' }, { '1': 'NFX', '2': 'VFX' })
+    .part('UFX', 'opamp', 1800, 1250, { value: 'LM358', pkg: 'OVL' }, { '3': 'VMID', '2': 'NFX', '6': 'VFX', '7': V, '4': G })
+    .part('QFX', 'nmos', 1950, 1130, { value: '2N7000' }, { '1': 'ENN', '2': 'NFX', '3': 'VFX' })
+    .part('RL3', 'resistor', -250, 1250, { value: '10k' }, { '1': 'VFX', '2': 'LN' });
 
   // ---- 20 kHz triangle: integrator (13.3k / 3.3 nF) and a comparator Schmitt trigger (1k
   // pull-up: its square swings about VMID ± 5.8 V, the triangle VMID ± 1.5 V): 21.9 kHz from the
@@ -479,8 +491,12 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     // the bridge off (found in simulation, D32)
     .part('RVL1', 'resistor', 1200, 1380, { value: '54.9k' }, { '1': 'VRO', '2': 'VLC' }, 1)
     .part('RVL2', 'resistor', 1200, 1500, { value: '10k' }, { '1': 'VLC', '2': G }, 1)
-    .part('UOV', 'comparator', 1320, 1440, c.cmpV, { '3': 'VLC', '2': 'VREF', '1': 'OVC', '8': V, '4': G })
-    .part('ROVC', 'resistor', 1440, 1380, { value: '2.2k' }, { '1': V, '2': 'OVC' }, 1)
+  // LM358 (50 Hz unit, with the flux integrator): its push-pull output drives DOV itself, and its
+  // inputs work down to ground (VREF 2.5 V)
+  if (c.flux) nb.part('UOV', 'opamp', 1320, 1440, c.cmpV, { '3': 'VLC', '2': 'VREF', '6': 'OVC', '7': V, '4': G });
+  else nb.part('UOV', 'comparator', 1320, 1440, c.cmpV, { '3': 'VLC', '2': 'VREF', '1': 'OVC', '8': V, '4': G })
+    .part('ROVC', 'resistor', 1440, 1380, { value: '2.2k' }, { '1': V, '2': 'OVC' }, 1);
+  nb
     .part('DOV', 'diode', 1440, 1520, { value: '1N4148' }, { '2': 'OVC', '1': 'OCS' })
     // overload timer: COL follows the mean of OCS (ROL, 4.8 s), which is 1.5 … 2.5 V while the
     // limit acts and 0 V otherwise; above OCH (0.34 V) after about 0.9 s at the limit, longer
