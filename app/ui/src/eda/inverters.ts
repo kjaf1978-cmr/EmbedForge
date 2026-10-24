@@ -83,10 +83,11 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .para(`Protections (DFMEA section 5): pre-charge before the battery contactor closes (a reversed battery closes nothing); cycle-by-cycle current limit; battery low cut-out ${vr.cut[0]} V (restart ${vr.cut[1]} V) and high cut-out ${vr.cut[2]} V; heatsink above 90 °C; output overvoltage from its own sense transformer and reference (latched). Every fault stops the bridge and the soft start begins again when it clears.`, -1400, -340);
 
   // ---- battery (test bench) and the battery input
-  // the cables (2 µH: about 1 m each way; they do not saturate, hence the high rating) keep the
+  // its internal resistance about 0.6 mΩ a cell (10 mΩ for 16); the cables (2 µH: about 1 m
+  // each way; they do not saturate, hence the high rating) keep the
   // PWM ripple in the bus capacitors, as in the installation (an ideal battery took most of it)
   nb.block('battery').note('TEST BENCH (not part of the product): the battery and its cables', -1400, -220)
-    .part('BAT', 'battery', -1350, -100, { value: String(vbat), rint: '0.01' }, o.reversed ? { '1': 'GND', '2': 'BC' } : { '1': 'BC', '2': 'GND' }, 1)
+    .part('BAT', 'battery', -1350, -100, { value: String(vbat), rint: String(0.01 * (o.cells ?? 16) / 16) }, o.reversed ? { '1': 'GND', '2': 'BC' } : { '1': 'BC', '2': 'GND' }, 1)
     .part('LBAT', 'inductor', -1290, -200, { value: '2u', imax: '1000' }, { '1': 'BC', '2': 'BP' });
   nb.block('dcin')
     .part('X1', 'terminal', -1200, -160, { value: 'BAT+' }, { '1': 'BP' })
