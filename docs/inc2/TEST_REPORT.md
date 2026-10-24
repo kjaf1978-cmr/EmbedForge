@@ -20,7 +20,7 @@
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
 | UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 815 passed, 32 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
-| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a: all passed on the final design at −10 … +60 °C and with aged electrolytics; P7b: all passed but the 27 °C start-up (running) (section 3i) |
+| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a: all passed at −10 … +60 °C and with aged electrolytics, then re-run after the DC servo changes of October 25 (27 °C start-up passed, the rest queued); P7b: all passed (section 3i) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9, and again 17 October with `PW_CHROMIUM=/opt/pw-browsers/chromium`); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
@@ -417,13 +417,19 @@ Design changes found by these runs (DFMEA.md I-4, I-5, I-14, H-7, H-20):
 - P7b: the current transformer resets through a 24 V 5 W Zener within a 4 µs blanking; the bus
   overvoltage levels corrected (425 / 404 V); closed-loop detectors for the hybrid modulation;
   a DC-DC overload timer.
+- P7a, found by the 24 V and 12 V units (P7c, D33): the DC servo's reset empties both its
+  capacitors (it restarted off-centre, and the 12 V unit's core saturated every other half
+  cycle); a flux servo (a second integrator into the square's mean) drives the start's flux
+  offset to zero instead of holding it; its op-amp shares an LM358 with the output voltage limit
+  (no spare). The 48 V unit's long runs below are being repeated on this circuit; the column
+  shows the October 20–24 results unless marked.
 
 Long runs on the final circuits (October 20–24; the 50 Hz unit's runs 1 to 2 hours, the
 high-frequency unit's 2 to 16 hours):
 
 | Test | 50 Hz unit (P7a) | High-frequency unit (P7b) |
 |---|---|---|
-| start-up at 5 kW, 27 °C: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | passed | running |
+| start-up at 5 kW, 27 °C: 230 V ± 3 %, THD < 3 %, 50 Hz, no DC, no overshoot, stress check | passed (re-run on the October 25 servo: passed) | passed |
 | the same at +60 °C (junctions 125 °C) | passed | passed |
 | the same at −10 °C | passed | passed |
 | the same with end-of-life electrolytics | passed | passed |

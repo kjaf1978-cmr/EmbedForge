@@ -298,4 +298,4 @@ diodes, 470 µH and 4 × 470 µF 450 V → a regulated 381 V bus → an IGBT ful
   (230 V, THD below 3 %, no DC, bus within 381 V ± 6 %, every part within its ratings); the
   sine bridge alone; the battery connection; the battery window and heatsink; 5 kW at 58.4 V;
   short circuit and motor start at the output; the loop's sense open; the bus feedback lost and
-  the bus shorted. The 27 °C start-up is running.
+  the bus shorted, and the start-up at 27 °C.
