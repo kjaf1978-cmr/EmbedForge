@@ -39,22 +39,23 @@ const fmt = ([lo, hi]: [number, number], u = 'V') => `${lo.toFixed(2)} … ${hi.
 
 /** The battery window of either unit (low cut-out with restart, high cut-out), from the battery
  *  through the sense diode; `vr` the reference's net key, `en` the enable's high level. */
-function batteryWindow(R: (k: string, s: number) => number, ref: (k: string, s: number) => number, refKey: string) {
-  const v12 = (s: number) => 1.25 * (1 + s * RAIL) * (1 + 2.05e3 / 240);
+function batteryWindow(R: (k: string, s: number) => number, ref: (k: string, s: number) => number, refKey: string, direct = false) {
+  // the control rail: the LM317's 12 V, or the battery itself behind its Schottky diode and 1 Ω
+  // (the 12 V unit: about 0.5 V below the battery)
+  const v12 = (s: number, x = 0) => (direct ? x - 0.5 - 0.1 * s : 1.25 * (1 + s * RAIL) * (1 + 2.05e3 / 240));
   // low: ULV + = VBS (battery divider, hysteresis RLVH from the enable), − = VLO; the enable
   // high through REN (10k) from 12 V
   const low = (restart: boolean) => corners(8, ([a, b, c, d, e, r, o, dd]) => {
     const vlo = ref(refKey, r) * R('RLV2', d) / (R('RLV1', e) + R('RLV2', d));
     const vd = 0.75 + 0.15 * dd;
-    const bat = solve((x) => nodeV([[R('RBS1', a), x - vd], [R('RBS2', b), 0], [R('RLVH', c) + (restart ? 0 : 10e3), restart ? 0 : v12(o)]]), vlo + o * OFF);
+    const bat = solve((x) => nodeV([[R('RBS1', a), x - vd], [R('RBS2', b), 0], [R('RLVH', c) + (restart ? 0 : 10e3), restart ? 0 : v12(o, x)]]), vlo + o * OFF);
     return bat;
   });
   // high: UHV + = VHI (the reference's divider, hysteresis RHVH and the pull-up RHVN from
   // 12 V while the output is high), − = VBH
   const high = corners(8, ([a, b, c, d, e, r, o, dd]) => {
-    const vhi = nodeV([[R('RHV1', d), ref(refKey, r)], [R('RHV2', e), 0], [R('RHVH', c) + 10e3, v12(o)]]);
     const vd = 0.75 + 0.15 * dd;
-    return solve((x) => nodeV([[R('RBH1', a), x - vd], [R('RBH2', b), 0]]), vhi + o * OFF);
+    return solve((x) => nodeV([[R('RBH1', a), x - vd], [R('RBH2', b), 0]]) - nodeV([[R('RHV1', d), ref(refKey, r)], [R('RHV2', e), 0], [R('RHVH', c) + 10e3, v12(o, x)]]), o * OFF);
   });
   return { cut: low(false), restart: low(true), high };
 }
@@ -120,6 +121,18 @@ describe('high-frequency inverter: worst-case thresholds', () => {
     expect(bw.high[0]).toBeGreaterThan(58.4 + 1.5); expect(bw.high[1]).toBeLessThan(70);
     expect(hs[0]).toBeGreaterThan(80); expect(hs[1]).toBeLessThan(95);
   });
+});
+
+describe('50 Hz-transformer inverter, 24 V and 12 V units (P7c): worst-case battery window', () => {
+  for (const cells of [8, 4] as const) {
+    const { R, ref } = parts(() => inverterLF({ cells }));
+    const bw = batteryWindow(R, ref, 'UREF', cells === 4), k = cells / 16;
+    it(`${cells} cells: the cut-out never below 2.5 V a cell, the restart above it, the high cut-out at least ${(1.5 * k).toFixed(2)} V above a full charge and below the MOSFETs' limit (as the 48 V unit, per cell)`, () => {
+      console.log(`LF ${cells} cells: cut-out`, fmt(bw.cut), '; restart', fmt(bw.restart), '; high cut-out', fmt(bw.high));
+      expect(bw.cut[0]).toBeGreaterThan(2.5 * cells); expect(bw.restart[0]).toBeGreaterThan(bw.cut[1]);
+      expect(bw.high[0]).toBeGreaterThan(3.65 * cells + 1.5 * k); expect(bw.high[1]).toBeLessThan(70 * k);
+    });
+  }
 });
 
 describe('50 Hz-transformer inverter: worst-case thresholds', () => {

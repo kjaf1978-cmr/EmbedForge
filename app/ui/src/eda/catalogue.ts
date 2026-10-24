@@ -34,6 +34,8 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '32 A, coil 24 V DC': e('LC1DT32BD + LADN01', 'Schneider Electric', 'contactor 4 NO, 32 A AC-1 (resistive and mixed loads), coil 24 V DC, with 1 NC auxiliary block; for motor loads above 7.5 kW use a 40 A AC-3 frame', 165, undefined, 'live',
       [{ distributor: 'RS', sku: '608-9914', url: 'https://at.rs-online.com/web/p/schutze/6089914' }, { distributor: 'RS (LADN01)', sku: '018-7891' }],
       'single-phase design: ABB ESB40-20N-01 (2 NO, 40 A AC-1, 24 V AC/DC) with EH04-11N auxiliary, about €70–90 at wholesale'),
+    '150 A DC, coil 24 V': e('DC contactor 150 A, 24 V DC coil, 1 NO auxiliary (e.g. Albright SW180 series)', 'Albright / TE Connectivity', 'single-pole DC contactor, 150 A continuous at 60 V DC, 24 V DC coil, normally-open auxiliary contact (EN feedback)', 95, 70, 'estimate', [{ distributor: 'battery-systems distributor' }], 'order the 24 V coil and the auxiliary-contact option'),
+    '200 A DC, coil 12 V': e('DC contactor 200 A, 12 V DC coil, 1 NO auxiliary (e.g. Albright SW200 series)', 'Albright / TE Connectivity', 'single-pole DC contactor, 200 A continuous, 12 V DC coil, normally-open auxiliary contact (EN feedback)', 110, 80, 'estimate', [{ distributor: 'battery-systems distributor' }], 'order the 12 V coil and the auxiliary-contact option'),
     '150 A DC, coil 48 V': e('DC contactor 150 A, 48 V DC coil, 1 NO auxiliary (e.g. Albright SW180 series)', 'Albright / TE Connectivity', 'single-pole DC contactor, 150 A continuous at 60 V DC, 48 V DC coil, normally-open auxiliary contact (EN feedback)', 95, 70, 'estimate', [{ distributor: 'battery-systems distributor' }], 'order the 48 V coil and the auxiliary-contact option; check the breaking rating at 58 V DC'),
   },
   breaker1: { 'C10 A': e('S201-C10', 'ABB', 'miniature circuit breaker 1-pole, C 10 A, 6 kA', 8, 5, 'live', [{ distributor: 'electrical wholesale' }]) },
@@ -141,6 +143,8 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
 const TRANSFORMERS: Record<string, CatalogueEntry> = {
   '0.052': e('VB 1,0/1/12', 'Block', 'PCB transformer 230 V / 12 V, 1 VA (sense)', 7.2, 7.2, 'live', [{ distributor: 'RS', sku: '074-8411', url: 'https://es.rs-online.com/web/p/transformadores-de-pcb/0748411' }]),
   '8.36': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 5 kVA, 50 Hz, 27.5 V / 230 V, leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 480, 320, 'estimate', [{ distributor: 'transformer winder' }]),
+  '16.7': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 3 kVA, 50 Hz, 13.75 V / 230 V, leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 340, 230, 'estimate', [{ distributor: 'transformer winder' }]),
+  '33.5': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 1.5 kVA, 50 Hz, 6.9 V / 230 V (copper-foil primary for 218 A), leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 230, 160, 'estimate', [{ distributor: 'transformer winder' }]),
   '12': e('made to specification', 'magnetics supplier (ferrite, e.g. 2 × ETD59 or a planar core)', 'high-frequency transformer 5 kW, 20 kHz, 1 : 12 (24 V-equivalent primary of copper foil, 4 kV insulation, reinforced), gapped for 100 µH magnetising, leakage below 0.2 µH', 165, 95, 'estimate', [{ distributor: 'magnetics supplier' }]),
   '200': e('current-sense transformer 1 : 200 (a catalogue type, e.g. of the Talema AS or Pulse PE-67 series: check the ratio and the primary current)', 'Talema / Pulse', 'current-sense transformer 1 : 200, 20–200 kHz, 20 A RMS primary (the primary as a bus bar through the core), 4 kV insulation', 4.5, 2.8, 'estimate', [{ distributor: 'Mouser / Digi-Key' }]),
   '1': e('made to specification', 'magnetics supplier (ferrite EE25)', 'auxiliary transformer 2 VA, 20 kHz, 1 : 1 (on one bridge leg through a blocking capacitor), 4 kV reinforced insulation: the supply of the high-voltage side', 6, 3.5, 'estimate', [{ distributor: 'magnetics supplier' }]),
@@ -184,7 +188,7 @@ function resistor(value: string, pmax: number, tol = 1): CatalogueEntry {
 
 function fuse(value: string): CatalogueEntry {
   const a = parseValue(value) ?? 0;
-  if (a >= 50) return e('JJN-100 + holder', 'Eaton Bussmann', 'Class T fuse 100 A, 160 V DC, with holder (battery: a 32 V automotive MEGA/MIDI fuse is not rated for a 58 V battery)', 30, 20, 'estimate', [{ distributor: 'electrical wholesale' }]);
+  if (a >= 50) return e(`JJN-${value} + holder`, 'Eaton Bussmann', `Class T fuse ${value} A, 160 V DC, with holder (battery: a 32 V automotive MEGA/MIDI fuse is not rated for a 58 V battery)`, 30, 20, 'estimate', [{ distributor: 'electrical wholesale' }]);
   return e('0034.3109 + 0031.8201', 'Schurter', `fuse 5 × 20 mm T ${value} A with PCB holder`, 1.2, 0.8, 'estimate', [{ distributor: 'Bürklin (holder)', sku: '46G6020' }]);
 }
 

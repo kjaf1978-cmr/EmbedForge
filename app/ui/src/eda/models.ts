@@ -225,6 +225,8 @@ export const CONTACTORS: NamedModel<ContactorModel>[] = [
   ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
   // DC power contactor for battery circuits (pole 1–2 only; rated current on DC, not AC-3)
   { name: '150 A DC, coil 48 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation of 48 V inverters); coil 48 V DC, 190 Ω (12 W), fed from the battery itself', model: { ac3: 150, coil: 'dc', vcoil: 48, rcoil: 190, lcoil: 0.8 } },
+  { name: '150 A DC, coil 24 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation of 24 V inverters); coil 24 V DC, 48 Ω (12 W), fed from the battery itself', model: { ac3: 150, coil: 'dc', vcoil: 24, rcoil: 48, lcoil: 0.2 } },
+  { name: '200 A DC, coil 12 V', note: 'single-pole DC contactor 200 A continuous, 80 V DC (battery isolation of 12 V inverters: 159 A at the 10.5 V cut-out); coil 12 V DC, 12 Ω (12 W), fed from the battery itself', model: { ac3: 200, coil: 'dc', vcoil: 12, rcoil: 12, lcoil: 0.05 } },
   { name: '150 A DC, coil 12 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation, inverter pre-charge bypass); coil 12 V DC, 12 Ω', model: { ac3: 150, coil: 'dc', vcoil: 12, rcoil: 12, lcoil: 0.05 } },
 ];
 
