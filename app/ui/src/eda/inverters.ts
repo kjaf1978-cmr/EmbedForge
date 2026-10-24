@@ -53,9 +53,9 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99', isa
  *  its resistors solved for each (the sense diode's drop does not scale); the current limit is
  *  twice the rated peak. */
 export const LF_VARIANTS = {
-  16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
-  8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
-  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '33.5', lp: '3.13m', rp: '0.63m', rs: '0.85', k: '0.9997', isat: '10.9' }, vprim: '6.9', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
+  16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rdc1: '470k', rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
+  8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
+  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '33.5', lp: '3.13m', rp: '0.63m', rs: '0.85', k: '0.9997', isat: '10.9' }, vprim: '6.9', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
 };
 
 /**
@@ -265,7 +265,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
     .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM393', pkg: 'OVL' }, oc: vr.oc });
+  inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM393', pkg: 'OVL' }, oc: vr.oc, rdc1: vr.rdc1 });
   // the output voltage limit's LM393: its second comparator is the unit's one spare
   nb.part('USPL', 'comparator', 1560, 1440, { value: 'LM393', pkg: 'OVL' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' });
 
@@ -288,7 +288,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
  *  ground, `q50` the 50 Hz square that switches the sine's square; `cmpT` the package of the
  *  triangle's comparator; `hybrid`: leg B switches at 50 Hz, leg A carries the PWM (else
  *  unipolar: leg B from the inverted sine); `swb` the net of leg B's node (default SWB). */
-export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string; oc?: string[] }) {
+export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string; senseOpen?: boolean }, c: { V: string; G: string; q50: string; cmpT: Record<string, string>; cmpV: Record<string, string>; hybrid?: boolean; swb?: string; oc?: string[]; rdc1?: string }) {
   const { V, G } = c;
   // ---- the square VME ± VA/2: H = VMID + VA/2, L = 2·VME − H; QSQ connects SQ to L while Q50
   // is high, RSQ to H otherwise. VME = VMID + the DC servo's correction: the square's mean, and
@@ -383,15 +383,19 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   // put them at 24 V, above its supply, and the servo ran away: the output carried up to 250 V
   // DC and the overvoltage latch tripped, found in simulation); the loop's gain is 7 times the
   // 50 Hz unit's (the whole bus per volt of VME), and 4.4 MΩ bring its time constant back to
-  // about 40 ms, far below 50 Hz
+  // about 40 ms, far below 50 Hz. The integrator's gain is 1/(RDA1·CDI) whatever RDA2, and the
+  // primary's volts per volt of VME follow the bus: the 24 and 12 V units scale RDA1/RDB1 with
+  // it (237k, 118k) to keep the 48 V loop. With 470k at 24 V the primary still carried 12.5 A DC
+  // at 300 ms, and at 12 V the flux walked until the core saturated every other half cycle
+  // (667 A) and the current limit tripped (found in simulation)
   nb.block('dc servo');
   if (c.hybrid) nb.part('RDA1', 'resistor', 900, 900, { value: '2.2M' }, { '1': 'SWA', '2': 'NDA' })
     .part('RDA1B', 'resistor', 1000, 900, { value: '2.2M' }, { '1': 'NDA', '2': 'NDC' });
-  else nb.part('RDA1', 'resistor', 1000, 900, { value: '470k' }, { '1': 'SWA', '2': 'NDC' });
+  else nb.part('RDA1', 'resistor', 1000, 900, { value: c.rdc1 ?? '470k' }, { '1': 'SWA', '2': 'NDC' });
   nb.part('RDA2', 'resistor', 1000, 1000, { value: '47k' }, { '1': 'NDC', '2': 'VMID' });
   if (c.hybrid) nb.part('RDB1', 'resistor', 920, 1230, { value: '2.2M' }, { '1': c.swb ?? 'SWB', '2': 'PDA' })
     .part('RDB1B', 'resistor', 1000, 1150, { value: '2.2M' }, { '1': 'PDA', '2': 'PDC' });
-  else nb.part('RDB1', 'resistor', 1000, 1150, { value: '470k' }, { '1': c.swb ?? 'SWB', '2': 'PDC' });
+  else nb.part('RDB1', 'resistor', 1000, 1150, { value: c.rdc1 ?? '470k' }, { '1': c.swb ?? 'SWB', '2': 'PDC' });
   nb.part('RDB2', 'resistor', 1100, 1250, { value: '47k' }, { '1': 'PDC', '2': 'VMID' }, 1)
     .part('CDB', 'capacitor', 1000, 1250, { value: '2.2u', vmax: '25' }, { '1': 'PDC', '2': 'VMID' }, 1)
     .part('UDC', 'opamp', 1200, 1050, { value: 'TL074', pkg: 'SIG1' }, { '3': 'PDC', '2': 'NDC', '6': 'VME', '7': V, '4': G })
