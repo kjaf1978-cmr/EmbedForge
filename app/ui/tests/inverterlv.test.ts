@@ -39,6 +39,8 @@ for (const cells of [8, 4] as const) {
   const vr = LF_VARIANTS[cells], unit = `${cells * 3} V ${vr.kw} kW unit`;
   // the bridge current's bound: the limit and the same 25 % overshoot as the 48 V unit (650 A over 519 A)
   const ilimMax = vr.ilim * 1.25, rload = Number(vr.rload) / 3;
+  // EN's high level follows the control rail (12 V; the 12 V unit's control runs on 9 V)
+  const enHigh = vr.aux === 'direct' ? 6 : 8;
 
   describe(`50 Hz-transformer inverter, ${unit}: the drawing`, () => {
     it('ERC clean, every connection drawn as a wire or label, text readable', () => {
@@ -76,7 +78,7 @@ for (const cells of [8, 4] as const) {
       expect(kClose).toBeGreaterThan(0);
       expect(s.max(ibat.slice(0, kClose))).toBeLessThan(vr.vbat / 10 * 1.1);
       expect(s.r.v['BUS'][kClose]).toBeGreaterThan(0.88 * vr.vbat);
-      expect(s.last('EN')).toBeGreaterThan(8);
+      expect(s.last('EN')).toBeGreaterThan(enHigh);
     }, 3_600_000);
 
     for (const [what, o, starts] of [
@@ -86,7 +88,7 @@ for (const cells of [8, 4] as const) {
       ['a fully charged battery (3.65 V a cell)', { vbat: 3.65 * cells }, true],
     ] as [string, InverterLfOptions, boolean][]) it(`${what}: the bridge ${starts ? 'starts once the contactor has closed' : 'stays stopped'}`, async () => {
       const s = await run({ cells, ...o, precharged: true, stop: '24m' });
-      if (starts) expect(s.last('EN')).toBeGreaterThan(8);
+      if (starts) expect(s.last('EN')).toBeGreaterThan(enHigh);
       else { expect(s.max(s.r.v['EN'])).toBeLessThan(1); expect(s.max(s.r.v['OUTL'].map(Math.abs))).toBeLessThan(1); }
     }, 3_600_000);
 
