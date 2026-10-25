@@ -53,9 +53,9 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99', isa
  *  its resistors solved for each (the sense diode's drop does not scale); the current limit is
  *  twice the rated peak. */
 export const LF_VARIANTS = {
-  16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rdc1: '470k', rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
-  8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
-  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '33.5', lp: '3.13m', rp: '0.63m', rs: '0.85', k: '0.9997', isat: '10.9' }, vprim: '6.9', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
+  16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rdc1: '470k', rpc: '10', rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
+  8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rpc: '10', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
+  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '33.5', lp: '3.13m', rp: '0.63m', rs: '0.85', k: '0.9997', isat: '10.9' }, vprim: '6.9', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '4.7', rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
 };
 
 /**
@@ -97,9 +97,12 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('X2', 'terminal', -1200, -40, { value: 'BAT−' }, { '1': 'GND' })
     .part('F1', 'fuse', -1050, -160, { value: vr.fuse, r: '0.3m' }, { '1': 'BP', '2': 'BF' })
     // pre-charge: diode (a reversed battery charges nothing) and 10 Ω, 50 W aluminium-housed
-    // (4.7 mF: 91 % in 0.11 s, 6.4 J, 5.2 A at most)
+    // (4.7 mF: 91 % in 0.11 s, 6.4 J, 5.2 A at most). The 12 V unit 4.7 Ω (2.8 A): its
+    // diode's 0.8 V is 6 % of the battery, the bus approached only 12.2 V and through 10 Ω it
+    // reached the 90 % threshold (11.7 V) after 0.15 s, past the contactor's window (found in
+    // simulation); with 4.7 Ω it does so in about 70 ms
     .part('DPC', 'diode', -900, -260, { value: '1N5408' }, { '2': 'BF', '1': 'PCA' })
-    .part('RPC', 'resistor', -780, -260, { value: '10', pmax: '50' }, { '1': 'PCA', '2': 'BUS' })
+    .part('RPC', 'resistor', -780, -260, { value: vr.rpc, pmax: '50' }, { '1': 'PCA', '2': 'BUS' })
     // the contactor's coil (the battery's voltage) from the battery after the input diode DAUX:
     // a reversed battery cannot energise it through QK's body diode
     .part('K1', 'contactor', -820, -100, { value: vr.k1 }, { A1: 'AXA', A2: 'KC', '1': 'BF', '2': 'BUS', '13': 'BKA', '14': 'GND' })

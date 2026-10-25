@@ -76,15 +76,15 @@ for (const cells of [8, 4] as const) {
       expect(overRated(s)).toEqual([]);
     }, 14_400_000);
 
-    it('I-1 connecting the battery: the bus charges through 10 Ω, the contactor closes above 91 % of the battery, then the bridge is released', async () => {
+    it(`I-1 connecting the battery: the bus charges through ${vr.rpc} Ω, the contactor closes above 91 % of the battery, then the bridge is released`, async () => {
       const s = await run({ cells, stop: '150m' });
       const ibat = s.cur('BAT', '1').map(Math.abs), kClose = s.x.findIndex((t, k) => t > 1e-3 && s.r.v['BKA'][k] < 0.3);
       expect(kClose).toBeGreaterThan(0);
-      // the bus charges through the 10 Ω alone; the battery also charges the control supply's
+      // the bus charges through the pre-charge resistor alone; the battery also charges the control supply's
       // input through RAUX for microseconds (24 V: 22 Ω, about 1.1 A beside the 2.5 A; the
       // 48 V unit's 220 Ω takes 0.24 A)
-      expect(s.max(s.cur('RPC', '1').map(Math.abs).slice(0, kClose))).toBeLessThan(vr.vbat / 10 * 1.1);
-      expect(s.max(ibat.slice(0, kClose))).toBeLessThan((vr.vbat / 10 + vr.vbat / Number(vr.raux)) * 1.1);
+      expect(s.max(s.cur('RPC', '1').map(Math.abs).slice(0, kClose))).toBeLessThan(vr.vbat / Number(vr.rpc) * 1.1);
+      expect(s.max(ibat.slice(0, kClose))).toBeLessThan((vr.vbat / Number(vr.rpc) + vr.vbat / Number(vr.raux)) * 1.1);
       expect(s.r.v['BUS'][kClose]).toBeGreaterThan(0.88 * vr.vbat);
       expect(s.last('EN')).toBeGreaterThan(enHigh);
     }, 3_600_000);
