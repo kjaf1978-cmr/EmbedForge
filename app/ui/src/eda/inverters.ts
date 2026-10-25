@@ -302,7 +302,11 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     // H = 1.5 × (2·VMID + VA)/3 = VMID + VA/2: a weighted sum straight into the high-impedance
     // input (a 10k VA/2 divider here was loaded by the sum and gave H = VMID + 1.5 V with VA = 0:
     // the bridge started at 45 % modulation and the OV latch tripped, found in simulation)
-    .part('RH1', 'resistor', -700, 960, { value: '100k' }, { '1': 'VMID', '2': 'HP' })
+    // 50 Hz unit: from VME, so H = VME + VA/2 and the servo's correction shifts the whole square.
+    // From VMID it entered L alone (three times, with the flux servo), and its 80 mV of 50 Hz
+    // ripple modulated the square's amplitude: 1.2 % second harmonic at the output (12 V unit,
+    // THD 3.4 %; found in simulation, D34)
+    .part('RH1', 'resistor', -700, 960, { value: '100k' }, { '1': c.flux ? 'VME' : 'VMID', '2': 'HP' })
     .part('RH2', 'resistor', -700, 1060, { value: '200k' }, { '1': 'VA', '2': 'HP' })
     .part('UH', 'opamp', -560, 1000, { value: 'TL074', pkg: 'SIG1' }, { '3': 'HP', '2': 'HN', '6': 'H', '7': V, '4': G })
     .part('RHF', 'resistor', -560, 900, { value: '4.99k' }, { '1': 'HN', '2': 'H' })
