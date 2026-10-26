@@ -55,7 +55,7 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99', isa
 export const LF_VARIANTS = {
   16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rdc1: '470k', rpc: '10', rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
   8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rpc: '10', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
-  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '36.9', lp: '2.57m', rp: '0.52m', rs: '0.85', k: '0.9997', isat: '12' }, vprim: '6.25', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '4.7', rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
+  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '36.9', lp: '2.57m', rp: '0.52m', rs: '0.85', k: '0.9997', isat: '12' }, vprim: '6.25', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '1', dpc: 'STTH6003', bulk: { n: 6, value: '4700u', vmax: '35', esr: '0.05' }, rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
 };
 
 /**
@@ -97,11 +97,11 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('X2', 'terminal', -1200, -40, { value: 'BAT−' }, { '1': 'GND' })
     .part('F1', 'fuse', -1050, -160, { value: vr.fuse, r: '0.3m' }, { '1': 'BP', '2': 'BF' })
     // pre-charge: diode (a reversed battery charges nothing) and 10 Ω, 50 W aluminium-housed
-    // (4.7 mF: 91 % in 0.11 s, 6.4 J, 5.2 A at most). The 12 V unit 4.7 Ω (2.8 A): its
-    // diode's 0.8 V is 6 % of the battery, the bus approached only 12.2 V and through 10 Ω it
-    // reached the 90 % threshold (11.7 V) after 0.15 s, past the contactor's window (found in
-    // simulation); with 4.7 Ω it does so in about 70 ms
-    .part('DPC', 'diode', -900, -260, { value: '1N5408' }, { '2': 'BF', '1': 'PCA' })
+    // (4.7 mF: 91 % in 0.11 s, 6.4 J, 5.2 A at most). The 12 V unit: 1 Ω and a 60 A diode for its
+    // 28 mF bus (13 A at most, 2 J, 90 % in about 0.1 s); through 10 Ω and the 1N5408 even its
+    // first 4.7 mF reached the contactor's threshold only after 0.15 s (the diode's 0.8 V is 6 %
+    // of a 12 V battery: found in simulation)
+    .part('DPC', 'diode', -900, -260, { value: 'dpc' in vr ? vr.dpc : '1N5408' }, { '2': 'BF', '1': 'PCA' })
     .part('RPC', 'resistor', -780, -260, { value: vr.rpc, pmax: '50' }, { '1': 'PCA', '2': 'BUS' })
     // the contactor's coil (the battery's voltage) from the battery after the input diode DAUX:
     // a reversed battery cannot energise it through QK's body diode
@@ -115,7 +115,13 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
   // bulk: two low-ESR electrolytics, 20 mΩ together: they damp the battery cables' inductance
   // against the bus (√(2 µH / 4.7 mF) = 20 mΩ). With the film capacitors alone a short circuit
   // rang the bus between 0 and 113 V, above the MOSFETs' 100 V (found in simulation)
-  for (let k = 0; k < 2; k++) nb.part(`CE${k + 1}`, 'capacitor_pol', -600 + 70 * k, 60, { value: '2200u', vmax: '100', esr: '0.04', ...pre }, { '1': 'BUS', '2': 'GND' }, 1);
+  // The 12 V unit: six 4700 µF 35 V (28 mF, 8 mΩ together, √(2 µH / 28 mF) = 8.4 mΩ): at the
+  // same current as the 48 V unit its bus swings as many volts, four times as much of a 12 V
+  // battery; with the 48 V unit's 4.7 mF the current limit during a motor start rang it between
+  // 5 and 17 V, and when the motor dropped it reached 25 V, the high cut-out stopped the bridge
+  // and the output was still at 200 V 100 ms later (found in simulation)
+  const bulk: { n: number; value: string; vmax: string; esr: string } = ('bulk' in vr && vr.bulk) || { n: 2, value: '2200u', vmax: '100', esr: '0.04' };
+  for (let k = 0; k < bulk.n; k++) nb.part(`CE${k + 1}`, 'capacitor_pol', k < 3 ? -600 + 70 * k : -810 + 70 * (k - 3), 60, { value: bulk.value, vmax: bulk.vmax, esr: bulk.esr, ...pre }, { '1': 'BUS', '2': 'GND' }, 1);
 
   // ---- full bridge: 3 MOSFETs per switch, a gate resistor each. A D44H11/D45H11 emitter
   // follower per switch drives the three gates (58 nF): the driver alone (10 Ω) would turn them
