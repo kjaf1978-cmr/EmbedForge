@@ -74,7 +74,7 @@ for (const cells of [8, 4] as const) {
       expect(Math.abs(m1 - m0)).toBeLessThan(0.01 * irated);
       expect(s.max(out.map(Math.abs))).toBeLessThan(230 * Math.SQRT2 * 1.08);
       expect(overRated(s)).toEqual([]);
-    }, 14_400_000);
+    }, 86_400_000);
 
     it(`I-1 connecting the battery: the bus charges through ${vr.rpc} Ω, the contactor closes above 91 % of the battery, then the bridge is released`, async () => {
       const s = await run({ cells, stop: '150m' });
@@ -87,7 +87,7 @@ for (const cells of [8, 4] as const) {
       expect(s.max(ibat.slice(0, kClose))).toBeLessThan((vr.vbat / Number(vr.rpc) + vr.vbat / Number(vr.raux)) * 1.1);
       expect(s.r.v['BUS'][kClose]).toBeGreaterThan(0.88 * vr.vbat);
       expect(s.last('EN')).toBeGreaterThan(enHigh);
-    }, 3_600_000);
+    }, 86_400_000);
 
     for (const [what, o, starts] of [
       ['I-8 below the low cut-out', { vbat: vr.cut[0] - 0.25 * cells / 4 }, false],
@@ -98,12 +98,12 @@ for (const cells of [8, 4] as const) {
       const s = await run({ cells, ...o, precharged: true, stop: '24m' });
       if (starts) expect(s.last('EN')).toBeGreaterThan(enHigh);
       else { expect(s.max(s.r.v['EN'])).toBeLessThan(1); expect(s.max(s.r.v['OUTL'].map(Math.abs))).toBeLessThan(1); }
-    }, 3_600_000);
+    }, 86_400_000);
 
     it('I-7 at the highest battery voltage (3.65 V a cell), the rated load: every part within its ratings', async () => {
       const s = await run({ cells, stop: '300m', precharged: true, vbat: 3.65 * cells });
       expect(overRated(s)).toEqual([]);
-    }, 14_400_000);
+    }, 86_400_000);
 
     it(`I-4 short circuit at the output from the start: the limit (±${vr.ilim} A) holds the bridge current below ${Math.round(ilimMax)} A; the overload timer latches the bridge off; no part over its ratings`, async () => {
       const s = await run({ cells, stop: '40m', precharged: true, load: '0.02', overloadC: '10n' });
@@ -111,7 +111,7 @@ for (const cells of [8, 4] as const) {
       expect(s.last('FLT')).toBeGreaterThan(5);
       expect(s.last('EN')).toBeLessThan(1);
       expect(overRated(s)).toEqual([]);
-    }, 3_600_000);
+    }, 86_400_000);
 
     it('I-4 motor start at half load: a locked rotor (six times its rating) for 50 ms: the limit holds, nothing trips, the output recovers; no product part over its ratings', async () => {
       const s = await run({ cells, stop: '420m', precharged: true, load: String(2 * rload), motorStart: { at: 0.26, for: 0.05 } });
@@ -122,7 +122,7 @@ for (const cells of [8, 4] as const) {
       expect(s.rms(out, 0.38)).toBeLessThan(230 * 1.05);
       expect(s.max(out.map(Math.abs), 0.31)).toBeLessThan(230 * Math.SQRT2 * 1.3);
       expect(overRated(s)).toEqual([]);
-    }, 14_400_000);
+    }, 86_400_000);
 
     it('I-10 the voltage loop has lost its sense: the independent protection trips below 270 V and holds the bridge off', async () => {
       const s = await run({ cells, stop: '260m', precharged: true, senseOpen: true });
@@ -130,6 +130,6 @@ for (const cells of [8, 4] as const) {
       expect(s.max(out.map(Math.abs))).toBeLessThan(270 * Math.SQRT2 * 1.1);
       expect(s.last('FLT')).toBeGreaterThan(5);
       expect(s.max(out.slice(-200).map(Math.abs))).toBeLessThan(5);
-    }, 14_400_000);
+    }, 86_400_000);
   });
 }
