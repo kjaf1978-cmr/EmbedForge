@@ -55,7 +55,7 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99', isa
 export const LF_VARIANTS = {
   16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rdc1: '470k', rpc: '10', rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
   8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rpc: '10', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
-  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '33.5', lp: '3.13m', rp: '0.63m', rs: '0.85', k: '0.9997', isat: '10.9' }, vprim: '6.9', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '4.7', rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
+  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '36.9', lp: '2.57m', rp: '0.52m', rs: '0.85', k: '0.9997', isat: '12' }, vprim: '6.25', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '4.7', rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
 };
 
 /**
@@ -580,7 +580,32 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
 
   // ---- independent output overvoltage (own sense transformer and reference, latched): EN low
   // above 262 V (2.5 V at SP); once tripped it holds itself until the battery is disconnected
-  nb.block('protection')
+  nb.block('protection');
+  // 50 Hz unit (D35): the output's rectified average from a resistive divider (N is the control's
+  // ground), not the peak from a sense transformer. With the loop's sense lost the 12 V unit's
+  // output became a near-square at 283 V r.m.s. but only 356 V peak: the peak sense read it as
+  // 270 V and never tripped, and a sense transformer saturates on such a wave (its knee at 115 %
+  // of the rated flux) and under-reads its average (found in simulation). UPR inverts the
+  // negative half cycles (single supply: its inputs stay at or above ground); RAV1/RAV2 sum the
+  // divider and UPR into CAV, |v|/3 averaged over 67 ms: a load switched off (one half cycle at up
+  // to 380 V) moves it by 2 %
+  if (c.flux) nb
+    .part('RSD1', 'resistor', 150, 1950, { value: '470k', vmax: '350' }, { '1': 'OUTL', '2': 'DV1' })
+    .part('RSD2', 'resistor', 250, 1950, { value: '470k', vmax: '350' }, { '1': 'DV1', '2': 'DVN' })
+    .part('RSD3', 'resistor', 330, 2050, { value: '10k' }, { '1': 'DVN', '2': G }, 1)
+    .part('RPR1', 'resistor', 400, 1950, { value: '100k' }, { '1': 'DVN', '2': 'PRN' })
+    .part('UPR', 'opamp', 500, 2050, { value: 'LM358', pkg: 'OVS' }, { '3': G, '2': 'PRN', '6': 'PRO', '7': V, '4': G })
+    .part('RPR2', 'resistor', 500, 1880, { value: '100k' }, { '1': 'PRN', '2': 'PRO' })
+    .part('RAV1', 'resistor', 650, 1880, { value: '200k' }, { '1': 'DVN', '2': 'SP' })
+    .part('RAV2', 'resistor', 650, 2000, { value: '100k' }, { '1': 'PRO', '2': 'SP' })
+    .part('CAV', 'capacitor', 780, 2150, { value: '1u', vmax: '25' }, { '1': 'SP', '2': G }, 1)
+    // the LM358's second half is the unit's one spare (a follower on the ground)
+    .part('USPR', 'opamp', 560, 2250, { value: 'LM358', pkg: 'OVS' }, { '3': G, '2': 'SPRO', '6': 'SPRO', '7': V, '4': G })
+    // 2.5 V × 10k / 31.5k = 0.794 V: the trip at 265 V r.m.s. for a sine (the ripple's peak),
+    // 10 % above the highest regulation (237 V)
+    .part('RRP1', 'resistor', 900, 1720, { value: '21.5k' }, { '1': 'VREF2', '2': 'VRP' }, 1)
+    .part('RRP2', 'resistor', 900, 2250, { value: '10k' }, { '1': 'VRP', '2': G }, 1);
+  else nb
     .part('TRS2', 'transformer', 150, 1950, SENSE_TR, { '1': 'OUTL', '2': 'GND', '3': 'SAP', '4': 'SBP' })
     .part('RSP', 'resistor', 270, 2050, { value: '220' }, { '1': 'SAP', '2': 'SNP' }, 1)
     .part('CSP', 'capacitor', 270, 2150, { value: '100n', vmax: '63' }, { '1': 'SNP', '2': 'SBP' }, 1)
@@ -591,10 +616,11 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
     // 21 ms: it trips on an overvoltage that lasts (a failed loop), not on the one half cycle at
     // up to 380 V peak (117 %, within the ITIC curve) when a large load is switched off (that
     // tripped it at the end of a motor start: found in simulation)
-    .part('CSPF', 'capacitor', 820, 2150, { value: '2.2u', vmax: '25' }, { '1': 'SP', '2': G }, 1)
+    .part('CSPF', 'capacitor', 820, 2150, { value: '2.2u', vmax: '25' }, { '1': 'SP', '2': G }, 1);
+  nb
     .part('RREF2', 'resistor', 850, 1850, { value: '2.2k' }, { '1': V, '2': 'VREF2' }, 1)
     .part('UREF2', 'tl431', 850, 1980, { value: 'TL431' }, { '1': 'VREF2', '2': G, '3': 'VREF2' }, 3)
-    .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': 'VREF2', '1': 'FLT', '8': V, '4': G })
+    .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': c.flux ? 'VRP' : 'VREF2', '1': 'FLT', '8': V, '4': G })
     .part('RFLT', 'resistor', 1100, 1850, { value: '2.2k' }, { '1': V, '2': 'FLT' }, 1)
     // the latch: FLT high (7.3 V with the LED and QFL's base) holds SP at 3.5 V through DLAT and
     // RLAT with the sense at zero (4.7k and 47k held only 0.6 V: the trip released itself when

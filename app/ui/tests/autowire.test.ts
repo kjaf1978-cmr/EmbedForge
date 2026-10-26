@@ -94,13 +94,13 @@ describe('no wasted parts (owner, 16 October: D31): no unused units beyond what 
     expect(spares(s).length).toBe(1);
     expect(s.parts.filter((p) => p.sym === 'opamp' && p.props.value === 'TL072')).toEqual([]);
   });
-  it('inverter (50 Hz transformer): every package full (two LM339, an LM393, two TL074, two LM358, a CD4013); no spare (the flux integrator shares an LM358 with the output voltage limit)', () => {
+  it('inverter (50 Hz transformer): every package full but one (two LM339, an LM393, two TL074, three LM358, a CD4013); one spare op-amp (the protection\'s rectifier in its own LM358), no spare comparator', () => {
     // logic packages by symbol (their value is the supply rail)
     const units: Record<string, number> = { LM339: 4, LM393: 2, TL074: 4, LM358: 2, dff: 2 };
     const pk = new Map<string, { value: string; n: number }>();
     for (const p of inverterLF().sheet.parts) if (p.props.pkg) { const v = p.sym === 'dff' ? 'dff' : p.props.value; const e = pk.get(p.props.pkg) ?? { value: v, n: 0 }; e.n++; pk.set(p.props.pkg, e); }
     expect([...pk].map(([k, e]) => `${k} ${e.value} ${e.n}/${units[e.value]}`)).toEqual([...pk].map(([k, e]) => `${k} ${e.value} ${units[e.value]}/${units[e.value]}`));
-    expect(pk.size).toBe(8);
+    expect(pk.size).toBe(9);
     expect(spares(inverterLF().sheet)).toEqual([]);
   }, 30_000);
   it('no separate gate resistor where a pull-up already limits the current (change-over drives)', () => {
