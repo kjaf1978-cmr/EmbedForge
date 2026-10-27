@@ -483,7 +483,7 @@ Long runs on the final circuits (October 26–27; 1.5 to 4.5 hours each on a loa
 | the same with end-of-life electrolytics | passed | passed | passed |
 | connecting the battery (I-1) | passed | passed | passed |
 | battery window and heatsink: no start (I-8, I-9, I-11), fully charged battery | running | passed | passed |
-| rated load at the highest battery voltage (I-7) | running | passed | passed |
+| rated load at the highest battery voltage (I-7) | passed | passed | passed |
 | short circuit at the output (I-4) | passed | passed | passed |
 | motor start at half load, locked rotor for 50 ms (I-4) | running | passed | passed |
 | loop sense open: protection trips and latches (I-10) | passed | passed | passed |
