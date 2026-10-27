@@ -63,11 +63,15 @@ export const LF_VARIANTS = {
  *  turns fall with the battery (Lp and the winding by n², the saturation current by n: the same
  *  1.64 × the magnetising current of a half period), the auxiliary transformer keeps the high
  *  side's 15 V supply, the current transformer's burden and the sine bridge's shunt keep their
- *  limits at the same multiple of the rated current. */
+ *  limits at the same multiple of the rated current. The auxiliary transformer's primary by
+ *  1/n² too: with the 48 V unit's 20 mH and a ratio of 4 its leakage, seen from the secondary,
+ *  was 400 Ω at 20 kHz and the 15 V sagged to 12.4 V, below its undervoltage lockout. The 12 V
+ *  unit's burden 0.68 Ω: the output inductor's ripple, reflected 48 times, set its pulses at
+ *  370 A, and through 1 Ω it ran at its limit (both found in simulation). */
 export const HF_VARIANTS = {
-  16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1', trarp: '0.5', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
-  8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2', trarp: '0.12', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
-  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '4', trarp: '0.03', cxb: '33u', rbd: '1', rshi: '4.99m', rsl: '3.74k' },
+  16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1', trarp: '0.5', tralp: '20m', trarc: '4.7k', traisat: '0.05', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
+  8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2', trarp: '0.12', tralp: '5m', trarc: '1.2k', traisat: '0.1', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
+  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '4', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k' },
 } as const;
 
 /**
@@ -819,7 +823,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.block('hv supply')
     .part('CXB', 'capacitor', 1150, 300, { value: hv.cxb, vmax: '100' }, { '1': 'XB', '2': 'GND' }, 1)
     // saturates at 50 mA magnetising current, 2.7 × the 18 mA of ±29 V for 12.5 µs
-    .part('TRA', 'transformer', 1250, 200, { value: hv.tra, lp: '20m', rp: hv.trarp, rs: '0.5', k: '0.99', rc: '4.7k', isat: '0.05' }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
+    .part('TRA', 'transformer', 1250, 200, { value: hv.tra, lp: hv.tralp, rp: hv.trarp, rs: '0.5', k: '0.99', rc: hv.trarc, isat: hv.traisat }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
     // 10k across the winding damp the ringing of its leakage with the bridge's capacitance
     .part('RXA', 'resistor', 1330, 400, { value: '10k' }, { '1': 'XA1', '2': 'XA2' }, 1)
     .part('BRA', 'bridge', 1380, 300, { value: 'DB107' }, { '1': 'XA1', '2': 'XA2', '3': 'VXH', '4': G })
