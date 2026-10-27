@@ -20,7 +20,7 @@
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
 | UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 815 passed, 32 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
-| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a: all passed at −10 … +60 °C and with aged electrolytics, then re-run after the DC servo changes of October 25 (27 °C start-up passed, the rest queued); P7b: all passed (section 3i) |
+| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a and its 24 V and 12 V units (P7c): re-run on the final circuits of October 26 (section 3j; the 24 V and 12 V units all passed, the 48 V unit's last four runs in progress); P7b: all passed (section 3i) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9, and again 17 October with `PW_CHROMIUM=/opt/pw-browsers/chromium`); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
@@ -441,6 +441,52 @@ high-frequency unit's 2 to 16 hours):
 | motor start, locked rotor 85 A for 50 ms (I-4, H-7) | passed | passed |
 | loop sense open: protection trips and latches (I-10, H-10) | passed | passed |
 | bus feedback lost (H-3), bus shorted (H-4) | — | passed |
+
+## 3j. P7c: the 50 Hz-transformer inverter's 24 V and 12 V units (D33, 24–27 October 2026)
+
+The 24 V 3 kW and 12 V 1.5 kW units come from the 48 V drawing (`inverterLF({ cells: 8 | 4 })`,
+`LF_VARIANTS` in src/eda/inverters.ts) and run the same DFMEA tests at the D32 corners
+(tests/inverterlv.test.ts). Their first runs found faults that the 48 V unit's margins had
+hidden; the shared fixes went into all three units, so the 48 V unit's long runs were repeated.
+
+Design changes found by these runs:
+
+- **DC servo** (all units; DFMEA I-5): its input resistors scale with the bus (24 V 237k, 12 V
+  118k) to keep the loop's gain; its reset empties both capacitors (QDB), so it restarts at
+  VME = VMID (with one, the 12 V unit's square started 7 % off its triangle and the core
+  saturated every other half cycle); a **flux servo** (UFX, a second integrator into the square's
+  mean) drives the start's flux offset to zero instead of holding it (the 24 V unit's primary
+  still carried 12.5 A DC after 0.3 s).
+- **The square's high half from VME** (all units, D34): the servo's 50 Hz ripple no longer
+  modulates the square's amplitude (second harmonic 1.2 % → 0.55 %).
+- **Average-type output overvoltage protection** (all units, D35; DFMEA I-10): a resistive
+  divider and an LM358 precision rectifier, the rectified average over 67 ms, trip at about
+  265 V r.m.s. With the loop's sense lost the 12 V unit's output became a near-square at
+  283 V r.m.s. but only 356 V peak, just under the old peak-type trip, and nothing tripped.
+- **12 V unit:** its control on its own 9 V (LM2940-9.0; on the battery the PWM triangle and
+  every threshold moved with the bus ripple, single cycles of the output carried up to 15 V
+  mean); transformer ratio 36.9 (6.25 V primary, D35); a 28 mF bus (6 × 4700 µF 35 V: with
+  4.7 mF the current limit of a motor start rang it between 5 and 17 V and the high cut-out
+  stopped the bridge when the motor dropped); pre-charge through 1 Ω and a 60 A diode.
+- **Test corrections:** I-1 bounds the pre-charge resistor's current (the battery also charges
+  the control supply's input for microseconds); EN's high level by the control rail; the 12 V
+  unit's THD bound is the product specification, 5 % (D34: 3.2 % after the improvement, mostly
+  the third harmonic of the square's filter residue and the bridge at 13 V).
+
+Long runs on the final circuits (October 26–27; 1.5 to 4.5 hours each on a loaded machine):
+
+| Test | 48 V 5 kW | 24 V 3 kW | 12 V 1.5 kW |
+|---|---|---|---|
+| start-up at the rated load, 27 °C: 230 V ± 3 %, THD (3 %; 12 V 5 %), no DC on the primary, no overshoot, stress check | passed | passed | passed |
+| the same at +60 °C (junctions 125 °C) | passed | passed | passed |
+| the same at −10 °C | passed | passed | passed |
+| the same with end-of-life electrolytics | passed | passed | passed |
+| connecting the battery (I-1) | passed | passed | passed |
+| battery window and heatsink: no start (I-8, I-9, I-11), fully charged battery | running | passed | passed |
+| rated load at the highest battery voltage (I-7) | running | passed | passed |
+| short circuit at the output (I-4) | running | passed | passed |
+| motor start at half load, locked rotor for 50 ms (I-4) | running | passed | passed |
+| loop sense open: protection trips and latches (I-10) | passed | passed | passed |
 
 ## 4. Usability (section 22 step 4)
 

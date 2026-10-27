@@ -257,6 +257,18 @@ Reliability (RELIABILITY.md): 238 parts, 1956 FIT, 58 years at 45 °C. Still to 
 a person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
 default) take about 12 minutes.
 
+### P7c — the 50 Hz-transformer inverter's 24 V and 12 V units (D33)
+
+`inverterLF({ cells: 8 })` (24 V, 3 kW) and `inverterLF({ cells: 4 })` (12 V, 1.5 kW) from the
+P7a drawing: the transformer, battery window, contactor, fuse, current-limit thresholds and
+test loads per unit (`LF_VARIANTS`); the DC servo's input resistors scaled with the bus. The
+12 V unit adds its own 9 V control rail (LM2940-9.0; the drivers stay on the battery), a
+6.25/230 V transformer, a 28 mF bus (6 × 4700 µF 35 V) and a pre-charge through 1 Ω and an
+STTH6003. Shared with P7a since these runs: the DC servo's reset of both capacitors, the flux
+servo (UFX), the square's high half from VME (D34) and the average-type independent
+overvoltage protection (D35). Verified by simulation at the D32 corners, every DFMEA test of
+section 5 (TEST_REPORT.md section 3j); the 12 V unit's THD bound is 5 % (D34: 3.2 % measured).
+
 ### P7b — inverter, high-frequency type (one 5 kW unit, 48 V; DFMEA section 6)
 
 Example `inverter-hf` (src/eda/inverters.ts, `inverterHF`): the same battery side as P7a (class
