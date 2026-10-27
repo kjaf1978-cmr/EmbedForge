@@ -20,7 +20,7 @@
 | Rust core tests | `cd core && cargo test --locked` | 63 passed, 1 ignored |
 | Tauri shell tests, incl. project storage | `cd app/src-tauri && cargo test`, clippy `-D warnings` | 10 passed, 0 warnings (0.2.3) |
 | UI unit tests: schematic core, editor, examples, simulator, every part | `cd app/ui && npm test` | 815 passed, 32 skipped (after 0.2.9, 17 October; the charger tests are split over three files that skip each other's cases, the long inverter runs need `npm run test:long`) |
-| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a and its 24 V and 12 V units (P7c): re-run on the final circuits of October 26 (section 3j; the 24 V and 12 V units all passed, the 48 V unit's last four runs in progress); P7b: all passed (section 3i) |
+| Inverter DFMEA runs (P7a, P7b) | `cd app/ui && CKPT=<dir> npm run test:long` | P7a and its 24 V and 12 V units (P7c): all passed on the final circuits of October 26, at −10 … +60 °C and with aged electrolytics (section 3j); P7b: all passed (section 3i) |
 | — of which SIM-04 against ngspice 42 | `tests/sim.ngspice.test.ts` | 55 cases agree (18 reference circuits, 13 cases at −20 to 125 °C, 12 example schematics, 12 part decks), plus the FFT against ngspice's (0.2.5) |
 | Browser tests, incl. axe in both themes and four usability scenarios | `npx playwright test` | 43 passed (0.2.9, and again 17 October with `PW_CHROMIUM=/opt/pw-browsers/chromium`); 41 passed, 3 consecutive runs (0.2.6) |
 | CI on GitHub-hosted runners | `core`, `ui`, `package` | green on the Increment 2 commits (section 2) |
@@ -485,7 +485,7 @@ Long runs on the final circuits (October 26–27; 1.5 to 4.5 hours each on a loa
 | battery window and heatsink: no start (I-8, I-9, I-11), fully charged battery | passed | passed | passed |
 | rated load at the highest battery voltage (I-7) | passed | passed | passed |
 | short circuit at the output (I-4) | passed | passed | passed |
-| motor start at half load, locked rotor for 50 ms (I-4) | running | passed | passed |
+| motor start at half load, locked rotor for 50 ms (I-4) | passed | passed | passed |
 | loop sense open: protection trips and latches (I-10) | passed | passed | passed |
 
 ## 4. Usability (section 22 step 4)
