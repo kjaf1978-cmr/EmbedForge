@@ -27,7 +27,7 @@ export interface Stress {
 
 /** Absolute maximum ratings of the built-in models (datasheets; TO-92/TO-220 in free air). */
 const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>> = {
-  diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, UF4007: { If: 1, Vr: 1000, P: 3 }, '1N5408': { If: 3, Vr: 1000, P: 6 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 }, STTH6003: { If: 60, Vr: 300, P: 3.5 }, C4D20120A: { If: 20, Vr: 1200, P: 3.5 } },
+  diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, UF4007: { If: 1, Vr: 1000, P: 3 }, '1N5408': { If: 3, Vr: 1000, P: 6 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 }, STTH6003: { If: 60, Vr: 300, P: 3.5 }, C4D20120A: { If: 20, Vr: 1200, P: 3.5 }, C4D02120A: { If: 2, Vr: 1200, P: 1.5 } },
   // TVS: 1 W steady state, 400 W peak pulse (10/1000 µs)
   tvs: { '*': { P: 1, Ppk: 400 }, '5KP64A': { P: 8, Ppk: 5000 } },
   bridge: { DB107: { If: 1, Vr: 1000 }, KBP206: { If: 2, Vr: 600 }, GBU8K: { If: 8, Vr: 800 } },
@@ -63,7 +63,7 @@ export const THERMAL: Record<string, { tj: number; rjc: number }> = {
   IKW30N60T: { tj: 175, rjc: 0.5 }, IKW50N60T: { tj: 175, rjc: 0.45 }, IKW40N120T2: { tj: 175, rjc: 0.31 }, 'generic 600 V 20 A': { tj: 150, rjc: 0.8 },
   MJE340: { tj: 150, rjc: 6.25 }, BD139: { tj: 150, rjc: 10 }, BD140: { tj: 150, rjc: 10 }, D44H11: { tj: 150, rjc: 2.5 }, D45H11: { tj: 150, rjc: 2.5 },
   LM317: { tj: 125, rjc: 5 }, LM317HV: { tj: 125, rjc: 5 }, '7805': { tj: 125, rjc: 5 }, '7809': { tj: 125, rjc: 5 }, '7812': { tj: 125, rjc: 5 },
-  STTH6003: { tj: 175, rjc: 0.6 }, C4D20120A: { tj: 175, rjc: 0.5 }, SS34: { tj: 150, rjc: 15 }, GBU8K: { tj: 150, rjc: 2.2 }, KBP206: { tj: 150, rjc: 8 },
+  STTH6003: { tj: 175, rjc: 0.6 }, C4D20120A: { tj: 175, rjc: 0.5 }, C4D02120A: { tj: 175, rjc: 3.5 }, SS34: { tj: 150, rjc: 15 }, GBU8K: { tj: 150, rjc: 2.2 }, KBP206: { tj: 150, rjc: 8 },
 };
 
 const UNIT: Record<Quantity, 'W' | 'V' | 'A' | 'J'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A', Ipk: 'A', E: 'J', Vb: 'V', Idm: 'A', Icm: 'A', Isat: 'A' };

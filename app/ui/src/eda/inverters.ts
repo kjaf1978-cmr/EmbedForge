@@ -802,6 +802,16 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('DR4', 'diode', 1520, 40, { value: 'C4D20120A', heatsink: '2' }, { '2': G, '1': 'S2' }, 3)
     // its core losses (about 6 W) damp its ringing with the diodes while the current is zero
     .part('LOB', 'inductor', 1650, -160, { value: '470u', imax: '40', rloss: '15k', isat: '40' }, { '1': 'RP', '2': 'HBUS' });
+  // the clamp (D36): each half period the rectifier's output rises to the transformer's ratio
+  // times the battery (about 620 … 870 V) and the leakage inductance rang with the diodes'
+  // capacitance to 1.6 times that: 1000 V on the 1200 V rectifiers at full load, over 1200 V
+  // while the 12 V unit started (the snubber across the winding cannot reach it; 1 nF there
+  // changed less than 30 V, found in simulation). The capacitor follows the plateau through its
+  // diode and takes only the overshoot; the three resistors bleed it (1.7 W at 870 V)
+  nb.part('DCL', 'diode', 1600, -340, { value: 'C4D02120A' }, { '2': 'RP', '1': 'CL' }, 3)
+    .part('CCL', 'capacitor', 1700, -400, { value: '100n', vmax: '1200', ...(o.precharged ? { ic: String(Number(hv.tr.value) * vb) } : {}) }, { '1': 'CL', '2': G }, 1);
+  const cl = ['CL', 'CL1', 'CL2', G];
+  for (let k = 0; k < 3; k++) nb.part(`RCL${k + 1}`, 'resistor', 1780, -480 + 90 * k, { value: '150k', pmax: '2' }, { '1': cl[k], '2': cl[k + 1] }, 1);
   const hpre: Record<string, string> = o.precharged ? { ic: '380' } : {};
   for (let k = 0; k < 4; k++) nb.part(`CH${k + 1}`, 'capacitor_pol', 1750 + 70 * k, -60, { value: '470u', vmax: '450', esr: '0.15', ...hpre }, { '1': 'HBUS', '2': G }, 1);
   for (let k = 0; k < 2; k++) nb.part(`CHF${k + 1}`, 'capacitor', 2030 + 70 * k, -60, { value: '2.2u', vmax: '630', ...hpre }, { '1': 'HBUS', '2': G }, 1);

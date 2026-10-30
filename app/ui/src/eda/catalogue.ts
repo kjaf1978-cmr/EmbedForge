@@ -56,6 +56,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   diode: {
     C4D20120A: e('C4D20120A', 'Wolfspeed', 'SiC Schottky diode 1200 V 20 A, TO-220-2 (no reverse recovery)', 9.5, 6.2, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
+    C4D02120A: e('C4D02120A', 'Wolfspeed', 'SiC Schottky diode 1200 V 2 A, TO-220-2 (no reverse recovery)', 2.4, 1.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
     '1N5819': e('1N5819', 'various', 'Schottky diode 1 A 40 V, DO-41', 0.12, 0.03, 'estimate', any('DO-41')),
     UF4007: e('UF4007', 'various', 'ultrafast rectifier 1 A 1000 V, 75 ns, DO-41 (bootstrap diode)', 0.12, 0.03, 'estimate', any('DO-41')),
     STTH6003: e('STTH6003CW', 'STMicroelectronics', 'ultrafast diode 2 × 30 A 300 V, TO-247 (both diodes in parallel)', 2.55, 1.7, 'live', [{ distributor: 'Digi-Key' }, { distributor: 'RS', sku: '168-6090' }], 'lead times up to 25 weeks seen'),

@@ -21,6 +21,7 @@ export const DIODES: NamedModel<DiodeModel>[] = [
   // SiC Schottky: no reverse recovery (no ringing at the turn-off of a high-voltage rectifier);
   // fitted to 1.0 V at 1 A and 1.5 V at 20 A (25 °C)
   { name: 'C4D20120A', note: 'SiC Schottky diode, 1200 V / 20 A (TO-220-2): high-voltage rectifier of converters, no reverse recovery (approximate model)', model: { is: 2e-12, n: 1.4, rs: 0.025, bv: 1200, ibv: 1e-4, cj: 100e-12 } },
+  { name: 'C4D02120A', note: 'SiC Schottky diode, 1200 V / 2 A (TO-220-2): clamp and snubber diode of high-voltage converters, no reverse recovery (approximate model)', model: { is: 2e-13, n: 1.4, rs: 0.25, bv: 1200, ibv: 1e-5, cj: 15e-12 } },
   { name: 'STTH6003', note: 'ultrafast power rectifier, 300 V / 60 A (TO-247): freewheeling diode of converters', model: { is: 2.05e-7, n: 1.6, rs: 0.0057, bv: 300, ibv: 1e-4, cj: 100e-12 } },
 ];
 
