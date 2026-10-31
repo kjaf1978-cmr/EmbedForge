@@ -1081,6 +1081,13 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     nb.block('output')
       .part('LF1', 'inductor', 3000, -160, { value: '470u', imax: '80', isat: '80' }, { '1': 'SWA', '2': 'OUTL' })
       .part('COUT', 'capacitor', 3130, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
+      // the damper (D37): the filter (470 µH, 10 µF: 2.3 kHz, 6.9 Ω) rang at each zero crossing,
+      // damped only by the load (resonance peak 5.2 at 1.5 kW, undamped without a load): the 12 V
+      // unit's output crossed zero twice within 0.2 ms and the frequency read 100 Hz (found in
+      // simulation). 10 µF in series with 10 Ω: the peak 2.2 at 1.5 kW, 3.1 without a load;
+      // 5.2 W at 230 V 50 Hz (15 µF would bring 1.8 for twice the loss)
+      .part('CDO', 'capacitor', 3180, 60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'DMO' }, 1)
+      .part('RDO', 'resistor', 3180, 160, { value: '10', pmax: '10' }, { '1': 'DMO', '2': 'GND' }, 1)
       .part('RVO', 'mov', 3230, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
       .part('X3', 'terminal', 3350, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
       .part('X4', 'terminal', 3350, -80, { value: 'N out' }, { '1': 'GND' }, 2)
