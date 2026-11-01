@@ -102,6 +102,8 @@ function checkOutput(s: Awaited<ReturnType<typeof runHF>>, t1: number) {
   const k0 = s.x.findIndex((t) => t >= t1), xs = s.x.slice(k0), ys = out.slice(k0), T = xs[xs.length - 1] - xs[0];
   const h = (n: number) => { let a = 0, b = 0; for (let k = 1; k < xs.length; k++) { const d = xs[k] - xs[k - 1], w = 2 * Math.PI * 50 * n * xs[k]; a += ys[k] * Math.cos(w) * d; b += ys[k] * Math.sin(w) * d; } return (Math.hypot(a, b) * 2) / T; };
   const h1 = h(1), thd = Math.sqrt([...Array(14)].reduce((m, _, i) => m + h(i + 2) ** 2, 0)) / h1;
+  // the spectrum in the log, so a failed run shows which harmonics (a long run keeps no waveform)
+  console.log(`output ${(h1 / Math.SQRT2).toFixed(1)} V, THD ${(thd * 100).toFixed(2)} %: ${[...Array(14)].map((_, i) => `H${i + 2} ${(h(i + 2) / h1 * 100).toFixed(2)}`).join(' ')}`);
   expect(h1 / Math.SQRT2).toBeGreaterThan(230 * 0.97);
   expect(h1 / Math.SQRT2).toBeLessThan(230 * 1.03);
   expect(thd).toBeLessThan(0.03);
