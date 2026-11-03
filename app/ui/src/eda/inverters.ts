@@ -69,9 +69,9 @@ export const LF_VARIANTS = {
  *  unit's burden 0.68 Ω: the output inductor's ripple, reflected 48 times, set its pulses at
  *  370 A, and through 1 Ω it ran at its limit (both found in simulation). */
 export const HF_VARIANTS = {
-  16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1', trarp: '0.5', tralp: '20m', trarc: '4.7k', traisat: '0.05', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
-  8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2', trarp: '0.12', tralp: '5m', trarc: '1.2k', traisat: '0.1', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
-  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '4', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k' },
+  16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1', tras: '0.5', trarp: '0.5', tralp: '20m', trarc: '4.7k', traisat: '0.05', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
+  8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2.4', tras: '0.72', trarp: '0.12', tralp: '5m', trarc: '1.2k', traisat: '0.1', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
+  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '5.6', tras: '0.98', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k' },
 } as const;
 
 /**
@@ -830,10 +830,16 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   // pulses too: across both legs it got almost nothing at no load, and the 15 V fell to 4 V,
   // found in simulation), through a blocking capacitor: ±V(battery)/2, rectified 19.6 … 27.8 V,
   // regulated to 15 V for the high-voltage side
+  // (D39) the 12 V unit's leg A sags with its bridge supply under its 125 A pulses: at 13 V
+  // and the rated load the rectified voltage fell to 15.9 V in one half cycle, the LM317HV lost
+  // its headroom, the 15 V (and with it the PWM triangle and VMID) dropped by 1 V, and the
+  // output showed crossover distortion (THD 4.3 %, a second zero crossing; found in
+  // simulation). The 12 V and 24 V units' secondaries have more turns (ratio 5.6 and 2.4
+  // instead of 4 and 2, the same primary and core, the winding's resistance by the turns²)
   nb.block('hv supply')
     .part('CXB', 'capacitor', 1150, 300, { value: hv.cxb, vmax: '100' }, { '1': 'XB', '2': 'GND' }, 1)
     // saturates at 50 mA magnetising current, 2.7 × the 18 mA of ±29 V for 12.5 µs
-    .part('TRA', 'transformer', 1250, 200, { value: hv.tra, lp: hv.tralp, rp: hv.trarp, rs: '0.5', k: '0.99', rc: hv.trarc, isat: hv.traisat }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
+    .part('TRA', 'transformer', 1250, 200, { value: hv.tra, lp: hv.tralp, rp: hv.trarp, rs: hv.tras, k: '0.99', rc: hv.trarc, isat: hv.traisat }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
     // 10k across the winding damp the ringing of its leakage with the bridge's capacitance
     .part('RXA', 'resistor', 1330, 400, { value: '10k' }, { '1': 'XA1', '2': 'XA2' }, 1)
     .part('BRA', 'bridge', 1380, 300, { value: 'DB107' }, { '1': 'XA1', '2': 'XA2', '3': 'VXH', '4': G })
@@ -1081,13 +1087,6 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     nb.block('output')
       .part('LF1', 'inductor', 3000, -160, { value: '470u', imax: '80', isat: '80' }, { '1': 'SWA', '2': 'OUTL' })
       .part('COUT', 'capacitor', 3130, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
-      // the damper (D37): the filter (470 µH, 10 µF: 2.3 kHz, 6.9 Ω) rang at each zero crossing,
-      // damped only by the load (resonance peak 5.2 at 1.5 kW, undamped without a load): the 12 V
-      // unit's output crossed zero twice within 0.2 ms and the frequency read 100 Hz (found in
-      // simulation). 10 µF in series with 10 Ω: the peak 2.2 at 1.5 kW, 3.1 without a load;
-      // 5.2 W at 230 V 50 Hz (15 µF would bring 1.8 for twice the loss)
-      .part('CDO', 'capacitor', 3180, 60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'DMO' }, 1)
-      .part('RDO', 'resistor', 3180, 160, { value: '10', pmax: '10' }, { '1': 'DMO', '2': 'GND' }, 1)
       .part('RVO', 'mov', 3230, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
       .part('X3', 'terminal', 3350, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
       .part('X4', 'terminal', 3350, -80, { value: 'N out' }, { '1': 'GND' }, 2)
