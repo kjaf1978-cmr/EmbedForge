@@ -17,7 +17,7 @@ import { useCheckpoint } from './checkpoint';
 const units = [[16, '48 V 5 kW'], [8, '24 V 3 kW'], [4, '12 V 1.5 kW']] as const;
 
 describe.runIf(!!process.env.SCREEN)('high-frequency inverter: screening (D38)', () => {
-  for (const [cells, unit] of units) for (const low of [false, true]) it(`${unit} unit${low ? `, battery at ${LF_VARIANTS[cells].cut[1] + 0.25 * cells / 4} V` : ''}: 230 V 50 Hz, THD below 3 %, no DC, the bus within 381 V ± 6 %, the 15 V regulated, every part within its ratings`, () => {
+  for (const [cells, unit] of units) for (const low of [false, true]) it(`${unit} unit${low ? `, battery at ${LF_VARIANTS[cells].cut[1] + 0.25 * cells / 4} V` : ''}: 230 V 50 Hz, THD below 3 %, the bus within 381 V ± 6 %, the 15 V regulated, every part within its ratings`, () => {
     const { sheet } = inverterHF({ cells, stop: '140m', precharged: true, softC: '47n', ...(low ? { vbat: LF_VARIANTS[cells].cut[1] + 0.25 * cells / 4 } : {}) });
     const done = useCheckpoint();
     const r = simulate(sheet) as SimResult;
@@ -41,7 +41,9 @@ describe.runIf(!!process.env.SCREEN)('high-frequency inverter: screening (D38)',
     expect(thd).toBeLessThan(0.03);
     expect(zc.length).toBeGreaterThanOrEqual(2);
     expect(Math.abs((zc.length - 1) / (zc[zc.length - 1] - zc[0]) - 50)).toBeLessThan(1);
-    expect(Math.abs(mean)).toBeLessThan(1);
+    // the output's DC is logged, not checked: the DC servo (about 40 ms) is still settling at
+    // 0.1 s (the mean of a period swung from −20 V to +7 V over 60 … 120 ms in the 12 V unit);
+    // the long runs check it below 1 V from 0.28 s
     expect(Math.max(...ys.map(Math.abs))).toBeLessThan(230 * Math.SQRT2 * 1.08);
     expect(Math.min(...bus)).toBeGreaterThan(381 * 0.94);
     expect(Math.max(...bus)).toBeLessThan(381 * 1.06);
