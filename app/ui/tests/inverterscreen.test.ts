@@ -18,10 +18,12 @@ const units = [[16, '48 V 5 kW'], [8, '24 V 3 kW'], [4, '12 V 1.5 kW']] as const
 
 describe.runIf(!!process.env.SCREEN)('high-frequency inverter: screening (D38)', () => {
   // the low case: the unit starts just above its restart level and the battery falls (from 30 ms,
-  // over 10 ms) until its terminals sit 0.15 V a 4 cells above the cut-out at the rated load (the
-  // source plus the drop in the battery's 0.01 Ω a 16 cells), where a running unit still works
-  const low = (cells: 16 | 8 | 4) => { const vr = LF_VARIANTS[cells], v = vr.cut[0] + 0.15 * cells / 4; return { vbat: vr.cut[1] + 0.25 * cells / 4, vbatTo: Number((v + (vr.kw * 1000 / 0.9 / v) * 0.01 * cells / 16).toFixed(2)) }; };
-  for (const [cells, unit] of units) for (const lo of [false, true]) it(`${unit} unit${lo ? `, battery falling to ${low(cells).vbatTo} V (${(LF_VARIANTS[cells].cut[0] + 0.15 * cells / 4).toFixed(2)} V at its terminals)` : ''}: 230 V 50 Hz, THD below 3 %, the bus within 381 V ± 6 %, the 15 V regulated, every part within its ratings`, () => {
+  // over 10 ms) until its terminals sit 0.5 V a 4 cells above the cut-out at the rated load (the
+  // source plus the drop in the battery's 0.01 Ω a 16 cells): the lowest point a running unit
+  // still works at (0.15 V a 4 cells, the 24 V unit's 100 Hz ripple took it below the cut-out
+  // and it stopped, as it should)
+  const low = (cells: 16 | 8 | 4) => { const vr = LF_VARIANTS[cells], v = vr.cut[0] + 0.5 * cells / 4; return { vbat: vr.cut[1] + 0.25 * cells / 4, vbatTo: Number((v + (vr.kw * 1000 / 0.9 / v) * 0.01 * cells / 16).toFixed(2)) }; };
+  for (const [cells, unit] of units) for (const lo of [false, true]) it(`${unit} unit${lo ? `, battery falling to ${low(cells).vbatTo} V (${(LF_VARIANTS[cells].cut[0] + 0.5 * cells / 4).toFixed(2)} V at its terminals)` : ''}: 230 V 50 Hz, THD below 3 %, the bus within 381 V ± 6 %, the 15 V regulated, every part within its ratings`, () => {
     const { sheet } = inverterHF({ cells, stop: '140m', precharged: true, softC: '47n', ...(lo ? low(cells) : {}) });
     const done = useCheckpoint();
     const r = simulate(sheet) as SimResult;
