@@ -54,8 +54,8 @@ const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99', isa
  *  twice the rated peak. */
 export const LF_VARIANTS = {
   16: { vbat: 52, kw: 5, bat: '48 V LiFePO4 battery (16 cells, 42 … 58.4 V)', cut: [42, 47, 61], tr: { value: '8.36', lp: '15m', rp: '3m', rs: '0.25', k: '0.999', isat: '9.1' }, vprim: '27.5', rbs1: '200k', rlvh: '475k', rbh1: '243k', rpb1: '200k', rpu1: '182k', k1: '150 A DC, coil 48 V', fuse: '200', aux: 'lm317' as const, raux: '220', oc: ['86.6k', '7.5k', '6.19k'], ilim: 519, rdc1: '470k', rpc: '10', rload: '32.4', motor: { rs: '0.5', rr: '0.6', ls: '4m', lm: '0.15' } },
-  8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '150 A DC, coil 24 V', fuse: '200', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rpc: '10', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
-  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '36.9', lp: '2.57m', rp: '0.52m', rs: '0.85', k: '0.9997', isat: '12' }, vprim: '6.25', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '200 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '1', dpc: 'STTH6003', bulk: { n: 6, value: '4700u', vmax: '35', esr: '0.05' }, rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
+  8: { vbat: 26, kw: 3, bat: '24 V LiFePO4 battery (8 cells, 21 … 29.2 V)', cut: [21, 23.5, 30.5], tr: { value: '16.7', lp: '6.25m', rp: '1.26m', rs: '0.42', k: '0.9994', isat: '10.9' }, vprim: '13.75', rbs1: '93.1k', rlvh: '442k', rbh1: '115k', rpb1: '100k', rpu1: '90.9k', k1: '250 A DC, coil 24 V', fuse: '250', aux: 'lm317' as const, raux: '22', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '237k', rpc: '10', rload: '52.3', motor: { rs: '0.83', rr: '1', ls: '6.67m', lm: '0.25' } },
+  4: { vbat: 13, kw: 1.5, bat: '12 V LiFePO4 battery (4 cells, 10.5 … 14.6 V)', cut: [10.5, 11.75, 15.5], tr: { value: '36.9', lp: '2.57m', rp: '0.52m', rs: '0.85', k: '0.9997', isat: '12' }, vprim: '6.25', rbs1: '39.2k', rlvh: '332k', rbh1: '51.1k', rpb1: '49.9k', rpu1: '45.3k', k1: '250 A DC, coil 12 V', fuse: '250', aux: 'direct' as const, raux: '1', oc: ['86.6k', '8.87k', '5.62k'], ilim: 607, rdc1: '118k', rpc: '1', dpc: 'STTH6003', bulk: { n: 6, value: '4700u', vmax: '35', esr: '0.05' }, rload: '105', motor: { rs: '1.67', rr: '2', ls: '13.3m', lm: '0.5' } },
 };
 
 /** The high-frequency unit's parts that differ by battery (the battery side as LF_VARIANTS):
@@ -69,9 +69,9 @@ export const LF_VARIANTS = {
  *  unit's burden 0.68 Ω: the output inductor's ripple, reflected 48 times, set its pulses at
  *  370 A, and through 1 Ω it ran at its limit (both found in simulation). */
 export const HF_VARIANTS = {
-  16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1', tras: '0.5', trarp: '0.5', tralp: '20m', trarc: '4.7k', traisat: '0.05', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
-  8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2.4', tras: '0.72', trarp: '0.12', tralp: '5m', trarc: '1.2k', traisat: '0.1', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
-  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '5.6', tras: '0.98', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k' },
+  16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1.2', tras: '0.72', trarp: '0.5', tralp: '20m', trarc: '4.7k', traisat: '0.05', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
+  8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2.7', tras: '0.91', trarp: '0.12', tralp: '5m', trarc: '1.2k', traisat: '0.1', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
+  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '6.2', tras: '1.2', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k' },
 } as const;
 
 /**
@@ -667,6 +667,10 @@ export interface InverterHfOptions extends InverterLfOptions {
   busLoad?: string;
   /** Tests: the bus voltage feedback has failed (the optocoupler's LED open, DFMEA H-3). */
   feedbackOpen?: boolean;
+  /** Tests: the battery falls from `vbat` to this voltage over 10 ms from `vbatAt` (default 30 ms):
+   *  a running unit stays on down to its cut-out, below the level it starts at. */
+  vbatTo?: number;
+  vbatAt?: number;
 }
 
 /**
@@ -709,8 +713,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
 
   // ---- battery (test bench), input, pre-charge and contactor: as the 50 Hz-transformer unit
   nb.block('battery').note('TEST BENCH (not part of the product): the battery and its cables', -1400, -220)
-    .part('BAT', 'battery', -1350, -100, { value: String(vb), rint: String(0.01 * cells / 16) }, o.reversed ? { '1': 'GND', '2': 'BC' } : { '1': 'BC', '2': 'GND' }, 1)
+    .part('BAT', 'battery', -1350, -100, { value: String(o.vbatTo ?? vb), rint: String(0.01 * cells / 16) }, o.reversed ? { '1': 'GND', '2': 'BC' } : { '1': o.vbatTo !== undefined ? 'BD' : 'BC', '2': 'GND' }, 1)
     .part('LBAT', 'inductor', -1290, -200, { value: '2u', imax: '1000' }, { '1': 'BC', '2': 'BP' });
+  // the falling battery: a source in series that steps from vbat − vbatTo to zero
+  if (o.vbatTo !== undefined) nb.part('VBD', 'vpulse', -1450, -100, { value: '0', low: String(vb - o.vbatTo), freq: '1', duty: '100', delay: String(o.vbatAt ?? 0.03), edge: '10m' }, { '1': 'BC', '2': 'BD' }, 1);
   nb.block('dcin')
     .part('X1', 'terminal', -1200, -160, { value: 'BAT+' }, { '1': 'BP' })
     .part('X2', 'terminal', -1200, -40, { value: 'BAT−' }, { '1': 'GND' })
@@ -834,8 +840,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   // and the rated load the rectified voltage fell to 15.9 V in one half cycle, the LM317HV lost
   // its headroom, the 15 V (and with it the PWM triangle and VMID) dropped by 1 V, and the
   // output showed crossover distortion (THD 4.3 %, a second zero crossing; found in
-  // simulation). The 12 V and 24 V units' secondaries have more turns (ratio 5.6 and 2.4
-  // instead of 4 and 2, the same primary and core, the winding's resistance by the turns²)
+  // simulation). At the battery's cut-out (a running unit stays on below the level it starts
+  // at) the rectified voltage falls in proportion; the secondaries have more turns for about
+  // 19 V there in every unit: ratio 1.2, 2.7 and 6.2 instead of 1, 2 and 4 (the same primary and
+  // core, the winding's resistance by the turns²)
   nb.block('hv supply')
     .part('CXB', 'capacitor', 1150, 300, { value: hv.cxb, vmax: '100' }, { '1': 'XB', '2': 'GND' }, 1)
     // saturates at 50 mA magnetising current, 2.7 × the 18 mA of ±29 V for 12.5 µs
