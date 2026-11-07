@@ -71,7 +71,7 @@ export const LF_VARIANTS = {
 export const HF_VARIANTS = {
   16: { tr: { value: '12', lp: '100u', rp: '1m', rs: '0.15', k: '0.9995', rc: '150', isat: '12' }, tra: '1.2', tras: '0.72', trarp: '0.5', tralp: '20m', trarc: '4.7k', traisat: '0.05', cxb: '2.2u', rbd: '1.2', rshi: '1.5m', rsl: '4.99k' },
   8: { tr: { value: '24', lp: '25u', rp: '0.25m', rs: '0.15', k: '0.9995', rc: '37.5', isat: '24' }, tra: '2.7', tras: '0.91', trarp: '0.12', tralp: '5m', trarc: '1.2k', traisat: '0.1', cxb: '10u', rbd: '1', rshi: '2.49m', rsl: '4.99k' },
-  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '6.2', tras: '1.2', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k' },
+  4: { tr: { value: '48', lp: '6.25u', rp: '62.5u', rs: '0.15', k: '0.9995', rc: '9.4', isat: '48' }, tra: '6.2', tras: '1.2', trarp: '0.03', tralp: '1.25m', trarc: '300', traisat: '0.2', cxb: '33u', rbd: '0.68', rshi: '4.99m', rsl: '3.74k', nq: 3 },
 } as const;
 
 /**
@@ -677,7 +677,7 @@ export interface InverterHfOptions extends InverterLfOptions {
  * Inverter, one 5 kW unit, high-frequency type: 48 V LiFePO4 battery → isolated DC-DC converter
  * to a 380 V bus → IGBT sine bridge and LC filter → 230 V 50 Hz.
  *
- * DC-DC converter: MOSFET full bridge (2 × IRFP4468 per switch) at 20 kHz, phase-shifted: leg A
+ * DC-DC converter: MOSFET full bridge (2 × IRFP4468 per switch, 3 in the 12 V unit) at 20 kHz, phase-shifted: leg A
  * a 50 % square, leg B the same square shifted, so the ferrite transformer (1 : 12, gapped) gets
  * ±V(battery) from leg A's edge until leg B follows and freewheels for the rest. Leg B follows
  * when the primary current reaches the command (peak current-mode control: each half period
@@ -734,10 +734,15 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   for (let k = 0; k < bulk.n; k++) nb.part(`CE${k + 1}`, 'capacitor_pol', k < 3 ? -600 + 70 * k : -810 + 70 * (k - 3), 60, { value: bulk.value, vmax: bulk.vmax, esr: bulk.esr, ...pre }, { '1': 'BUS', '2': 'GND' }, 1);
 
   // ---- DC-DC full bridge: 2 MOSFETs per switch, emitter-follower gate buffers as in the 50 Hz
-  // unit (the drivers alone are too slow for 39 nF within their 0.5 µs dead time)
+  // unit (the drivers alone are too slow for 39 nF within their 0.5 µs dead time). The 12 V
+  // unit has 3: with the bus shorted (H-4) the output inductor's current ratchets up by the
+  // shortest pulse the limit can end (about 1 µs at 48 × 13 V) to about 18 A, and the primary
+  // carries it times 48: 854 A, 427 A in each of two MOSFETs rated 390 A pulsed (found in
+  // simulation); the 48 V unit's ratio 12 gives 360 A
+  const nq = 'nq' in hv ? hv.nq : 2;
   nb.block('dc-dc bridge');
   ([['A', -150, 'LA'], ['B', 550, 'LB']] as const).forEach(([leg, x0, sw]) => {
-    for (let k = 0; k < 2; k++) {
+    for (let k = 0; k < nq; k++) {
       const x = x0 + 120 * k;
       nb.part(`QH${leg}${k + 1}`, 'nmos', x, -160, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GH${leg}${k + 1}`, '2': 'BUSD', '3': sw })
         .part(`RGH${leg}${k + 1}`, 'resistor', x - 60, -240, { value: '4.7' }, { '1': `EH${leg}`, '2': `GH${leg}${k + 1}` })
