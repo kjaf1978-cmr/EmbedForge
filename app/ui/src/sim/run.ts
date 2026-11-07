@@ -19,6 +19,9 @@ export interface SimResult {
   /** "REF.PIN" → current into the part at that pin. */
   i: Record<string, number[]>;
   ii?: Record<string, number[]>;
+  /** Transient: per "REF.PIN", ∫ v·i dt and (a pin of one element terminal) ∫ i² dt over every
+   *  accepted step, over the time T (Waveforms.acc). */
+  acc?: { T: number; pv: Record<string, number>; i2: Record<string, number>; ip: Record<string, number>; in: Record<string, number> };
   rails: { net: string; volts: number }[];
   notSimulated: string[];
   warnings: string[];
@@ -292,6 +295,26 @@ function pinCurrents(net: SimNet, w: Waveforms, imag: boolean): Record<string, n
 
 const terms = terminals;
 
+/** Waveforms.acc per part pin. */
+function pinIntegrals(net: SimNet, w: Waveforms): SimResult['acc'] {
+  if (!w.acc) return undefined;
+  const pv: Record<string, number> = {}, i2: Record<string, number> = {}, ip: Record<string, number> = {}, iN: Record<string, number> = {};
+  const byName = new Map(net.circuit.elements.map((e) => [e.name, e]));
+  for (const [ref, ps] of net.parts) {
+    for (const [pin, node] of Object.entries(ps.pinNode)) {
+      let p = 0, q = 0, a = 0, b = 0, n = 0;
+      for (const name of ps.elements) {
+        const e = byName.get(name)!;
+        terms(e).forEach((t, k) => { if (t === node && w.acc!.pv[name]) { p += w.acc!.pv[name][k]; q += w.acc!.i2[name][k]; a += w.acc!.ip[name][k]; b += w.acc!.in[name][k]; n++; } });
+      }
+      pv[`${ref}.${pin}`] = p;
+      // the r.m.s. and the rectified means need the pin's own current: one element terminal
+      if (n === 1) { i2[`${ref}.${pin}`] = q; ip[`${ref}.${pin}`] = a; iN[`${ref}.${pin}`] = b; }
+    }
+  }
+  return { T: w.acc.T, pv, i2, ip, in: iN };
+}
+
 /** Windings across an AC supply are shorts at DC: a transient from the operating point starts
  *  with large DC currents that decay only slowly. Switching on (discharged start) is usually meant. */
 function switchOnHint(sheet: Sheet, a: Analysis): string[] {
@@ -345,6 +368,7 @@ export function simulate(sheet: Sheet): SimResult | SimFailure {
       ...(mech && Object.keys(mech).length ? { mech } : {}),
       analysis: plan.analysis.type, xLabel: plan.xLabel, xUnit: plan.xUnit, x: w.x, v, vi: w.vi ? vi : undefined,
       i: pinCurrents(net, w, false), ii: w.ii ? pinCurrents(net, w, true) : undefined,
+      acc: plan.analysis.type === 'tran' ? pinIntegrals(net, w) : undefined,
       rails: net.rails, notSimulated: net.notSimulated, warnings: [...net.warnings, ...w.warnings, ...switchOnHint(sheet, plan.analysis)], ms: performance.now() - t0,
     };
   }

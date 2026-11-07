@@ -82,6 +82,8 @@ function lteStep(hist: [number, number][], t: number, q: number, h: number, meth
 }
 const MAX_EXP = 80;
 
+type Sample = { v: number[]; i: number[][] };
+
 export class SimError extends Error {
   /** The waveforms computed before a transient failed (to see what led to it). */
   partial?: Waveforms;
@@ -1094,6 +1096,11 @@ export interface Waveforms {
   vi?: Record<string, number[]>;
   ii?: Record<string, number[][]>;
   warnings: string[];
+  /** Transient only: integrals over every accepted step (not just the kept points), per element
+   *  and terminal: ∫ v(node)·i dt, ∫ i² dt and ∫ i⁺ dt, ∫ i⁻ dt (the positive and negative parts), over the time T. The stress check takes mean
+   *  power, r.m.s. current and energy from them: a thin run's points (and the peaks kept between
+   *  them) sample a switching waveform too coarsely for an average. */
+  acc?: { T: number; pv: Record<string, number[]>; i2: Record<string, number[]>; ip: Record<string, number[]>; in: Record<string, number[]>; last?: { t: number; v: number[]; i: number[][] } };
 }
 
 export interface OpResult { v: Record<string, number>; i: Record<string, number[]>; warnings: string[] }
@@ -1348,14 +1355,93 @@ export class Engine {
   }
 
   private record(c: Ctx, out: Waveforms, xval: number) {
-    out.x.push(xval);
-    for (const name of this.nodeNames) out.v[name].push(V(c.x, this.nodeIndex.get(name)!));
-    for (const d of this.devices) {
-      const cur = d.currents(c.x, c);
-      const arr = out.i[d.el.name];
-      cur.forEach((v, k) => arr[k].push(v));
-    }
+    this.push(out, xval, this.sample(c));
   }
+
+  private sample(c: Ctx): Sample {
+    return { v: this.nodeNames.map((name) => V(c.x, this.nodeIndex.get(name)!)), i: this.devices.map((d) => d.currents(c.x, c)) };
+  }
+
+  private push(out: Waveforms, xval: number, s: Sample) {
+    out.x.push(xval);
+    this.nodeNames.forEach((name, j) => out.v[name].push(s.v[j]));
+    this.devices.forEach((d, j) => { const arr = out.i[d.el.name]; s.i[j].forEach((v, k) => arr[k].push(v)); });
+    if (this.ext) this.extend(out, out.x.length - 1);
+  }
+
+  /** The extremes of every node voltage and device current among the kept points (thin
+   *  transients): a step between print points that goes beyond them by more than 2 % is kept
+   *  too, so a short peak (a reverse-recovery spike, a ring at an edge) is in the waveforms the
+   *  stress check reads. With only the print points, peaks between them were missed (a 30 A
+   *  spike read as 26 A, found in the high-frequency inverter). */
+  private ext: { vmax: number[]; vmin: number[]; imax: number[][]; imin: number[][]; extra: number } | null = null;
+
+  private extend(out: Waveforms, k: number) {
+    const e = this.ext!;
+    this.nodeNames.forEach((name, j) => { const v = out.v[name][k]; if (v > e.vmax[j]) e.vmax[j] = v; if (v < e.vmin[j]) e.vmin[j] = v; });
+    this.devices.forEach((d, j) => out.i[d.el.name].forEach((arr, m) => { const v = arr[k]; if (v > e.imax[j][m]) e.imax[j][m] = v; if (v < e.imin[j][m]) e.imin[j][m] = v; }));
+  }
+
+  private startExtremes(out: Waveforms) {
+    this.ext = { vmax: this.nodeNames.map(() => -Infinity), vmin: this.nodeNames.map(() => Infinity), imax: this.devices.map((d) => out.i[d.el.name].map(() => -Infinity)), imin: this.devices.map((d) => out.i[d.el.name].map(() => Infinity)), extra: 0 };
+    for (let k = 0; k < out.x.length; k++) this.extend(out, k);
+  }
+
+  /** Whether a sample goes beyond the kept extremes (2 %, at least 0.5 V or 50 mA). */
+  private beyondExtremes(s: Sample): boolean {
+    const e = this.ext!;
+    const out = (v: number, hi: number, lo: number, floor: number) => {
+      const tol = Math.max(0.02 * Math.max(Math.abs(hi), Math.abs(lo)), floor);
+      return v > hi + tol || v < lo - tol;
+    };
+    for (let j = 0; j < s.v.length; j++) if (out(s.v[j], e.vmax[j], e.vmin[j], 0.5)) return true;
+    for (let j = 0; j < s.i.length; j++) for (let m = 0; m < s.i[j].length; m++) if (out(s.i[j][m], e.imax[j][m], e.imin[j][m], 0.05)) return true;
+    return false;
+  }
+
+  /** The thin transient's choice for an accepted point between print points: a peak is kept
+   *  with the steps just before and after it, so the averages (power, r.m.s.) weight it over
+   *  its own width, not over the print step to its neighbours (a spike kept alone tripled a
+   *  damping resistor's mean power, found in the high-frequency inverter). */
+  private thinKeep(s: Sample, out: Waveforms, t: number, maxPoints: number) {
+    if ((globalThis as { __simNoExtremes?: boolean }).__simNoExtremes) return;
+    if (!this.ext) this.startExtremes(out);
+    const e = this.ext!;
+    if (this.keepNext) { this.keepNext = false; this.push(out, t, s); this.prev = null; return; }
+    if (e.extra < maxPoints / 4 && this.beyondExtremes(s)) {
+      if (this.prev && this.prev.t > out.x[out.x.length - 1]) { this.push(out, this.prev.t, this.prev.s); e.extra++; }
+      this.push(out, t, s); e.extra += 2; this.keepNext = true; this.prev = null;
+      return;
+    }
+    this.prev = { t, s };
+  }
+
+  private prev: { t: number; s: Sample } | null = null;
+  private termPos: number[][] | null = null;
+
+  /** The integrals of Waveforms.acc, trapezoidal from the previous accepted step. */
+  private accumulate(out: Waveforms, t: number, s: Sample) {
+    const a = out.acc, l = a?.last;
+    if (!a || !l) { if (a) a.last = { t, ...s }; return; }
+    const h = t - l.t;
+    if (h > 0) {
+      if (!this.termPos) { const pos = new Map(this.nodeNames.map((n, k) => [n, k])); this.termPos = this.devices.map((d) => terminals(d.el).map((n) => pos.get(n) ?? -1)); }
+      this.devices.forEach((d, j) => {
+        const tp = this.termPos![j], pv = a.pv[d.el.name], i2 = a.i2[d.el.name];
+        for (let m = 0; m < s.i[j].length; m++) {
+          const vi0 = tp[m] < 0 ? 0 : l.v[tp[m]], vi1 = tp[m] < 0 ? 0 : s.v[tp[m]];
+          pv[m] += 0.5 * h * (vi0 * l.i[j][m] + vi1 * s.i[j][m]);
+          i2[m] += 0.5 * h * (l.i[j][m] ** 2 + s.i[j][m] ** 2);
+          const i0 = l.i[j][m], i1 = s.i[j][m];
+          a.ip[d.el.name][m] += 0.5 * h * (Math.max(i0, 0) + Math.max(i1, 0));
+          a.in[d.el.name][m] += 0.5 * h * (Math.max(-i0, 0) + Math.max(-i1, 0));
+        }
+      });
+      a.T += h;
+    }
+    a.last = { t, ...s };
+  }
+  private keepNext = false;
 
   private newWaveforms(): Waveforms {
     const out: Waveforms = { x: [], v: {}, i: {}, warnings: this.warnings };
@@ -1396,6 +1482,7 @@ export class Engine {
   tran(tstep: number, tstop: number, tmax?: number, maxPoints = 200000, uic = false, thin = false): Waveforms {
     if (!(tstep > 0 && tstop > 0)) throw new SimError('transient: step and stop time must be > 0');
     this.warnings = [];
+    this.ext = null; this.prev = null; this.keepNext = false;
     let c = uic ? this.solveDc1({ t: 0, uic: true }) : this.solveDc({ t: 0 });
     if (uic && this.devices.some((d) => d.pending?.(c.x))) {
       // a discrete state set by the start values (a 555 triggered by its empty capacitor):
@@ -1408,7 +1495,9 @@ export class Engine {
     for (const d of this.devices) d.initTran?.(c.x);
     const out = this.newWaveforms();
     for (const d of this.devices) d.accept?.(c, c.x);
-    this.record(c, out, 0);
+    const s0 = this.sample(c);
+    this.push(out, 0, s0);
+    out.acc = { T: 0, pv: Object.fromEntries(this.devices.map((d, j) => [d.el.name, s0.i[j].map(() => 0)])), i2: Object.fromEntries(this.devices.map((d, j) => [d.el.name, s0.i[j].map(() => 0)])), ip: Object.fromEntries(this.devices.map((d, j) => [d.el.name, s0.i[j].map(() => 0)])), in: Object.fromEntries(this.devices.map((d, j) => [d.el.name, s0.i[j].map(() => 0)])), last: { t: 0, ...s0 } };
     const hmax = Math.min(tmax ?? tstep, tstop / 50);
     const hmin = tstop * 1e-12;
     const hEvent = Math.max(hmax * 1e-3, tstop * 1e-9);
@@ -1434,6 +1523,8 @@ export class Engine {
       // the same elimination order: round-off then follows the uninterrupted run exactly
       if (saved.order) { this.order = saved.order as typeof this.order; this.orderMode = 'tran'; this.solver = new SparseSolver(this.order!); }
       out.x = saved.out.x; out.v = saved.out.v; out.i = saved.out.i;
+      // a checkpoint from before the integrals: without them (the stress check then reads the points)
+      out.acc = saved.out.acc;
       const top = new Set<object>(this.devices);
       this.devices.forEach((d, k) => restoreDevice(d, saved.devs[k], top));
     }
@@ -1482,7 +1573,11 @@ export class Engine {
       t += hh;
       rescue = 0;
       // thin: keep a point only once a print step has passed since the last one kept
-      if (!thin || t - out.x[out.x.length - 1] >= tstep * (1 - 1e-9) || t >= tstop - eps) this.record(c, out, t);
+      const sNow = this.sample(c);
+      this.accumulate(out, t, sNow);
+      if (!thin || t - out.x[out.x.length - 1] >= tstep * (1 - 1e-9) || t >= tstop - eps) { this.push(out, t, sNow); this.prev = null; this.keepNext = false; }
+      // a peak between the print points (at most a quarter of the points are such extras)
+      else this.thinKeep(sNow, out, t, maxPoints);
       if (out.x.length > maxPoints) throw new SimError(`transient: more than ${maxPoints} time points; use a larger step`);
       afterBreak = Math.abs(t - nb) <= eps;
       h = it <= 6 ? Math.min(hmax, hh * 2) : it > 20 ? hh / 2 : hh;

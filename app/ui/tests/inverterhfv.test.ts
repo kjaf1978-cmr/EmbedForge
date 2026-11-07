@@ -57,8 +57,12 @@ function checkOutput(s: Run, t1: number) {
 
 for (const cells of [8, 4] as const) {
   const vr = LF_VARIANTS[cells], hv = HF_VARIANTS[cells], unit = `${cells * 3} V ${vr.kw} kW unit`;
-  // the sine bridge's window and its bound scale with the shunt (48 V: ±69 A, bound 90 A)
-  const window = 0.104 / parseValue(hv.rshi)!, ishMax = window * 90 / 69, rload = Number(vr.rload) / 3;
+  // the sine bridge's window scales with the shunt (48 V: ±69 A); its bound is the window plus
+  // the same 21 A as the 48 V unit's (90 A), not the window × 90/69: the current passes the
+  // window by the diode's recovery spike at each turn-on and the comparator's delay (about
+  // 2.6 µs at 0.81 A/µs), which the bus, the 470 µH and the IGBTs set alike in every unit
+  // (D42: 30 A against 27 A in the 12 V unit, the IGBTs rated 150 A pulsed)
+  const window = 0.104 / parseValue(hv.rshi)!, ishMax = window + 21, rload = Number(vr.rload) / 3;
 
   describe(`high-frequency inverter, ${unit}: the drawing`, () => {
     const { sheet, nb } = inverterHF({ cells });

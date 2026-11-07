@@ -112,11 +112,19 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       rows.push({ ref: p.ref, what: WHAT[q], quantity: q, value, rating: rating!, unit: UNIT[q], pct, status: pct > 100 ? 'over' : pct > derate ? 'derated' : 'ok' });
     };
     const model = p.props.spice?.trim() ? null : RATINGS[p.sym]?.[p.props[s.value.key] ?? ''] ?? RATINGS[p.sym]?.['*'];
-    const P = (pins: string[]) => mean(r.x, power(pins), tran);
+    // averages from the simulator's integrals over every step where it has them (a thin
+    // transient's points sample a switching waveform too coarsely, and the peaks it keeps
+    // between them would weight their own instants over the whole print step)
+    const acc = tran && r.acc && r.acc.T > 0 ? r.acc : undefined;
+    const key = (pin: string) => `${p.ref}.${pin}`;
+    const P = (pins: string[]) => acc && pins.every((q) => key(q) in acc.pv) ? pins.reduce((a, q) => a + acc.pv[key(q)], 0) / acc.T : mean(r.x, power(pins), tran);
+    const rmsI = (pin: string) => acc && key(pin) in acc.i2 ? Math.sqrt(acc.i2[key(pin)] / acc.T) : Math.sqrt(mean(r.x, iPin(pin).map((v) => v * v), tran));
+    const posI = (pin: string) => acc && key(pin) in acc.ip ? acc.ip[key(pin)] / acc.T : mean(r.x, iPin(pin).map((v) => Math.max(v, 0)), tran);
+    const negI = (pin: string) => acc && key(pin) in acc.in ? acc.in[key(pin)] / acc.T : mean(r.x, iPin(pin).map((v) => Math.max(-v, 0)), tran);
     // with a heatsink, the power a part may dissipate follows from its junction temperature limit
     const th = THERMAL[p.props[s.value.key] ?? ''], hs = prop('heatsink');
     const pRating = (free: number | undefined) => (th && hs > 0 ? (th.tj - ta) / (th.rjc + hs) : free);
-    const energy = (pins: string[]) => (tran ? energyOf(r.x, power(pins)) : 0);
+    const energy = (pins: string[]) => (!tran ? 0 : acc && pins.every((q) => key(q) in acc.pv) ? pins.reduce((a, q) => a + acc.pv[key(q)], 0) : energyOf(r.x, power(pins)));
     switch (p.sym) {
       case 'resistor': add('P', P(['1', '2']), prop('pmax')); break;
       case 'potentiometer': add('P', P(['1', '2', '3']), prop('pmax')); break;
@@ -139,7 +147,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         if (!model) { unrated.push(p.ref); break; }
         // anode is pin 2
         const ia = iPin('2');
-        if (model.If) add('If', p.sym === 'led' ? maxOf(ia) : mean(r.x, ia.map((v) => Math.max(v, 0)), tran), model.If);
+        if (model.If) add('If', p.sym === 'led' ? maxOf(ia) : posI('2'), model.If);
         if (model.Vr) add('Vr', maxOf(vAcross('1', '2')), model.Vr);
         if (model.P) add('P', P(['1', '2']), pRating(model.P));
         break;
@@ -154,7 +162,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         add('Vds', peak(vAcross('2', '3')), model.Vds); add('Vgs', peak(vAcross('1', '3')), model.Vgs); add('P', P(['1', '2', '3']), pRating(model.P));
         // a switching MOSFET (Idm given): its continuous rating against the RMS current, its
         // pulsed rating against the peak (a cycle-by-cycle current limit); else the peak
-        if (model.Idm && tran) { const id = iPin('2'); add('Id', Math.sqrt(mean(r.x, id.map((v) => v * v), tran)), model.Id); add('Idm', peak(id), model.Idm); }
+        if (model.Idm && tran) { const id = iPin('2'); add('Id', rmsI('2'), model.Id); add('Idm', peak(id), model.Idm); }
         else add('Id', peak(iPin('2')), model.Id);
         break;
       }
@@ -165,19 +173,19 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         add('Vin', peak(p.sym === 'lm317' ? vAcross(vin, vo) : vAcross(vin, g)), model.Vin);
         // its rated current is a continuous one: the average (charging the output capacitors at
         // power-on it meets its own current limit for a moment, which is not an overload)
-        add('Iout', tran ? mean(r.x, iPin(vo).map(Math.abs), tran) : peak(iPin(vo)), model.Iout); add('P', P([vin, g, vo]), pRating(model.P));
+        add('Iout', tran ? posI(vo) + negI(vo) : peak(iPin(vo)), model.Iout); add('P', P([vin, g, vo]), pRating(model.P));
         break;
       }
       case 'timer555': if (model) { add('Vcc', peak(vAcross('8', '1')), model.Vcc); add('Iout', peak(iPin('3')), model.Iout); add('P', P(['1', '2', '3', '4', '5', '6', '7', '8']), model.P); } break;
       case 'relay': if (model) add('I', Math.max(peak(iPin('4')), peak(iPin('5'))), model.I); break;
       case 'ntc': add('P', P(['1', '2']), prop('pmax')); break;
-      case 'fuse': { const i = iPin('1'); add('Irms', Math.sqrt(mean(r.x, i.map((v) => v * v), tran)), prop('value')); break; }
+      case 'fuse': add('Irms', rmsI('1'), prop('value')); break;
       case 'tvs': if (model) { add('P', P(['1', '2']), model.P); add('Ppk', maxOf(power(['1', '2'])), model.Ppk); } break;
-      case 'bridge': if (model) { add('If', mean(r.x, iPin('3').map((v) => Math.max(-v, 0)), tran), model.If); add('Vr', peak(vAcross('3', '4')), model.Vr); } break;
+      case 'bridge': if (model) { add('If', negI('3'), model.If); add('Vr', peak(vAcross('3', '4')), model.Vr); } break;
       case 'igbt': if (model) {
         add('Vce', peak(vAcross('2', '3')), model.Vce);
         // switching: the continuous rating against the RMS current, the pulsed one against the peak
-        if (model.Icm && tran) { const ic = iPin('2'); add('Ic', Math.sqrt(mean(r.x, ic.map((v) => v * v), tran)), model.Ic); add('Icm', peak(ic), model.Icm); }
+        if (model.Icm && tran) { const ic = iPin('2'); add('Ic', rmsI('2'), model.Ic); add('Icm', peak(ic), model.Icm); }
         else add('Ic', peak(iPin('2')), model.Ic);
         add('Vge', peak(vAcross('1', '3')), model.Vge); add('P', P(['1', '2', '3']), pRating(model.P));
       } break;
@@ -187,7 +195,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       } break;
       case 'mov': { const m = VARISTORS.find((x) => x.name === p.props.value)?.model; if (m) { add('Ipk', peak(iPin('1')), m.imax); add('E', energy(['1', '2']), m.energy); } break; }
       case 'gdt': { const m = GDTS.find((x) => x.name === p.props.value)?.model; if (m) add('Ipk', peak(iPin('1')), m.imax); break; }
-      case 'contactor': { const m = CONTACTORS.find((x) => x.name === p.props.value)?.model; if (m) add('Irms', Math.max(...['1', '3', '5', '7'].map((k) => Math.sqrt(mean(r.x, iPin(k).map((v) => v * v), tran)))), m.ac3); break; }
+      case 'contactor': { const m = CONTACTORS.find((x) => x.name === p.props.value)?.model; if (m) add('Irms', Math.max(...['1', '3', '5', '7'].map((k) => rmsI(k))), m.ac3); break; }
       case 'comparator': if (model) { add('Vs', peak(vAcross('8', '4')), model.Vs); add('Iout', maxOf(iPin('1')), model.Iout); } break;
       case 'hbdriver': if (model) { add('Vs', peak(vAcross('8', '3')), model.Vs); add('Vb', peak(vAcross('7', '3')), model.Vb); } break;
       case 'tl431': if (model) { add('Vka', peak(vAcross('3', '2')), model.Vka); add('Ik', peak(iPin('3')), model.Ik); add('P', P(['1', '2', '3']), model.P); } break;

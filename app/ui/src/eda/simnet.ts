@@ -396,7 +396,12 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'E', name: `${ref}_EIN`, p: u0, n: com, cp: inp, cn: com, gain: 1 },
         { kind: 'R', name: `${ref}_RD`, a: u0, b: u, r: 1e3 },
         { kind: 'C', name: `${ref}_CD`, a: u, b: com, c: tau / 1e3 },
-        { kind: 'S', name: `${ref}_SHU`, p: sd ? `${ref}#hs` : vb, n: ho, cp: u, cn: com, vt: 3.7, vh: 0.05, ron: m.ron, roff: 1e9 },
+        // the high side's undervoltage lockout (IR2184: on above 8.0 V of VB − VS, off below
+        // 7.4 V): from an empty bootstrap capacitor HO stays off. Without it the model drove the
+        // gate with what the capacitor held, and an IGBT switched on from a few volts at the
+        // start ran half on (590 W, found in the high-frequency inverter)
+        { kind: 'S', name: `${ref}_SUV`, p: vb, n: `${ref}#uv`, cp: vb, cn: vs, vt: 7.7, vh: 0.3, ron: 0.01, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SHU`, p: sd ? `${ref}#hs` : `${ref}#uv`, n: ho, cp: u, cn: com, vt: 3.7, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'S', name: `${ref}_SHD`, p: ho, n: vs, cp: com, cn: u, vt: -3.6, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'S', name: `${ref}_SLU`, p: sd ? `${ref}#ls` : vcc, n: lo, cp: com, cn: u, vt: -1.3, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'S', name: `${ref}_SLD`, p: lo, n: com, cp: u, cn: com, vt: 1.4, vh: 0.05, ron: m.ron, roff: 1e9 },
@@ -405,7 +410,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       );
       // SD low (below 1.75 V; the IR2184's 0.8/2.7 V levels): both outputs off at once
       if (sd) out.push(
-        { kind: 'S', name: `${ref}_SSH`, p: vb, n: `${ref}#hs`, cp: sd, cn: com, vt: 1.75, vh: 0.05, ron: 0.01, roff: 1e9 },
+        { kind: 'S', name: `${ref}_SSH`, p: `${ref}#uv`, n: `${ref}#hs`, cp: sd, cn: com, vt: 1.75, vh: 0.05, ron: 0.01, roff: 1e9 },
         { kind: 'S', name: `${ref}_SSL`, p: vcc, n: `${ref}#ls`, cp: sd, cn: com, vt: 1.75, vh: 0.05, ron: 0.01, roff: 1e9 },
         { kind: 'S', name: `${ref}_SHO`, p: ho, n: vs, cp: com, cn: sd, vt: -1.75, vh: 0.05, ron: m.ron, roff: 1e9 },
         { kind: 'S', name: `${ref}_SLO`, p: lo, n: com, cp: com, cn: sd, vt: -1.75, vh: 0.05, ron: m.ron, roff: 1e9 },
