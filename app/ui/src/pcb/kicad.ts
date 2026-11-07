@@ -286,30 +286,49 @@ export interface KicadBoardOptions {
 export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set()): Placed[] {
   // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
   // clearance of the mains nets, copper to copper, to any other net); others 0.5 mm
-  const isMains = (p: BoardPart) => Object.values(p.pads).some((n) => mains.has(n));
-  const xs = parts.map((p) => p.sx), ys = parts.map((p) => p.sy);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const sx = (w - 2 * margin) / Math.max(x1 - x0, 1), sy = (h - 2 * margin) / Math.max(y1 - y0, 1);
+  const nM = (p: BoardPart) => Object.values(p.pads).filter((n) => mains.has(n)).length;
+  const kind = (p: BoardPart): 'mains' | 'edge' | 'ctl' => { const m = nM(p); return !m ? 'ctl' : m === Object.keys(p.pads).length ? 'mains' : 'edge'; };
+  // zones: with mains nets, the mains parts on the left, the control parts on the right, 6 mm
+  // apart; a part with pads on both (a relay: contacts and coil; a transformer: its windings)
+  // at the mains zone's right edge, turned so its mains pads face the mains
+  const parea = (ps: BoardPart[]) => ps.reduce((s0, p) => s0 + area(p.footprint), 0);
+  const ms = parts.filter((p) => kind(p) !== 'ctl'), cs = parts.filter((p) => kind(p) === 'ctl');
+  const split = ms.length && cs.length ? Math.round(w * parea(ms) / parea(parts)) : ms.length ? w : 0;
+  const zone = (p: BoardPart) => (kind(p) === 'ctl' ? { x0: split ? split + 6 : 0, x1: w } : { x0: 0, x1: split || w });
+  const rotOf = (p: BoardPart): 0 | 180 => {
+    if (kind(p) !== 'edge') return 0;
+    const pads = p.footprint.pads, mx = (want: boolean) => { const q = pads.filter((d) => mains.has(p.pads[d.id] ?? '') === want); return q.reduce((s0, d) => s0 + d.x, 0) / Math.max(q.length, 1); };
+    return mx(true) <= mx(false) ? 0 : 180;
+  };
+  const court = (p: BoardPart, rot: 0 | 180) => { const c = p.footprint.courtyard; return rot ? { x0: -c.x1, y0: -c.y1, x1: -c.x0, y1: -c.y0 } : c; };
+  // the schematic's arrangement of each zone's parts scaled into the zone
+  const scale = (ps: BoardPart[], z: { x0: number; x1: number }) => {
+    const xs = ps.map((p) => p.sx), ys = ps.map((p) => p.sy);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    return (p: BoardPart): [number, number] => [z.x0 + margin + (p.sx - x0) * (z.x1 - z.x0 - 2 * margin) / Math.max(x1 - x0, 1), margin + (p.sy - y0) * (h - 2 * margin) / Math.max(y1 - y0, 1)];
+  };
+  const tm = ms.length ? scale(ms, zone(ms[0])) : null, tc = cs.length ? scale(cs, zone(cs[0])) : null;
   const boxes: { x0: number; y0: number; x1: number; y1: number; m: boolean }[] = [];
   const out: Placed[] = [];
-  const order = [...parts].sort((a, b) => area(b.footprint) - area(a.footprint));
+  const order = [...parts].sort((a, b) => (kind(a) === 'edge' ? 0 : 1) - (kind(b) === 'edge' ? 0 : 1) || area(b.footprint) - area(a.footprint));
   for (const p of order) {
-    const c = p.footprint.courtyard, pm = isMains(p);
-    const tx = margin + (p.sx - x0) * sx, ty = margin + (p.sy - y0) * sy;
+    const rot = rotOf(p), c = court(p, rot), pm = kind(p) !== 'ctl', z = zone(p);
+    let [tx, ty] = (kind(p) === 'ctl' ? tc : tm)!(p);
+    if (kind(p) === 'edge') tx = z.x1 - c.x1 - 1;
     let best: [number, number] | null = null;
     for (let r = 0; r < Math.max(w, h) && !best; r += 0.5) {
       const steps = Math.max(1, Math.ceil((2 * Math.PI * r) / 0.5));
       for (let k = 0; k < steps; k++) {
         const x = Math.round((tx + r * Math.cos((2 * Math.PI * k) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * k) / steps)) * 4) / 4;
         const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
-        if (b.x0 < 1 || b.y0 < 1 || b.x1 > w - 1 || b.y1 > h - 1) continue;
+        if (b.x0 < Math.max(1, z.x0) || b.y0 < 1 || b.x1 > Math.min(w - 1, z.x1) || b.y1 > h - 1) continue;
         if (boxes.some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
         best = [x, y]; break;
       }
     }
-    if (!best) throw new Error(`placement: no room for ${p.ref} on ${w} × ${h} mm`);
+    if (!best) throw new Error(`placement: no room for ${p.ref} in its zone of ${w} × ${h} mm`);
     boxes.push({ x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5, m: pm });
-    out.push({ ref: p.ref, x: best[0], y: best[1], rot: 0 });
+    out.push({ ref: p.ref, x: best[0], y: best[1], rot });
   }
   return out;
 }
