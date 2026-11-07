@@ -26,7 +26,7 @@ writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);
 writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));
 // the zones for the two-stage routing (route.py): the mains zone is x < split
-writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: placed ? undefined : placement.split, w: b.w, h: b.h }));
+writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: placed ? undefined : placement.split, edge: placed ? undefined : placement.edge, w: b.w, h: b.h }));
 // the router's class-to-class clearances (route.py adds them to the Specctra file)
 writeFileSync(join(out, 'apart.json'), JSON.stringify(classes.filter((c) => c.apart).map((c) => ({ cls: c.name, mm: c.apart }))));
 writeFileSync(join(out, 'nets.txt'), nl.nets.join('\n') + '\n');

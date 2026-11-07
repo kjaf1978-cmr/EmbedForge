@@ -298,7 +298,7 @@ export interface KicadBoardOptions {
 /** First placement: the schematic's arrangement scaled onto the board, then each part moved
  *  to the nearest free spot (courtyards 1 mm apart), largest parts first. */
 /** The last placement's zones: the x (mm) where the mains zone ends (0: none). */
-export const placement = { split: 0 };
+export const placement = { split: 0, edge: 0 };
 
 export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set()): Placed[] {
   // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
@@ -348,6 +348,9 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
     boxes.push({ x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5, m: pm });
     out.push({ ref: p.ref, x: best[0], y: best[1], rot });
   }
+  // the boundary column: from the leftmost courtyard of the parts with pads on both sides
+  const edges = out.filter((o) => kind(parts.find((p) => p.ref === o.ref)!) === 'edge').map((o) => o.x + court(parts.find((p) => p.ref === o.ref)!, o.rot as 0 | 180).x0);
+  placement.edge = edges.length ? Math.floor(Math.min(...edges)) - 1 : split;
   // refinement: each small part (resistors, capacitors, diodes …) moves to the free spot nearest
   // the pads it connects to on the other parts (a snubber next to its relay's contacts, a
   // decoupling capacitor next to its IC), smallest first, three passes; ground and the supply

@@ -167,12 +167,18 @@ def main():
         a.Save(os.path.join(d, 'stage1.kicad_pcb'))
         a = pcbnew.LoadBoard(os.path.join(d, 'stage1.kicad_pcb'))
         ses1 = freeroute(a, d, 'stage1', passes, apart=False)
-        # stage 2: the whole board with the mains tracks locked; every other net 3.2 mm from them
+        # stage 2: the whole board with the mains tracks locked; the other nets kept out of the
+        # mains zone but for the boundary column (relays, transformer connectors), where KiCad's
+        # check holds them 3.2 mm from the mains (a class-to-class rule made Freerouting run for
+        # more than an hour)
         b = pcbnew.LoadBoard(pcb)
         import_ses(b, ses1, lock=True)
+        edge = zones.get('edge') or split
+        if edge > 2:
+            keepout(b, 0, 0, edge, zones['h'])
         b.Save(os.path.join(d, 'stage2.kicad_pcb'))
         b = pcbnew.LoadBoard(os.path.join(d, 'stage2.kicad_pcb'))
-        ses = freeroute(b, d, 'stage2', passes, apart=True)
+        ses = freeroute(b, d, 'stage2', passes, apart=False)
         board = pcbnew.LoadBoard(pcb)
         import_ses(board, ses)
         # the session of stage 2 may leave out the locked wiring: take stage 1's where it is missing
