@@ -284,8 +284,8 @@ export interface KicadBoardOptions {
 /** First placement: the schematic's arrangement scaled onto the board, then each part moved
  *  to the nearest free spot (courtyards 1 mm apart), largest parts first. */
 export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set()): Placed[] {
-  // a part with a mains pad keeps 3.5 mm from the courtyards of parts without one (the 3.2 mm
-  // clearance of the mains nets, copper to copper); others 1 mm
+  // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
+  // clearance of the mains nets, copper to copper, to any other net); others 0.5 mm
   const isMains = (p: BoardPart) => Object.values(p.pads).some((n) => mains.has(n));
   const xs = parts.map((p) => p.sx), ys = parts.map((p) => p.sy);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
@@ -303,7 +303,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
         const x = Math.round((tx + r * Math.cos((2 * Math.PI * k) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * k) / steps)) * 4) / 4;
         const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
         if (b.x0 < 1 || b.y0 < 1 || b.x1 > w - 1 || b.y1 > h - 1) continue;
-        if (boxes.some((o) => { const g = o.m !== pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
+        if (boxes.some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
         best = [x, y]; break;
       }
     }
