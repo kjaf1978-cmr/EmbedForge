@@ -5,7 +5,7 @@
 // the export found (pins without a pad, nets on one pad).
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { boardNetlist, kicadBoard, type Placed } from '../../app/ui/src/pcb/kicad';
+import { boardNetlist, kicadBoard, kicadRules, type Placed } from '../../app/ui/src/pcb/kicad';
 import { DESIGNS } from './layouts';
 
 const [name, out] = process.argv.slice(2);
@@ -24,6 +24,9 @@ const placed = existsSync(pf) ? (JSON.parse(readFileSync(pf, 'utf8')) as Placed[
 const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w, h: d.h, placed, copperOz: d.copperOz, fill: d.fill, mains });
 writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);
+writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));
+// the router's class-to-class clearances (route.py adds them to the Specctra file)
+writeFileSync(join(out, 'apart.json'), JSON.stringify(classes.filter((c) => c.apart).map((c) => ({ cls: c.name, mm: c.apart }))));
 writeFileSync(join(out, 'nets.txt'), nl.nets.join('\n') + '\n');
 writeFileSync(join(out, 'panel.csv'), ['net;panel terminals;board connector', ...nl.panel.map((w) => `${w.net};${w.ends.join(' ')};${w.board ?? ''}`)].join('\n') + '\n');
 writeFileSync(join(out, 'warnings.txt'), nl.warnings.join('\n') + (nl.warnings.length ? '\n' : ''));

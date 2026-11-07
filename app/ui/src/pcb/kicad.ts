@@ -260,7 +260,21 @@ export function kicadMod(f: Footprint): string {
 }
 
 /** Net classes: patterns on net names (regular expressions), widths and clearances in mm. */
-export interface NetClass { name: string; patterns: string[]; track: number; clearance: number; via?: { d: number; drill: number } }
+export interface NetClass {
+  name: string; patterns: string[]; track: number;
+  /** Clearance between two nets of the class and to nets of classes without `apart`. */
+  clearance: number;
+  /** Clearance between this class's nets and every net of another class (insulation). */
+  apart?: number;
+  via?: { d: number; drill: number };
+}
+
+/** KiCad custom rules (board.kicad_dru) for the classes' insulation distances. */
+export function kicadRules(classes: NetClass[]): string {
+  const r = ['(version 1)'];
+  for (const c of classes) if (c.apart) r.push(`(rule ${q(`${c.name} insulation`)}\n  (constraint clearance (min ${c.apart}mm))\n  (condition "A.NetClass == '${c.name}' && B.NetClass != '${c.name}'"))`);
+  return r.join('\n') + '\n';
+}
 
 export interface Placed { ref: string; x: number; y: number; rot: 0 | 90 | 180 | 270 }
 

@@ -87,6 +87,32 @@ def import_ses(board, ses_path):
     print(f'imported {tracks} track segments, {vias} vias', flush=True)
 
 
+def add_class_class(dsn, apart_json):
+    """The insulation distances (apart.json: a class and its distance to every other class) as
+    Specctra class_class rules, which Freerouting honours; KiCad's export writes only per-class
+    clearances."""
+    import re
+    if not os.path.exists(apart_json):
+        return
+    apart = json.load(open(apart_json))
+    text = open(dsn).read()
+    res = re.search(r'\(resolution um (\d+)\)', text)
+    per_mm = 1000 * int(res.group(1)) if res else 10000
+    classes = re.findall(r'\(class (\S+)', text[text.index('(network'):])
+    rules = []
+    for a in apart:
+        for c in classes:
+            if c != a['cls']:
+                rules.append(f'    (class_class (classes {a["cls"]} {c}) (rule (clearance {int(a["mm"] * per_mm)})))')
+    if not rules:
+        return
+    k = text.index('\n  (wiring')
+    close = text.rindex(')', 0, k)
+    text = text[:close] + '\n'.join(rules) + '\n  ' + text[close:]
+    open(dsn, 'w').write(text)
+    print(f'class_class rules: {len(rules)}', flush=True)
+
+
 def main():
     d = os.path.abspath(sys.argv[1])
     passes = sys.argv[sys.argv.index('--passes') + 1] if '--passes' in sys.argv else '20'
@@ -96,6 +122,7 @@ def main():
     dsn, ses = os.path.join(d, 'board.dsn'), os.path.join(d, 'board.ses')
     if not pcbnew.ExportSpecctraDSN(board, dsn):
         sys.exit('DSN export failed')
+    add_class_class(dsn, os.path.join(d, 'apart.json'))
     if '--reuse' in sys.argv and os.path.exists(ses):
         pass
     else:
@@ -111,6 +138,12 @@ def main():
     filler.Fill(board.Zones())
     routed = os.path.join(d, 'routed.kicad_pcb')
     board.Save(routed)
+    # the custom rules go with the routed board's project (KiCad looks for <name>.kicad_dru)
+    import shutil
+    for ext in ('kicad_dru', 'kicad_pro'):
+        src = os.path.join(d, 'board.' + ext)
+        if os.path.exists(src):
+            shutil.copy(src, os.path.join(d, 'routed.' + ext))
     errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
     print(f'DRC: {len(errors)} errors {dict(kinds)}, {unconnected} unconnected', flush=True)
     fab = os.path.join(d, 'fab')
