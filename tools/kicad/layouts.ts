@@ -16,7 +16,7 @@ export interface Design { panel?: (p: Part) => boolean; sheet: () => Sheet; titl
 const mains = (seeds: string[], track = 2.5) => (s: Sheet): NetClass[] => [classFor('Mains', potentialGroup(s, seeds), track, 3.2)];
 
 export const DESIGNS: Record<string, Design> = {
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']) },
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), fill: 2.8 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P', revision: 'A', classes: () => [] },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N', revision: 'A', classes: () => [] },
   'mppt-charger': { sheet: () => mpptCharger().sheet, title: 'MPPT solar charger 48 V', revision: 'A', classes: () => [] },

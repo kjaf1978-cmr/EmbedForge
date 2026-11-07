@@ -277,19 +277,24 @@ export interface KicadBoardOptions {
   copperOz?: number;
   /** Board area over the parts' courtyard area (when no size is given). */
   fill?: number;
+  /** The mains nets (placement keeps their parts apart from the rest). */
+  mains?: Set<string>;
 }
 
 /** First placement: the schematic's arrangement scaled onto the board, then each part moved
  *  to the nearest free spot (courtyards 1 mm apart), largest parts first. */
-export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5): Placed[] {
+export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set()): Placed[] {
+  // a part with a mains pad keeps 3.5 mm from the courtyards of parts without one (the 3.2 mm
+  // clearance of the mains nets, copper to copper); others 1 mm
+  const isMains = (p: BoardPart) => Object.values(p.pads).some((n) => mains.has(n));
   const xs = parts.map((p) => p.sx), ys = parts.map((p) => p.sy);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
   const sx = (w - 2 * margin) / Math.max(x1 - x0, 1), sy = (h - 2 * margin) / Math.max(y1 - y0, 1);
-  const boxes: { x0: number; y0: number; x1: number; y1: number }[] = [];
+  const boxes: { x0: number; y0: number; x1: number; y1: number; m: boolean }[] = [];
   const out: Placed[] = [];
   const order = [...parts].sort((a, b) => area(b.footprint) - area(a.footprint));
   for (const p of order) {
-    const c = p.footprint.courtyard;
+    const c = p.footprint.courtyard, pm = isMains(p);
     const tx = margin + (p.sx - x0) * sx, ty = margin + (p.sy - y0) * sy;
     let best: [number, number] | null = null;
     for (let r = 0; r < Math.max(w, h) && !best; r += 0.5) {
@@ -298,12 +303,12 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
         const x = Math.round((tx + r * Math.cos((2 * Math.PI * k) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * k) / steps)) * 4) / 4;
         const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
         if (b.x0 < 1 || b.y0 < 1 || b.x1 > w - 1 || b.y1 > h - 1) continue;
-        if (boxes.some((o) => b.x0 < o.x1 && o.x0 < b.x1 && b.y0 < o.y1 && o.y0 < b.y1)) continue;
+        if (boxes.some((o) => { const g = o.m !== pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
         best = [x, y]; break;
       }
     }
     if (!best) throw new Error(`placement: no room for ${p.ref} on ${w} × ${h} mm`);
-    boxes.push({ x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5 });
+    boxes.push({ x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5, m: pm });
     out.push({ ref: p.ref, x: best[0], y: best[1], rot: 0 });
   }
   return out;
@@ -324,7 +329,7 @@ export function kicadBoard(nl: BoardNetlist, o: KicadBoardOptions): { pcb: strin
   const { w, h } = o.w && o.h ? { w: o.w, h: o.h } : boardSize(nl.parts, o.fill);
   const known = new Map((o.placed ?? []).map((p) => [p.ref, p]));
   const rest = nl.parts.filter((p) => !known.has(p.ref));
-  const placed = [...(o.placed ?? []).filter((p) => nl.parts.some((b) => b.ref === p.ref)), ...(rest.length ? placeFromSchematic(rest, w, h) : [])];
+  const placed = [...(o.placed ?? []).filter((p) => nl.parts.some((b) => b.ref === p.ref)), ...(rest.length ? placeFromSchematic(rest, w, h, 5, o.mains) : [])];
   const netNo = new Map<string, number>([['', 0]]);
   nl.nets.forEach((n, k) => netNo.set(n, k + 1));
   const oz = o.copperOz ?? 2, cu = oz * 0.035;
