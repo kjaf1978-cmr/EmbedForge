@@ -330,6 +330,45 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
     boxes.push({ x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5, m: pm });
     out.push({ ref: p.ref, x: best[0], y: best[1], rot });
   }
+  // refinement: each small part (resistors, capacitors, diodes …) moves to the free spot nearest
+  // the pads it connects to on the other parts (a snubber next to its relay's contacts, a
+  // decoupling capacitor next to its IC), smallest first, three passes; ground and the supply
+  // rails (on many pads) do not pull
+  const byRef = new Map(parts.map((p) => [p.ref, p])), at = new Map(out.map((o, k) => [o.ref, k]));
+  const fanout = new Map<string, number>();
+  for (const p of parts) for (const n of Object.values(p.pads)) fanout.set(n, (fanout.get(n) ?? 0) + 1);
+  const padXY = (pl: Placed, d: Pad) => (pl.rot ? [pl.x - d.x, pl.y - d.y] : [pl.x + d.x, pl.y + d.y]);
+  const small = parts.filter((p) => area(p.footprint) < 150).sort((a, b) => area(a.footprint) - area(b.footprint));
+  for (let pass = 0; pass < 3; pass++) for (const p of small) {
+    const k = at.get(p.ref)!, pl = out[k];
+    const nets = new Set(Object.values(p.pads).filter((n) => (fanout.get(n) ?? 0) <= 6));
+    let sx = 0, sy = 0, cnt = 0;
+    for (const q of parts) {
+      if (q.ref === p.ref) continue;
+      const ql = out[at.get(q.ref)!];
+      for (const d of q.footprint.pads) if (nets.has(q.pads[d.id] ?? '')) { const [x, y] = padXY(ql, d); sx += x; sy += y; cnt++; }
+    }
+    if (!cnt) continue;
+    const tx = sx / cnt, ty = sy / cnt, z = zone(p), c = court(p, pl.rot as 0 | 180), pm = kind(p) !== 'ctl';
+    const others = boxes.filter((_, j) => j !== k);
+    let best: [number, number] | null = null;
+    for (let r = 0; r < 40 && !best; r += 0.5) {
+      const steps = Math.max(1, Math.ceil((2 * Math.PI * r) / 0.5));
+      for (let j = 0; j < steps; j++) {
+        const x = Math.round((tx + r * Math.cos((2 * Math.PI * j) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * j) / steps)) * 4) / 4;
+        const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
+        if (b.x0 < Math.max(1, z.x0) || b.y0 < 1 || b.x1 > Math.min(w - 1, z.x1) || b.y1 > h - 1) continue;
+        if (others.some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
+        best = [x, y]; break;
+      }
+    }
+    // move only if closer to its target than now
+    if (best && Math.hypot(best[0] - tx, best[1] - ty) < Math.hypot(pl.x - tx, pl.y - ty)) {
+      out[k] = { ...pl, x: best[0], y: best[1] };
+      boxes[k] = { x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5, m: pm };
+    }
+  }
+  void byRef;
   return out;
 }
 
