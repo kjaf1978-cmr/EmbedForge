@@ -143,6 +143,13 @@ add(soic('SOIC-8', 'SOIC-8', 8));
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
+// mains: 7.62 mm pitch (5 mm between the pads, more than the 3.2 mm of basic insulation at 300 V)
+for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}_P7.62`, `Screw terminal ${n} poles, 7.62 mm (mains)`, n, 7.62, 1.3, 2.6, 2.6, { d: 10, back: 5, height: 12 }));
+// an off-board transformer with a mains winding: its primary (pads 1, 2) and secondary (3, 4) on
+// one 7.62 mm block with an empty pole between them (12.6 mm between the windings' pads)
+add(make('Transformer_Wires_P7.62', 'Transformer wires, primary and secondary 7.62 mm, one pole apart', 'pads 1, 2 primary; 3, 4 secondary',
+  [tht('1', -15.24, 0, 2.6, 1.3, 'rect', 2.6), tht('2', -7.62, 0, 2.6, 1.3, 'oval', 2.6), tht('3', 7.62, 0, 2.6, 1.3, 'oval', 2.6), tht('4', 15.24, 0, 2.6, 1.3, 'oval', 2.6)],
+  box(-19.05, -5, 19.05, 5), { x0: -19.05, y0: -5, x1: 19.05, y1: 5, h: 12 }));
 add(make('Bridge_Inline_4', 'Bridge rectifier, 4 inline legs 5.08 mm (+ ~ ~ −)', 'check the marking on the body: + ~ ~ −', [1, 2, 3, 4].map((k) => tht(String(k), -7.62 + (k - 1) * 5.08, 0, 2.2, 1.2, k === 1 ? 'rect' : 'circle')),
   box(-10, -2, 10, 2), { x0: -10, y0: -1.9, x1: 10, y1: 1.9, h: 15 }));
 // switches and relays
