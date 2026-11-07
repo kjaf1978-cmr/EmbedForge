@@ -297,6 +297,9 @@ export interface KicadBoardOptions {
 
 /** First placement: the schematic's arrangement scaled onto the board, then each part moved
  *  to the nearest free spot (courtyards 1 mm apart), largest parts first. */
+/** The last placement's zones: the x (mm) where the mains zone ends (0: none). */
+export const placement = { split: 0 };
+
 export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set()): Placed[] {
   // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
   // clearance of the mains nets, copper to copper, to any other net); others 0.5 mm
@@ -308,6 +311,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   const parea = (ps: BoardPart[]) => ps.reduce((s0, p) => s0 + area(p.footprint), 0);
   const ms = parts.filter((p) => kind(p) !== 'ctl'), cs = parts.filter((p) => kind(p) === 'ctl');
   const split = ms.length && cs.length ? Math.round(w * parea(ms) / parea(parts)) : ms.length ? w : 0;
+  placement.split = split;
   const zone = (p: BoardPart) => (kind(p) === 'ctl' ? { x0: split ? split + 6 : 0, x1: w } : { x0: 0, x1: split || w });
   const rotOf = (p: BoardPart): 0 | 180 => {
     if (kind(p) !== 'edge') return 0;

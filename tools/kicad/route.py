@@ -47,7 +47,7 @@ def sexpr(text):
     return cur[0]
 
 
-def import_ses(board, ses_path):
+def import_ses(board, ses_path, lock=False):
     """The routes of a Freerouting session into the board: KiCad 7's ImportSpecctraSES works
     only on the board open in the editor. Session units: resolution (um 10 = 0.1 um), y up."""
     import pcbnew, re
@@ -75,6 +75,7 @@ def import_ses(board, ses_path):
                     t.SetStart(pcbnew.VECTOR2I(*a)); t.SetEnd(pcbnew.VECTOR2I(*b))
                     t.SetWidth(width); t.SetLayer(layers[layer])
                     if ni: t.SetNet(ni)
+                    t.SetLocked(lock)
                     board.Add(t); tracks += 1
             elif item[0] == 'via':
                 m = re.search(r'_(\d+):(\d+)_um', item[1])
@@ -83,6 +84,7 @@ def import_ses(board, ses_path):
                 v.SetWidth(int(m.group(1)) * 1000 if m else 800000); v.SetDrill(int(m.group(2)) * 1000 if m else 400000)
                 v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
                 if ni: v.SetNet(ni)
+                v.SetLocked(lock)
                 board.Add(v); vias += 1
     print(f'imported {tracks} track segments, {vias} vias', flush=True)
 
@@ -113,27 +115,74 @@ def add_class_class(dsn, apart_json):
     print(f'class_class rules: {len(rules)}', flush=True)
 
 
+def keepout(board, x0, y0, x1, y1):
+    """A rule area on both copper layers where no track or via may go."""
+    import pcbnew
+    z = pcbnew.ZONE(board)
+    z.SetIsRuleArea(True)
+    z.SetDoNotAllowTracks(True); z.SetDoNotAllowVias(True); z.SetDoNotAllowCopperPour(True)
+    z.SetDoNotAllowPads(False); z.SetDoNotAllowFootprints(False)
+    ls = pcbnew.LSET(); ls.AddLayer(pcbnew.F_Cu); ls.AddLayer(pcbnew.B_Cu)
+    z.SetLayerSet(ls)
+    o = z.Outline(); o.NewOutline()
+    for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):
+        o.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
+    board.Add(z)
+    return z
+
+
+def freeroute(board, d, tag, passes, apart=True):
+    """Freerouting on a board (DSN out, SES back); returns the session file."""
+    import pcbnew
+    dsn, ses = os.path.join(d, tag + '.dsn'), os.path.join(d, tag + '.ses')
+    if not pcbnew.ExportSpecctraDSN(board, dsn):
+        sys.exit('DSN export failed')
+    if apart:
+        add_class_class(dsn, os.path.join(d, 'apart.json'))
+    if not ('--reuse' in sys.argv and os.path.exists(ses)):
+        if os.path.exists(ses):
+            os.remove(ses)
+        run(['xvfb-run', '-a', 'java', '-jar', FREEROUTING, '-de', dsn, '-do', ses, '-mp', passes, '-mt', '1'],
+            stdout=open(os.path.join(d, tag + '-freerouting.log'), 'w'), stderr=subprocess.STDOUT, cwd=d)
+    if not os.path.exists(ses):
+        sys.exit(f'Freerouting wrote no session file ({tag}-freerouting.log)')
+    return ses
+
+
 def main():
     d = os.path.abspath(sys.argv[1])
     passes = sys.argv[sys.argv.index('--passes') + 1] if '--passes' in sys.argv else '20'
     import pcbnew
     pcb = os.path.join(d, 'board.kicad_pcb')
-    board = pcbnew.LoadBoard(pcb)
-    dsn, ses = os.path.join(d, 'board.dsn'), os.path.join(d, 'board.ses')
-    if not pcbnew.ExportSpecctraDSN(board, dsn):
-        sys.exit('DSN export failed')
-    add_class_class(dsn, os.path.join(d, 'apart.json'))
-    if '--reuse' in sys.argv and os.path.exists(ses):
-        pass
+    zones = json.load(open(os.path.join(d, 'zones.json'))) if os.path.exists(os.path.join(d, 'zones.json')) else {}
+    split = zones.get('split') or 0
+    if split and 0 < split < zones['w']:
+        # stage 1: the mains nets alone, kept out of the control zone (every other pad without
+        # its net, so the router leaves it), so the mains wiring stays on its side
+        a = pcbnew.LoadBoard(pcb)
+        for pad in a.GetPads():
+            if pad.GetNetClassName() != 'Mains':
+                pad.SetNetCode(0)
+        keepout(a, split + 1, 0, zones['w'], zones['h'])
+        a.Save(os.path.join(d, 'stage1.kicad_pcb'))
+        a = pcbnew.LoadBoard(os.path.join(d, 'stage1.kicad_pcb'))
+        ses1 = freeroute(a, d, 'stage1', passes, apart=False)
+        # stage 2: the whole board with the mains tracks locked; every other net 3.2 mm from them
+        b = pcbnew.LoadBoard(pcb)
+        import_ses(b, ses1, lock=True)
+        b.Save(os.path.join(d, 'stage2.kicad_pcb'))
+        b = pcbnew.LoadBoard(os.path.join(d, 'stage2.kicad_pcb'))
+        ses = freeroute(b, d, 'stage2', passes, apart=True)
+        board = pcbnew.LoadBoard(pcb)
+        import_ses(board, ses)
+        # the session of stage 2 may leave out the locked wiring: take stage 1's where it is missing
+        if not any(t.GetNetClassName() == 'Mains' for t in board.GetTracks()):
+            import_ses(board, ses1, lock=True)
     else:
-      if os.path.exists(ses):
-        os.remove(ses)
-      run(['xvfb-run', '-a', 'java', '-jar', FREEROUTING, '-de', dsn, '-do', ses, '-mp', passes, '-mt', '1'],
-        stdout=open(os.path.join(d, 'freerouting.log'), 'w'), stderr=subprocess.STDOUT, cwd=d)  # its own logs/ go there
-    if not os.path.exists(ses):
-        sys.exit('Freerouting wrote no session file (see freerouting.log)')
-    board = pcbnew.LoadBoard(pcb)
-    import_ses(board, ses)
+        board = pcbnew.LoadBoard(pcb)
+        ses = freeroute(board, d, 'board', passes, apart=True)
+        board = pcbnew.LoadBoard(pcb)
+        import_ses(board, ses)
     filler = pcbnew.ZONE_FILLER(board)
     filler.Fill(board.Zones())
     routed = os.path.join(d, 'routed.kicad_pcb')
