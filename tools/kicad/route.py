@@ -102,7 +102,7 @@ def main():
       if os.path.exists(ses):
         os.remove(ses)
       run(['xvfb-run', '-a', 'java', '-jar', FREEROUTING, '-de', dsn, '-do', ses, '-mp', passes, '-mt', '1'],
-        stdout=open(os.path.join(d, 'freerouting.log'), 'w'), stderr=subprocess.STDOUT)
+        stdout=open(os.path.join(d, 'freerouting.log'), 'w'), stderr=subprocess.STDOUT, cwd=d)  # its own logs/ go there
     if not os.path.exists(ses):
         sys.exit('Freerouting wrote no session file (see freerouting.log)')
     board = pcbnew.LoadBoard(pcb)
