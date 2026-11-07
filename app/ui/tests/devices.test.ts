@@ -109,10 +109,20 @@ describe('thinned transient output (a long switching run)', () => {
     const full = new Engine(c).tran(10e-6, 5e-3, 10e-6);
     const thin = new Engine(c).tran(10e-6, 5e-3, 10e-6, 200000, false, true);
     expect(thin.x.length).toBeLessThan(full.x.length);
-    expect(thin.x.length).toBeLessThanOrEqual(5e-3 / 10e-6 + 2);
-    for (let k = 1; k < thin.x.length - 1; k++) expect(thin.x[k] - thin.x[k - 1]).toBeGreaterThan(10e-6 * 0.999);
+    // the print points, plus the steps kept where a value goes 2 % beyond its extremes so far
+    // (with the steps before and after: D42), few once the RC has settled
+    expect(thin.x.length).toBeLessThanOrEqual(1.2 * (5e-3 / 10e-6 + 2));
     near(thin.x[thin.x.length - 1], 5e-3, 1e-9);
     near(thin.v.a[thin.x.length - 1], full.v.a[full.x.length - 1], 1e-6);
+    // the peaks between the print points are kept: the extremes within 2 % of the full run's
+    const ext = (y: number[]) => [Math.max(...y), Math.min(...y)];
+    const [fh, fl] = ext(full.i.R1[0]), [th, tl] = ext(thin.i.R1[0]);
+    expect(Math.abs(th - fh)).toBeLessThan(0.02 * Math.abs(fh));
+    expect(Math.abs(tl - fl)).toBeLessThan(0.02 * Math.abs(fl));
+    // the integrals over every step: R1's mean power as the full run's points give it
+    let e = 0; for (let k = 1; k < full.x.length; k++) e += 0.5 * (full.x[k] - full.x[k - 1]) * ((full.v.s[k] - full.v.a[k]) * full.i.R1[0][k] + (full.v.s[k - 1] - full.v.a[k - 1]) * full.i.R1[0][k - 1]);
+    const p = (thin.acc!.pv.R1[0] + thin.acc!.pv.R1[1]) / thin.acc!.T;
+    near(p, e / 5e-3, 0.01 * e / 5e-3);
   });
 });
 
