@@ -20,13 +20,13 @@ const mains = new Set(classes.filter((c) => c.name === 'Mains' || c.name === 'HV
 const nl = boardNetlist(sheet, { mains, panel: d.panel });
 // a placement saved from an earlier run (placed.json, from the board after its placement) is kept
 const pf = join(out, 'placed.json');
-const placed = existsSync(pf) ? (JSON.parse(readFileSync(pf, 'utf8')) as Placed[]) : undefined;
-const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w, h: d.h, placed, copperOz: d.copperOz, fill: d.fill, mains });
+const placed = existsSync(pf) ? (JSON.parse(readFileSync(pf, 'utf8')) as Placed[]) : d.plan;
+const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w, h: d.h, placed, copperOz: d.copperOz, fill: d.fill, mains, region: d.region });
 writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);
 writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));
 // the zones for the two-stage routing (route.py): the mains zone is x < split
-writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: placed ? undefined : placement.split, edge: placed ? undefined : placement.edge, w: b.w, h: b.h }));
+writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: d.region ? d.region.x0 - 3 : placed ? undefined : placement.split, edge: d.edge ?? (placed ? undefined : placement.edge), w: b.w, h: b.h }));
 // the router's class-to-class clearances (route.py adds them to the Specctra file)
 writeFileSync(join(out, 'apart.json'), JSON.stringify(classes.filter((c) => c.apart).map((c) => ({ cls: c.name, mm: c.apart }))));
 writeFileSync(join(out, 'nets.txt'), nl.nets.join('\n') + '\n');

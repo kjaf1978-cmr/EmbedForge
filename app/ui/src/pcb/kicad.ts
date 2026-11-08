@@ -293,6 +293,8 @@ export interface KicadBoardOptions {
   fill?: number;
   /** The mains nets (placement keeps their parts apart from the rest). */
   mains?: Set<string>;
+  /** With a placement plan (`placed`), the region (x, mm) the other parts are placed in. */
+  region?: { x0: number; x1: number };
 }
 
 /** First placement: the schematic's arrangement scaled onto the board, then each part moved
@@ -300,7 +302,28 @@ export interface KicadBoardOptions {
 /** The last placement's zones: the x (mm) where the mains zone ends (0: none). */
 export const placement = { split: 0, edge: 0 };
 
-export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set()): Placed[] {
+/** A courtyard turned by a placement's rotation (KiCad: counter-clockwise on the screen, y down). */
+export function turned(c: { x0: number; y0: number; x1: number; y1: number }, rot: number) {
+  switch (((rot % 360) + 360) % 360) {
+    case 90: return { x0: c.y0, y0: -c.x1, x1: c.y1, y1: -c.x0 };
+    case 180: return { x0: -c.x1, y0: -c.y1, x1: -c.x0, y1: -c.y0 };
+    case 270: return { x0: -c.y1, y0: c.x0, x1: -c.y0, y1: c.x1 };
+    default: return c;
+  }
+}
+
+/** A pad's position on the board for a placement. */
+export function padAt(pl: Placed, x: number, y: number): [number, number] {
+  switch (((pl.rot % 360) + 360) % 360) {
+    case 90: return [pl.x + y, pl.y - x];
+    case 180: return [pl.x - x, pl.y - y];
+    case 270: return [pl.x - y, pl.y + x];
+    default: return [pl.x + x, pl.y + y];
+  }
+}
+
+export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set(),
+  fixed: { part: BoardPart; at: Placed }[] = [], region?: { x0: number; x1: number }): Placed[] {
   // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
   // clearance of the mains nets, copper to copper, to any other net); others 0.5 mm
   const nM = (p: BoardPart) => Object.values(p.pads).filter((n) => mains.has(n)).length;
@@ -310,15 +333,16 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   // at the mains zone's right edge, turned so its mains pads face the mains
   const parea = (ps: BoardPart[]) => ps.reduce((s0, p) => s0 + area(p.footprint), 0);
   const ms = parts.filter((p) => kind(p) !== 'ctl'), cs = parts.filter((p) => kind(p) === 'ctl');
-  const split = ms.length && cs.length ? Math.round(w * parea(ms) / parea(parts)) : ms.length ? w : 0;
+  // a placement plan (fixed parts) leaves the rest to a region of its own
+  const split = region ? region.x0 : ms.length && cs.length ? Math.round(w * parea(ms) / parea(parts)) : ms.length ? w : 0;
   placement.split = split;
-  const zone = (p: BoardPart) => (kind(p) === 'ctl' ? { x0: split ? split + 6 : 0, x1: w } : { x0: 0, x1: split || w });
+  const zone = (p: BoardPart) => (region ? region : kind(p) === 'ctl' ? { x0: split ? split + 6 : 0, x1: w } : { x0: 0, x1: split || w });
   const rotOf = (p: BoardPart): 0 | 180 => {
     if (kind(p) !== 'edge') return 0;
     const pads = p.footprint.pads, mx = (want: boolean) => { const q = pads.filter((d) => mains.has(p.pads[d.id] ?? '') === want); return q.reduce((s0, d) => s0 + d.x, 0) / Math.max(q.length, 1); };
     return mx(true) <= mx(false) ? 0 : 180;
   };
-  const court = (p: BoardPart, rot: 0 | 180) => { const c = p.footprint.courtyard; return rot ? { x0: -c.x1, y0: -c.y1, x1: -c.x0, y1: -c.y0 } : c; };
+  const court = (p: BoardPart, rot: number) => turned(p.footprint.courtyard, rot);
   // the schematic's arrangement of each zone's parts scaled into the zone
   const scale = (ps: BoardPart[], z: { x0: number; x1: number }) => {
     const xs = ps.map((p) => p.sx), ys = ps.map((p) => p.sy);
@@ -328,6 +352,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   const tm = ms.length ? scale(ms, zone(ms[0])) : null, tc = cs.length ? scale(cs, zone(cs[0])) : null;
   const boxes: { x0: number; y0: number; x1: number; y1: number; m: boolean }[] = [];
   const out: Placed[] = [];
+  const fixedBoxes = fixed.map(({ part, at }) => { const c = court(part, at.rot); return { x0: at.x + c.x0 - 0.5, y0: at.y + c.y0 - 0.5, x1: at.x + c.x1 + 0.5, y1: at.y + c.y1 + 0.5, m: kind(part) !== 'ctl' }; });
   const order = [...parts].sort((a, b) => (kind(a) === 'edge' ? 0 : 1) - (kind(b) === 'edge' ? 0 : 1) || area(b.footprint) - area(a.footprint));
   for (const p of order) {
     const rot = rotOf(p), c = court(p, rot), pm = kind(p) !== 'ctl', z = zone(p);
@@ -340,7 +365,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
         const x = Math.round((tx + r * Math.cos((2 * Math.PI * k) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * k) / steps)) * 4) / 4;
         const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
         if (b.x0 < Math.max(1, z.x0) || b.y0 < 1 || b.x1 > Math.min(w - 1, z.x1) || b.y1 > h - 1) continue;
-        if (boxes.some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
+        if ([...boxes, ...fixedBoxes].some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
         best = [x, y]; break;
       }
     }
@@ -349,7 +374,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
     out.push({ ref: p.ref, x: best[0], y: best[1], rot });
   }
   // the boundary column: from the leftmost courtyard of the parts with pads on both sides
-  const edges = out.filter((o) => kind(parts.find((p) => p.ref === o.ref)!) === 'edge').map((o) => o.x + court(parts.find((p) => p.ref === o.ref)!, o.rot as 0 | 180).x0);
+  const edges = out.filter((o) => kind(parts.find((p) => p.ref === o.ref)!) === 'edge').map((o) => o.x + court(parts.find((p) => p.ref === o.ref)!, o.rot).x0);
   placement.edge = edges.length ? Math.floor(Math.min(...edges)) - 1 : split;
   // refinement: each small part (resistors, capacitors, diodes …) moves to the free spot nearest
   // the pads it connects to on the other parts (a snubber next to its relay's contacts, a
@@ -358,20 +383,20 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   const byRef = new Map(parts.map((p) => [p.ref, p])), at = new Map(out.map((o, k) => [o.ref, k]));
   const fanout = new Map<string, number>();
   for (const p of parts) for (const n of Object.values(p.pads)) fanout.set(n, (fanout.get(n) ?? 0) + 1);
-  const padXY = (pl: Placed, d: Pad) => (pl.rot ? [pl.x - d.x, pl.y - d.y] : [pl.x + d.x, pl.y + d.y]);
+  const padXY = (pl: Placed, d: Pad) => padAt(pl, d.x, d.y);
   const small = parts.filter((p) => area(p.footprint) < 150).sort((a, b) => area(a.footprint) - area(b.footprint));
   for (let pass = 0; pass < 3; pass++) for (const p of small) {
     const k = at.get(p.ref)!, pl = out[k];
     const nets = new Set(Object.values(p.pads).filter((n) => (fanout.get(n) ?? 0) <= 6));
     let sx = 0, sy = 0, cnt = 0;
-    for (const q of parts) {
+    for (const q of [...parts, ...fixed.map((f) => f.part)]) {
       if (q.ref === p.ref) continue;
-      const ql = out[at.get(q.ref)!];
+      const ql = at.has(q.ref) ? out[at.get(q.ref)!] : fixed.find((f) => f.part.ref === q.ref)!.at;
       for (const d of q.footprint.pads) if (nets.has(q.pads[d.id] ?? '')) { const [x, y] = padXY(ql, d); sx += x; sy += y; cnt++; }
     }
     if (!cnt) continue;
-    const tx = sx / cnt, ty = sy / cnt, z = zone(p), c = court(p, pl.rot as 0 | 180), pm = kind(p) !== 'ctl';
-    const others = boxes.filter((_, j) => j !== k);
+    const tx = sx / cnt, ty = sy / cnt, z = zone(p), c = court(p, pl.rot), pm = kind(p) !== 'ctl';
+    const others = [...boxes.filter((_, j) => j !== k), ...fixedBoxes];
     let best: [number, number] | null = null;
     for (let r = 0; r < 40 && !best; r += 0.5) {
       const steps = Math.max(1, Math.ceil((2 * Math.PI * r) / 0.5));
@@ -408,7 +433,8 @@ export function kicadBoard(nl: BoardNetlist, o: KicadBoardOptions): { pcb: strin
   const { w, h } = o.w && o.h ? { w: o.w, h: o.h } : boardSize(nl.parts, o.fill);
   const known = new Map((o.placed ?? []).map((p) => [p.ref, p]));
   const rest = nl.parts.filter((p) => !known.has(p.ref));
-  const placed = [...(o.placed ?? []).filter((p) => nl.parts.some((b) => b.ref === p.ref)), ...(rest.length ? placeFromSchematic(rest, w, h, 5, o.mains) : [])];
+  const fixed = (o.placed ?? []).filter((p) => nl.parts.some((b) => b.ref === p.ref));
+  const placed = [...fixed, ...(rest.length ? placeFromSchematic(rest, w, h, 5, o.mains, fixed.map((at) => ({ part: nl.parts.find((b) => b.ref === at.ref)!, at })), o.region) : [])];
   const netNo = new Map<string, number>([['', 0]]);
   nl.nets.forEach((n, k) => netNo.set(n, k + 1));
   const oz = o.copperOz ?? 2, cu = oz * 0.035;
