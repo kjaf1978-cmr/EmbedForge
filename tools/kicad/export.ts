@@ -21,7 +21,7 @@ const nl = boardNetlist(sheet, { mains, panel: d.panel });
 // a placement saved from an earlier run (placed.json, from the board after its placement) is kept
 const pf = join(out, 'placed.json');
 const placed = existsSync(pf) ? (JSON.parse(readFileSync(pf, 'utf8')) as Placed[]) : d.plan;
-const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w, h: d.h, placed, copperOz: d.copperOz, fill: d.fill, mains, region: d.region });
+const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w, h: d.h, placed, copperOz: d.copperOz, fill: d.fill, mains, region: d.region, tracks: d.tracks });
 writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);
 writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));

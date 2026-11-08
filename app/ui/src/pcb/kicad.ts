@@ -295,7 +295,12 @@ export interface KicadBoardOptions {
   mains?: Set<string>;
   /** With a placement plan (`placed`), the region (x, mm) the other parts are placed in. */
   region?: { x0: number; x1: number };
+  /** Tracks drawn by the plan (locked; the router routes around them). */
+  tracks?: PlanTrack[];
 }
+
+/** A track of a placement plan: a polyline on one layer (mm). */
+export interface PlanTrack { net: string; layer: 'F.Cu' | 'B.Cu'; width: number; pts: [number, number][] }
 
 /** First placement: the schematic's arrangement scaled onto the board, then each part moved
  *  to the nearest free spot (courtyards 1 mm apart), largest parts first. */
@@ -453,6 +458,10 @@ export function kicadBoard(nl: BoardNetlist, o: KicadBoardOptions): { pcb: strin
   L.push(`  (gr_text ${q(`${o.title} rev ${o.revision ?? 'A'}`)} (at ${f3(w / 2)} ${f3(h - 1.5)}) (layer "F.SilkS") (tstamp ${uuid()}) (effects (font (size 1.5 1.5) (thickness 0.2))))`);
   const byRef = new Map(nl.parts.map((p) => [p.ref, p]));
   for (const pl of placed) L.push(footprintSexpr(byRef.get(pl.ref)!, pl.x, pl.y, pl.rot, netNo));
+  for (const t of o.tracks ?? []) {
+    if (!netNo.has(t.net)) throw new Error(`plan track on ${t.net}: no such net on the board`);
+    for (let k = 1; k < t.pts.length; k++) L.push(`  (segment locked (start ${f3(t.pts[k - 1][0])} ${f3(t.pts[k - 1][1])}) (end ${f3(t.pts[k][0])} ${f3(t.pts[k][1])}) (width ${f3(t.width)}) (layer ${q(t.layer)}) (net ${netNo.get(t.net)}) (tstamp ${uuid()}))`);
+  }
   L.push(')');
   const classes = o.classes ?? [];
   const pro = {

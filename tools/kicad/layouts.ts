@@ -3,14 +3,14 @@
 // current) and the clearances of the mains and high-voltage nets (IEC 62368-1 / IEC 60664-1,
 // pollution degree 2, material group IIIb, basic insulation, overvoltage category II).
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
-import { potentialGroup, classFor, type NetClass, type Placed } from '../../app/ui/src/pcb/kicad';
+import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack } from '../../app/ui/src/pcb/kicad';
 import { stabiliser, changeover1, changeover3, mpptCharger } from '../../app/ui/src/eda/powerExamples';
 
 export interface Design {
   /** The placement plan of the power section (D44): fixed positions (mm) and rotations; the other
    *  parts go into `region` (x range), and the mains routing stays left of `edge` but for the
    *  boundary column of parts with pads on both sides. */
-  plan?: Placed[]; region?: { x0: number; x1: number }; edge?: number;
+  plan?: Placed[]; tracks?: PlanTrack[]; region?: { x0: number; x1: number }; edge?: number;
   panel?: (p: Part) => boolean; sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
 
 // 230 V mains (300 V r.m.s. working voltage): 3.2 mm, the creepage of basic insulation (IEC
@@ -32,6 +32,21 @@ const mains = (seeds: string[], track = 1.6) => (s: Sheet): NetClass[] => [{ ...
 // order); input terminals, breaker, MOV and fuse at the top left; the three transformer
 // connectors at the top of the boundary, primaries left, secondaries right; the output relay K7
 // and the output terminals at the bottom. The control circuits fill x 100 … 210.
+// The relay's pin-out puts COM 2 mm from its coil pins (6 mm above and below it): the plan draws
+// the coil pins' stubs straight out to the control zone (x 100), 4.6 mm from COM, and each link of
+// the ladder (NC of one relay to COM of the next) down the middle of the 9.5 mm between the next
+// relay's coil pins (3.95 mm from them); the control routing then stays right of x 99
+const STAB_TRACKS: PlanTrack[] = (() => {
+  const t: PlanTrack[] = [];
+  for (let k = 0; k < 7; k++) {
+    const y = k < 6 ? 70 + 20 * k : 192, coil = k < 6 ? `K${k + 1}` : 'KD';
+    t.push({ net: '+12V', layer: 'F.Cu', width: 0.5, pts: [[93, y + 6], [100.5, y + 6]] }, { net: coil, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
+  }
+  const chain = ['C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
+  chain.forEach((n, k) => { const y = 70 + 20 * k; t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y + 6], [87, y + 12], [87, y + 20], [95, y + 20]] }); });
+  return t;
+})();
+
 const STAB_PLAN: Placed[] = (() => {
   const p: Placed[] = [];
   for (let k = 0; k < 6; k++) {
@@ -44,13 +59,13 @@ const STAB_PLAN: Placed[] = (() => {
     { ref: 'T2', x: 14, y: 120, rot: 270 },
     { ref: 'X1', x: 10, y: 12, rot: 0 }, { ref: 'X2', x: 10, y: 26, rot: 0 }, { ref: 'Q1', x: 30, y: 12, rot: 0 },
     { ref: 'RV1', x: 34, y: 34, rot: 0 }, { ref: 'F1', x: 55, y: 12, rot: 0 },
-    { ref: 'T1', x: 85, y: 12, rot: 0 }, { ref: 'T3', x: 85, y: 27, rot: 0 }, { ref: 'T4', x: 85, y: 42, rot: 0 },
+    { ref: 'T1', x: 93, y: 12, rot: 0 }, { ref: 'T3', x: 93, y: 27, rot: 0 }, { ref: 'T4', x: 93, y: 42, rot: 0 },
     { ref: 'X4', x: 10, y: 192, rot: 0 }, { ref: 'X5', x: 10, y: 204, rot: 0 });
   return p;
 })();
 
 export const DESIGNS: Record<string, Design> = {
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 210, h: 212, plan: STAB_PLAN, region: { x0: 100, x1: 210 }, edge: 64 },
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 210, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 100, x1: 210 }, edge: 99 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P', revision: 'A', classes: () => [] },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N', revision: 'A', classes: () => [] },
   'mppt-charger': { sheet: () => mpptCharger().sheet, title: 'MPPT solar charger 48 V', revision: 'A', classes: () => [] },
