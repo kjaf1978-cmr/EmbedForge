@@ -154,18 +154,23 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
     }
     const onBoard = new Set(parts.flatMap((p) => Object.values(p.pads)));
     const shared = [...ends.keys()].filter((n) => onBoard.has(n)).sort();
-    if (shared.length) {
-      const poles = [1, 2, 3, 4, 6, 8, 12, 14].find((k) => k >= shared.length) ?? 14;
-      const fp = FOOTPRINTS[`TerminalBlock_1x${poles}${shared.some((n) => o.mains?.has(n)) ? '_P7.62' : ''}`];
-      if (shared.length > 14) warnings.push(`panel connector: ${shared.length} poles, more than one 14-pole block`);
+    // two connectors: the mains nets on their own (7.62 mm), the control nets on another, so the
+    // panel's mains and low-voltage wiring never share a terminal block
+    const groups: [string, string[], boolean][] = [['J_MAINS', shared.filter((n) => o.mains?.has(n)), true], ['J_PANEL', shared.filter((n) => !o.mains?.has(n)), false]];
+    const poleOf = new Map<string, string>();
+    const sx = Math.min(...product.map((p) => p.x)), sy = product.reduce((a, p) => a + p.y, 0) / Math.max(product.length, 1);
+    for (const [ref, nets, isMains] of groups) {
+      if (!nets.length) continue;
+      const poles = [1, 2, 3, 4, 6, 8, 12, 14].find((k) => k >= nets.length) ?? 14;
+      if (nets.length > 14) warnings.push(`${ref}: ${nets.length} poles, more than one 14-pole block`);
+      const fp = FOOTPRINTS[`TerminalBlock_1x${poles}${isMains ? '_P7.62' : ''}`];
       const pads: Record<string, string> = {};
-      shared.slice(0, 14).forEach((n, k) => { pads[String(k + 1)] = n; });
-      const sx = Math.min(...product.map((p) => p.x)), sy = product.reduce((a, p) => a + p.y, 0) / Math.max(product.length, 1);
-      parts.push({ ref: 'J_PANEL', value: 'to the panel', footprint: fp, pads, sx, sy, note: 'screw terminals to the panel wiring' });
+      nets.slice(0, 14).forEach((n, k) => { pads[String(k + 1)] = n; poleOf.set(n, `${ref}:${k + 1}`); });
+      parts.push({ ref, value: isMains ? 'mains to the panel' : 'to the panel', footprint: fp, pads, sx, sy, note: 'screw terminals to the panel wiring' });
     }
     for (const [n, e] of [...ends].sort(([a], [b]) => a.localeCompare(b))) {
-      const k = shared.indexOf(n);
-      panel.push({ net: n, ends: e, ...(k >= 0 && k < 14 ? { board: `J_PANEL:${k + 1}` } : {}) });
+      const pole = poleOf.get(n);
+      panel.push({ net: n, ends: e, ...(pole ? { board: pole } : {}) });
     }
   }
   const nets = [...new Set(parts.flatMap((p) => Object.values(p.pads)))].sort();

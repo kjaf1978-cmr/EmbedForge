@@ -57,9 +57,9 @@ describe('KiCad export: the board netlist', () => {
     const panelSyms = new Set(['contactor', 'breaker1', 'breaker2', 'terminal']);
     const nl = boardNetlist(sheet, { panel: (p) => panelSyms.has(p.sym) });
     expect(nl.parts.some((p) => panelSyms.has(sheet.parts.find((q) => q.ref === p.ref)?.sym ?? ''))).toBe(false);
-    const j = nl.parts.find((p) => p.ref === 'J_PANEL')!;
-    expect(j).toBeDefined();
-    const poles = new Set(Object.values(j.pads));
+    const js = nl.parts.filter((p) => p.ref === 'J_PANEL' || p.ref === 'J_MAINS');
+    expect(js.length).toBeGreaterThan(0);
+    const poles = new Set(js.flatMap((j) => Object.values(j.pads)));
     for (const w of nl.panel.filter((x) => x.board)) expect(poles.has(w.net)).toBe(true);
   });
 });
