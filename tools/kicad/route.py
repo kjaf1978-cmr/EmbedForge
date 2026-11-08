@@ -164,6 +164,8 @@ def main():
             if pad.GetNetClassName() != 'Mains':
                 pad.SetNetCode(0)
         keepout(a, split + 1, 0, zones['w'], zones['h'])
+        for x0, y0, x1, y1 in zones.get('keep1', []):
+            keepout(a, x0, y0, x1, y1)
         a.Save(os.path.join(d, 'stage1.kicad_pcb'))
         a = pcbnew.LoadBoard(os.path.join(d, 'stage1.kicad_pcb'))
         ses1 = freeroute(a, d, 'stage1', passes, apart=False)

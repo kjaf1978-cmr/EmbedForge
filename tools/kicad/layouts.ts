@@ -11,6 +11,8 @@ export interface Design {
    *  parts go into `region` (x range), and the mains routing stays left of `edge` but for the
    *  boundary column of parts with pads on both sides. */
   plan?: Placed[]; tracks?: PlanTrack[]; region?: { x0: number; x1: number }; edge?: number;
+  /** Areas (mm) the mains routing (stage 1) keeps out of: the relays' coil pins and COM. */
+  keep1?: [number, number, number, number][];
   panel?: (p: Part) => boolean; sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
 
 // 230 V mains (300 V r.m.s. working voltage): 3.2 mm, the creepage of basic insulation (IEC
@@ -57,10 +59,14 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   t.push({ net: 'T7', layer: 'B.Cu', width: 1.6, pts: [[80.8, 176], [76.8, 180], [18.5, 180], [18.5, tapY(7)], [14, tapY(7)]] });
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[14, tapY(5)], [8, tapY(5) + 6], [8, 176], [40, 184], [40, 192], [95, 192]] });
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[77.76, 42], [77.76, 50], [40, 50], [40, tapY(5)], [14, tapY(5)]] });
-  // VIN into K1's COM the same way as the ladder links, from its snubber resistor R35 (top layer)
-  t.push({ net: 'VIN', layer: 'F.Cu', width: 1.6, pts: [[58.92, 66], [62.92, 70], [95, 70]] });
-  const chain = ['C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
-  chain.forEach((n, k) => { const y = 70 + 20 * k; t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y + 6], [87, y + 12], [87, y + 20], [95, y + 20]] }); });
+  // each relay's COM net (VIN for K1, the ladder links after it) from its two snubber resistors'
+  // pins (69.08, Y ∓ 4) into COM along Y, between NO and NC (3.95 mm from them and the coil pins)
+  const com = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
+  com.forEach((n, k) => {
+    const y = 70 + 20 * k;
+    t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[69.08, y - 4], [73.08, y], [95, y]] }, { net: n, layer: 'F.Cu', width: 1.6, pts: [[69.08, y + 4], [73.08, y]] });
+    if (k > 0) t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y - 14], [87, y - 8], [87, y]] });
+  });
   return t;
 })();
 
@@ -69,8 +75,10 @@ const STAB_PLAN: Placed[] = (() => {
   for (let k = 0; k < 6; k++) {
     const y = 70 + 20 * k;
     p.push({ ref: `K${k + 1}`, x: 95, y, rot: 180 },
-      { ref: `C${7 + 2 * k}`, x: 50, y: y - 4, rot: 0 }, { ref: `R${35 + 2 * k}`, x: 64, y: y - 4, rot: 0 },
-      { ref: `C${6 + 2 * k}`, x: 50, y: y + 4, rot: 0 }, { ref: `R${34 + 2 * k}`, x: 64, y: y + 4, rot: 0 });
+      // turned 180°: each resistor's COM pin (1) towards the relay at x 69.08, the snubber's mid
+      // node on the two inner pads (52.54, 58.92), the capacitor's NO / NC pin outside at 47.46
+      { ref: `C${7 + 2 * k}`, x: 50, y: y - 4, rot: 180 }, { ref: `R${35 + 2 * k}`, x: 64, y: y - 4, rot: 180 },
+      { ref: `C${6 + 2 * k}`, x: 50, y: y + 4, rot: 180 }, { ref: `R${34 + 2 * k}`, x: 64, y: y + 4, rot: 180 });
   }
   p.push({ ref: 'K7', x: 95, y: 192, rot: 180 },
     { ref: 'T2', x: 14, y: 120, rot: 270 },
@@ -82,7 +90,8 @@ const STAB_PLAN: Placed[] = (() => {
 })();
 
 export const DESIGNS: Record<string, Design> = {
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 210, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 100, x1: 210 }, edge: 99 },
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 210, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 100, x1: 210 }, edge: 99,
+    keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }) },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P', revision: 'A', classes: () => [] },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N', revision: 'A', classes: () => [] },
   'mppt-charger': { sheet: () => mpptCharger().sheet, title: 'MPPT solar charger 48 V', revision: 'A', classes: () => [] },
