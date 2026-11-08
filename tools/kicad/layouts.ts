@@ -57,6 +57,8 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   t.push({ net: 'T7', layer: 'B.Cu', width: 1.6, pts: [[80.8, 176], [76.8, 180], [18.5, 180], [18.5, tapY(7)], [14, tapY(7)]] });
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[14, tapY(5)], [8, tapY(5) + 6], [8, 176], [40, 184], [40, 192], [95, 192]] });
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[77.76, 42], [77.76, 50], [40, 50], [40, tapY(5)], [14, tapY(5)]] });
+  // VIN into K1's COM the same way as the ladder links, from its snubber resistor R35 (top layer)
+  t.push({ net: 'VIN', layer: 'F.Cu', width: 1.6, pts: [[58.92, 66], [62.92, 70], [95, 70]] });
   const chain = ['C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   chain.forEach((n, k) => { const y = 70 + 20 * k; t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y + 6], [87, y + 12], [87, y + 20], [95, y + 20]] }); });
   return t;
