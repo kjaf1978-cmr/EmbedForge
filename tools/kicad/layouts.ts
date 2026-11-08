@@ -42,6 +42,21 @@ const STAB_TRACKS: PlanTrack[] = (() => {
     const y = k < 6 ? 70 + 20 * k : 192, coil = k < 6 ? `K${k + 1}` : 'KD';
     t.push({ net: '+12V', layer: 'F.Cu', width: 0.5, pts: [[93, y + 6], [100.5, y + 6]] }, { net: coil, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
   }
+  // the taps: relay k's NO (80.8, Y − 6) through the channel between relays (Y − 10) to its own
+  // vertical (x 22 … 32.5, 3.5 mm apart, inner to outer in the order the taps are reached, so no two
+  // cross) and along to its pad on the tap block (x 14, T1 at 100.95 mm, 7.62 mm apart); on the
+  // bottom layer, the ladder links on the top. T7 (K6's NC) below the last relay. T5 also feeds the
+  // output relay K7 (into its COM between NO and NC, 3.95 mm from its coil pins) and the output
+  // sense transformer T4 (top layer, x 40)
+  const tapY = (k: number) => 100.95 + 7.62 * (k - 1);
+  const vx = [22, 25.5, 29, 32.5, 25.5, 22];
+  for (let k = 1; k <= 6; k++) {
+    const y = 70 + 20 * (k - 1), ch = y - 10;
+    t.push({ net: `T${k}`, layer: 'B.Cu', width: 1.6, pts: [[80.8, y - 6], [76.8, ch], [vx[k - 1], ch], [vx[k - 1], tapY(k)], [14, tapY(k)]] });
+  }
+  t.push({ net: 'T7', layer: 'B.Cu', width: 1.6, pts: [[80.8, 176], [76.8, 180], [18.5, 180], [18.5, tapY(7)], [14, tapY(7)]] });
+  t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[14, tapY(5)], [8, tapY(5) + 6], [8, 176], [40, 184], [40, 192], [95, 192]] });
+  t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[77.76, 42], [77.76, 50], [40, 50], [40, tapY(5)], [14, tapY(5)]] });
   const chain = ['C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   chain.forEach((n, k) => { const y = 70 + 20 * k; t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y + 6], [87, y + 12], [87, y + 20], [95, y + 20]] }); });
   return t;
