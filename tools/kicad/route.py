@@ -179,11 +179,10 @@ def main():
         b.Save(os.path.join(d, 'stage2.kicad_pcb'))
         b = pcbnew.LoadBoard(os.path.join(d, 'stage2.kicad_pcb'))
         ses = freeroute(b, d, 'stage2', passes, apart=False)
+        # stage 2's session leaves out the locked wiring: the mains from stage 1, the rest from 2
         board = pcbnew.LoadBoard(pcb)
+        import_ses(board, ses1, lock=True)
         import_ses(board, ses)
-        # the session of stage 2 may leave out the locked wiring: take stage 1's where it is missing
-        if not any(t.GetNetClassName() == 'Mains' for t in board.GetTracks()):
-            import_ses(board, ses1, lock=True)
     else:
         board = pcbnew.LoadBoard(pcb)
         ses = freeroute(board, d, 'board', passes, apart=True)
