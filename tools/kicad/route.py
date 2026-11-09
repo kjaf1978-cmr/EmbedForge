@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Route a board exported by export.ts and make its fabrication files (decision D43).
 
-    python3 tools/kicad/route.py <dir> [--passes N]
+    python3 tools/kicad/route.py <dir> [--passes N] [--oit percent]
 
 <dir> holds board.kicad_pcb and board.kicad_pro. Steps: Specctra DSN export, Freerouting in
 batch mode (under xvfb-run, it needs a display), SES import, KiCad's design rule check
@@ -142,7 +142,10 @@ def freeroute(board, d, tag, passes, apart=True):
     if not ('--reuse' in sys.argv and os.path.exists(ses)):
         if os.path.exists(ses):
             os.remove(ses)
-        run(['xvfb-run', '-a', 'java', '-jar', FREEROUTING, '-de', dsn, '-do', ses, '-mp', passes, '-mt', '1'],
+        # --oit N: stop the route optimisation when a pass improves by less than N % (it ran
+        # for an hour on the inverter's power board after routing it in 12 s)
+        oit = ['-oit', sys.argv[sys.argv.index('--oit') + 1]] if '--oit' in sys.argv else []
+        run(['xvfb-run', '-a', 'java', '-jar', FREEROUTING, '-de', dsn, '-do', ses, '-mp', passes, '-mt', '1', *oit],
             stdout=open(os.path.join(d, tag + '-freerouting.log'), 'w'), stderr=subprocess.STDOUT, cwd=d)
     if not os.path.exists(ses):
         sys.exit(f'Freerouting wrote no session file ({tag}-freerouting.log)')
