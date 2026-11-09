@@ -155,5 +155,5 @@ export const DESIGNS: Record<string, Design> = {
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
     heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 240, h: 140,
     plan: mpptPlan, region: { x0: 0, x1: 240 } },
-  'mppt-control': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: control board', revision: 'A', classes: () => [], panel: (p) => mpptRefs().pwr.has(p.ref) || mpptRefs().off.has(p.ref) },
+  'mppt-control': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: control board', revision: 'A', classes: () => [], fill: 2.6, panel: (p) => mpptRefs().pwr.has(p.ref) || mpptRefs().off.has(p.ref) },
 };
