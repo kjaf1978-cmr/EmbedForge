@@ -11,7 +11,7 @@ import { sheetTemp, type Sheet } from './schematic';
 import type { Connectivity } from './connectivity';
 import type { SimResult } from '../sim/run';
 
-type Quantity = 'P' | 'V' | 'Vr' | 'If' | 'Ic' | 'Vce' | 'Id' | 'Vds' | 'Vgs' | 'Iz' | 'Vin' | 'Vs' | 'I' | 'Vcc' | 'Iout' | 'Ppk' | 'Vge' | 'Vka' | 'Ik' | 'Irms' | 'Ipk' | 'E' | 'Vb' | 'Idm' | 'Icm' | 'Isat';
+type Quantity = 'P' | 'V' | 'Vr' | 'If' | 'Ic' | 'Vce' | 'Id' | 'Vds' | 'Vgs' | 'Iz' | 'Vin' | 'Vs' | 'I' | 'Vcc' | 'Iout' | 'Ppk' | 'Vge' | 'Vka' | 'Ik' | 'Irms' | 'Ipk' | 'E' | 'Vb' | 'Idm' | 'Icm' | 'Isat' | 'Vdrm' | 'Itsm';
 
 export interface Stress {
   ref: string;
@@ -33,6 +33,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   bridge: { DB107: { If: 1, Vr: 1000 }, KBP206: { If: 2, Vr: 600 }, GBU8K: { If: 8, Vr: 800 } },
   // IGBTs: collector current at 100 °C case; power in free air (TO-247); Icm: the datasheet's
   // pulsed rating (ICpuls)
+  scr: { 'VS-40TPS12': { Vdrm: 1200, Irms: 55, Itsm: 500 }, 'VS-70TPS16': { Vdrm: 1600, Irms: 110, Itsm: 1200 }, 'SKKT 106/16E': { Vdrm: 1600, Irms: 167, Itsm: 2000 }, 'SKKT 162/16E': { Vdrm: 1600, Irms: 250, Itsm: 5000 } },
   igbt: { IKW30N60T: { Vce: 600, Ic: 30, Vge: 20, P: 3.5, Icm: 90 }, IKW50N60T: { Vce: 600, Ic: 50, Vge: 20, P: 3.5, Icm: 150 }, IKW40N120T2: { Vce: 1200, Ic: 40, Vge: 20, P: 3.5 }, 'generic 600 V 20 A': { Vce: 600, Ic: 20, Vge: 20, P: 3.5 } },
   opto: { PC817: { If: 0.05, Vr: 6, Vce: 35, Ic: 0.05, P: 0.15 } },
   tl431: { TL431: { Vka: 37, Ik: 0.1, P: 0.62 }, TLV431: { Vka: 6, Ik: 0.015, P: 0.62 } },
@@ -66,11 +67,11 @@ export const THERMAL: Record<string, { tj: number; rjc: number }> = {
   STTH6003: { tj: 175, rjc: 0.6 }, C4D20120A: { tj: 175, rjc: 0.5 }, C4D02120A: { tj: 175, rjc: 3.5 }, SS34: { tj: 150, rjc: 15 }, GBU8K: { tj: 150, rjc: 2.2 }, KBP206: { tj: 150, rjc: 8 },
 };
 
-const UNIT: Record<Quantity, 'W' | 'V' | 'A' | 'J'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A', Ipk: 'A', E: 'J', Vb: 'V', Idm: 'A', Icm: 'A', Isat: 'A' };
+const UNIT: Record<Quantity, 'W' | 'V' | 'A' | 'J'> = { P: 'W', V: 'V', Vr: 'V', If: 'A', Ic: 'A', Vce: 'V', Id: 'A', Vds: 'V', Vgs: 'V', Iz: 'A', Vin: 'V', Vs: 'V', I: 'A', Vcc: 'V', Iout: 'A', Ppk: 'W', Vge: 'V', Vka: 'V', Ik: 'A', Irms: 'A', Ipk: 'A', E: 'J', Vb: 'V', Idm: 'A', Icm: 'A', Isat: 'A', Vdrm: 'V', Itsm: 'A' };
 const WHAT: Record<Quantity, string> = {
   P: 'power', V: 'voltage', Vr: 'reverse voltage', If: 'forward current', Ic: 'collector current', Vce: 'collector–emitter voltage', Id: 'drain current',
   Vds: 'drain–source voltage', Vgs: 'gate–source voltage', Iz: 'Zener current', Vin: 'input voltage', Vs: 'supply voltage', I: 'current', Vcc: 'supply voltage', Iout: 'output current',
-  Ppk: 'peak pulse power', Vge: 'gate–emitter voltage', Vka: 'cathode–anode voltage', Ik: 'cathode current', Irms: 'RMS current (the fuse blows above its rating)', Ipk: 'peak surge current', E: 'surge energy', Vb: 'bootstrap voltage (VB to COM)', Idm: 'pulsed drain current', Isat: 'peak current against the saturation current', Icm: 'pulsed collector current',
+  Ppk: 'peak pulse power', Vge: 'gate–emitter voltage', Vka: 'cathode–anode voltage', Ik: 'cathode current', Irms: 'RMS current (the fuse blows above its rating)', Ipk: 'peak surge current', E: 'surge energy', Vb: 'bootstrap voltage (VB to COM)', Idm: 'pulsed drain current', Isat: 'peak current against the saturation current', Icm: 'pulsed collector current', Vdrm: 'off-state voltage (anode to cathode, either way)', Itsm: 'peak current against the surge rating',
 };
 
 const peak = (y: number[]) => y.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
@@ -182,6 +183,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
       case 'fuse': add('Irms', rmsI('1'), prop('value')); break;
       case 'tvs': if (model) { add('P', P(['1', '2']), model.P); add('Ppk', maxOf(power(['1', '2'])), model.Ppk); } break;
       case 'bridge': if (model) { add('If', negI('3'), model.If); add('Vr', peak(vAcross('3', '4')), model.Vr); } break;
+      case 'scr': if (model) { add('Vdrm', peak(vAcross('1', '2')), model.Vdrm); add('Irms', tran ? rmsI('1') : peak(iPin('1')), model.Irms); add('Itsm', peak(iPin('1')), model.Itsm); } break;
       case 'igbt': if (model) {
         add('Vce', peak(vAcross('2', '3')), model.Vce);
         // switching: the continuous rating against the RMS current, the pulsed one against the peak

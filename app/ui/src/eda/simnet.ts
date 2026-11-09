@@ -5,7 +5,7 @@ import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, 
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
 import { satCurrent } from '../sim/engine';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
@@ -581,6 +581,18 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'idc': out.push({ kind: 'I', name: ref, p: pin['2'], n: pin['1'], dc: v('value', 'current') }); break;
+    case 'scr': {
+      // gate junction (gate current sensed by a 0 V source), the latching switch (on above IGT,
+      // opens at its current's zero: zc), the on-state diode (VT0, rT) in series
+      const m = findModel(SCRS, p.props.value).model, g = `${ref}#g`, k = `${ref}#m`;
+      out.push(
+        { kind: 'V', name: `${ref}_VG`, p: pin['3'], n: g, dc: 0 },
+        { kind: 'D', name: `${ref}_DG`, a: g, k: pin['2'], model: { is: 1e-11, n: 1.5, rs: 5 } },
+        { kind: 'D', name: `${ref}_DA`, a: pin['1'], k, model: { is: 10 / Math.exp(m.vt0 / (1.5 * 0.02585)), n: 1.5, rs: m.rt, bv: 2000, ibv: 1e-6 } },
+        { kind: 'W', name: `${ref}_SW`, p: k, n: pin['2'], ctrl: `${ref}_VG`, it: 0.6 * m.igt, ih: 0.4 * m.igt, ron: 1e-4, roff: 1e8, zc: true },
+      );
+      break;
+    }
     case 'diode': out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: custom<DiodeModel>() ?? findModel(DIODES, p.props.value).model }); break;
     case 'zener': out.push({ kind: 'D', name: ref, a: pin['2'], k: pin['1'], model: custom<DiodeModel>() ?? findModel(ZENERS, p.props.value).model }); break;
     case 'led': {

@@ -112,6 +112,12 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   ntc: { '10k': e('NTCLE100E3103JB0', 'Vishay', 'NTC thermistor 10 kΩ, B 3977 K, radial (heatsink sensor)', 0.47, 0.27, 'live', [{ distributor: 'Farnell', sku: '1434160' }, { distributor: 'LCSC', sku: 'C141588' }, { distributor: 'RS', sku: '754-6645' }]) },
   terminal: { '5.08 mm, 1 pole': e('MKDS 1,5/ 2-5,08 (2 poles per block)', 'Phoenix Contact', 'PCB screw terminal 5.08 mm (control and sensors, per pole); mains and battery wiring: DIN-rail terminals PT 10 / PT 16 N', 0.4, 0.25, 'estimate', [{ distributor: 'RS', sku: '193-0564' }], 'power terminals PT 10 BK (RS 207-2871) about €1.00 per pole') },
+  scr: {
+    'VS-40TPS12': e('VS-40TPS12LHM3', 'Vishay', 'thyristor 1200 V 55 A r.m.s., TO-247AC', 5.2, 3.6, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
+    'VS-70TPS16': e('VS-70TPS16-M3', 'Vishay', 'thyristor 1600 V 110 A r.m.s., TO-247AC', 9.5, 6.8, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
+    'SKKT 106/16E': e('SKKT 106/16 E', 'Semikron Danfoss', 'thyristor module, two SCRs 1600 V 106 A average, SEMIPACK 1 (one module per anti-parallel pair, terminals 1 and 3 joined)', 55, 42, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'RS' }]),
+    'SKKT 162/16E': e('SKKT 162/16 E', 'Semikron Danfoss', 'thyristor module, two SCRs 1600 V 156 A average, SEMIPACK 2 (one module per anti-parallel pair, terminals 1 and 3 joined)', 85, 66, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'RS' }]),
+  },
   igbt: { IKW50N60T: e('IKW50N60TFKSA1', 'Infineon', 'IGBT 600 V 50 A TRENCHSTOP with anti-parallel diode, TO-247', 6.4, 4.3, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]) },
   nor2: {
     CD: e('CD4001BE', 'Texas Instruments', 'quad 2-input NOR, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),

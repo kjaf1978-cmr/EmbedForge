@@ -96,6 +96,19 @@ export const MOSFETS: NamedModel<MosModel>[] = [
  *  Fitted to VGE(th) and VCE(sat) at the rated current with VGE = 15 V; no gate charge or tail
  *  current. `diode`: the co-packed anti-parallel diode from E to C. cge, cgc, cce: constant
  *  terminal capacitances (F) from the datasheet's Cies − Cres, Cres and Coes − Cres at 25 V. */
+/** Thyristor (SCR): gate trigger current igt (A), holding current ih (A), on-state threshold
+ *  vt0 (V) and slope resistance rt (Ω) (datasheet VT0, rT). The part is a gate junction, a
+ *  latching switch that turns on above igt and opens only when its current passes zero (the
+ *  holding current is neglected), and a diode with the on-state curve in series. */
+export interface ScrModel { igt: number; ih: number; vt0: number; rt: number }
+
+export const SCRS: NamedModel<ScrModel>[] = [
+  { name: 'VS-40TPS12', note: 'thyristor 1200 V, 35 A average, 55 A r.m.s., 500 A surge (TO-247AC; approximate)', model: { igt: 0.04, ih: 0.1, vt0: 0.9, rt: 0.012 } },
+  { name: 'VS-70TPS16', note: 'thyristor 1600 V, 70 A average, 110 A r.m.s., 1200 A surge (TO-247AC; approximate)', model: { igt: 0.06, ih: 0.15, vt0: 0.85, rt: 0.006 } },
+  { name: 'SKKT 106/16E', note: 'thyristor module (two SCRs, SEMIPACK 1), 1600 V, 106 A average, 167 A r.m.s., 2000 A surge, per thyristor (approximate); wired anti-parallel by joining terminals 1 and 3', model: { igt: 0.1, ih: 0.15, vt0: 0.85, rt: 0.0022 } },
+  { name: 'SKKT 162/16E', note: 'thyristor module (two SCRs, SEMIPACK 2), 1600 V, 156 A average, 250 A r.m.s., 5000 A surge, per thyristor (approximate); wired anti-parallel by joining terminals 1 and 3', model: { igt: 0.15, ih: 0.2, vt0: 0.85, rt: 0.0012 } },
+];
+
 export interface IgbtModel { vto: number; kp: number; bf: number; is: number; diode?: DiodeModel; cge?: number; cgc?: number; cce?: number }
 
 export const IGBTS: NamedModel<IgbtModel>[] = [

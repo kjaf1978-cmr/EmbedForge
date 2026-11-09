@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -327,6 +327,13 @@ export const SYMBOLS: SymbolDef[] = [
     pins: [{ id: '2', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '1', name: 'K', x: 30, y: 0, type: 'passive' }], ...H, simulated: true,
     gfx: () => [path('M -30 0 H -8 M 8 0 H 30 M 8 -9 V 9', 'none', 2), path('M -8 -9 L 8 0 L -8 9 Z', fg)],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(DIODES.map((m) => m.name)), default: '1N4148' }, params: [HEATSINK, TJ, { key: 'spice', label: 'SPICE model (optional)', kind: 'text', default: '', help: 'Paste a .model line from a datasheet or vendor library; it replaces the model above.' }],
+  },
+  {
+    id: 'scr', name: 'Thyristor (SCR)', category: 'Semiconductors', keywords: ['d', 'q', 'scr', 'thyristor', 'triac', 'ac switch', 'phase control'], prefix: 'Q',
+    description: 'Thyristor: blocks both ways until a gate current (into G, out of K) above its trigger level turns it on from anode (left) to cathode; it then stays on until its current falls to zero. Two in anti-parallel switch AC at the current zero.',
+    pins: [{ id: '1', name: 'A', x: -30, y: 0, type: 'passive' }, { id: '2', name: 'K', x: 30, y: 0, type: 'passive' }, { id: '3', name: 'G', x: 10, y: 30, type: 'input' }], ...H, simulated: true,
+    gfx: () => [path('M -30 0 H -8 M 8 0 H 30 M 8 -9 V 9 M 8 6 L 10 12 V 30', 'none', 2), path('M -8 -9 L 8 0 L -8 9 Z', fg)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(SCRS.map((m) => m.name)), default: 'VS-40TPS12' }, params: [HEATSINK, TJ],
   },
   {
     id: 'zener', name: 'Zener diode', category: 'Semiconductors', keywords: ['z', 'zener', 'reference', 'regulator'], prefix: 'D',
