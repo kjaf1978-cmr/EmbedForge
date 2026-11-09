@@ -1,0 +1,17 @@
+net;panel terminals;board connector;wire
++24V;K1:21 K2:21;J_PANEL:1;0.75 mm² H05V-K
+GND;X8:1 X6:1;J_PANEL:2;6 mm² H07V-K green-yellow (PE)
+K1A;K1:A1 K2:22 NC;J_PANEL:3;0.75 mm² H05V-K
+K1C;K1:A2;J_PANEL:4;0.75 mm² H05V-K
+K2A;K1:22 NC K2:A1;J_PANEL:5;0.75 mm² H05V-K
+K2C;K2:A2;J_PANEL:6;0.75 mm² H05V-K
+L1;Q1:L1 out K1:1/L1;J_MAINS:1;1.5 mm² H07V-K
+L2;Q2:L1 out K2:1/L1;J_MAINS:2;1.5 mm² H07V-K
+LB_IN;X5:1 Q2:L1 in;;6 mm² H07V-K, ferrules
+LM_IN;X1:1 Q1:L1 in;;6 mm² H07V-K, ferrules
+LOAD;K1:2/T1 K2:2/T1 X3:1;;6 mm² H07V-K, ferrules
+N1;Q1:N out K1:7/N;J_MAINS:3;1.5 mm² H07V-K
+N2;Q2:N out K2:7/N;J_MAINS:4;1.5 mm² H07V-K
+NB;X7:1 Q2:N in;;6 mm² H07V-K, ferrules
+NLOAD;K1:8/N K2:8/N X4:1;;6 mm² H07V-K, ferrules
+NM;X2:1 Q1:N in;;6 mm² H07V-K, ferrules

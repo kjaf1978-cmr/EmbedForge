@@ -13,7 +13,10 @@ export interface Design {
   plan?: Placed[]; tracks?: PlanTrack[]; region?: { x0: number; x1: number }; edge?: number;
   /** Areas (mm) the mains routing (stage 1) keeps out of: the relays' coil pins and COM. */
   keep1?: [number, number, number, number][];
-  panel?: (p: Part) => boolean; sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
+  panel?: (p: Part) => boolean;
+  /** The panel's wire for a net: cross-section and type (wiring list, panel.csv). */
+  wire?: (net: string, toBoard: boolean, isMains: boolean) => string;
+  sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
 
 // 230 V mains (300 V r.m.s. working voltage): 3.2 mm, the creepage of basic insulation (IEC
 // 62368-1 table 17, pollution degree 2, material group IIIb), taken as the copper clearance on
@@ -91,6 +94,11 @@ const STAB_PLAN: Placed[] = (() => {
 
 /** DIN-rail and chassis parts: on the panel, wired, not on the board. */
 const PANEL = new Set(['contactor', 'breaker1', 'breaker2', 'breaker3', 'breaker4', 'terminal']);
+// the change-overs' panel wiring: the 32 A circuits in 6 mm² (IEC 60364-5-52, method B2, 30 °C,
+// two loaded conductors: 36 A; derate in a hot enclosure), the board's mains feeds (behind the
+// breakers, its fuses at 0.2 A) in 1.5 mm², the control in 0.75 mm²; PE green-yellow
+const coWire = (net: string, toBoard: boolean, isMains: boolean) =>
+  net === 'GND' ? '6 mm² H07V-K green-yellow (PE)' : isMains ? (toBoard ? '1.5 mm² H07V-K' : '6 mm² H07V-K, ferrules') : '0.75 mm² H05V-K';
 
 export const DESIGNS: Record<string, Design> = {
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 210, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 100, x1: 210 }, edge: 99,
@@ -99,7 +107,7 @@ export const DESIGNS: Record<string, Design> = {
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
   // connectors, the MOVs (after the breakers) and the control, its mains and its control nets on
   // two connectors to the panel
-  'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym) },
-  'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym) },
+  'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
+  'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 2.6 },
   'mppt-charger': { sheet: () => mpptCharger().sheet, title: 'MPPT solar charger 48 V', revision: 'A', classes: () => [] },
 };

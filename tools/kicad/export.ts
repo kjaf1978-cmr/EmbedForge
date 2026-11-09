@@ -47,7 +47,7 @@ writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: d.region ? d.regi
 // the router's class-to-class clearances (route.py adds them to the Specctra file)
 writeFileSync(join(out, 'apart.json'), JSON.stringify(classes.filter((c) => c.apart).map((c) => ({ cls: c.name, mm: c.apart }))));
 writeFileSync(join(out, 'nets.txt'), nl.nets.join('\n') + '\n');
-writeFileSync(join(out, 'panel.csv'), ['net;panel terminals;board connector', ...nl.panel.map((w) => `${w.net};${w.ends.join(' ')};${w.board ?? ''}`)].join('\n') + '\n');
+writeFileSync(join(out, 'panel.csv'), ['net;panel terminals;board connector;wire', ...nl.panel.map((w) => `${w.net};${w.ends.join(' ')};${w.board ?? ''};${d.wire?.(w.net, !!w.board, mains.has(w.net)) ?? ''}`)].join('\n') + '\n');
 writeFileSync(join(out, 'warnings.txt'), nl.warnings.join('\n') + (nl.warnings.length ? '\n' : ''));
 for (const c of classes) console.log(`class ${c.name}: ${c.patterns.length} nets, ${c.track} mm, clearance ${c.clearance} mm: ${c.patterns.map((p) => p.slice(1, -1)).join(' ')}`);
 console.log(`${name}: ${nl.parts.length} parts, ${nl.nets.length} nets, board ${b.w} × ${b.h} mm, ${nl.warnings.length} warnings`);

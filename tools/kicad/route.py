@@ -203,6 +203,20 @@ def main():
         if os.path.exists(src):
             shutil.copy(src, os.path.join(d, 'routed.' + ext))
     errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
+    if unconnected and split:
+        # stage 3: what the two stages left, with everything routed so far locked and no keepouts;
+        # the insulation distance as a class-to-class rule (slow on a whole board, quick for a net)
+        print(f'stage 3: {unconnected} connections left', flush=True)
+        c = pcbnew.LoadBoard(routed)
+        for t in c.GetTracks():
+            t.SetLocked(True)
+        c.Save(os.path.join(d, 'stage3.kicad_pcb'))
+        c = pcbnew.LoadBoard(os.path.join(d, 'stage3.kicad_pcb'))
+        ses3 = freeroute(c, d, 'stage3', passes, apart=True)
+        board = pcbnew.LoadBoard(routed)
+        import_ses(board, ses3)
+        board.Save(routed)
+        errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
     print(f'DRC: {len(errors)} errors {dict(kinds)}, {unconnected} unconnected', flush=True)
     fab = os.path.join(d, 'fab')
     os.makedirs(fab, exist_ok=True)
