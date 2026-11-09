@@ -10,6 +10,8 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Mains voltage stabiliser 1 kVA (P4) | `stabiliser/` | 230 × 212 mm, 2 layers, 2 oz | 0 / 0 | routed; awaiting a person's review and a prototype |
 | Mains change-over 1P, 32 A (P3): control board + DIN-rail panel | `changeover-1p/` | 155 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
 | Mains change-over 3P+N, 32 A (P3): control board + DIN-rail panel | `changeover-3p/` | 225 × 150 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
+| MPPT solar charger 48 V, 80 A (P6): power board | `mppt-power/` | 280 × 160 mm, 2 layers, 4 oz | 0 / 0 | routed; copper bars and lugs below |
+| MPPT solar charger 48 V, 80 A (P6): control board | `mppt-control/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; `link.csv`: the nets to the power board |
 
 ## What a folder holds
 
@@ -41,6 +43,24 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
   tracks 1.6 mm for 7 A).
 - The power section is placed and partly routed by a written plan (`tools/kicad/layouts.ts`);
   the control section is placed from the schematic and routed by Freerouting.
+
+## Power boards (D45)
+
+The high-current paths are drawn as 4 mm tracks with the solder mask open on them: solder a
+tinned copper bar 4 × 3 mm (12 mm², 80 A at about 30 K rise) along each, or two 4 mm² solid
+copper wires, so the bar carries the current and the board's 4 oz copper only joins it to the
+pins. Cables and busbars bolt to the M5 lugs (plated holes with 12 mm rings): the inductor and
+the fuse sit on the chassis next to the board. The TO-247 and TO-126 parts stand in one row along
+the bottom edge, their tabs to a common heatsink (isolate each tab with a thermal pad rated for
+the voltage, the PV side reaches 114 V). The two boards of a design connect through their 12-pole
+connectors, pole by pole as `link.csv` lists them.
+
+## Parts lists
+
+Each folder's `<design>-bom.csv` lists the parts with the footprint each has on the board, the
+manufacturer's part number, distributors with order numbers, and an indicative unit price (EUR,
+October 2026, "live" or "estimate"; check prices and stock when ordering). The lines not on
+this board come last (panel parts, the other board's parts).
 
 ## Known warnings
 
