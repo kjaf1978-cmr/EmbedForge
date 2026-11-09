@@ -6,6 +6,7 @@ import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
 import { connectivity } from './connectivity';
 import { parseValue } from './units';
+import { linkModule, type LinkOptions } from './inverterLink';
 
 /** Options of the 50 Hz-transformer inverter: battery voltage (V), load (Ω at 230 V; 0: none),
  *  air and heatsink temperatures (°C), simulated time, and short timings for tests. */
@@ -36,6 +37,9 @@ export interface InverterLfOptions {
    *  230 V, six times the rating of a 2.2 kW motor) connected by a relay from `at` for `for`
    *  seconds. */
   motorStart?: { at: number; for: number };
+  /** A unit of a parallel or three-phase system (DFMEA I-13, H-18): the link module fitted,
+   *  JQ on its 50 Hz, the output terminal after its current transformer (inverterLink.ts). */
+  link?: LinkOptions;
 }
 
 /** The sense transformer of the voltage loop and of the independent protection: a 1 VA 230/12 V
@@ -177,7 +181,7 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('TR1', 'transformer', 1400, -60, { ...vr.tr }, { '1': 'SWA', '2': 'SWB', '3': 'OUTL', '4': 'GND' })
     .part('COUT', 'capacitor', 1550, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
     .part('RVO', 'mov', 1650, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
-    .part('X3', 'terminal', 1800, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
+    .part('X3', 'terminal', 1800, -140, { value: 'L out' }, { '1': o.link ? o.link.bus : 'OUTL' }, 2)
     .part('X4', 'terminal', 1800, -80, { value: 'N out' }, { '1': 'GND' }, 2)
     .part('X5', 'terminal', 1800, -20, { value: 'PE' }, { '1': 'GND' }, 2);
   if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 1900, -220)
@@ -294,10 +298,14 @@ export function inverterLF(o: InverterLfOptions = {}): { sheet: Sheet; nb: NB } 
     .part('CT50', 'capacitor', -1420, 1200, { value: '100n', vmax: '50' }, { '1': 'T50', '2': 'GND' }, 1)
     .part('CK50', 'capacitor', -1180, 1180, { value: '10n', vmax: '50' }, { '1': 'K50', '2': 'GND' }, 1)
     .part('UFF1', 'dff', -1050, 1040, { value: V , pkg: 'FF' }, { '1': 'Q100N', '2': 'C200', '3': 'Q100', '4': 'Q100N' })
-    .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': 'Q50', '4': 'Q50N' })
+    .part('UFF2', 'dff', -850, 1040, { value: V , pkg: 'FF' }, { '1': 'Q50N', '2': 'Q100', '3': o.link ? 'Q50L' : 'Q50', '4': 'Q50N' })
     .part('CD50', 'capacitor', -950, 1180, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+  // a linked unit: the jumper JQ takes the link module's 50 Hz (B) instead of the unit's own (A)
+  if (o.link) nb.part('JQ', 'spdt', -760, 1180, { value: 'JUMPER', jumper: 'true', position: 'B' }, { '1': 'Q50', '2': 'Q50L', '3': 'KQO' });
 
   inverterControl(nb, o, { V, G: 'GND', q50: 'Q50', cmpT: { value: 'LM339', pkg: 'CMP1' }, cmpV: { value: 'LM358', pkg: 'OVL' }, oc: vr.oc, rdc1: vr.rdc1, flux: true, ...(direct ? { tri: ['10k', '28.7k'] as [string, string] } : {}) });
+
+  if (o.link) linkModule(nb, o.link, { V, G: 'GND', bqe: 'BQE', q50: 'KQO', outl: 'OUTL', vrail: direct ? 9 : 12 });
 
   nb.v('OUTL').v('SINE').v('VA').v('BUS').v('EN').i('TR1', '3');
   nb.sim({ type: 'tran', stop: o.stop ?? '200m', step: '5u', start: 'zero', thin: true });
@@ -964,8 +972,10 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     // 4.7 mA in the LED; on the high-voltage side the phototransistor pulls Q50H low (2.2k from
     // 15 V: 6.8 mA, saturated with the PC817's CTR of 80 % or more)
     .part('R50', 'resistor', -750, 1040, { value: '2.2k' }, { '1': 'Q50', '2': 'L50A' })
-    .part('U3', 'opto', -620, 1060, { value: 'PC817' }, { '1': 'L50A', '2': 'GND', '4': 'Q50H', '3': G })
+    .part('U3', 'opto', -620, 1060, { value: 'PC817' }, { '1': 'L50A', '2': 'GND', '4': o.link ? 'Q50U' : 'Q50H', '3': G })
     .part('R50H', 'resistor', -660, 940, { value: '2.2k' }, { '1': VH, '2': 'Q50H' }, 1);
+  // a linked unit: the jumper JQ takes the link module's 50 Hz (B) instead of the optocoupler's (A)
+  if (o.link) nb.part('JQ', 'spdt', -560, 1180, { value: 'JUMPER', jumper: 'true', position: 'B' }, { '1': 'Q50H', '2': 'Q50U', '3': 'KQO' });
 
   // ---- DC-DC control, a phase-shifted bridge with peak current-mode: a 555 at 40 kHz (84 %
   // charge, 4 µs discharge: the blanking BLK between the half periods, which is also the
@@ -1106,7 +1116,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
       .part('LF1', 'inductor', 3000, -160, { value: '470u', imax: '80', isat: '80' }, { '1': 'SWA', '2': 'OUTL' })
       .part('COUT', 'capacitor', 3130, -60, { value: '10u', vmax: '630' }, { '1': 'OUTL', '2': 'GND' }, 1)
       .part('RVO', 'mov', 3230, -60, { value: '14D471K' }, { '1': 'OUTL', '2': 'GND' }, 1)
-      .part('X3', 'terminal', 3350, -140, { value: 'L out' }, { '1': 'OUTL' }, 2)
+      .part('X3', 'terminal', 3350, -140, { value: 'L out' }, { '1': o.link ? o.link.bus : 'OUTL' }, 2)
       .part('X4', 'terminal', 3350, -80, { value: 'N out' }, { '1': 'GND' }, 2)
       .part('X5', 'terminal', 3350, -20, { value: 'PE' }, { '1': 'GND' }, 2);
     if (o.load !== '0') nb.block('load').note('TEST LOAD (not part of the product)', 2980, 160)
@@ -1147,6 +1157,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     // ---- the control of the sine bridge (shared with the 50 Hz unit), drawn below
     nb.ox = 2050;
     inverterControl(nb, o, { V: VH, G, q50: 'Q50H', cmpT: { value: 'LM393', pkg: 'CMPH' }, cmpV: { value: 'LM393', pkg: 'UVH' }, hybrid: true, swb: 'GND' });
+    if (o.link) linkModule(nb, o.link, { V: VH, G, bqe: 'BQEH', q50: 'KQO', outl: 'OUTL', vrail: 15 });
     nb.ox = 0;
   }
 

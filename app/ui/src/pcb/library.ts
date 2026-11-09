@@ -184,7 +184,9 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'timer555': return [same('DIP-8', pins), same('SOIC-8', pins)];
     case 'switch': return [same('Switch_Toggle_2', pins)];
     case 'button': return [map('SW_Tactile_6mm', { 1: ['1a', '1b'], 2: ['2a', '2b'] })];
-    case 'spdt': return [map('Switch_Slide_3', { 2: '1', 1: '2', 3: '3' }, { note: 'A, C (common), B' })];
+    // a jumper (props.jumper): a 3-pin header and a shunt, the common in the middle
+    case 'spdt': if (p.props.jumper === 'true') return [map('PinHeader_1x3', { 2: '1', 1: '2', 3: '3' }, { note: 'jumper: A, C (common), B; shunt on C–B for a linked unit' })];
+      return [map('Switch_Slide_3', { 2: '1', 1: '2', 3: '3' }, { note: 'A, C (common), B' })];
     case 'relay': return [same('Relay_SPDT_SRD', pins, 'A1, A2 (coil), COM, NC, NO')];
     case 'dcmotor': return [map('TerminalBlock_1x2', { 1: '1', 2: '2' }, { note: 'motor wires; the speed output is simulation only' })];
     case 'motor1': return [same('TerminalBlock_1x2', pins, 'motor wires L, N')];
