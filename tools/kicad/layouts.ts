@@ -5,7 +5,7 @@
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
 import { stabiliser, changeover1, changeover3, mpptCharger } from '../../app/ui/src/eda/powerExamples';
-import { inverterLF } from '../../app/ui/src/eda/inverters';
+import { inverterLF, inverterHF } from '../../app/ui/src/eda/inverters';
 
 export interface Design {
   /** The placement plan of the power section (D44): fixed positions (mm) and rotations; the other
@@ -231,7 +231,28 @@ const LF_PLANES: PlanZone[] = [
   { net: 'BUS', layer: 'B.Cu', pts: [[3, 3], [277, 3], [277, 98.5], [3, 98.5]] },
 ];
 
+// ---- the high-frequency inverter (P7b): power board (DC-DC bridge, bus, rectifier, high-voltage
+// bus, sine bridge) and one control board for both sides: its high-voltage side (everything
+// from HVG and HBUS up to the optocouplers and transformers) 8 mm from the rest (reinforced
+// insulation, 400 V peak, PD2, IIIb), the output line 3.2 mm (basic: N and the battery's
+// negative are bonded to PE)
+const HF_PWR_BLOCKS = new Set(['dc-dc bridge', 'bus', 'current sense', 'dc-dc output', 'bridge']);
+const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1'];
+const HF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
+let hfCache: { pwr: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ref: (k: string) => string } | undefined;
+const hfRefs = () => hfCache ??= (() => {
+  const { sheet, nb } = inverterHF({ load: '0' }), ref = (k: string) => nb.refOf(sheet, k);
+  const off = new Set(HF_OFF.map(ref));
+  const pwr = new Set(sheet.parts.filter((p) => HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !off.has(p.ref)).map((p) => p.ref));
+  pwr.add(ref('X2'));
+  const sub = { ...sheet, parts: sheet.parts.filter((p) => !HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !['output', 'bench', 'load', 'battery'].includes(nb.blockOf(p.id))) };
+  return { pwr, off, panel: new Set(HF_PANEL.map(ref)), hv: potentialGroup(sub, ['HVG', 'HBUS'], new Set(['GND', 'OUTL'])), ref };
+})();
+const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 8 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
+
 export const DESIGNS: Record<string, Design> = {
+  'inverter-hf-48-control': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200,
+    panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
   'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
     heavy: LF_HEAVY, panel: (p) => !lfRefs(16).pwr.has(p.ref), bolted: (p) => lfRefs(16).off.has(p.ref), w: 280, h: 170,
     plan: lfPlan, tracks: LF_BARS, zones: LF_PLANES, region: { x0: 0, x1: 280, y0: 124, y1: 170 } },

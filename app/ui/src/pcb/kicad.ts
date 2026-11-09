@@ -211,7 +211,8 @@ function sides(p: Part): string[][] | null {
 /** The nets at the potential of the seed nets: everything reached from them through the parts
  *  on the board, a transformer, optocoupler, relay or contactor only within one of its sides
  *  (its insulation is the barrier). Test-bench parts are not on the board and do not join. */
-export function potentialGroup(sheet: Sheet, seeds: string[]): Set<string> {
+/** `stop`: nets the flood does not enter (an earthed reference shared by two sides). */
+export function potentialGroup(sheet: Sheet, seeds: string[], stop: Set<string> = new Set()): Set<string> {
   const c = connectivity(sheet);
   const adj = new Map<string, Set<string>>();
   const link = (a: string, b: string) => { if (a === b) return; adj.set(a, (adj.get(a) ?? new Set()).add(b)); adj.set(b, (adj.get(b) ?? new Set()).add(a)); };
@@ -224,7 +225,7 @@ export function potentialGroup(sheet: Sheet, seeds: string[]): Set<string> {
     }
   }
   const seen = new Set<string>(), todo = [...seeds];
-  while (todo.length) { const n = todo.pop()!; if (seen.has(n)) continue; seen.add(n); for (const m of adj.get(n) ?? []) todo.push(m); }
+  while (todo.length) { const n = todo.pop()!; if (seen.has(n) || stop.has(n)) continue; seen.add(n); for (const m of adj.get(n) ?? []) todo.push(m); }
   return seen;
 }
 
