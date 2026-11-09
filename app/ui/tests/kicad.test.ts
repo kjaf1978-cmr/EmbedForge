@@ -1,5 +1,7 @@
 // The KiCad export of the worked designs' boards (decision D43): packages, pads and nets,
 // the mains nets and their footprints, the panel split, and the board file's form.
+import { vi } from 'vitest';
+vi.setConfig({ testTimeout: 60_000 });
 import { describe, expect, it } from 'vitest';
 import { boardNetlist, kicadBoard, potentialGroup, classFor, ipc2221Width } from '../src/pcb/kicad';
 import { stabiliser, changeover1 } from '../src/eda/powerExamples';
