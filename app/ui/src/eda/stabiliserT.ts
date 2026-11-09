@@ -5,11 +5,15 @@
 // The rule that makes the thyristors safe: a thyristor pair keeps conducting until its current
 // passes zero, whatever its gate. So a tap change is a break-before-make in three steps: (1) the
 // wanted tap (the comparators, latched input states O1 … O6) differs from the latched one: CHG
-// goes high and every gate is taken off; (2) the input current, sensed by a current transformer,
-// stays inside ±0.5 A for 0.15 ms: the old pair has stopped; (3) the latch takes the new states,
-// CHG falls and the new pair's gate comes on. A thyristor that has failed short keeps the current
-// flowing, so step 2 never comes: the unit stays on that tap and never closes a second one onto
-// it (a short of a winding section); after 0.12 s the stuck-change protection opens the output.
+// goes high and every gate is taken off; (2) every pair blocks: each pair's voltage lights the LED
+// of its own optocoupler (through a bridge, above about 25 V either way), and the seven
+// phototransistors in series pull OFFN low only when all seven block, for 0.15 ms; (3) the latch
+// takes the new states, CHG falls and the new pair's gate comes on. A pair that has failed short
+// never shows a voltage, so step 2 never comes: the unit stays on that tap and never closes a
+// second one onto it (a short of a winding section); after 0.12 s the stuck-change protection
+// opens the output. (A window on the input current, the first design, could not tell a pair that
+// had stopped from a slow zero crossing: with a shorted pair it fired a second tap and 1.5 kA
+// flowed in the section, found in simulation.)
 
 import { NB, SENSE_TR, STAB_LADDER, type MainsStep } from './powerExamples';
 import type { Sheet } from './schematic';
@@ -34,9 +38,9 @@ export interface StabTOptions {
  *  gate resistors. The input current at the lowest input (140 V) is 36, 71 and 107 A; each
  *  thyristor of the conducting pair carries half of it (r.m.s. I/√2). */
 export const STABT_VARIANTS = {
-  5: { at: '5 kVA 230 V, taps 150–280 V', qf: '40', km: '32 A, coil 230 V AC', scr: 'VS-40TPS12', rg: '330', heatsink: '0.6' },
-  10: { at: '10 kVA 230 V, taps 150–280 V', qf: '80', km: '65 A, coil 230 V AC', scr: 'VS-70TPS16', rg: '330', heatsink: '0.3' },
-  15: { at: '15 kVA 230 V, taps 150–280 V', qf: '125', km: '95 A, coil 230 V AC', scr: 'VS-70TPS16', rg: '330', heatsink: '0.2' },
+  5: { at: '5 kVA 230 V, taps 150–280 V', qf: '40', km: '32 A, coil 230 V AC', scr: 'VS-40TPS12', rg: '470', heatsink: '0.6' },
+  10: { at: '10 kVA 230 V, taps 150–280 V', qf: '80', km: '65 A, coil 230 V AC', scr: 'VS-70TPS16', rg: '470', heatsink: '0.3' },
+  15: { at: '15 kVA 230 V, taps 150–280 V', qf: '125', km: '95 A, coil 230 V AC', scr: 'VS-70TPS16', rg: '470', heatsink: '0.2' },
 } as const;
 
 export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
@@ -44,7 +48,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const V = '+12V';
   nb.para(`MAINS VOLTAGE STABILISER ${kva} kVA, thyristor-switched taps (D41). The input is connected to one tap of a ${kva} kVA autotransformer (150 … 280 V) by one of seven anti-parallel thyristor pairs; the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in.`, -1250, -380)
-    .para('A tap change is a break-before-make at the current zero: all gates off, the input current (current transformer) inside ±0.5 A for 0.15 ms, then the latch takes the new tap and its pair fires (opto-triac). A shorted thyristor holds the current, so no second tap ever closes onto it; the stuck-change protection then opens the output contactor. LM339 comparators against a TL431 ladder choose the tap (160 / 180 / 200 / 220 / 240 / 265 V); the output contactor closes after about 8 s; an independent protection opens it outside 190 … 255 V, on a stuck change and above 85 °C at the heatsink.', -50, -380);
+    .para('A tap change is a break-before-make at the current zero: all gates off, every pair blocking (a voltage across each, seen by its own optocoupler) for 0.15 ms, then the latch takes the new tap and its pair fires (opto-triac). A shorted pair never blocks, so no second tap ever closes onto it; the stuck-change protection then opens the output contactor. LM339 comparators against a TL431 ladder choose the tap (160 / 180 / 200 / 220 / 240 / 265 V); the output contactor closes after about 8 s; an independent protection opens it outside 190 … 255 V, on a stuck change and above 85 °C at the heatsink.', -50, -380);
 
   // ---- test bench: the supply (TN, neutral earthed at the transformer) — not part of the product
   nb.block('bench').note('TEST BENCH (not part of the product): mains supply with its neutral earthed at the transformer', -1250, -60);
@@ -58,9 +62,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('X2', 'terminal', -900, 130, { value: 'N in' }, { '1': 'N' })
     .part('X3', 'terminal', -900, 190, { value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker1', -760, 70, { value: vr.qf, curve: 'C' }, { '1': 'L_IN', '2': 'VIN' }, 3)
-    .part('RV1', 'mov', -640, 100, { value: '20D471K' }, { '1': 'VIN', '2': 'N' }, 1)
-    // 1:1000 (a 100 A PCB current transformer, the input line through its window)
-    .part('TCT', 'transformer', -560, 60, { value: '1000', lp: '10u', rp: '0.1m', rs: '30', k: '0.999' }, { '1': 'VIN', '2': 'VINS', '3': 'CTA', '4': 'CTB' });
+    .part('RV1', 'mov', -640, 100, { value: '20D471K' }, { '1': 'VIN', '2': 'N' }, 1);
 
   // ---- 12 V control supply from the input (as the 1 kVA unit)
   nb.block('aux')
@@ -104,23 +106,17 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   }
   nb.part('CD1', 'capacitor', 1250, 1150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  // ---- current zero: the transformer's current through a bridge into 100 Ω (0.1 V/A of the
-  // input, clamped at 5.6 V), ZW high while it is below 51 mV (0.5 A); ZWD follows after 0.15 ms
-  nb.block('current zero')
-    .part('BCT', 'bridge', -500, 1500, { value: 'DB107' }, { '1': 'CTA', '2': 'CTB', '3': 'CTP', '4': 'GND' })
-    .part('RCT', 'resistor', -400, 1580, { value: '100', pmax: '0.5' }, { '1': 'CTP', '2': 'GND' }, 1)
-    .part('DZCT', 'zener', -320, 1580, { value: '1N4734A' }, { '1': 'CTP', '2': 'GND' }, 1)
-    .part('RCF', 'resistor', -240, 1500, { value: '1k' }, { '1': 'CTP', '2': 'CTF' })
-    .part('CCF', 'capacitor', -160, 1580, { value: '1n', vmax: '50' }, { '1': 'CTF', '2': 'GND' }, 1)
-    .part('RZT1', 'resistor', -80, 1440, { value: '47.5k' }, { '1': 'VREF', '2': 'VZT' }, 1)
-    .part('RZT2', 'resistor', -80, 1560, { value: '1k' }, { '1': 'VZT', '2': 'GND' }, 1)
-    .part('UZ', 'comparator', 60, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'VZT', '2': 'CTF', '1': 'ZW', '8': V, '4': 'GND' })
-    .part('RZP', 'resistor', 160, 1420, { value: '10k' }, { '1': V, '2': 'ZW' }, 1)
-    .part('RZD', 'resistor', 240, 1500, { value: '10k' }, { '1': 'ZW', '2': 'ZWD' })
-    .part('CZD', 'capacitor', 320, 1580, { value: '22n', vmax: '50' }, { '1': 'ZWD', '2': 'GND' }, 1)
-    // ZWD falls at once with ZW, through 1k: the comparator sinks CZD's charge within its 16 mA
-    .part('DZD', 'diode', 280, 1420, { value: '1N4148' }, { '2': 'ZWD', '1': 'ZDK' })
-    .part('RZK', 'resistor', 360, 1420, { value: '1k' }, { '1': 'ZDK', '2': 'ZW' });
+  // ---- all pairs blocking: OFFN low (the seven phototransistors in series, 47k pull-up) → ALLOFF
+  // (a NOR as inverter) → ALLOFFD after 0.15 ms (10k, 22 nF; it falls at once through 1k)
+  nb.block('all off')
+    .part('ROFF', 'resistor', -400, 1420, { value: '47k' }, { '1': V, '2': 'OFFN' }, 1)
+    .part('UN8', 'nor2', -250, 1500, { value: V, pkg: 'NR2' }, { '1': 'OFFN', '2': 'OFFN', '3': 'ALLOFF' })
+    .part('RZD', 'resistor', -100, 1500, { value: '10k' }, { '1': 'ALLOFF', '2': 'ZWD' })
+    .part('CZD', 'capacitor', 0, 1580, { value: '22n', vmax: '50' }, { '1': 'ZWD', '2': 'GND' }, 1)
+    .part('DZD', 'diode', -40, 1420, { value: '1N4148' }, { '2': 'ZWD', '1': 'ZDK' })
+    .part('RZK', 'resistor', 60, 1420, { value: '1k' }, { '1': 'ZDK', '2': 'ALLOFF' })
+    // the spare comparator: + to ground, − to the reference, its output held low
+    .part('UCS', 'comparator', 200, 1500, { value: 'LM339', pkg: 'CMP2' }, { '3': 'GND', '2': 'VREF', '1': 'GND', '8': V, '4': 'GND' });
 
   // ---- the latch (three CD4013), the change detector (six XOR, a diode OR), the clock CK =
   // CHG · ZWD, the decoder (NOR: tap k when O_k and not O_k−1, tap 7 when none) and the gates
@@ -134,7 +130,6 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   }
   nb.part('RCH', 'resistor', 1500, 1750, { value: '100k' }, { '1': 'CHG', '2': 'GND' }, 1)
     .part('UN7', 'nor2', 1500, 1850, { value: V, pkg: 'NR2' }, { '1': 'CHG', '2': 'CHG', '3': 'NCHG' })
-    .part('UN8', 'nor2', 1650, 1850, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'NSP' })
     .part('UX7', 'xor2', 1500, 1650, { value: V, pkg: 'XR2' }, { '1': 'GND', '2': 'GND', '3': 'XSP1' })
     .part('UX8', 'xor2', 1650, 1650, { value: V, pkg: 'XR2' }, { '1': 'GND', '2': 'GND', '3': 'XSP2' })
     .part('UCK', 'and2', 1500, 1450, { value: V, pkg: 'AN2' }, { '1': 'CHG', '2': 'ZWD', '3': 'CK' })
@@ -143,9 +138,11 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- per tap: the gate (S_k · NCHG), its driver, the opto-triac (LED and a yellow indicator
   // in series, 13 mA) and the thyristor pair between the input and tap k with its snubber.
-  // The opto-triac fires whichever thyristor is forward biased: VINS → RA → MT2–MT1 → DA → gate
+  // The opto-triac fires whichever thyristor is forward biased: VIN → RA → MT2–MT1 → DA → gate
   // of QA (cathode at the tap), or tap → RB → MT1–MT2 → DB → gate of QB (cathode at the input).
-  // RA/RB: 330 Ω keep the opto-triac within its 1 A peak when it fires at up to 330 V.
+  // RA/RB: 470 Ω keep the opto-triac (FOD4218, 800 V) within its 1 A peak when it fires at up to
+  // 470 V (300 V in on the highest tap: with 330 Ω and a 600 V MOC3052 both ratings were exceeded,
+  // found in simulation).
   nb.block('taps');
   for (let k = 1; k <= 7; k++) {
     const x = 400 * (k - 1), t = `T${k}`, s = k <= 6 ? `S${k}` : 'LN6';
@@ -154,18 +151,23 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`QG${k}`, 'npn', x + 160, 230, { value: 'BC547B' }, { '1': `BG${k}`, '2': `LK${k}`, '3': 'EG' })
       .part(`RLD${k}`, 'resistor', x + 160, -20, { value: '680' }, { '1': V, '2': `LY${k}` }, 1)
       .part(`LT${k}`, 'led', x + 160, 60, { colour: 'yellow' }, { '2': `LY${k}`, '1': `LO${k}A` }, 1)
-      .part(`UO${k}`, 'optotriac', x + 260, 120, { value: 'MOC3052' }, { '1': `LO${k}A`, '2': `LK${k}`, '6': `XA${k}`, '4': `YB${k}` })
-      .part(`RA${k}`, 'resistor', x + 360, 20, { value: vr.rg, pmax: '0.5' }, { '1': 'VINS', '2': `XA${k}` })
+      .part(`UO${k}`, 'optotriac', x + 260, 120, { value: 'FOD4218' }, { '1': `LO${k}A`, '2': `LK${k}`, '6': `XA${k}`, '4': `YB${k}` })
+      .part(`RA${k}`, 'resistor', x + 360, 20, { value: vr.rg, pmax: '0.5' }, { '1': 'VIN', '2': `XA${k}` })
       .part(`RB${k}`, 'resistor', x + 360, 220, { value: vr.rg, pmax: '0.5' }, { '1': t, '2': `YB${k}` })
       .part(`DA${k}`, 'diode', x + 300, 300, { value: '1N4007' }, { '2': `YB${k}`, '1': `GA${k}` })
       .part(`DB${k}`, 'diode', x + 300, -60, { value: '1N4007' }, { '2': `XA${k}`, '1': `GB${k}` })
-      .part(`QA${k}`, 'scr', x + 200, 400, { value: vr.scr, heatsink: vr.heatsink }, { '1': 'VINS', '2': t, '3': `GA${k}` })
-      .part(`QB${k}`, 'scr', x + 200, 520, { value: vr.scr, heatsink: vr.heatsink }, { '1': t, '2': 'VINS', '3': `GB${k}` })
+      .part(`QA${k}`, 'scr', x + 200, 400, { value: vr.scr, heatsink: vr.heatsink }, { '1': 'VIN', '2': t, '3': `GA${k}` })
+      .part(`QB${k}`, 'scr', x + 200, 520, { value: vr.scr, heatsink: vr.heatsink }, { '1': t, '2': 'VIN', '3': `GB${k}` })
       .part(`RGA${k}`, 'resistor', x + 320, 400, { value: '1k' }, { '1': `GA${k}`, '2': t })
-      .part(`RGB${k}`, 'resistor', x + 320, 520, { value: '1k' }, { '1': `GB${k}`, '2': 'VINS' })
-      .part(`RSN${k}`, 'resistor', x + 100, 620, { value: '47', pmax: '2' }, { '1': 'VINS', '2': `SNB${k}` }, 1)
-      .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '630' }, { '1': `SNB${k}`, '2': t }, 1);
-    if (o.shorted === k) nb.block('bench').part('RSHORT', 'resistor', x + 200, 620, { value: '0.005' }, { '1': 'VINS', '2': t }).block('taps');
+      .part(`RGB${k}`, 'resistor', x + 320, 520, { value: '1k' }, { '1': `GB${k}`, '2': 'VIN' })
+      // the pair's voltage: 2 × 22k, a bridge and the LED of US_k (on above about 25 V)
+      .part(`RVA${k}`, 'resistor', x + 20, 820, { value: '22k', pmax: '0.5' }, { '1': 'VIN', '2': `VSA${k}` })
+      .part(`RVB${k}`, 'resistor', x + 20, 920, { value: '22k', pmax: '0.5' }, { '1': t, '2': `VSB${k}` })
+      .part(`BV${k}`, 'bridge', x + 140, 860, { value: 'DB107' }, { '1': `VSA${k}`, '2': `VSB${k}`, '3': `VSP${k}`, '4': `VSN${k}` })
+      .part(`US${k}`, 'opto', x + 260, 860, { value: 'PC817' }, { '1': `VSP${k}`, '2': `VSN${k}`, '4': k === 1 ? 'OFFN' : `OC${k - 1}`, '3': k === 7 ? 'GND' : `OC${k}` })
+      .part(`RSN${k}`, 'resistor', x + 100, 620, { value: '47', pmax: '2' }, { '1': 'VIN', '2': `SNB${k}` }, 1)
+      .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '1000' }, { '1': `SNB${k}`, '2': t }, 1);
+    if (o.shorted === k) nb.block('bench').part('RSHORT', 'resistor', x + 200, 620, { value: '0.005' }, { '1': 'VIN', '2': t }).block('taps');
   }
   // power-up hold: the drivers' emitters reach ground through QPE only once CPE (10k, 47 µF) has
   // passed the 5.1 V Zener (about 0.3 s after the 12 V rail): the input sense has settled by then. Without
@@ -250,7 +252,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CD5', 'capacitor', 650, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD6', 'capacitor', 1150, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  nb.v('VIN').v('OUT').v('SF').v('CHG').v('ZW').i('TCT', '1');
+  nb.v('VIN').v('OUT').v('SF').v('CHG').v('OFFN');
   nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '50u', start: 'zero' });
   return { sheet: nb.done(), nb };
 }

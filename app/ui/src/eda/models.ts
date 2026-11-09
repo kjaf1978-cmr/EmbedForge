@@ -128,6 +128,7 @@ export const OPTOS: NamedModel<OptoModel>[] = [
 /** Opto-triac (random phase): LED trigger current ift (A), the triac's on-state resistance (Ω). */
 export interface OptoTriacModel { vf: number; ift: number; ron: number }
 export const OPTOTRIACS: NamedModel<OptoTriacModel>[] = [
+  { name: 'FOD4218', note: 'opto-triac driver, random phase, 800 V, high dv/dt (10 kV/µs), LED trigger current 1.3 mA max, 1 A peak (DIP-6): fires thyristor pairs on mains up to 400 V', model: { vf: 1.25, ift: 0.0013, ron: 5 } },
   { name: 'MOC3052', note: 'opto-triac driver, random phase (not zero-cross), 600 V, LED trigger current 10 mA, 1 A peak (DIP-6): fires thyristors and triacs', model: { vf: 1.2, ift: 0.01, ron: 5 } },
 ];
 
