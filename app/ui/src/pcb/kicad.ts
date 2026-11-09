@@ -315,7 +315,7 @@ export interface KicadBoardOptions {
   /** The mains nets (placement keeps their parts apart from the rest). */
   mains?: Set<string>;
   /** With a placement plan (`placed`), the region (x, mm) the other parts are placed in. */
-  region?: { x0: number; x1: number };
+  region?: { x0: number; x1: number; y0?: number; y1?: number };
   /** Tracks drawn by the plan (locked; the router routes around them). */
   tracks?: PlanTrack[];
   /** Copper pours of the plan (high-current nets): filled polygons on a layer. */
@@ -354,7 +354,7 @@ export function padAt(pl: Placed, x: number, y: number): [number, number] {
 }
 
 export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set(),
-  fixed: { part: BoardPart; at: Placed }[] = [], region?: { x0: number; x1: number }, obstacles: { x0: number; y0: number; x1: number; y1: number }[] = []): Placed[] {
+  fixed: { part: BoardPart; at: Placed }[] = [], region?: { x0: number; x1: number; y0?: number; y1?: number }, obstacles: { x0: number; y0: number; x1: number; y1: number }[] = []): Placed[] {
   // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
   // clearance of the mains nets, copper to copper, to any other net); others 0.5 mm
   const nM = (p: BoardPart) => Object.values(p.pads).filter((n) => mains.has(n)).length;
@@ -365,7 +365,9 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   const parea = (ps: BoardPart[]) => ps.reduce((s0, p) => s0 + area(p.footprint), 0);
   const ms = parts.filter((p) => kind(p) !== 'ctl'), cs = parts.filter((p) => kind(p) === 'ctl');
   // a placement plan (fixed parts) leaves the rest to a region of its own
-  const split = region ? region.x0 : ms.length && cs.length ? Math.round(w * parea(ms) / parea(parts)) : ms.length ? w : 0;
+  // (at least the widest mains part with the margins: a small mains section of one transformer)
+  const widest = Math.max(0, ...ms.map((p) => p.footprint.courtyard.x1 - p.footprint.courtyard.x0));
+  const split = region ? region.x0 : ms.length && cs.length ? Math.max(Math.round(w * parea(ms) / parea(parts)), Math.ceil(widest + 2 * margin + 2)) : ms.length ? w : 0;
   placement.split = split;
   const zone = (p: BoardPart) => (region ? region : kind(p) === 'ctl' ? { x0: split ? split + 6 : 0, x1: w } : { x0: 0, x1: split || w });
   const rotOf = (p: BoardPart): 0 | 180 => {
@@ -378,7 +380,8 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   const scale = (ps: BoardPart[], z: { x0: number; x1: number }) => {
     const xs = ps.map((p) => p.sx), ys = ps.map((p) => p.sy);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-    return (p: BoardPart): [number, number] => [z.x0 + margin + (p.sx - x0) * (z.x1 - z.x0 - 2 * margin) / Math.max(x1 - x0, 1), margin + (p.sy - y0) * (h - 2 * margin) / Math.max(y1 - y0, 1)];
+    const zy0 = region?.y0 ?? 0, zy1 = region?.y1 ?? h;
+    return (p: BoardPart): [number, number] => [z.x0 + margin + (p.sx - x0) * (z.x1 - z.x0 - 2 * margin) / Math.max(x1 - x0, 1), zy0 + margin + (p.sy - y0) * (zy1 - zy0 - 2 * margin) / Math.max(y1 - y0, 1)];
   };
   const tm = ms.length ? scale(ms, zone(ms[0])) : null, tc = cs.length ? scale(cs, zone(cs[0])) : null;
   const boxes: { x0: number; y0: number; x1: number; y1: number; m: boolean }[] = [];
@@ -396,7 +399,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
       for (let k = 0; k < steps; k++) {
         const x = Math.round((tx + r * Math.cos((2 * Math.PI * k) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * k) / steps)) * 4) / 4;
         const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
-        if (b.x0 < Math.max(1, z.x0) || b.y0 < 1 || b.x1 > Math.min(w - 1, z.x1) || b.y1 > h - 1) continue;
+        if (b.x0 < Math.max(1, z.x0) || b.y0 < Math.max(1, region?.y0 ?? 0) || b.x1 > Math.min(w - 1, z.x1) || b.y1 > Math.min(h - 1, region?.y1 ?? h)) continue;
         if ([...boxes, ...fixedBoxes].some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
         best = [x, y]; break;
       }
@@ -435,7 +438,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
       for (let j = 0; j < steps; j++) {
         const x = Math.round((tx + r * Math.cos((2 * Math.PI * j) / steps)) * 4) / 4, y = Math.round((ty + r * Math.sin((2 * Math.PI * j) / steps)) * 4) / 4;
         const b = { x0: x + c.x0 - 0.5, y0: y + c.y0 - 0.5, x1: x + c.x1 + 0.5, y1: y + c.y1 + 0.5 };
-        if (b.x0 < Math.max(1, z.x0) || b.y0 < 1 || b.x1 > Math.min(w - 1, z.x1) || b.y1 > h - 1) continue;
+        if (b.x0 < Math.max(1, z.x0) || b.y0 < Math.max(1, region?.y0 ?? 0) || b.x1 > Math.min(w - 1, z.x1) || b.y1 > Math.min(h - 1, region?.y1 ?? h)) continue;
         if (others.some((o) => { const g = o.m || pm ? 3 : 0; return b.x0 - g < o.x1 && o.x0 < b.x1 + g && b.y0 - g < o.y1 && o.y0 < b.y1 + g; })) continue;
         best = [x, y]; break;
       }

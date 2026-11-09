@@ -7,6 +7,7 @@ import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
 import { inverterHF, inverterLF, type InverterHfOptions, type InverterLfOptions } from './inverters';
 import { joinSheets, linkBox } from './inverterLink';
+import { parseValue } from './units';
 
 export interface SystemOptions {
   /** 'lf': 50 Hz-transformer units (48 V); 'hf': high-frequency units, their sine bridges alone
@@ -55,6 +56,9 @@ export function inverterSystem(o: SystemOptions): { sheet: Sheet; suffix: string
   }
   const box = nb.done();
   const sheet = joinSheets([...sheets, box], [...suffix, '_LB']);
+  // the output interval: at most 90 000 stored steps (the solver keeps its own; a thin run keeps
+  // the extremes and the integrals of every step)
+  if (sheet.sim.type === 'tran') { const T = parseValue(sheet.sim.stop) ?? 0.2; sheet.sim = { ...sheet.sim, step: String(Math.max(5e-6, T / 90000)) }; }
   // the box's supply: the first unit's battery after its fuse
   if (o.arch === 'lf') for (const l of sheet.labels) if (l.name === 'BF') l.name = 'SYS_VB';
   // the fault's switch on the unit's EN

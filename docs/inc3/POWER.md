@@ -278,6 +278,47 @@ servo (UFX), the square's high half from VME (D34) and the average-type independ
 overvoltage protection (D35). Verified by simulation at the D32 corners, every DFMEA test of
 section 5 (TEST_REPORT.md section 3j); the 12 V unit's THD bound is 5 % (D34: 3.2 % measured).
 
+### P7d — units in parallel and as three phases (DFMEA I-13, H-18)
+
+`src/eda/inverterLink.ts` (the link module and the link box), `src/eda/inverterSystem.ts` (a
+system of units joined into one sheet for simulation). 10–30 kW: two to six 48 V units of either
+architecture in parallel on one line; 3 × 400/230 V: three units (or three groups) on L1, L2, L3
+with N common. Each unit takes a plug-in **link module** (the same board in both architectures,
+on the side of the control that makes the sine: the 50 Hz unit's control, the high-frequency
+unit's high-voltage side); one **link box** per system.
+
+- Why a phase-locked loop: the unit's sine is its 50 Hz square through a 4th-order 70 Hz
+  Butterworth filter, −118° at 50 Hz and 1.4° per 1 % of its corner frequency (±7° with 5 %
+  capacitors). One unit's transformer leakage and windings make about 0.8 Ω, so 1° between
+  two units drives about 2.5 A r.m.s. between them (11 % of the rating). The module's own 555
+  (VCO, 200 Hz) and CD4013 (÷4) make the unit's 50 Hz (jumper JQ in position B), and its
+  phase comes from the unit's own sine: the sine's zero crossings (LM393, 12 mV hysteresis)
+  XOR the reference (CD4070), a PI integrator (LM358, 470k / 470k + 220 nF, 10 nF) and the
+  555's control pin (33k, 4.7 µF; ±7 % hold range). Locked, every unit's sine sits a quarter
+  period from the reference, whatever its filter's tolerance. With the reference lost, the
+  integrator holds the frequency (no DC: the unit's own square keeps running).
+- Pilot: 5.6 MΩ into the square's summing node keeps a ±0.13 V sine while the bridge is
+  stopped, so the loop locks before the bridge starts.
+- Run loop (fail-safe): a 2.7 mA current loop from the box runs in series through every
+  unit's transmitter (PC817, closed once the unit's EN has been high for 0.5 s: 1 MΩ, 2.2 µF
+  against VREF, LM393) and receiver (PC817; open, QKL pulls QEN's base low and ENN restarts
+  the soft start). A unit that stops, loses its supply or is unplugged opens the loop: all
+  units stop together and start together when it is ready again (three-phase motors never
+  run on two phases). A latched fault stays until that unit is reset.
+- Droop: a 1:1000 output current transformer (Talema AC1030 class), bridge and 100 Ω, 47 ms
+  average, ×2.9: 1 MΩ into the voltage loop's sense node lowers the output by 3 % at the
+  rated current; the trimmer (10 k, 1 MΩ into the same node) sets each unit's no-load output
+  at commissioning (233.5 V, each unit alone): 233.5 V at no load, about 226.5 V at full load.
+- Link box (on the battery, 42 … 58.4 V): LM317HV to 15 V, 555 at 300 Hz and a
+  self-correcting three-stage Johnson counter (two CD4013, one CD4011: D2 = Q1·(Q2 + Q̄3), so
+  either illegal state returns to the sequence within two clocks) give three 50 Hz squares
+  120° apart; a 5 mA current sink per phase drives that phase's sync loop (through each unit
+  on the phase in series) and a 2.7 mA sink the run loop. Up to six units per loop.
+
+Wiring: per unit a 4-wire cable (sync in/out, run in/out) daisy-chained from the box; the
+outputs to the line through each unit's own breaker; N and the battery negatives common.
+Verification: TEST_REPORT.md section 3l (`tests/inverterlink.test.ts`).
+
 ### P7b — inverter, high-frequency type (one 5 kW unit, 48 V; DFMEA section 6)
 
 Example `inverter-hf` (src/eda/inverters.ts, `inverterHF`): the same battery side as P7a (class

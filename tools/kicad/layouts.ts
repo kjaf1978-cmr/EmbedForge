@@ -3,14 +3,15 @@
 // current) and the clearances of the mains and high-voltage nets (IEC 62368-1 / IEC 60664-1,
 // pollution degree 2, material group IIIb, basic insulation, overvoltage category II).
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
-import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack } from '../../app/ui/src/pcb/kicad';
+import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
 import { stabiliser, changeover1, changeover3, mpptCharger } from '../../app/ui/src/eda/powerExamples';
+import { inverterLF } from '../../app/ui/src/eda/inverters';
 
 export interface Design {
   /** The placement plan of the power section (D44): fixed positions (mm) and rotations; the other
    *  parts go into `region` (x range), and the mains routing stays left of `edge` but for the
    *  boundary column of parts with pads on both sides. */
-  plan?: Placed[] | (() => Placed[]); tracks?: PlanTrack[]; region?: { x0: number; x1: number }; edge?: number;
+  plan?: Placed[] | (() => Placed[]); tracks?: PlanTrack[]; region?: { x0: number; x1: number; y0?: number; y1?: number }; edge?: number; zones?: PlanZone[];
   /** Areas (mm) the mains routing (stage 1) keeps out of: the relays' coil pins and COM. */
   keep1?: [number, number, number, number][];
   panel?: (p: Part) => boolean;
@@ -176,7 +177,66 @@ const MPPT_BARS: PlanTrack[] = [
 // 0.6 mm: IPC-2221 B2 (outer layers, uncoated) up to 150 V; the PV side reaches 114 V
 const POWER = (nets: string[]): NetClass => ({ name: 'Power', patterns: nets.map((n) => `^${n}$`), track: 1, clearance: 0.6 });
 
+// ---- the 50 Hz-transformer inverter (P7a/P7c): a power board (bridge, drivers, bus, shunt) and a
+// control board; the battery fuse, contactor, pre-charge resistor and transformer are bolted to
+// the chassis, the output filter capacitor, surge arrester and terminals on the output's DIN rail
+const LF_OFF = ['F1', 'K1', 'TR1', 'RPC', 'DPC'];
+const LF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
+const lfCache = new Map<number, { pwr: Set<string>; off: Set<string>; panel: Set<string>; ref: (k: string) => string }>();
+const lfRefs = (cells: 4 | 8 | 16) => {
+  let c = lfCache.get(cells);
+  if (!c) {
+    const { sheet, nb } = inverterLF({ cells, load: '0' }), ref = (k: string) => nb.refOf(sheet, k);
+    const pwr = new Set(sheet.parts.filter((p) => ['bridge', 'bus'].includes(nb.blockOf(p.id))).map((p) => p.ref));
+    pwr.add(ref('X2'));
+    c = { pwr, off: new Set(LF_OFF.map(ref)), panel: new Set(LF_PANEL.map(ref)), ref };
+    lfCache.set(cells, c);
+  }
+  return c;
+};
+/** The output line and the divider's middle: 230 V against the control (whose ground is N). */
+const lfMains = (): NetClass[] => [{ ...classFor('Mains', ['OUTL', 'DV1'], 0.5, 1.5), apart: 3.2 }];
+
+const LF_HEAVY = ['BUS', 'GND', 'SRC', 'SWA', 'SWB'];
+// the power board (D44/D45): twelve TO-247 standing in one row (y 118) on the heatsink, each leg's
+// high sides together and its low sides together, the low sides of both legs in the middle;
+// above the row the switch nodes (F.Cu) and the shunt's side (B.Cu) as 10 mm copper bars, and
+// above them the bus as two planes, ground on F.Cu over the bus on B.Cu (4 oz), with the bus
+// capacitors, the shunt and the M5 lugs in them; below the row the gate resistors and drivers
+const LF_ROW: [string, number][] = [['QHA1', 20], ['QHA2', 42], ['QHA3', 64], ['QLA1', 86], ['QLA2', 108], ['QLA3', 130],
+  ['QLB1', 150], ['QLB2', 172], ['QLB3', 194], ['QHB1', 216], ['QHB2', 238], ['QHB3', 260]];
+const LF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 60, 40, 0], ['CE2', 220, 40, 0], ['CB1', 110, 22, 0], ['CB2', 110, 50, 0], ['CB3', 110, 78, 0],
+  ['CB4', 180, 22, 0], ['CB5', 180, 50, 0], ['CB6', 180, 78, 0], ['RSH', 145, 88, 0], ['X2', 20, 40, 0]];
+const LF_LUGS: [string, number, number][] = [['J_BUS', 20, 15], ['J_GND', 20, 66], ['J_SWA', 70, 88], ['J_SWB', 210, 88]];
+const lfPlan = (): Placed[] => {
+  const { ref } = lfRefs(16);
+  return [...LF_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 118, rot: 0 as const })),
+    // the gate resistors standing under their gates (pad 2, the gate, up)
+    ...LF_ROW.map(([k, x]) => ({ ref: ref(`RG${k.slice(1)}`), x: x - 5.45, y: 131, rot: 90 as const })),
+    ...LF_FIX.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...LF_LUGS.map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
+};
+const LF_BARS: PlanTrack[] = (() => {
+  const t: PlanTrack[] = [], stub = (net: string, layer: 'F.Cu' | 'B.Cu', x: number, y1: number) => t.push({ net, layer, width: 4, pts: [[x, 118], [x, y1]] });
+  for (const x of [25.45, 47.45, 69.45, 86, 108, 130]) stub('SWA', 'F.Cu', x, 105);
+  for (const x of [150, 172, 194, 221.45, 243.45, 265.45]) stub('SWB', 'F.Cu', x, 105);
+  for (const x of [91.45, 113.45, 135.45, 155.45, 177.45, 199.45]) stub('SRC', 'B.Cu', x, 105);
+  for (const x of [20, 42, 64, 216, 238, 260]) stub('BUS', 'B.Cu', x, 97);
+  t.push({ net: 'SWA', layer: 'F.Cu', width: 10, pts: [[25.45, 105], [130, 105]] }, { net: 'SWA', layer: 'F.Cu', width: 6, pts: [[70, 105], [70, 88]] },
+    { net: 'SWB', layer: 'F.Cu', width: 10, pts: [[150, 105], [265.45, 105]] }, { net: 'SWB', layer: 'F.Cu', width: 6, pts: [[210, 105], [210, 88]] },
+    { net: 'SRC', layer: 'B.Cu', width: 10, pts: [[91.45, 105], [199.45, 105]] }, { net: 'SRC', layer: 'B.Cu', width: 6, pts: [[135, 105], [135, 88]] });
+  return t;
+})();
+const LF_PLANES: PlanZone[] = [
+  { net: 'GND', layer: 'F.Cu', pts: [[3, 3], [277, 3], [277, 98.5], [3, 98.5]] },
+  { net: 'BUS', layer: 'B.Cu', pts: [[3, 3], [277, 3], [277, 98.5], [3, 98.5]] },
+];
+
 export const DESIGNS: Record<string, Design> = {
+  'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
+    heavy: LF_HEAVY, panel: (p) => !lfRefs(16).pwr.has(p.ref), bolted: (p) => lfRefs(16).off.has(p.ref), w: 280, h: 170,
+    plan: lfPlan, tracks: LF_BARS, zones: LF_PLANES, region: { x0: 0, x1: 280, y0: 124, y1: 170 } },
+  'inverter-lf-48-control': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: control board', revision: 'A', classes: lfMains, fill: 2.6, w: 260, h: 190,
+    panel: (p) => { const r = lfRefs(16); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
     keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }) },
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
