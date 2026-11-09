@@ -64,6 +64,9 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[77.76, 42], [77.76, 50], [40, 50], [40, tapY(5)], [14, tapY(5)]] });
   // each relay's COM net (VIN for K1, the ladder links after it) from its two snubber resistors'
   // pins (1 W, 15.24 mm: 71.62, Y ∓ 4) into COM along Y, between NO and NC (3.95 mm from them and the coil pins)
+  // VIN from the input sense transformer's primary (T3 pin 1) down to K1's COM on the bottom
+  // layer, right of the tap bundle: 1.5 mm from T3's and T4's N pins, 3.2 mm from K1's coil pins
+  t.push({ net: 'VIN', layer: 'B.Cu', width: 1.6, pts: [[77.76, 27], [81, 31], [89, 39], [89, 58], [87, 62], [87, 70], [95, 70]] });
   const com = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   com.forEach((n, k) => {
     const y = 70 + 20 * k;
