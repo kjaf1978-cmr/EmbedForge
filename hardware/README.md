@@ -8,6 +8,8 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Design | Folder | Board | DRC (errors / unconnected) | Status |
 |---|---|---|---|---|
 | Mains voltage stabiliser 1 kVA (P4) | `stabiliser/` | 210 × 212 mm, 2 layers, 2 oz | 0 / 0 | routed; awaiting a person's review and a prototype |
+| Mains change-over 1P, 32 A (P3): control board + DIN-rail panel | `changeover-1p/` | 150 × 100 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
+| Mains change-over 3P+N, 32 A (P3): control board + DIN-rail panel | `changeover-3p/` | 195 × 135 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
 
 ## What a folder holds
 

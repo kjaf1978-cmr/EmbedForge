@@ -143,6 +143,10 @@ add(soic('SOIC-8', 'SOIC-8', 8));
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
+// high current (D45): an M6 bolt through a plated hole with a 14 mm ring, for a busbar or a cable
+// lug (100 A and more with the board's copper pour; the bolt and its washer carry the current)
+add(make('Lug_M6', 'Bolt terminal M6 (busbar or cable lug)', 'one plated M6 hole, 14 mm ring', [tht('1', 0, 0, 14, 6.4)],
+  [{ t: 'circle', x: 0, y: 0, r: 7.5 }], { x0: -7.5, y0: -7.5, x1: 7.5, y1: 7.5, h: 8 }));
 // mains: 7.62 mm pitch (5 mm between the pads, more than the 3.2 mm of basic insulation at 300 V)
 for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}_P7.62`, `Screw terminal ${n} poles, 7.62 mm (mains)`, n, 7.62, 1.3, 2.6, 2.6, { d: 10, back: 5, height: 12 }));
 // an off-board transformer with a mains winding: its primary (pads 1, 2) and secondary (3, 4) on
