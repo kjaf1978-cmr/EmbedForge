@@ -131,7 +131,7 @@ add(make('SOT-223', 'SOT-223 (3 pins and tab)', 'tab = pin 2', [smd('1', -2.3, 3
   [line(-3.5, -1.85, -3.5, 1.85), line(3.5, -1.85, 3.5, 1.85)], { x0: -3.25, y0: -1.75, x1: 3.25, y1: 1.75, h: 1.8 }));
 // transistors and regulators standing up, legs in a row
 add(inline('TO-92_Wide', 'TO-92, legs bent to 2.54 mm', 3, 2.54, 0.8, 1.4, 1.4, { d: 3.8, back: 1.9, height: 4.9 }, 'circle'));
-add(inline('TO-126_Vertical', 'TO-126 standing, 2.28 mm', 3, 2.28, 1.1, 1.7, 2.2, { d: 3.4, back: 1.5, height: 11 }));
+add(inline('TO-126_Vertical', 'TO-126 standing, 2.28 mm', 3, 2.28, 1.1, 1.6, 2.2, { d: 3.4, back: 1.5, height: 11 }));
 add(inline('TO-220_Vertical', 'TO-220 standing, 2.54 mm', 3, 2.54, 1.2, 1.8, 2.4, { d: 5.0, back: 3.4, height: 16 }));
 add(inline('TO-247_Vertical', 'TO-247 standing, 5.45 mm', 3, 5.45, 1.4, 2.5, 3.0, { d: 5.4, back: 3.3, height: 21 }));
 // integrated circuits
@@ -147,7 +147,7 @@ for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `
 // radial electrolytics: Ø × pitch of the common series (Panasonic FR/FC, Nichicon UHE/UCY);
 // snap-in cans (two leads, 10 mm) from Ø 22 mm
 for (const [D, P, H] of [[5, 2.0, 11], [8, 3.5, 12], [12.5, 5.0, 20], [16, 7.5, 25], [18, 7.5, 36]] as const)
-  add(radial(`CP_Radial_D${D}`, `Electrolytic capacitor, Ø ${D} mm, ${P} mm`, P, D >= 12.5 ? 1.0 : 0.8, D >= 12.5 ? 2.0 : 1.6, D, H, true));
+  add(radial(`CP_Radial_D${D}`, `Electrolytic capacitor, Ø ${D} mm, ${P} mm`, P, D >= 12.5 ? 1.0 : 0.8, D >= 12.5 ? 2.0 : D <= 5 ? 1.3 : 1.6, D, H, true));
 for (const [D, H] of [[22, 30], [25, 40], [30, 45], [35, 50]] as const)
   add(radial(`CP_SnapIn_D${D}`, `Electrolytic capacitor, snap-in Ø ${D} mm, 10 mm`, 10, 2.0, 3.5, D, H, true));
 // film capacitors (box, two leads): pitch, width × thickness of the WIMA/KEMET MKP series

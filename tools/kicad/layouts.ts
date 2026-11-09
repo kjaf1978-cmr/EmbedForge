@@ -124,11 +124,24 @@ const MPPT_PWR = ['XPVP', 'XPVN', 'RVPV', 'QPV', 'QPV2', 'RGPV', 'DZPV', 'OPV', 
 const MPPT_OFF = ['L1', 'FB'];
 const MPPT_SINK = ['QPV', 'QPV2', 'QA', 'Q1', 'D1', 'QB', 'QB2'];
 const MPPT_HEAVY = ['PVP', 'PVN', 'SPV', 'GND', 'SW', 'VO', 'BATP', 'BNB', 'BN', 'BF'];
-let mpptCache: { pwr: Set<string>; off: Set<string>; sink: string[] } | undefined;
-const mpptRefs = () => mpptCache ??= (() => { const { sheet, nb } = mppt(); const r = (ks: string[]) => ks.map((k) => nb.refOf(sheet, k)); return { pwr: new Set(r(MPPT_PWR)), off: new Set(r(MPPT_OFF)), sink: r(MPPT_SINK) }; })();
-/** A row of heatsink parts along the bottom edge (turned 180°: their bodies, the tabs, face the edge). */
-const sinkRow = (refs: string[], y: number, x0: number, pitch: number): Placed[] => refs.map((ref, k) => ({ ref, x: x0 + pitch * k, y, rot: 180 }));
-const POWER = (nets: string[]): NetClass => ({ name: 'Power', patterns: nets.map((n) => `^${n}$`), track: 4, clearance: 1 });
+let mpptCache: { pwr: Set<string>; off: Set<string>; sink: string[]; ref: (k: string) => string } | undefined;
+const mpptRefs = () => mpptCache ??= (() => { const { sheet, nb } = mppt(); const ref = (k: string) => nb.refOf(sheet, k); const r = (ks: string[]) => ks.map(ref); return { pwr: new Set(r(MPPT_PWR)), off: new Set(r(MPPT_OFF)), sink: r(MPPT_SINK), ref }; })();
+// The power board's plan (by schematic key; mm, 240 × 140): left to right the PV input, the
+// auxiliary supply, the buck stage, the output, the battery side. The heatsink row along the bottom
+// (y 133, turned 180°: tabs to the edge). The buck's hot loop is short: D1 and Q1 side by side in
+// the row, the four input film capacitors stacked right above them, the switch node's lug beside
+// them for the inductor's cable; the shunt above the battery MOSFETs; the control connector along
+// the top edge
+const MPPT_PLAN: [string, number, number, Placed['rot']][] = [
+  ['QPV', 20, 133, 180], ['QPV2', 40, 133, 180], ['QA', 58, 133, 180], ['D1', 80, 133, 180], ['Q1', 100, 133, 180], ['QB', 195, 133, 180], ['QB2', 217, 133, 180],
+  ['XPVP', 15, 22, 0], ['XPVN', 15, 47, 0], ['RVPV', 38, 34, 0],
+  ['CIN1', 100, 112, 180], ['CIN2', 100, 86, 180], ['CIN3', 100, 60, 180], ['CIN4', 100, 34, 180],
+  ['COUT1', 155, 112, 0], ['COUT2', 155, 90, 0], ['COUT3', 155, 68, 0], ['DTV', 155, 48, 0],
+  ['RSH', 200, 112, 0], ['XBN', 230, 45, 0],
+];
+const mpptPlan = (): Placed[] => { const { ref } = mpptRefs(); return MPPT_PLAN.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })); };
+// 0.6 mm: IPC-2221 B2 (outer layers, uncoated) up to 150 V; the PV side reaches 114 V
+const POWER = (nets: string[]): NetClass => ({ name: 'Power', patterns: nets.map((n) => `^${n}$`), track: 4, clearance: 0.6 });
 
 export const DESIGNS: Record<string, Design> = {
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
@@ -140,7 +153,7 @@ export const DESIGNS: Record<string, Design> = {
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
-    heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 200, h: 140,
-    plan: () => sinkRow(mpptRefs().sink, 133, 20, 25), region: { x0: 0, x1: 200 } },
+    heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 240, h: 140,
+    plan: mpptPlan, region: { x0: 0, x1: 240 } },
   'mppt-control': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: control board', revision: 'A', classes: () => [], panel: (p) => mpptRefs().pwr.has(p.ref) || mpptRefs().off.has(p.ref) },
 };
