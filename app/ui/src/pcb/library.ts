@@ -116,6 +116,8 @@ export function footprintChoices(p: Part): FootprintChoice[] {
       const c = (parseValue(v) ?? 1e-7) * 1e6, vm = num(p.props.vmax) ?? 50, cv = c * vm;
       if (vm >= 1000 && c <= 0.01) return [same('C_Disc_P10', pins)];
       if (c <= 1 && vm <= 63) return [same('C_Disc_5.08', pins), same('Chip_0805', pins)];
+      // DC-link film of 20 µF and more above 200 V: the parts list orders a 450 V part (catalogue)
+      if (c >= 20 && vm > 200) return [same('C_Film_P52.5', pins)];
       const by = cv <= 100 ? 'C_Film_P7.5' : cv <= 300 ? 'C_Film_P10' : cv <= 1000 ? 'C_Film_P15' : cv <= 3000 ? 'C_Film_P22.5' : cv <= 7000 ? 'C_Film_P27.5' : 'C_Film_P37.5';
       return [same(by, pins)];
     }

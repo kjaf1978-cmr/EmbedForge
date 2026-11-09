@@ -9,7 +9,7 @@ name, src = sys.argv[1], sys.argv[2]
 dst = os.path.join(os.path.dirname(__file__), '..', '..', 'hardware', name)
 os.makedirs(dst, exist_ok=True)
 pairs = [('routed.kicad_pcb', f'{name}.kicad_pcb'), ('board.kicad_pro', f'{name}.kicad_pro'), ('board.kicad_dru', f'{name}.kicad_dru'),
-         ('fabrication.zip', f'{name}-fabrication.zip'), ('drc.rpt', f'{name}-drc.rpt'), ('panel.csv', 'panel.csv')]
+         ('fabrication.zip', f'{name}-fabrication.zip'), ('drc.rpt', f'{name}-drc.rpt'), ('panel.csv', 'panel.csv'), ('bom.csv', f'{name}-bom.csv')]
 for a, b in pairs:
     if os.path.exists(os.path.join(src, a)):
         shutil.copy(os.path.join(src, a), os.path.join(dst, b))

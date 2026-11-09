@@ -154,6 +154,8 @@ for (const [D, H] of [[22, 30], [25, 40], [30, 45], [35, 50]] as const)
 const film = (P: number, L: number, T: number, H: number) => add(make(`C_Film_P${P}`, `Film capacitor, pitch ${P} mm (${L} × ${T} mm)`, `box ${L} × ${T} mm`,
   [tht('1', -P / 2, 0, P >= 22.5 ? 2.4 : 1.8, P >= 22.5 ? 1.2 : 0.9), tht('2', P / 2, 0, P >= 22.5 ? 2.4 : 1.8, P >= 22.5 ? 1.2 : 0.9)], box(-L / 2, -T / 2, L / 2, T / 2), { x0: -L / 2, y0: -T / 2, x1: L / 2, y1: T / 2, h: H }));
 film(7.5, 10, 5, 10); film(10, 13, 6, 12); film(15, 18, 8, 15); film(22.5, 26.5, 12, 22); film(27.5, 31.5, 15, 26); film(37.5, 41.5, 24, 45);
+// DC-link film (KEMET C4AE / Vishay MKP1848 47 µF 450 V): 52.5 mm, 57.5 × 35 mm
+film(52.5, 57.5, 35, 50);
 // ceramic disc for Y capacitors and high voltages, 10 mm
 add(make('C_Disc_P10', 'Capacitor, ceramic disc (Y2, high voltage), 10 mm', 'radial, pitch 10 mm, body 12 × 5 mm', [tht('1', -5, 0, 2.0, 1.0), tht('2', 5, 0, 2.0, 1.0)],
   box(-6.6, -2.7, 6.6, 2.7), { x0: -6.5, y0: -2.5, x1: 6.5, y1: 2.5, h: 14 }));
