@@ -149,7 +149,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     const x = 400 * (k - 1), t = `T${k}`, s = k <= 6 ? `S${k}` : 'LN6';
     nb.part(`UG${k}`, 'and2', x, 150, { value: V, pkg: k <= 4 ? 'AN1' : 'AN2' }, { '1': s, '2': 'NCHG', '3': `G${k}` })
       .part(`RBG${k}`, 'resistor', x + 80, 150, { value: '10k' }, { '1': `G${k}`, '2': `BG${k}` })
-      .part(`QG${k}`, 'npn', x + 160, 230, { value: 'BC547B' }, { '1': `BG${k}`, '2': `LK${k}`, '3': 'GND' })
+      .part(`QG${k}`, 'npn', x + 160, 230, { value: 'BC547B' }, { '1': `BG${k}`, '2': `LK${k}`, '3': 'EG' })
       .part(`RLD${k}`, 'resistor', x + 160, -20, { value: '680' }, { '1': V, '2': `LY${k}` }, 1)
       .part(`LT${k}`, 'led', x + 160, 60, { colour: 'yellow' }, { '2': `LY${k}`, '1': `LO${k}A` }, 1)
       .part(`UO${k}`, 'optotriac', x + 260, 120, { value: 'MOC3052' }, { '1': `LO${k}A`, '2': `LK${k}`, '6': `XA${k}`, '4': `YB${k}` })
@@ -165,7 +165,18 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '630' }, { '1': `SNB${k}`, '2': t }, 1);
     if (o.shorted === k) nb.block('bench').part('RSHORT', 'resistor', x + 200, 620, { value: '0.005' }, { '1': 'VINS', '2': t }).block('taps');
   }
-  nb.part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+  // power-up hold: the drivers' emitters reach ground through QPE only once CPE has passed the
+  // 9.1 V Zener (about 0.37 s after the 12 V rail): the input sense has settled by then. Without
+  // it the comparators' outputs, pulled up before the comparators work, chose tap 1 (150 V) at
+  // 230 V in and the winding rang to 1 kV at its top (found in simulation)
+  nb.part('RPE', 'resistor', 2900, 300, { value: '100k' }, { '1': V, '2': 'CPE' })
+    .part('CPE', 'capacitor', 2900, 420, { value: '2.2u', vmax: '25' }, { '1': 'CPE', '2': 'GND' }, 1)
+    .part('DPE', 'diode', 2980, 300, { value: '1N4148' }, { '2': 'CPE', '1': V }, 3)
+    .part('DZPE', 'zener', 3000, 420, { value: 'BZX55C9V1' }, { '1': 'CPE', '2': 'ZPE' })
+    .part('RPB', 'resistor', 3080, 420, { value: '10k' }, { '1': 'ZPE', '2': 'BPE' })
+    .part('RPB2', 'resistor', 3080, 520, { value: '47k' }, { '1': 'BPE', '2': 'GND' }, 1)
+    .part('QPE', 'npn', 3160, 420, { value: 'BC547B' }, { '1': 'BPE', '2': 'EG', '3': 'GND' })
+    .part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.part('T1', 'autotransformer', 2700, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
   // ---- output: restart delay, the relay that switches the contactor's coil, the contactor, the
