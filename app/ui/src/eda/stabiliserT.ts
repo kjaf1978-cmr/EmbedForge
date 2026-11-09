@@ -118,7 +118,9 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RZP', 'resistor', 160, 1420, { value: '10k' }, { '1': V, '2': 'ZW' }, 1)
     .part('RZD', 'resistor', 240, 1500, { value: '10k' }, { '1': 'ZW', '2': 'ZWD' })
     .part('CZD', 'capacitor', 320, 1580, { value: '22n', vmax: '50' }, { '1': 'ZWD', '2': 'GND' }, 1)
-    .part('DZD', 'diode', 280, 1420, { value: '1N4148' }, { '2': 'ZWD', '1': 'ZW' });
+    // ZWD falls at once with ZW, through 1k: the comparator sinks CZD's charge within its 16 mA
+    .part('DZD', 'diode', 280, 1420, { value: '1N4148' }, { '2': 'ZWD', '1': 'ZDK' })
+    .part('RZK', 'resistor', 360, 1420, { value: '1k' }, { '1': 'ZDK', '2': 'ZW' });
 
   // ---- the latch (three CD4013), the change detector (six XOR, a diode OR), the clock CK =
   // CHG · ZWD, the decoder (NOR: tap k when O_k and not O_k−1, tap 7 when none) and the gates
@@ -165,15 +167,15 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '630' }, { '1': `SNB${k}`, '2': t }, 1);
     if (o.shorted === k) nb.block('bench').part('RSHORT', 'resistor', x + 200, 620, { value: '0.005' }, { '1': 'VINS', '2': t }).block('taps');
   }
-  // power-up hold: the drivers' emitters reach ground through QPE only once CPE has passed the
-  // 9.1 V Zener (about 0.37 s after the 12 V rail): the input sense has settled by then. Without
+  // power-up hold: the drivers' emitters reach ground through QPE only once CPE (10k, 47 µF) has
+  // passed the 5.1 V Zener (about 0.3 s after the 12 V rail): the input sense has settled by then. Without
   // it the comparators' outputs, pulled up before the comparators work, chose tap 1 (150 V) at
   // 230 V in and the winding rang to 1 kV at its top (found in simulation)
-  nb.part('RPE', 'resistor', 2900, 300, { value: '100k' }, { '1': V, '2': 'CPE' })
-    .part('CPE', 'capacitor', 2900, 420, { value: '2.2u', vmax: '25' }, { '1': 'CPE', '2': 'GND' }, 1)
+  nb.part('RPE', 'resistor', 2900, 300, { value: '10k' }, { '1': V, '2': 'CPE' })
+    .part('CPE', 'capacitor_pol', 2900, 420, { value: '47u', vmax: '25' }, { '1': 'CPE', '2': 'GND' }, 1)
     .part('DPE', 'diode', 2980, 300, { value: '1N4148' }, { '2': 'CPE', '1': V }, 3)
-    .part('DZPE', 'zener', 3000, 420, { value: 'BZX55C9V1' }, { '1': 'CPE', '2': 'ZPE' })
-    .part('RPB', 'resistor', 3080, 420, { value: '10k' }, { '1': 'ZPE', '2': 'BPE' })
+    .part('DZPE', 'zener', 3000, 420, { value: 'BZX55C5V1' }, { '1': 'CPE', '2': 'ZPE' })
+    .part('RPB', 'resistor', 3080, 420, { value: '2.2k' }, { '1': 'ZPE', '2': 'BPE' })
     .part('RPB2', 'resistor', 3080, 520, { value: '47k' }, { '1': 'BPE', '2': 'GND' }, 1)
     .part('QPE', 'npn', 3160, 420, { value: 'BC547B' }, { '1': 'BPE', '2': 'EG', '3': 'GND' })
     .part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
