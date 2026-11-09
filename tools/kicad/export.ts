@@ -17,10 +17,10 @@ if (!d || !out) {
 mkdirSync(out, { recursive: true });
 const sheet = d.sheet(), classes = d.classes(sheet);
 const mains = new Set(classes.filter((c) => c.name === 'Mains' || c.name === 'HV').flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
-const nl = boardNetlist(sheet, { mains, panel: d.panel });
+const nl = boardNetlist(sheet, { mains, panel: d.panel, heavy: new Set(d.heavy ?? []), bolted: d.bolted });
 // a placement saved from an earlier run (placed.json, from the board after its placement) is kept
 const pf = join(out, 'placed.json');
-const placed = existsSync(pf) ? (JSON.parse(readFileSync(pf, 'utf8')) as Placed[]) : d.plan;
+const placed = existsSync(pf) ? (JSON.parse(readFileSync(pf, 'utf8')) as Placed[]) : typeof d.plan === 'function' ? d.plan() : d.plan;
 const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w, h: d.h, placed, copperOz: d.copperOz, fill: d.fill, mains, region: d.region, tracks: d.tracks });
 writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);

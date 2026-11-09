@@ -10,10 +10,15 @@ export interface Design {
   /** The placement plan of the power section (D44): fixed positions (mm) and rotations; the other
    *  parts go into `region` (x range), and the mains routing stays left of `edge` but for the
    *  boundary column of parts with pads on both sides. */
-  plan?: Placed[]; tracks?: PlanTrack[]; region?: { x0: number; x1: number }; edge?: number;
+  plan?: Placed[] | (() => Placed[]); tracks?: PlanTrack[]; region?: { x0: number; x1: number }; edge?: number;
   /** Areas (mm) the mains routing (stage 1) keeps out of: the relays' coil pins and COM. */
   keep1?: [number, number, number, number][];
   panel?: (p: Part) => boolean;
+  /** High-current nets (D45): tracks of the Power class with the solder mask open for a soldered
+   *  copper bar; terminals on them become M5 lugs. */
+  heavy?: string[];
+  /** Off-board parts bolted to this board (lugs for their heavy nets). */
+  bolted?: (p: Part) => boolean;
   /** The panel's wire for a net: cross-section and type (wiring list, panel.csv). */
   wire?: (net: string, toBoard: boolean, isMains: boolean) => string;
   sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
@@ -107,6 +112,24 @@ const PANEL = new Set(['contactor', 'breaker1', 'breaker2', 'breaker3', 'breaker
 const coWire = (net: string, toBoard: boolean, isMains: boolean) =>
   net === 'GND' ? '6 mm² H07V-K green-yellow (PE)' : isMains ? (toBoard ? '1.5 mm² H07V-K' : '6 mm² H07V-K, ferrules') : '0.75 mm² H05V-K';
 
+// The MPPT charger (D45): a power board (4 oz copper) and a control board. The power board
+// carries the PV input protection, the buck stage, the battery switch, the shunt, the gate
+// driver and the auxiliary supply; the 56 µH 100 A inductor and the 100 A fuse sit off the board,
+// bolted to M5 lugs, as are the PV and battery cables. Its high-current nets run as 4 mm tracks
+// with the solder mask open, a 4 × 3 mm copper bar soldered along them (12 mm²: 80 A); the
+// TO-247 and TO-126 parts stand in a row along the bottom edge, their tabs to the heatsink.
+const mppt = () => mpptCharger();
+const MPPT_PWR = ['XPVP', 'XPVN', 'RVPV', 'QPV', 'QPV2', 'RGPV', 'DZPV', 'OPV', 'RZA', 'DZA', 'CZA', 'QA', 'CAUX', 'CIN1', 'CIN2', 'CIN3', 'CIN4', 'Q1', 'D1', 'RSN', 'CSN',
+  'COUT1', 'COUT2', 'COUT3', 'DTV', 'XBP', 'XBN', 'QB2', 'QB', 'RSH', 'RGB2', 'RGS2', 'DZB2', 'OPB', 'RGS', 'DZB', 'U8', 'DB', 'CB', 'RG', 'CDD'];
+const MPPT_OFF = ['L1', 'FB'];
+const MPPT_SINK = ['QPV', 'QPV2', 'QA', 'Q1', 'D1', 'QB', 'QB2'];
+const MPPT_HEAVY = ['PVP', 'PVN', 'SPV', 'GND', 'SW', 'VO', 'BATP', 'BNB', 'BN', 'BF'];
+let mpptCache: { pwr: Set<string>; off: Set<string>; sink: string[] } | undefined;
+const mpptRefs = () => mpptCache ??= (() => { const { sheet, nb } = mppt(); const r = (ks: string[]) => ks.map((k) => nb.refOf(sheet, k)); return { pwr: new Set(r(MPPT_PWR)), off: new Set(r(MPPT_OFF)), sink: r(MPPT_SINK) }; })();
+/** A row of heatsink parts along the bottom edge (turned 180°: their bodies, the tabs, face the edge). */
+const sinkRow = (refs: string[], y: number, x0: number, pitch: number): Placed[] => refs.map((ref, k) => ({ ref, x: x0 + pitch * k, y, rot: 180 }));
+const POWER = (nets: string[]): NetClass => ({ name: 'Power', patterns: nets.map((n) => `^${n}$`), track: 4, clearance: 1 });
+
 export const DESIGNS: Record<string, Design> = {
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
     keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }) },
@@ -116,5 +139,8 @@ export const DESIGNS: Record<string, Design> = {
   // two connectors to the panel
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
-  'mppt-charger': { sheet: () => mpptCharger().sheet, title: 'MPPT solar charger 48 V', revision: 'A', classes: () => [] },
+  'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
+    heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 200, h: 140,
+    plan: () => sinkRow(mpptRefs().sink, 133, 20, 25), region: { x0: 0, x1: 200 } },
+  'mppt-control': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: control board', revision: 'A', classes: () => [], panel: (p) => mpptRefs().pwr.has(p.ref) || mpptRefs().off.has(p.ref) },
 };
