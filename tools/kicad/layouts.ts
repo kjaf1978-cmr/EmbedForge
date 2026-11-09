@@ -233,9 +233,10 @@ const LF_PLANES: PlanZone[] = [
 
 // ---- the high-frequency inverter (P7b): power board (DC-DC bridge, bus, rectifier, high-voltage
 // bus, sine bridge) and one control board for both sides: its high-voltage side (everything
-// from HVG and HBUS up to the optocouplers and transformers) 8 mm from the rest (reinforced
-// insulation, 400 V peak, PD2, IIIb), the output line 3.2 mm (basic: N and the battery's
-// negative are bonded to PE)
+// from HVG and HBUS up to the optocouplers and transformers) 2.5 mm from the rest (IPC-2221 B2,
+// 500 V: the battery side is no separated circuit, its negative is bonded to PE with the
+// output's N and the sine bridge's leg B joins the two sides; 8 mm, a reinforced barrier, could
+// not be routed in 80 minutes), the output line 3.2 mm
 const HF_PWR_BLOCKS = new Set(['dc-dc bridge', 'bus', 'current sense', 'dc-dc output', 'bridge']);
 const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1'];
 const HF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
@@ -298,7 +299,7 @@ const HF_PLANES: PlanZone[] = [
   { net: 'HVG', layer: 'F.Cu', pts: [[186, 3], [297, 3], [297, 118], [186, 118]] },
   { net: 'HBUS', layer: 'B.Cu', pts: [[186, 3], [297, 3], [297, 118], [186, 118]] },
 ];
-const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 8 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
+const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 2.5 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
 
 export const DESIGNS: Record<string, Design> = {
   'inverter-hf-48-power': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: power board', revision: 'A',
