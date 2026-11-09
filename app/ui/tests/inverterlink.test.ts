@@ -132,6 +132,7 @@ describe.runIf(LONG)('50 Hz-transformer units (48 V) in parallel and as three ph
     const i0 = rmsOf(s.x, s.r.i[`${s.ref(0, 'TKC')}.1`], t1), i1 = rmsOf(s.x, s.r.i[`${s.ref(1, 'TKC')}.1`], t1);
     expect(Math.abs(i0 - i1) / ((i0 + i1) / 2)).toBeLessThan(0.1);
     const p0 = harmonics(s.x, s.r.v['SINE'], t1).deg, p1 = harmonics(s.x, s.r.v['SINE_1'], t1).deg;
+    console.log('parallel LF:', { rms: out.rms, thd: out.thd, i0, i1, dphase: wrap(p1 - p0), over: s.over });
     expect(Math.abs(wrap(p1 - p0))).toBeLessThan(1);
     expect(s.over).toEqual([]);
   }, 43_200_000);
@@ -139,6 +140,7 @@ describe.runIf(LONG)('50 Hz-transformer units (48 V) in parallel and as three ph
   it('H-18 three 5 kW units as 3 × 400/230 V, 15 kW: line voltages 400 V ±3 %, 120° ±1° apart, THD below 3 %; no product part over its ratings', async () => {
     const s = await run({ arch: 'lf', phases: [0, 1, 2], load: [10.6, 10.6, 10.6], unit: { precharged: true, link: { delayC: '1u' } as never }, stop: '600m' });
     const t1 = 0.54, ph = [1, 2, 3].map((p) => harmonics(s.x, s.r.v[`SYS_L${p}`], t1));
+    console.log('3-phase LF:', ph.map((h) => [h.rms, h.deg, h.thd]), s.over);
     for (const h of ph) { expect(h.thd).toBeLessThan(0.03); expect(Math.abs(h.rms - 230) / 230).toBeLessThan(0.03); }
     expect(Math.abs(wrap(ph[0].deg - ph[1].deg) - 120)).toBeLessThan(1);
     expect(Math.abs(wrap(ph[1].deg - ph[2].deg) - 120)).toBeLessThan(1);
@@ -150,8 +152,25 @@ describe.runIf(LONG)('50 Hz-transformer units (48 V) in parallel and as three ph
   it('H-18 a unit of the three phases stops (its EN pulled low at 0.5 s): the run loop opens and all three bridges stop within 2 ms; no product part over its ratings', async () => {
     const s = await run({ arch: 'lf', phases: [0, 1, 2], load: [10.6, 10.6, 10.6], unit: { precharged: true, link: { delayC: '1u' } as never }, fault: { unit: 1, at: 0.5 }, stop: '540m' });
     const k = s.x.findIndex((t) => t >= 0.502);
+    console.log('fault:', s.suffix.map((sx) => s.r.v[`ENN${sx}`][k]), s.over);
     for (const sx of s.suffix) expect(s.r.v[`ENN${sx}`][k]).toBeGreaterThan(8);
     for (const p of [1, 2, 3]) expect(Math.max(...s.r.v[`SYS_L${p}`].slice(s.x.findIndex((t) => t >= 0.52)).map(Math.abs))).toBeLessThan(50);
+    expect(s.over).toEqual([]);
+  }, 43_200_000);
+});
+
+describe.runIf(LONG)('high-frequency units (48 V) in parallel: their sine bridges (bench buses)', () => {
+  it('H-18 two 5 kW sine bridges in parallel at 10 kW, the second at its tolerances: 230 V ±3 %, THD below 3 %, the units share the load within 10 %, their sines within 1°; no product part over its ratings', async () => {
+    const s = await run({ arch: 'hf', phases: [0, 0], load: [5.3], unit: { precharged: true, link: { delayC: '1u' } as never }, tweak: TOL, stop: '600m' });
+    const t1 = 0.54, out = harmonics(s.x, s.r.v['SYS_L1'], t1);
+    expect(out.rms).toBeGreaterThan(230 * 0.97);
+    expect(out.rms).toBeLessThan(230 * 1.03);
+    expect(out.thd).toBeLessThan(0.03);
+    const i0 = rmsOf(s.x, s.r.i[`${s.ref(0, 'TKC')}.1`], t1), i1 = rmsOf(s.x, s.r.i[`${s.ref(1, 'TKC')}.1`], t1);
+    expect(Math.abs(i0 - i1) / ((i0 + i1) / 2)).toBeLessThan(0.1);
+    console.log('parallel HF:', { rms: out.rms, thd: out.thd, i0, i1, over: s.over });
+    const sine = (sx: string) => s.r.v[`SINE${sx}`].map((v, k) => v - s.r.v[`HVG${sx}`][k]);
+    expect(Math.abs(wrap(harmonics(s.x, sine('_1'), t1).deg - harmonics(s.x, sine(''), t1).deg))).toBeLessThan(1);
     expect(s.over).toEqual([]);
   }, 43_200_000);
 });
