@@ -248,9 +248,61 @@ const hfRefs = () => hfCache ??= (() => {
   const sub = { ...sheet, parts: sheet.parts.filter((p) => !HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !['output', 'bench', 'load', 'battery'].includes(nb.blockOf(p.id))) };
   return { pwr, off, panel: new Set(HF_PANEL.map(ref)), hv: potentialGroup(sub, ['HVG', 'HBUS'], new Set(['GND', 'OUTL'])), ref };
 })();
+// the power board (D44/D45): the DC-DC bridge's eight TO-247 (each leg: its low pair, then its
+// high pair; leg B mirrored) and the sine bridge's four IGBTs in one row (y 150); the switch
+// nodes LA, LB (F.Cu) and the drains BUSD (B.Cu) as 8 mm bars above it; above them the battery
+// bus as planes (BUS on F.Cu over GND on B.Cu) with its capacitors and the bus current
+// transformer, and on the right, 10 mm away, the 380 V bus as planes (HVG on F.Cu over HBUS on
+// B.Cu) with its capacitors and shunt. The high-voltage nets keep 2.5 mm (IPC-2221 B2, 500 V)
+const HF_LV_HEAVY = ['BUS', 'BUSD', 'GND', 'LA', 'LB'];
+const hfPowerHv = () => { const { sheet } = { sheet: inverterHF({ load: '0' }).sheet }; return [...potentialGroup(sheet, ['HVG', 'HBUS'], new Set(['GND', 'OUTL']))].filter((n) => !HF_LV_HEAVY.includes(n)); };
+const HF_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QHA1', 60], ['QHA2', 80], ['QHB2', 100], ['QHB1', 120], ['QLB1', 140], ['QLB2', 160],
+  ['QIHA', 200], ['QILA', 222], ['QILB', 250], ['QIHB', 276]];
+const HF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 55, 30, 0], ['CE2', 55, 80, 0], ['CB1', 105, 20, 0], ['CB2', 105, 50, 0], ['CB3', 105, 80, 0],
+  ['CB4', 150, 20, 0], ['CB5', 150, 50, 0], ['CB6', 150, 80, 0], ['TCT', 90, 110, 0], ['CBD1', 75, 126, 0], ['CBD2', 105, 126, 0], ['X2', 15, 40, 0],
+  ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 100, 0], ['CHF2', 270, 100, 0], ['RSHI', 241, 112, 0]];
+const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 200, 112], ['J_GND', 15, 65]];
+const hfPlan = (): Placed[] => {
+  const { ref } = hfRefs();
+  const gate = (k: string) => `RG${k.slice(1)}`;
+  return [...HF_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 150, rot: 0 as const })),
+    ...HF_ROW.map(([k, x]) => ({ ref: ref(gate(k)), x: x - 5.45, y: 163, rot: 90 as const })),
+    ...HF_FIX.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...HF_LUGS.slice(0, 5).map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
+};
+const HF_BARS: PlanTrack[] = (() => {
+  const t: PlanTrack[] = [], stub = (net: string, layer: 'F.Cu' | 'B.Cu', x: number, y1: number, w = 4) => t.push({ net, layer, width: w, pts: [[x, 150], [x, y1]] });
+  for (const x of [20, 40, 65.45, 85.45]) stub('LA', 'F.Cu', x, 137);
+  for (const x of [105.45, 125.45, 140, 160]) stub('LB', 'F.Cu', x, 137);
+  for (const x of [60, 80, 100, 120]) stub('BUSD', 'B.Cu', x, 137);
+  for (const x of [25.45, 45.45, 145.45, 165.45]) stub('GND', 'B.Cu', x, 119);
+  t.push({ net: 'LA', layer: 'F.Cu', width: 8, pts: [[20, 137], [85.45, 137]] }, { net: 'LA', layer: 'F.Cu', width: 6, pts: [[40, 137], [40, 110]] },
+    { net: 'LB', layer: 'F.Cu', width: 8, pts: [[105.45, 137], [160, 137]] }, { net: 'LB', layer: 'F.Cu', width: 6, pts: [[130, 137], [130, 110]] },
+    { net: 'BUSD', layer: 'B.Cu', width: 8, pts: [[60, 137], [120, 137]] }, { net: 'BUSD', layer: 'B.Cu', width: 6, pts: [[86.19, 137], [86.19, 110]] },
+    { net: 'BUSD', layer: 'B.Cu', width: 3, pts: [[70, 126], [70, 137]] }, { net: 'BUSD', layer: 'B.Cu', width: 3, pts: [[100, 126], [100, 137]] });
+  // the sine bridge: HBUS (B.Cu) from the high collectors into its plane; SWA (F.Cu) to its lug;
+  // SRC (F.Cu) to the shunt; GND (B.Cu) to the N lug
+  for (const x of [200, 276]) stub('HBUS', 'B.Cu', x, 117);
+  for (const x of [205.45, 222]) stub('SWA', 'F.Cu', x, 137);
+  for (const x of [227.45, 255.45]) stub('SRC', 'F.Cu', x, 143);
+  for (const x of [250, 281.45]) stub('GND', 'B.Cu', x, 140);
+  t.push({ net: 'SWA', layer: 'F.Cu', width: 4, pts: [[205.45, 137], [222, 137]] }, { net: 'SWA', layer: 'F.Cu', width: 4, pts: [[205.45, 137], [200, 130], [200, 112]] },
+    { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[227.45, 143], [255.45, 143]] }, { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[231, 143], [231, 112]] },
+    { net: 'GND', layer: 'B.Cu', width: 4, pts: [[250, 140], [281.45, 140]] }, { net: 'GND', layer: 'B.Cu', width: 4, pts: [[281.45, 140], [292, 130], [292, 112]] });
+  return t;
+})();
+const HF_PLANES: PlanZone[] = [
+  { net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [175, 3], [175, 120], [3, 120]] },
+  { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [175, 3], [175, 120], [3, 120]] },
+  { net: 'HVG', layer: 'F.Cu', pts: [[186, 3], [297, 3], [297, 118], [186, 118]] },
+  { net: 'HBUS', layer: 'B.Cu', pts: [[186, 3], [297, 3], [297, 118], [186, 118]] },
+];
 const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 8 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
 
 export const DESIGNS: Record<string, Design> = {
+  'inverter-hf-48-power': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: power board', revision: 'A',
+    classes: () => [POWER(HF_LV_HEAVY), { ...classFor('HV', hfPowerHv(), 1, 2.5), apart: 2.5 }], copperOz: 4,
+    heavy: [...HF_LV_HEAVY, 'HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2'], panel: (p) => !hfRefs().pwr.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 300, h: 230,
+    plan: hfPlan, tracks: HF_BARS, zones: HF_PLANES, region: { x0: 0, x1: 300, y0: 160, y1: 230 } },
   'inverter-hf-48-control': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200,
     panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
   'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
