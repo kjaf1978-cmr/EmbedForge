@@ -488,6 +488,44 @@ Long runs on the final circuits (October 26–27; 1.5 to 4.5 hours each on a loa
 | motor start at half load, locked rotor for 50 ms (I-4) | passed | passed | passed |
 | loop sense open: protection trips and latches (I-10) | passed | passed | passed |
 
+## 3k. P7c long runs, D40–D42: the 12 V high-frequency unit's three failures (4–9 November 2026)
+
+Long runs of the 24 V and 12 V high-frequency units on commit 5ba652c: 8 passed, 3 failed, all in
+the 12 V unit. The default 2 GB Node.js heap ran out after about 15 h in four runs; with 5 GB
+(10 GB for H-7 motor start) they completed and passed (D40: the long runs use a larger heap).
+
+| Test | First result | Cause | Change |
+|---|---|---|---|
+| H-4 bus shorted (0.5 Ω) | × 8 MOSFETs over their 390 A pulsed rating (427 A) | ratio 48: the shortest pulse the limit can end ratchets the output inductor to about 18 A, 854 A on the primary in two MOSFETs per switch | three MOSFETs per switch in the 12 V unit: about 290 A each; H-4 ✓ (274 s) |
+| H-7 short circuit | × bridge current 28.0 A, bound 27.2 A | the bound scaled with the window (× 90/69); the overshoot (diode recovery at each turn-on, the comparator's 2.6 µs at 0.81 A/µs) is the same about 8 A in every unit | D42: bound = window + 21 A in every unit (48 V unchanged at 90 A) |
+| H-7 motor start | × 27.7 A, bound 27.2 A | as above | as above |
+
+Found on the way (D42): the long runs read every 5 µs, so the stress check missed peaks between the
+points. The simulator now keeps any step 2 % beyond the extremes so far (with its neighbours) and
+integrates power, r.m.s. and rectified means over every step; a 3 ms run at 0.1 µs confirmed the
+integrals (8.4 W against 8.6 W; the 5 µs points read 6.4 W). With it:
+- the high-frequency sine bridge's leg A bootstrap diode carried 132 A at the first low-side pulse
+  (UF4007, 30 A surge): 2.2 Ω in series, all three units (about 7 A);
+- the half-bridge driver model had no undervoltage lockout: an IGBT switched on from an empty
+  bootstrap capacitor ran half on (590 W); the IR2184's 8.0/7.4 V lockout on VB − VS is modelled;
+- the reversed-battery tests (I-2, H-2) saw the connection's charging ring (0.2 A for 20 µs, and a
+  few-ns ring into the auxiliary supply): they check conduction from 1 ms on and the charge of the
+  connection (below 1 µC).
+
+Unit suite after the changes: every file passes (the charger and ngspice files run separately;
+ngspice is not installed here, its comparisons skip).
+
+Screening (D38) after the changes, full circuit 140 ms:
+
+| Unit | Output | THD | Bus | 15 V | Most stressed |
+|---|---|---|---|---|---|
+| 12 V 1.5 kW | 225.9 V | 2.49 % | 377.6 … 385.0 V | 14.84 … 14.90 V | U11B Iout 95 %, C11–C14 V 86 % ✓ |
+| 12 V, battery falling to 11.38 V | 225.7 V | 2.44 % | 377.1 … 385.4 V | 14.82 … 14.90 V | as above ✓ |
+| 24 V, 48 V | running | | | | |
+
+The long runs of all three high-frequency units follow the screening; the 50 Hz-transformer
+units' long runs are repeated with the full-resolution stress check (D42).
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).

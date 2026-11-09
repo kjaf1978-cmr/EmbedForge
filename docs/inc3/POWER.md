@@ -257,6 +257,15 @@ Reliability (RELIABILITY.md): 238 parts, 1956 FIT, 58 years at 45 °C. Still to 
 a person's look at the drawing. The design runs slowly in the app: 60 ms (the example's
 default) take about 12 minutes.
 
+### Boards (D43–D45)
+
+The worked designs' boards are KiCad projects in `hardware/` (see its README): placed by a plan for
+the power section and from the schematic for the control, routed with Freerouting, checked with
+KiCad's design rule check; each with its fabrication files and a parts list with order numbers
+and prices. Done: the stabiliser (P4), both change-overs (P3, control board and DIN-rail panel with
+its wiring list), the MPPT charger (P6, power board in 4 oz copper with soldered copper bars and
+M5 lugs, and control board). The inverters' boards follow their re-verification (D42).
+
 ### P7c — the 50 Hz-transformer inverter's 24 V and 12 V units (D33)
 
 `inverterLF({ cells: 8 })` (24 V, 3 kW) and `inverterLF({ cells: 4 })` (12 V, 1.5 kW) from the
