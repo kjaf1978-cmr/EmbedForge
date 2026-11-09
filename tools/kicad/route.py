@@ -216,7 +216,7 @@ def main():
         if os.path.exists(src):
             shutil.copy(src, os.path.join(d, 'routed.' + ext))
     errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
-    if unconnected and split:
+    if unconnected:
         # stage 3: what the two stages left, with everything routed so far locked and no keepouts;
         # the insulation distance as a class-to-class rule (slow on a whole board, quick for a net)
         print(f'stage 3: {unconnected} connections left', flush=True)

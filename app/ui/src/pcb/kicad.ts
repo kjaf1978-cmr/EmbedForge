@@ -235,7 +235,10 @@ export function classFor(name: string, nets: Iterable<string>, track: number, cl
 
 // ---------------------------------------------------------------- KiCad files
 
-const q = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+// plain ASCII in the files: Freerouting's Specctra reader stops at a typographic minus ("PV−")
+const ASCII: Record<string, string> = { '−': '-', '–': '-', '—': '-', '…': '...', '×': 'x', '·': '.', '°': 'deg', 'µ': 'u', 'Ω': 'R', '±': '+/-', '²': '2', '³': '3', '≤': '<=', '≥': '>=', '→': '->', '’': "'", '‘': "'", '“': '"', '”': '"', '̄': '' };
+const ascii = (s: string) => s.replace(/[^\x20-\x7e]/g, (c) => ASCII[c] ?? '?');
+const q = (s: string) => `"${ascii(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 const f3 = (v: number) => (Math.round(v * 1000) / 1000).toString();
 let uuidN = 0;
 const uuid = () => { uuidN++; const h = uuidN.toString(16).padStart(12, '0'); return `00000000-0000-4000-8000-${h}`; };
