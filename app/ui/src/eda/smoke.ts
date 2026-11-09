@@ -35,6 +35,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   // pulsed rating (ICpuls)
   scr: { 'VS-40TPS12': { Vdrm: 1200, Irms: 55, Itsm: 500 }, 'VS-70TPS16': { Vdrm: 1600, Irms: 110, Itsm: 1200 }, 'SKKT 106/16E': { Vdrm: 1600, Irms: 167, Itsm: 2000 }, 'SKKT 162/16E': { Vdrm: 1600, Irms: 250, Itsm: 5000 } },
   igbt: { IKW30N60T: { Vce: 600, Ic: 30, Vge: 20, P: 3.5, Icm: 90 }, IKW50N60T: { Vce: 600, Ic: 50, Vge: 20, P: 3.5, Icm: 150 }, IKW40N120T2: { Vce: 1200, Ic: 40, Vge: 20, P: 3.5 }, 'generic 600 V 20 A': { Vce: 600, Ic: 20, Vge: 20, P: 3.5 } },
+  optotriac: { MOC3052: { If: 0.06, Vr: 3, Vdrm: 600, Itsm: 1 } },
   opto: { PC817: { If: 0.05, Vr: 6, Vce: 35, Ic: 0.05, P: 0.15 } },
   tl431: { TL431: { Vka: 37, Ik: 0.1, P: 0.62 }, TLV431: { Vka: 6, Ik: 0.015, P: 0.62 } },
   comparator: { '*': { Vs: 36, Iout: 0.016 } },
@@ -191,6 +192,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         else add('Ic', peak(iPin('2')), model.Ic);
         add('Vge', peak(vAcross('1', '3')), model.Vge); add('P', P(['1', '2', '3']), pRating(model.P));
       } break;
+      case 'optotriac': if (model) { add('If', maxOf(iPin('1')), model.If); add('Vr', maxOf(vAcross('2', '1')), model.Vr); add('Vdrm', peak(vAcross('6', '4')), model.Vdrm); add('Itsm', peak(iPin('6')), model.Itsm); } break;
       case 'opto': if (model) {
         add('If', maxOf(iPin('1')), model.If); add('Vr', maxOf(vAcross('2', '1')), model.Vr);
         add('Vce', peak(vAcross('4', '3')), model.Vce); add('Ic', peak(iPin('4')), model.Ic); add('P', P(['4', '3']), model.P);

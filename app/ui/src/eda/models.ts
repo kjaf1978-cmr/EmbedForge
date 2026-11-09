@@ -125,6 +125,12 @@ export const OPTOS: NamedModel<OptoModel>[] = [
   { name: 'PC817', note: 'phototransistor optocoupler (DIP-4): LED 1.2 V at 20 mA, CTR 50–600 % (set below), output 35 V / 50 mA', model: { vf: 1.2, bf: 500 } },
 ];
 
+/** Opto-triac (random phase): LED trigger current ift (A), the triac's on-state resistance (Ω). */
+export interface OptoTriacModel { vf: number; ift: number; ron: number }
+export const OPTOTRIACS: NamedModel<OptoTriacModel>[] = [
+  { name: 'MOC3052', note: 'opto-triac driver, random phase (not zero-cross), 600 V, LED trigger current 10 mA, 1 A peak (DIP-6): fires thyristors and triacs', model: { vf: 1.2, ift: 0.01, ron: 5 } },
+];
+
 /** Shunt references: reference voltage between REF and anode; the cathode sinks what holds REF there. */
 export interface ShuntRefModel { vref: number }
 export const SHUNT_REFS: NamedModel<ShuntRefModel>[] = [

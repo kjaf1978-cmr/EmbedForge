@@ -5,7 +5,7 @@ import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, 
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
 import { satCurrent } from '../sim/engine';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
@@ -581,6 +581,17 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     case 'idc': out.push({ kind: 'I', name: ref, p: pin['2'], n: pin['1'], dc: v('value', 'current') }); break;
+    case 'optotriac': {
+      // the LED (current sensed by a 0 V source) and the triac as a switch that turns on above
+      // the trigger current and, with the LED off, opens at its current's zero
+      const m = findModel(OPTOTRIACS, p.props.value).model, a = `${ref}#a`;
+      out.push(
+        { kind: 'V', name: `${ref}_VS`, p: pin['1'], n: a, dc: 0 },
+        { kind: 'D', name: `${ref}_LED`, a, k: pin['2'], model: ledModel(m.vf) },
+        { kind: 'W', name: `${ref}_TR`, p: pin['6'], n: pin['4'], ctrl: `${ref}_VS`, it: 0.7 * m.ift, ih: 0.3 * m.ift, ron: m.ron, roff: 1e9, zc: true },
+      );
+      break;
+    }
     case 'scr': {
       // gate junction (gate current sensed by a 0 V source), the latching switch (on above IGT,
       // opens at its current's zero: zc), the on-state diode (VT0, rT) in series

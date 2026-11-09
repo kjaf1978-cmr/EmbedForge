@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -417,6 +417,16 @@ export const SYMBOLS: SymbolDef[] = [
       path('M -7 -6 L 10 -18 V -30 M -7 6 L 10 18 V 30'), arrowHead(-7, 6, 7, 15.6),
       ...(findModel(IGBTS, p.value ?? '').model.diode ? [path('M 10 -24 H 26 V 24 H 10'), path('M 20 6 H 32 L 26 -4 Z', fg), path('M 20 -4 H 32')] : [])],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(IGBTS.map((m) => m.name)), default: 'IKW30N60T' }, params: [HEATSINK, TJ],
+  },
+  {
+    id: 'optotriac', name: 'Opto-triac', category: 'Semiconductors', keywords: ['u', 'opto', 'optotriac', 'moc3052', 'moc3021', 'triac driver', 'ssr', 'isolation'], prefix: 'U',
+    description: 'Opto-triac driver (MOC3052 pin-out: 1 anode, 2 cathode, 4 and 6 the triac): while the LED carries its trigger current the triac conducts both ways; with the LED off it stops at its current\'s next zero. Fires thyristors and triacs from logic, isolated.',
+    pins: [{ id: '1', name: 'A', x: -40, y: -10, type: 'passive' }, { id: '2', name: 'K', x: -40, y: 10, type: 'passive' }, { id: '6', name: 'MT2', x: 40, y: -10, type: 'passive' }, { id: '4', name: 'MT1', x: 40, y: 10, type: 'passive' }],
+    refAt: { x: 0, y: -30 }, valAt: { x: 0, y: 36 }, simulated: true,
+    gfx: () => [path('M -28 -22 H 28 V 22 H -28 Z', 'bg'), path('M -40 -10 H -14 V -6 M -14 6 V 10 H -40'), path('M -20 -6 H -8 L -14 6 Z', fg), path('M -20 6 H -8'),
+      path('M -4 -4 L 4 0 M -4 4 L 4 8'), arrowHead(-4, -4, 4, 0, 4, 2), arrowHead(-4, 4, 4, 8, 4, 2),
+      path('M 40 -10 H 16 V -7 M 16 7 V 10 H 40 M 8 -7 H 24 M 8 7 H 24'), path('M 9 -7 L 15 1 L 21 -7 M 11 7 L 17 -1 L 23 7')],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(OPTOTRIACS.map((m) => m.name)), default: 'MOC3052' }, params: [],
   },
   {
     id: 'opto', name: 'Optocoupler', category: 'Semiconductors', keywords: ['u', 'opto', 'optocoupler', 'optoisolator', 'pc817', 'isolation', 'phototransistor'], prefix: 'U',

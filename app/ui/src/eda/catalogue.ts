@@ -112,6 +112,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   ntc: { '10k': e('NTCLE100E3103JB0', 'Vishay', 'NTC thermistor 10 kΩ, B 3977 K, radial (heatsink sensor)', 0.47, 0.27, 'live', [{ distributor: 'Farnell', sku: '1434160' }, { distributor: 'LCSC', sku: 'C141588' }, { distributor: 'RS', sku: '754-6645' }]) },
   terminal: { '5.08 mm, 1 pole': e('MKDS 1,5/ 2-5,08 (2 poles per block)', 'Phoenix Contact', 'PCB screw terminal 5.08 mm (control and sensors, per pole); mains and battery wiring: DIN-rail terminals PT 10 / PT 16 N', 0.4, 0.25, 'estimate', [{ distributor: 'RS', sku: '193-0564' }], 'power terminals PT 10 BK (RS 207-2871) about €1.00 per pole') },
+  optotriac: { MOC3052: e('MOC3052M', 'onsemi', 'opto-triac driver 600 V, random phase, IFT 10 mA, DIP-6', 0.9, 0.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]) },
   scr: {
     'VS-40TPS12': e('VS-40TPS12LHM3', 'Vishay', 'thyristor 1200 V 55 A r.m.s., TO-247AC', 5.2, 3.6, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
     'VS-70TPS16': e('VS-70TPS16-M3', 'Vishay', 'thyristor 1600 V 110 A r.m.s., TO-247AC', 9.5, 6.8, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),

@@ -136,6 +136,7 @@ add(inline('TO-220_Vertical', 'TO-220 standing, 2.54 mm', 3, 2.54, 1.2, 1.8, 2.4
 add(inline('TO-247_Vertical', 'TO-247 standing, 5.45 mm', 3, 5.45, 1.4, 2.5, 3.0, { d: 5.4, back: 3.3, height: 21 }));
 // integrated circuits
 add(dip('DIP-4', 'DIP-4 (optocoupler)', 4));
+add(dip('DIP-6', 'DIP-6', 6));
 add(dip('DIP-8', 'DIP-8', 8));
 add(dip('DIP-14', 'DIP-14', 14));
 add(soic('SOIC-8', 'SOIC-8', 8));
