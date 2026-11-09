@@ -178,6 +178,8 @@ def main():
         edge = zones.get('edge') or split
         if edge > 2:
             keepout(b, 0, 0, edge, zones['h'])
+        for x0, y0, x1, y1 in zones.get('keep2', []):
+            keepout(b, x0, y0, x1, y1)
         b.Save(os.path.join(d, 'stage2.kicad_pcb'))
         b = pcbnew.LoadBoard(os.path.join(d, 'stage2.kicad_pcb'))
         ses = freeroute(b, d, 'stage2', passes, apart=False)

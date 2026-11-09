@@ -5,7 +5,7 @@
 // the export found (pins without a pad, nets on one pad).
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { boardNetlist, kicadBoard, kicadRules, placement, type Placed } from '../../app/ui/src/pcb/kicad';
+import { boardNetlist, kicadBoard, kicadRules, placement, padAt, type Placed } from '../../app/ui/src/pcb/kicad';
 import { DESIGNS } from './layouts';
 
 const [name, out] = process.argv.slice(2);
@@ -25,8 +25,25 @@ const b = kicadBoard(nl, { title: d.title, revision: d.revision, classes, w: d.w
 writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);
 writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));
+// the pins of parts with both mains and other pads (relays, transformer connectors): each
+// stage keeps its new tracks off the other side's pins (the pad plus 3.3 mm)
+const pinKeep = (want: boolean): [number, number, number, number][] => {
+  const r: [number, number, number, number][] = [];
+  for (const p of nl.parts) {
+    const ns = Object.values(p.pads);
+    if (!ns.some((n) => mains.has(n)) || ns.every((n) => mains.has(n))) continue;
+    const pl = b.placed.find((x) => x.ref === p.ref)!;
+    for (const d of p.footprint.pads) {
+      const n = p.pads[d.id];
+      if (!n || mains.has(n) !== want) continue;
+      const [x, y] = padAt(pl, d.x, d.y), e = Math.max(d.w, d.h) / 2 + 3.3;
+      r.push([x - e, y - e, x + e, y + e]);
+    }
+  }
+  return r;
+};
 // the zones for the two-stage routing (route.py): the mains zone is x < split
-writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: d.region ? d.region.x0 - 3 : placed ? undefined : placement.split, edge: d.edge ?? (placed ? undefined : placement.edge), keep1: d.keep1 ?? [], w: b.w, h: b.h }));
+writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: d.region ? d.region.x0 - 3 : placed ? undefined : placement.split, edge: d.edge ?? (placed ? undefined : placement.edge), keep1: [...(d.keep1 ?? []), ...pinKeep(false)], keep2: pinKeep(true), w: b.w, h: b.h }));
 // the router's class-to-class clearances (route.py adds them to the Specctra file)
 writeFileSync(join(out, 'apart.json'), JSON.stringify(classes.filter((c) => c.apart).map((c) => ({ cls: c.name, mm: c.apart }))));
 writeFileSync(join(out, 'nets.txt'), nl.nets.join('\n') + '\n');
