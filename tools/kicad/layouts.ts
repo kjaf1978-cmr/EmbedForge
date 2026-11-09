@@ -253,7 +253,9 @@ const hfRefs = () => hfCache ??= (() => {
 // nodes LA, LB (F.Cu) and the drains BUSD (B.Cu) as 8 mm bars above it; above them the battery
 // bus as planes (BUS on F.Cu over GND on B.Cu) with its capacitors and the bus current
 // transformer, and on the right, 10 mm away, the 380 V bus as planes (HVG on F.Cu over HBUS on
-// B.Cu) with its capacitors and shunt. The high-voltage nets keep 2.5 mm (IPC-2221 B2, 500 V)
+// B.Cu) with its capacitors and shunt. The board is conformal-coated (IPC-CC-830): the high-voltage
+// nets keep 0.8 mm among themselves (IPC-2221 B4, 301–500 V) and 1.5 mm to the battery side (2.5 mm
+// uncoated could not be met at the drivers' own 2.54 mm pins: 129 connections left unrouted)
 const HF_LV_HEAVY = ['BUS', 'BUSD', 'GND', 'LA', 'LB'];
 const hfPowerHv = () => { const { sheet } = { sheet: inverterHF({ load: '0' }).sheet }; return [...potentialGroup(sheet, ['HVG', 'HBUS'], new Set(['GND', 'OUTL']))].filter((n) => !HF_LV_HEAVY.includes(n)); };
 const HF_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QHA1', 60], ['QHA2', 80], ['QHB2', 100], ['QHB1', 120], ['QLB1', 140], ['QLB2', 160],
@@ -300,7 +302,7 @@ const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3
 
 export const DESIGNS: Record<string, Design> = {
   'inverter-hf-48-power': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: power board', revision: 'A',
-    classes: () => [POWER(HF_LV_HEAVY), { ...classFor('HV', hfPowerHv(), 1, 2.5), apart: 2.5 }], copperOz: 4,
+    classes: () => [POWER(HF_LV_HEAVY), { ...classFor('HV', hfPowerHv(), 0.6, 0.8), apart: 1.5 }], copperOz: 4,
     heavy: [...HF_LV_HEAVY, 'HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2'], panel: (p) => !hfRefs().pwr.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 300, h: 230,
     plan: hfPlan, tracks: HF_BARS, zones: HF_PLANES, region: { x0: 0, x1: 300, y0: 160, y1: 230 } },
   'inverter-hf-48-control': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200,
