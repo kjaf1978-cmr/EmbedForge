@@ -45,8 +45,11 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   const t: PlanTrack[] = [];
   for (let k = 0; k < 7; k++) {
     const y = k < 6 ? 70 + 20 * k : 192, coil = k < 6 ? `K${k + 1}` : 'KD';
-    t.push({ net: '+12V', layer: 'F.Cu', width: 0.5, pts: [[93, y + 6], [100.5, y + 6]] }, { net: coil, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
+    t.push({ net: '+12V', layer: 'B.Cu', width: 0.5, pts: [[93, y + 6], [102, y + 6]] }, { net: coil, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
   }
+  // the coils' +12V as one rail on the bottom layer (x 102, 5.5 mm from the COM pins); the coil
+  // drives cross it on the top layer
+  t.push({ net: '+12V', layer: 'B.Cu', width: 0.8, pts: [[102, 76], [102, 198]] });
   // the taps: relay k's NO (80.8, Y − 6) through the channel between relays (Y − 10) to its own
   // vertical (x 22 … 32.5, 3.5 mm apart, inner to outer in the order the taps are reached, so no two
   // cross) and along to its pad on the tap block (x 14, T1 at 100.95 mm, 7.62 mm apart); on the
@@ -105,7 +108,7 @@ const coWire = (net: string, toBoard: boolean, isMains: boolean) =>
   net === 'GND' ? '6 mm² H07V-K green-yellow (PE)' : isMains ? (toBoard ? '1.5 mm² H07V-K' : '6 mm² H07V-K, ferrules') : '0.75 mm² H05V-K';
 
 export const DESIGNS: Record<string, Design> = {
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 100, x1: 230 }, edge: 99,
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
     keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }) },
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
