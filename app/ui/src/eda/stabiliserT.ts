@@ -253,6 +253,6 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CD6', 'capacitor', 1150, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
   nb.v('VIN').v('OUT').v('SF').v('CHG').v('OFFN');
-  nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '50u', start: 'zero' });
+  nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '50u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }
