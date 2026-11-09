@@ -192,11 +192,11 @@ def main():
         ses = freeroute(board, d, 'board', passes, apart=True)
         board = pcbnew.LoadBoard(pcb)
         import_ses(board, ses)
-    # the Power class's tracks (D45): the solder mask opened along them (0.5 mm narrower than the
-    # track) for a soldered copper bar
+    # the high-current bars (D45: tracks of 3 mm and wider): the solder mask opened along them (0.5 mm
+    # narrower than the track) for a soldered copper bar
     bars = 0
     for t in board.GetTracks():
-        if t.GetClass() == 'PCB_TRACK' and t.GetNetClassName() == 'Power':
+        if t.GetClass() == 'PCB_TRACK' and t.GetWidth() >= pcbnew.FromMM(3):
             m = pcbnew.PCB_SHAPE(board)
             m.SetShape(pcbnew.SHAPE_T_SEGMENT)
             m.SetStart(t.GetStart()); m.SetEnd(t.GetEnd())
@@ -204,7 +204,7 @@ def main():
             m.SetLayer(pcbnew.F_Mask if t.GetLayer() == pcbnew.F_Cu else pcbnew.B_Mask)
             board.Add(m); bars += 1
     if bars:
-        print(f'solder mask opened on {bars} Power track segments', flush=True)
+        print(f'solder mask opened on {bars} bar segments', flush=True)
     filler = pcbnew.ZONE_FILLER(board)
     filler.Fill(board.Zones())
     routed = os.path.join(d, 'routed.kicad_pcb')

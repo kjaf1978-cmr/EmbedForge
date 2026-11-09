@@ -354,7 +354,7 @@ export function padAt(pl: Placed, x: number, y: number): [number, number] {
 }
 
 export function placeFromSchematic(parts: BoardPart[], w: number, h: number, margin = 5, mains: Set<string> = new Set(),
-  fixed: { part: BoardPart; at: Placed }[] = [], region?: { x0: number; x1: number }): Placed[] {
+  fixed: { part: BoardPart; at: Placed }[] = [], region?: { x0: number; x1: number }, obstacles: { x0: number; y0: number; x1: number; y1: number }[] = []): Placed[] {
   // a part with a mains pad keeps 3.5 mm from the courtyards of the others (the 3.2 mm
   // clearance of the mains nets, copper to copper, to any other net); others 0.5 mm
   const nM = (p: BoardPart) => Object.values(p.pads).filter((n) => mains.has(n)).length;
@@ -383,7 +383,8 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   const tm = ms.length ? scale(ms, zone(ms[0])) : null, tc = cs.length ? scale(cs, zone(cs[0])) : null;
   const boxes: { x0: number; y0: number; x1: number; y1: number; m: boolean }[] = [];
   const out: Placed[] = [];
-  const fixedBoxes = fixed.map(({ part, at }) => { const c = court(part, at.rot); return { x0: at.x + c.x0 - 0.5, y0: at.y + c.y0 - 0.5, x1: at.x + c.x1 + 0.5, y1: at.y + c.y1 + 0.5, m: kind(part) !== 'ctl' }; });
+  const fixedBoxes = [...fixed.map(({ part, at }) => { const c = court(part, at.rot); return { x0: at.x + c.x0 - 0.5, y0: at.y + c.y0 - 0.5, x1: at.x + c.x1 + 0.5, y1: at.y + c.y1 + 0.5, m: kind(part) !== 'ctl' }; }),
+    ...obstacles.map((b) => ({ ...b, m: false }))];
   const order = [...parts].sort((a, b) => (kind(a) === 'edge' ? 0 : 1) - (kind(b) === 'edge' ? 0 : 1) || area(b.footprint) - area(a.footprint));
   for (const p of order) {
     const rot = rotOf(p), c = court(p, rot), pm = kind(p) !== 'ctl', z = zone(p);
@@ -465,7 +466,12 @@ export function kicadBoard(nl: BoardNetlist, o: KicadBoardOptions): { pcb: strin
   const known = new Map((o.placed ?? []).map((p) => [p.ref, p]));
   const rest = nl.parts.filter((p) => !known.has(p.ref));
   const fixed = (o.placed ?? []).filter((p) => nl.parts.some((b) => b.ref === p.ref));
-  const placed = [...fixed, ...(rest.length ? placeFromSchematic(rest, w, h, 5, o.mains, fixed.map((at) => ({ part: nl.parts.find((b) => b.ref === at.ref)!, at })), o.region) : [])];
+  // the plan's tracks are obstacles for the placement (their width and 0.6 mm round them)
+  const obstacles = (o.tracks ?? []).flatMap((t) => t.pts.slice(1).map((p, k) => {
+    const a = t.pts[k], e = t.width / 2 + 0.6;
+    return { x0: Math.min(a[0], p[0]) - e, y0: Math.min(a[1], p[1]) - e, x1: Math.max(a[0], p[0]) + e, y1: Math.max(a[1], p[1]) + e };
+  }));
+  const placed = [...fixed, ...(rest.length ? placeFromSchematic(rest, w, h, 5, o.mains, fixed.map((at) => ({ part: nl.parts.find((b) => b.ref === at.ref)!, at })), o.region, obstacles) : [])];
   const netNo = new Map<string, number>([['', 0]]);
   nl.nets.forEach((n, k) => netNo.set(n, k + 1));
   const oz = o.copperOz ?? 2, cu = oz * 0.035;

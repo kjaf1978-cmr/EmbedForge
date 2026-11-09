@@ -142,9 +142,39 @@ const MPPT_PLAN: [string, number, number, Placed['rot']][] = [
   ['COUT1', 170, 135, 0], ['COUT2', 170, 115, 0], ['COUT3', 170, 95, 0], ['DTV', 170, 75, 0],
   ['RSH', 240, 132, 0], ['XBN', 270, 50, 0],
 ];
-const mpptPlan = (): Placed[] => { const { ref } = mpptRefs(); return MPPT_PLAN.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })); };
+const MPPT_LUGS: [string, number, number][] = [['J_SW', 55, 135], ['J_VO', 145, 128], ['J_BATP', 200, 20], ['XBP', 225, 20]];
+const mpptPlan = (): Placed[] => { const { ref } = mpptRefs(); return [...MPPT_PLAN.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...MPPT_LUGS.map(([k, x, y]) => ({ ref: k.startsWith('J_') ? k : ref(k), x, y, rot: 0 as const }))]; };
+// the high-current paths drawn by the plan (4 mm, the solder mask open for a soldered 4 × 3 mm
+// copper bar; F = top, B = bottom layer), at least 0.75 mm from any other pin; the router joins the
+// rest at 1 mm
+const bar = (net: string, layer: 'F.Cu' | 'B.Cu', pts: [number, number][]): PlanTrack => ({ net, layer, width: 4, pts });
+const MPPT_BARS: PlanTrack[] = [
+  // PV+: the input lug over the top to the four input capacitors' PV+ pins, down to Q1's drain
+  bar('PVP', 'F.Cu', [[15, 22], [22, 8], [121.25, 8], [121.25, 130], [110, 140], [100, 145], [100, 153]]),
+  // PV−: its lug down the left edge to QPV's drain; QPV and QPV2 back to back (sources joined)
+  bar('PVN', 'F.Cu', [[15, 47], [8, 55], [8, 140], [20, 145], [20, 153]]),
+  bar('SPV', 'B.Cu', [[14.55, 153], [14.55, 147], [34.55, 147], [34.55, 153]]),
+  // the buck's ground: the input capacitors' GND pins, D1's anode, QPV2's drain, the output
+  // capacitors, the TVS and the shunt (bottom layer, under the PV+ bar)
+  bar('GND', 'B.Cu', [[68.75, 19], [68.75, 145]]),
+  bar('GND', 'B.Cu', [[40, 153], [40, 145], [183.75, 145], [183.75, 95]]),
+  bar('GND', 'B.Cu', [[85.45, 145], [85.45, 153]]),
+  bar('GND', 'B.Cu', [[183.75, 95], [177.62, 80], [177.62, 75]]),
+  bar('GND', 'B.Cu', [[183.75, 135], [230, 132]]),
+  // the switch node: D1's cathode and Q1's source to its lug (the inductor's cable)
+  bar('SW', 'F.Cu', [[80, 153], [80, 148.5], [94.55, 148.5], [94.55, 153]]),
+  bar('SW', 'F.Cu', [[80, 148.5], [62, 148.5], [55, 142], [55, 135]]),
+  // the output: its lug (the inductor's and the fuse's cables) to the output capacitors and the TVS
+  bar('VO', 'F.Cu', [[145, 128], [150, 128], [156.25, 135], [156.25, 95], [162.38, 80], [162.38, 75]]),
+  // the battery: BAT+ (after the fuse) to its lug; BAT− to QB2's drain; the two sources joined;
+  // QB's drain to the shunt
+  bar('BATP', 'F.Cu', [[200, 20], [225, 20]]),
+  bar('BNB', 'F.Cu', [[270, 50], [270, 140], [257, 145], [257, 153]]),
+  bar('BN', 'F.Cu', [[229.55, 153], [229.55, 147], [251.55, 147], [251.55, 153]]),
+  bar('BF', 'B.Cu', [[235, 153], [235, 140], [250, 132]]),
+];
 // 0.6 mm: IPC-2221 B2 (outer layers, uncoated) up to 150 V; the PV side reaches 114 V
-const POWER = (nets: string[]): NetClass => ({ name: 'Power', patterns: nets.map((n) => `^${n}$`), track: 4, clearance: 0.6 });
+const POWER = (nets: string[]): NetClass => ({ name: 'Power', patterns: nets.map((n) => `^${n}$`), track: 1, clearance: 0.6 });
 
 export const DESIGNS: Record<string, Design> = {
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
@@ -157,6 +187,6 @@ export const DESIGNS: Record<string, Design> = {
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
     heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 280, h: 160,
-    plan: mpptPlan, region: { x0: 0, x1: 280 } },
+    plan: mpptPlan, tracks: MPPT_BARS, region: { x0: 0, x1: 280 } },
   'mppt-control': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: control board', revision: 'A', classes: () => [], fill: 2.6, panel: (p) => mpptRefs().pwr.has(p.ref) || mpptRefs().off.has(p.ref) },
 };
