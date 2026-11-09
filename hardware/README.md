@@ -30,6 +30,13 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
   control side is earthed (PE), so basic insulation suffices. Between two mains nets 1.5 mm.
 - Mains terminals at 7.62 mm pitch; off-board transformers on connectors with an empty pole
   between their windings.
+- Footprints follow each part's value and rating, as the parts list orders it: electrolytics by
+  C·V (Ø 5 … 18 mm radial, 22 … 35 mm snap-in), film capacitors by C·V (7.5 … 37.5 mm pitch),
+  Y and high-voltage ceramics at 10 mm, resistors by power (¼ W, 1 W, 2–3 W, 5 W and 10 W
+  cement, four-terminal shunts), fuses (TR5 to 6.3 A, 5 × 20 mm holder to 10 A), inductors (radial
+  to 2 A, toroid to 10 A). Parts above that (power resistors over 10 W, inductors over 10 A, fuses
+  over 10 A) sit off the board, on the chassis or heatsink, wired or bolted.
+- High-current nets end on M5 bolt lugs (busbars or cable lugs), not on screw terminals.
 - Track widths by IPC-2221 for the current at 20 K rise in 2 oz copper (the stabiliser's mains
   tracks 1.6 mm for 7 A).
 - The power section is placed and partly routed by a written plan (`tools/kicad/layouts.ts`);

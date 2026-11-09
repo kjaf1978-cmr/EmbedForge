@@ -63,11 +63,11 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[14, tapY(5)], [8, tapY(5) + 6], [8, 176], [40, 184], [40, 192], [95, 192]] });
   t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[77.76, 42], [77.76, 50], [40, 50], [40, tapY(5)], [14, tapY(5)]] });
   // each relay's COM net (VIN for K1, the ladder links after it) from its two snubber resistors'
-  // pins (69.08, Y ∓ 4) into COM along Y, between NO and NC (3.95 mm from them and the coil pins)
+  // pins (1 W, 15.24 mm: 71.62, Y ∓ 4) into COM along Y, between NO and NC (3.95 mm from them and the coil pins)
   const com = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   com.forEach((n, k) => {
     const y = 70 + 20 * k;
-    t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[69.08, y - 4], [73.08, y], [95, y]] }, { net: n, layer: 'F.Cu', width: 1.6, pts: [[69.08, y + 4], [73.08, y]] });
+    t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[71.62, y - 4], [75.62, y], [95, y]] }, { net: n, layer: 'F.Cu', width: 1.6, pts: [[71.62, y + 4], [75.62, y]] });
     if (k > 0) t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y - 14], [87, y - 8], [87, y]] });
   });
   return t;
@@ -78,10 +78,11 @@ const STAB_PLAN: Placed[] = (() => {
   for (let k = 0; k < 6; k++) {
     const y = 70 + 20 * k;
     p.push({ ref: `K${k + 1}`, x: 95, y, rot: 180 },
-      // turned 180°: each resistor's COM pin (1) towards the relay at x 69.08, the snubber's mid
-      // node on the two inner pads (52.54, 58.92), the capacitor's NO / NC pin outside at 47.46
-      { ref: `C${7 + 2 * k}`, x: 50, y: y - 4, rot: 180 }, { ref: `R${35 + 2 * k}`, x: 64, y: y - 4, rot: 180 },
-      { ref: `C${6 + 2 * k}`, x: 50, y: y + 4, rot: 180 }, { ref: `R${34 + 2 * k}`, x: 64, y: y + 4, rot: 180 });
+      // turned 180°: each resistor's COM pin (1) towards the relay at x 71.62 (1 W, 15.24 mm), the
+      // snubber's mid node on the two inner pads (51.75, 56.38), the capacitor's NO / NC pin
+      // outside at 44.25 (100 nF 630 V film, 7.5 mm)
+      { ref: `C${7 + 2 * k}`, x: 48, y: y - 4, rot: 180 }, { ref: `R${35 + 2 * k}`, x: 64, y: y - 4, rot: 180 },
+      { ref: `C${6 + 2 * k}`, x: 48, y: y + 4, rot: 180 }, { ref: `R${34 + 2 * k}`, x: 64, y: y + 4, rot: 180 });
   }
   p.push({ ref: 'K7', x: 95, y: 192, rot: 180 },
     { ref: 'T2', x: 14, y: 120, rot: 270 },

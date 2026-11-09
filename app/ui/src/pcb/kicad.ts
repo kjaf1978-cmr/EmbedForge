@@ -84,11 +84,11 @@ export interface BoardOptions {
   /** Mains nets: a terminal block or an off-board transformer with one of them on a pad takes
    *  the 7.62 mm variant of its footprint (the pads 5 mm apart). */
   mains?: Set<string>;
-  /** High-current nets (D45): a terminal on one becomes an M6 bolt lug, and each that leaves the
+  /** High-current nets (D45): a terminal on one becomes an M5 bolt lug, and each that leaves the
    *  board gets a lug of its own instead of a pole on a terminal block. */
   heavy?: Set<string>;
   /** Off-board parts bolted to the board (an inductor, a fuse holder, busbars): a heavy net to one
-   *  gets an M6 lug; nets to the other off-board parts (another board) get terminal-block poles. */
+   *  gets an M5 lug; nets to the other off-board parts (another board) get terminal-block poles. */
   bolted?: (p: Part) => boolean;
 }
 
@@ -123,7 +123,7 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
     const lost = pinsWithoutPad(p, f.choice).filter((pin) => { const n = net(p.ref, pin); return n && !n.startsWith('nc_'); });
     if (lost.length && !['dcmotor', 'servo'].includes(p.sym)) warnings.push(`${p.ref}: pins ${lost.join(', ')} have no pad`);
     const heavyTerm = p.sym === 'terminal' && Object.values(pads).some((n) => o.heavy?.has(n));
-    const fp = heavyTerm ? FOOTPRINTS['Lug_M6'] : o.mains && Object.values(pads).some((n) => o.mains!.has(n)) ? mainsVariant(f.fp, p.sym) : f.fp;
+    const fp = heavyTerm ? FOOTPRINTS['Lug_M5'] : o.mains && Object.values(pads).some((n) => o.mains!.has(n)) ? mainsVariant(f.fp, p.sym) : f.fp;
     parts.push({ ref: p.ref, value: v, footprint: fp, pads, sx: p.x, sy: p.y, note: f.choice.note });
   }
   for (const [ref, units] of pkgs) {
@@ -162,10 +162,10 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
     const onBoard = new Set(parts.flatMap((p) => Object.values(p.pads)));
     const allShared = [...ends.keys()].filter((n) => onBoard.has(n)).sort();
     const sx0 = Math.min(...product.map((p) => p.x)), sy0 = product.reduce((a, p) => a + p.y, 0) / Math.max(product.length, 1);
-    // a heavy net to a bolted part: an M6 lug; a net to any other off-board part: a pole
+    // a heavy net to a bolted part: an M5 lug; a net to any other off-board part: a pole
     const touches = (n: string, bolted: boolean) => onPanel.some((p) => !!o.bolted?.(p) === bolted && symbolOf(p.sym).pins.some((pin) => net(p.ref, pin.id) === n));
     const lugNets = allShared.filter((m) => o.heavy?.has(m) && touches(m, true));
-    for (const n of lugNets) parts.push({ ref: `J_${n}`, value: n, footprint: FOOTPRINTS['Lug_M6'], pads: { 1: n }, sx: sx0, sy: sy0, note: 'M6 bolt: busbar or cable lug' });
+    for (const n of lugNets) parts.push({ ref: `J_${n}`, value: n, footprint: FOOTPRINTS['Lug_M5'], pads: { 1: n }, sx: sx0, sy: sy0, note: 'M5 bolt: busbar or cable lug' });
     const shared = allShared.filter((m) => touches(m, false));
     // two connectors: the mains nets on their own (7.62 mm), the control nets on another, so the
     // panel's mains and low-voltage wiring never share a terminal block

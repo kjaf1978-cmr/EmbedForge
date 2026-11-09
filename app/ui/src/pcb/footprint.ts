@@ -143,10 +143,39 @@ add(soic('SOIC-8', 'SOIC-8', 8));
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
-// high current (D45): an M6 bolt through a plated hole with a 14 mm ring, for a busbar or a cable
-// lug (100 A and more with the board's copper pour; the bolt and its washer carry the current)
-add(make('Lug_M6', 'Bolt terminal M6 (busbar or cable lug)', 'one plated M6 hole, 14 mm ring', [tht('1', 0, 0, 14, 6.4)],
-  [{ t: 'circle', x: 0, y: 0, r: 7.5 }], { x0: -7.5, y0: -7.5, x1: 7.5, y1: 7.5, h: 8 }));
+// sized parts (the footprint follows the part's value and rating, as the parts list orders it)
+// radial electrolytics: Ø × pitch of the common series (Panasonic FR/FC, Nichicon UHE/UCY);
+// snap-in cans (two leads, 10 mm) from Ø 22 mm
+for (const [D, P, H] of [[5, 2.0, 11], [8, 3.5, 12], [12.5, 5.0, 20], [16, 7.5, 25], [18, 7.5, 36]] as const)
+  add(radial(`CP_Radial_D${D}`, `Electrolytic capacitor, Ø ${D} mm, ${P} mm`, P, D >= 12.5 ? 1.0 : 0.8, D >= 12.5 ? 2.0 : 1.6, D, H, true));
+for (const [D, H] of [[22, 30], [25, 40], [30, 45], [35, 50]] as const)
+  add(radial(`CP_SnapIn_D${D}`, `Electrolytic capacitor, snap-in Ø ${D} mm, 10 mm`, 10, 2.0, 3.5, D, H, true));
+// film capacitors (box, two leads): pitch, width × thickness of the WIMA/KEMET MKP series
+const film = (P: number, L: number, T: number, H: number) => add(make(`C_Film_P${P}`, `Film capacitor, pitch ${P} mm (${L} × ${T} mm)`, `box ${L} × ${T} mm`,
+  [tht('1', -P / 2, 0, P >= 22.5 ? 2.4 : 1.8, P >= 22.5 ? 1.2 : 0.9), tht('2', P / 2, 0, P >= 22.5 ? 2.4 : 1.8, P >= 22.5 ? 1.2 : 0.9)], box(-L / 2, -T / 2, L / 2, T / 2), { x0: -L / 2, y0: -T / 2, x1: L / 2, y1: T / 2, h: H }));
+film(7.5, 10, 5, 10); film(10, 13, 6, 12); film(15, 18, 8, 15); film(22.5, 26.5, 12, 22); film(27.5, 31.5, 15, 26); film(37.5, 41.5, 24, 45);
+// ceramic disc for Y capacitors and high voltages, 10 mm
+add(make('C_Disc_P10', 'Capacitor, ceramic disc (Y2, high voltage), 10 mm', 'radial, pitch 10 mm, body 12 × 5 mm', [tht('1', -5, 0, 2.0, 1.0), tht('2', 5, 0, 2.0, 1.0)],
+  box(-6.6, -2.7, 6.6, 2.7), { x0: -6.5, y0: -2.5, x1: 6.5, y1: 2.5, h: 14 }));
+// resistors by power: 2 W metal film (0617), 5 W and 10 W cement (horizontal), a four-terminal
+// shunt (Isabellenhütte BVN/BVR style: two power pads, two sense pins)
+add(axial('R_Axial_P20', 'Resistor, axial 2–3 W (0617), 20.32 mm', 20.32, 1.0, 2.0, 17, 6, 6));
+add(axial('R_Cement_5W', 'Resistor, 5 W cement, horizontal, 30 mm', 30, 1.0, 2.2, 22, 10, 10));
+add(axial('R_Cement_10W', 'Resistor, 10 W cement, horizontal, 55 mm', 55, 1.2, 2.4, 48, 10, 10));
+add(make('R_Shunt_4T', 'Current shunt, four-terminal, 10 W (power pads 1, 2; sense 3, 4)', 'Kelvin sense on pads 3, 4 next to the power pads',
+  [tht('1', -10, 0, 4.5, 2.0, 'rect'), tht('2', 10, 0, 4.5, 2.0), tht('3', -6, 4, 1.8, 0.9), tht('4', 6, 4, 1.8, 0.9)],
+  box(-12.5, -3, 12.5, 6), { x0: -12.5, y0: -3, x1: 12.5, y1: 6, h: 5 }));
+// fuse holder 5 × 20 mm, PCB (up to 10 A)
+add(make('Fuseholder_5x20', 'Fuse holder 5 × 20 mm, PCB, 22.6 mm', 'clips for a 5 × 20 mm fuse', [tht('1', -11.3, 0, 3.0, 1.5, 'rect'), tht('2', 11.3, 0, 3.0, 1.5)],
+  box(-13.6, -4.5, 13.6, 4.5), { x0: -13.5, y0: -4.5, x1: 13.5, y1: 4.5, h: 10 }));
+// inductor, toroid standing on the board (to 10 A), 10 mm
+add(radial('L_Toroid_D25', 'Inductor, toroid Ø 25 mm vertical, 10 mm', 10, 1.4, 2.6, 25, 14));
+
+// high current (D45): an M5 bolt through a plated hole with a 12 mm ring, for a busbar or a cable
+// lug (100 A and more with the board's copper pour; the bolt, its washers and the busbar carry
+// the current; M5, not M6: the fab profile's largest plated drill is 5.5 mm)
+add(make('Lug_M5', 'Bolt terminal M5 (busbar or cable lug)', 'one plated M5 hole, 12 mm ring', [tht('1', 0, 0, 12, 5.3)],
+  [{ t: 'circle', x: 0, y: 0, r: 6.5 }], { x0: -6.5, y0: -6.5, x1: 6.5, y1: 6.5, h: 8 }));
 // mains: 7.62 mm pitch (5 mm between the pads, more than the 3.2 mm of basic insulation at 300 V)
 for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}_P7.62`, `Screw terminal ${n} poles, 7.62 mm (mains)`, n, 7.62, 1.3, 2.6, 2.6, { d: 10, back: 5, height: 12 }));
 // an off-board transformer with a mains winding: its primary (pads 1, 2) and secondary (3, 4) on

@@ -8,6 +8,10 @@
 import { FOOTPRINTS, type Footprint } from './footprint';
 import { railVoltage, symbolOf } from '../eda/symbols';
 import type { Part } from '../eda/schematic';
+import { parseValue } from '../eda/units';
+
+/** A numeric property ("2", "630"), or undefined. */
+const num = (x: string | undefined): number | undefined => { const n = parseValue(x ?? ''); return n === null || n === undefined || Number.isNaN(n) ? undefined : n; };
 
 export interface FootprintChoice {
   footprint: string;
@@ -99,12 +103,41 @@ export function footprintChoices(p: Part): FootprintChoice[] {
   const s = symbolOf(p.sym), v = p.props[s.value.key] ?? s.value.default;
   const pins = s.pins.map((x) => x.id);
   switch (s.id) {
-    case 'resistor': return [same('R_Axial_0207', pins), same('R_Axial_0309', pins), same('Chip_0805', pins)];
-    case 'capacitor': return [same('C_Disc_5.08', pins), same('Chip_0805', pins)];
-    case 'capacitor_pol': return [same('CP_Radial_D6.3', pins), same('CP_Radial_D10', pins)];
-    case 'inductor': return [same('L_Radial_D8', pins), same('R_Axial_0309', pins)];
+    case 'resistor': {
+      // by power (pmax) and, for shunts, value: the part the parts list orders must fit
+      const w = num(p.props.pmax) ?? 0.25, r = parseValue(v) ?? 1e3;
+      if (r <= 0.01 && w >= 3) return [map('R_Shunt_4T', { 1: ['1', '3'], 2: ['2', '4'] }, { note: 'four-terminal shunt: sense on pads 3, 4' })];
+      if (w > 10) return [same('TerminalBlock_1x2', pins, `power resistor ${w} W on the heatsink (TO-247 / TO-220 or wirewound), wired`)];
+      const by = w <= 0.25 ? 'R_Axial_0207' : w <= 1 ? 'R_Axial_0309' : w <= 3 ? 'R_Axial_P20' : w <= 5 ? 'R_Cement_5W' : 'R_Cement_10W';
+      return [same(by, pins), ...(w <= 0.25 ? [same('R_Axial_0309', pins), same('Chip_0805', pins)] : [])];
+    }
+    case 'capacitor': {
+      // ceramic up to 1 µF at up to 63 V; film by C·V (WIMA/KEMET box sizes); Y and HV discs
+      const c = (parseValue(v) ?? 1e-7) * 1e6, vm = num(p.props.vmax) ?? 50, cv = c * vm;
+      if (vm >= 1000 && c <= 0.01) return [same('C_Disc_P10', pins)];
+      if (c <= 1 && vm <= 63) return [same('C_Disc_5.08', pins), same('Chip_0805', pins)];
+      const by = cv <= 100 ? 'C_Film_P7.5' : cv <= 300 ? 'C_Film_P10' : cv <= 1000 ? 'C_Film_P15' : cv <= 3000 ? 'C_Film_P22.5' : cv <= 7000 ? 'C_Film_P27.5' : 'C_Film_P37.5';
+      return [same(by, pins)];
+    }
+    case 'capacitor_pol': {
+      // radial or snap-in can by C·V (Panasonic FR/FC, Nichicon UHE/UCY case sizes)
+      const c = (parseValue(v) ?? 1e-6) * 1e6, vm = num(p.props.vmax) ?? 25, cv = c * vm;
+      const lo = [[300, 'CP_Radial_D5'], [700, 'CP_Radial_D6.3'], [1500, 'CP_Radial_D8'], [3500, 'CP_Radial_D10'], [8000, 'CP_Radial_D12.5'], [20000, 'CP_Radial_D16'], [110000, 'CP_Radial_D18'], [250000, 'CP_SnapIn_D25'], [Infinity, 'CP_SnapIn_D30']] as const;
+      const hi = [[2000, 'CP_Radial_D10'], [5000, 'CP_Radial_D12.5'], [12000, 'CP_Radial_D16'], [25000, 'CP_Radial_D18'], [60000, 'CP_SnapIn_D22'], [110000, 'CP_SnapIn_D25'], [180000, 'CP_SnapIn_D30'], [Infinity, 'CP_SnapIn_D35']] as const;
+      const by = (vm <= 63 ? lo : hi).find(([lim]) => cv <= lim)![1];
+      return [same(by, pins)];
+    }
+    case 'inductor': {
+      const i = num(p.props.imax) ?? 1;
+      if (i > 10) return [same('TerminalBlock_1x2', pins, `power inductor ${i} A off the board (on the chassis), wired or bolted`)];
+      return [same(i <= 2 ? 'L_Radial_D8' : 'L_Toroid_D25', pins)];
+    }
     case 'ntc': return [same('RT_Disc_5.08', pins)];
-    case 'fuse': return [same('F_TR5', pins)];
+    case 'fuse': {
+      const a = parseValue(v) ?? 1;
+      if (a > 10) return [same('TerminalBlock_1x2', pins, `fuse ${a} A in its holder off the board (class T, ANL or MEGA, bolted)`)];
+      return [same(a <= 6.3 ? 'F_TR5' : 'Fuseholder_5x20', pins)];
+    }
     case 'potentiometer': return [same('Pot_Trimmer_3', pins), same('Pot_9mm', pins)];
     case 'transformer': return [same('TerminalBlock_1x4', pins, 'off-board transformer: P1, P2, S1, S2')];
     case 'transformer3': return [same('TerminalBlock_1x8', pins, 'off-board transformer: 1U 1V 1W 1N 2U 2V 2W 2N')];
