@@ -72,6 +72,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     BZX55C3V3: e('BZX55C3V3', 'Vishay', 'Zener diode 3.3 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C12: e('BZX55C12', 'Vishay', 'Zener diode 12 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C13: e('BZX55C13', 'Vishay', 'Zener diode 13 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
+    '1N4734A': e('1N4734A', 'various', 'Zener diode 5.6 V 1 W, DO-41', 0.1, 0.03, 'estimate', any('DO-41')),
     '1N4743A': e('1N4743A', 'various', 'Zener diode 13 V 1 W, DO-41', 0.1, 0.03, 'estimate', any('DO-41')),
     '1N5359B': e('1N5359BG', 'onsemi', 'Zener diode 24 V 5 W, axial (T-18)', 0.35, 0.15, 'estimate', any('axial 5 W')),
   },

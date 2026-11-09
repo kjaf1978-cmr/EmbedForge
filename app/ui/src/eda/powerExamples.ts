@@ -98,7 +98,7 @@ export class NB {
 /** The sense transformer: a 1 VA 230/12 V PCB type (magnetising inductance, winding resistances
  *  and leakage of that size). Its leakage inductance rings with the bridge's junction capacitance
  *  each time the bridge stops conducting; 220 Ω + 100 nF across the secondary damp it. */
-const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99' };
+export const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99' };
 
 /** A change of the mains voltage during the run: from `at` (s) the r.m.s. voltage becomes `to`.
  *  Added as a sine source in series with the mains, phase 0 and its delay moved by the phase, so
@@ -413,7 +413,7 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
 export const STAB_STEPS = [160, 180, 200, 220, 240, 265];
 export const STAB_TAPS = [150, 170, 190, 210, 230, 250, 280];
 /** The reference ladder of the stabiliser, from GND up to VREF (E96). */
-const STAB_LADDER = ['5.36k', '732', '732', '732', '732', '909', '787'];
+export const STAB_LADDER = ['5.36k', '732', '732', '732', '732', '909', '787'];
 
 /** Relay-switched mains voltage stabiliser (step-type AVR): the input feeds one tap of a tapped
  *  autotransformer, the output is taken from its 230 V tap, so V_out = V_in·230/tap. `vin`: input
