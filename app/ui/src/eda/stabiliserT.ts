@@ -161,8 +161,8 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`QB${k}`, 'scr', x + 200, 520, { value: vr.scr, heatsink: vr.heatsink }, { '1': t, '2': 'VINS', '3': `GB${k}` })
       .part(`RGA${k}`, 'resistor', x + 320, 400, { value: '1k' }, { '1': `GA${k}`, '2': t })
       .part(`RGB${k}`, 'resistor', x + 320, 520, { value: '1k' }, { '1': `GB${k}`, '2': 'VINS' })
-      .part(`RSN${k}`, 'resistor', x + 100, 620, { value: '47', pmax: '2' }, { '1': 'VINS', '2': `SN${k}` }, 1)
-      .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '630' }, { '1': `SN${k}`, '2': t }, 1);
+      .part(`RSN${k}`, 'resistor', x + 100, 620, { value: '47', pmax: '2' }, { '1': 'VINS', '2': `SNB${k}` }, 1)
+      .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '630' }, { '1': `SNB${k}`, '2': t }, 1);
     if (o.shorted === k) nb.block('bench').part('RSHORT', 'resistor', x + 200, 620, { value: '0.005' }, { '1': 'VINS', '2': t }).block('taps');
   }
   nb.part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
