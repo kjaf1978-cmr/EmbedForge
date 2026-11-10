@@ -37,10 +37,11 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
   // ---- test bench: the pack, the trigger switch (main and brake contacts as MOSFETs), the motor
   nb.block('bench').note('TEST BENCH: the battery pack, the trigger switch, the motor and its load (not part of the board)', -1200, -150)
     .part('VB', 'battery', -1150, 0, { value: String(o.vbat ?? 36), rint: '0.05' }, { '1': 'BAT', '2': 'GND' }, 1)
-    // the main contact closes at 0 and opens at `release`; the brake contact the other way round
+    // the main contact closes at 0 and opens at `release`; the brake contact closes 5 ms later
+    // (the switch's travel between them: break before make)
     .part('VTM', 'vpulse', -1050, 0, { value: '60', low: '0', freq: '1', duty: String(Math.min(99.99, (o.release ?? 10) * 100)), delay: '0', edge: '1u' }, { '1': 'GTM', '2': 'GND' })
     .part('STM', 'nmos', -950, 0, { value: 'IRFP4468' }, { '1': 'GTM', '2': 'BAT', '3': 'VB' })
-    .part('VTB', 'vpulse', -1050, 200, { value: '60', low: '0', freq: '1', duty: '99', delay: String(o.release ?? 10), edge: '1u' }, { '1': 'GTB', '2': 'GND' })
+    .part('VTB', 'vpulse', -1050, 200, { value: '60', low: '0', freq: '1', duty: '99', delay: String((o.release ?? 10) + 5e-3), edge: '1u' }, { '1': 'GTB', '2': 'GND' })
     .part('STB', 'nmos', -950, 200, { value: 'IRFP4468' }, { '1': 'GTB', '2': 'VB', '3': 'DRN' })
     // the speed pot (5k) as its two halves
     .part('RPA', 'resistor', -850, 0, { value: String(Math.max(1, 5000 * (1 - trig))) }, { '1': 'PH', '2': 'WIP' })
@@ -125,10 +126,13 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RJT1', 'resistor', 850, 1050, { value: '19.1k' }, { '1': 'VREF', '2': 'VJ' }, 1)
     .part('RJT2', 'resistor', 850, 1150, { value: '1k' }, { '1': 'VJ', '2': 'GND' }, 1)
     .part('UC3', 'comparator', 1000, 1050, { value: 'LM339', pkg: 'CA' }, { '3': 'VJ', '2': 'IAV', '1': 'FLTN', '8': V, '4': 'GND' })
-    // the battery below 27.5 V (100k/10k: 2.5 V)
+    // the battery below 27.5 V (100k/10k: 2.5 V). Also the trigger's release: the input
+    // capacitors fall within a millisecond once the main contact opens, so the drive is off before
+    // the brake contact closes (with the drive still on, the capacitors discharged through the
+    // brake contact and the MOSFET: 836 A, found in simulation)
     .part('RUV1', 'resistor', 700, 1250, { value: '100k' }, { '1': 'VB', '2': 'VBD' })
     .part('RUV2', 'resistor', 700, 1350, { value: '10k' }, { '1': 'VBD', '2': 'GND' }, 1)
-    .part('CUV', 'capacitor', 750, 1350, { value: '100n', vmax: '16' }, { '1': 'VBD', '2': 'GND' }, 1)
+    .part('CUV', 'capacitor', 750, 1350, { value: '10n', vmax: '16' }, { '1': 'VBD', '2': 'GND' }, 1)
     .part('UC4', 'comparator', 1000, 1250, { value: 'LM339', pkg: 'CA' }, { '3': 'VBD', '2': 'VREF', '1': 'FLTN', '8': V, '4': 'GND' })
     // above 85 °C: NTC 10k (B 3950) from 10k on VREF: 0.244 V at 85 °C
     .part('RNH', 'resistor', 600, 1450, { value: '10k' }, { '1': 'VREF', '2': 'NTH' })

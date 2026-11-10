@@ -328,7 +328,11 @@ brush trimmer, 36 V Li-ion pack (10 cells, 25 … 42 V), brushed DC motor of abo
 cutting). Purely discrete.
 - Trigger switch (power-tool type, 25 A DC): its main contact feeds the motor and the electronics
   (no standby drain), its pot sets the speed, and its brake contact shorts the motor when released.
-  Releasing it also resets every protection.
+  Releasing it also resets every protection. The switch must break before it makes: about 5 ms of
+  travel between the main and the brake contact (usual for power-tool switches with a brake). In
+  that gap the input capacitors fall below the 27.5 V cut-off and the drive turns off before the
+  brake contact closes. With both contacts changing at once, the capacitors discharged through
+  the brake contact and the MOSFET at 836 A (found in simulation).
 - Drive: IRFP4110 (100 V, 4.5 mΩ) below the motor at 20 kHz, an STTH6003 freewheel diode across
   the motor, a 5 mΩ shunt, 2 × 470 µF + 1 µF at the input.
 - PWM: an NE555 gives the 20 kHz clock and a 4–8 V ramp. A CD4001 NOR latch is set at the start of
