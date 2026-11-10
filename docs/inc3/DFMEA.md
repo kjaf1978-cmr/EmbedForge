@@ -112,6 +112,26 @@ PV charger's input below its MOSFETs' 200 V; every SPD survives the surges of it
 | SP-5 | Surge into the PV charger | MOSFETs destroyed | Induced on the DC cable | Y varistors at the array and the charger, 5 kW TVS across the charger input | 8 | 3 | 2 | L | surge.test: 195 V with the TVS, 205 V without |
 | SP-6 | Earth potential rise | Flashover from earthed parts to incoming lines | Lightning current in the earth electrode (tens of kV) | All services (mains, PV, data) bonded at the main earthing terminal and protected there | 8 | 2 | 3 | L | surge.test (PE rises 21–35 kV; the SPDs keep L–PE at the socket below 1 kV) |
 
+## 3d. Pump control and irrigation (P9)
+
+Function: fill the tank without overflowing it and without running the pump dry or forever;
+switch each irrigation valve and read each soil sensor, surviving shorts and surges on the field
+cables.
+
+| # | Failure mode | Effect | Cause | Design action (implemented) | S | O | D | AP | Verified by |
+|---|---|---|---|---|---|---|---|---|---|
+| PC-1 | Pump does not stop at HIGH | Tank overflows, water lost, flooding | HIGH electrode's cable broken or rod scaled | Broken cable reads dry; OVERFLOW electrode stops the pump and latches FAULT (manual reset) | 7 | 4 | 2 | M | pumpcontrol.test: HIGH broken |
+| PC-2 | Pump runs with the source dry | Pump destroyed (dry running) | Borehole drawn down, ground tank empty | DRY electrode stops the pump at once; 8.5 min lockout after the water returns | 8 | 5 | 2 | M | pumpcontrol.test: source dry |
+| PC-3 | Pump runs without end | Energy wasted, pump worn out, flooding | Burst pipe, pump no longer delivers | Maximum run 2.3 h (CD4020) latches FAULT | 7 | 3 | 2 | L | pumpcontrol.test: burst pipe |
+| PC-4 | Pump restarts at once after a power cut | Contactor chatter, inrush on a weak supply | Mains interruptions | 8 s start delay after power-up; power-up reset of the latches | 5 | 6 | 2 | L | pumpcontrol.test: start delay |
+| PC-5 | Electrodes corrode or scale | False levels | DC through the water | 200 Hz AC excitation through capacitors (no DC) | 6 | 4 | 3 | M | review; maintenance: clean the rods yearly |
+| PC-6 | Contactor welded | Pump cannot be stopped | End of life, short circuit | Contactor sized AC-3 for the motor; the breaker protects it; OVERFLOW/FAULT shown (alarm LED) | 7 | 2 | 4 | M | review (a second contactor in series where flooding is critical) |
+| IR-1 | Valve or its cable shorted | Driver MOSFET destroyed, supply overloaded | Damaged cable, failed coil | Shared 0.1 Ω shunt, latching cut-off at 2.2 A within 10 µs: all outputs off, gates pulled down, the zone skipped | 6 | 4 | 2 | L | irrigation.test: short while on |
+| IR-2 | Surge on a valve cable | Driver destroyed | Lightning induced on long field cables | SMAJ33A at each valve terminal, flyback Schottky to 24 V | 6 | 4 | 2 | L | irrigation.test: 2 kV surge |
+| IR-3 | Surge on a sensor cable | Multiplexer and ADC destroyed | Induced surges | SMAJ5.0A, 10 kΩ, BAT54 clamps, 100 nF | 6 | 4 | 2 | L | irrigation.test: 1 kV surge |
+| IR-4 | Valve kept open | Over-watering, water lost | Microcontroller hung, register stuck | The cut-off trips itself at power-up (outputs off until the firmware has loaded the registers and cleared it); open: the firmware (D24) must use the microcontroller's watchdog and cap each valve's run time | 6 | 3 | 4 | M | irrigation.test: power-up; firmware: open action (section 7) |
+| IR-5 | Flyback at turn-off | MOSFET avalanche | Valve inductance | SS34 across each valve | 5 | 8 | 1 | L | irrigation.test: drain below 30 V |
+
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 
 Function: charge the battery from the array with maximum power, never above 56.6 V (3.54 V per
@@ -207,6 +227,7 @@ section 5 (the HF type).
 | C-9 | change-over, stabiliser | Varistors with thermal disconnector and indicator (type 3 SPD part) | M |
 | S-7 | stabiliser | Thermal cut-out in the autotransformer winding | M |
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
+| IR-4 | irrigation | Firmware (D24): watchdog, each valve's run time capped, CLR only after the registers are loaded | M |
 | all | all | Layouts (P8): creepage for pollution degree 3, coating keep-outs, power tracks per IPC-2221 | M |
 
 ## 8. How to keep this DFMEA current

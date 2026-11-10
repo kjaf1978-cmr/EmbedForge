@@ -236,6 +236,63 @@ one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE)
 input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
 board gets the 5KP130A across its PV input (beside RVPV).
 
+### P9 — pump control and irrigation (D24; DFMEA section 3d)
+
+Two of the P9 products, simulated as circuits (the irrigation sequencing runs on a
+microcontroller board, D24; everything around it is discrete).
+
+**Pump control** (`src/eda/pumpControl.ts`, `tests/pumpcontrol.test.ts`): purely discrete, for
+a borehole or transfer pump (230 V, up to 1.5 kW) filling an elevated tank.
+- Electrodes: stainless rods, one common per tank (LOW, HIGH, OVERFLOW) and one in the source
+  (DRY). They are fed with a 200 Hz square (NE555) through capacitors, so no DC flows through
+  the water (no electrolysis, no scaling). Each sensing electrode is peak-detected and compared
+  with 2 V (LM339): up to about 25 kΩ of water reads wet, a broken cable reads dry. A broken LOW
+  cable therefore starts the pump (it still stops at HIGH); a broken HIGH cable lets OVERFLOW stop
+  it and latch a fault.
+- Times from a 1 Hz NE555 clock and three CD4020 counters, each clock gated by the output that
+  ends its count: 8 s start delay after a power cut (Q4), a dry lockout of 8.5 min after the
+  water has come back (Q10), a maximum run of 2.3 h (Q14: a burst pipe, a pump that no longer
+  delivers). RC timers of minutes were rejected: an electrolytic's leakage makes them unreliable.
+- Logic: CD4001 NOR gates as the RUN latch (set below LOW, reset at HIGH or when the permit
+  goes) and the FAULT latch (set by OVERFLOW or the maximum run, reset by the RESET button and
+  at power-up); the permit is a diode AND of the start delay, the dry lockout and no fault.
+- Output: BC547B driving a 12 V relay, which drives a 9 A (AC-3) contactor with a 230 V coil;
+  breaker 10 A (motor curve) for the pump. Supply: a small 230/15 V transformer, LM317HV to 12 V,
+  TL431 reference.
+- Verified (TEST_REPORT.md section 3o): the normal cycle (starts below LOW, stops at HIGH, never
+  near OVERFLOW), a broken HIGH cable, the source running dry, a burst pipe and the start delay
+  after power-up; the tests run the clock 1000× faster (its capacitor), the counts unchanged.
+
+**Irrigation controller, field interface** (`src/eda/irrigation.ts`, `tests/irrigation.test.ts`):
+up to 64 zones with soil-moisture sensors.
+- Valve outputs: eight 74HC595 shift registers on 3.3 V (from the microcontroller's SPI), each
+  output through 1 kΩ into an IRLML0060 (60 V, SOT-23) with 10 kΩ gate-to-source; an SS34
+  Schottky flyback diode across each valve (24 V DC solenoids, 0.45 A inrush, 0.3 A hold) and an
+  SMAJ33A at each field terminal against surges on the long valve cables. Gate drive is 3.3 V on
+  purpose: with 5 V a shorted valve drew 17 A, beyond the MOSFET's 11 A pulse rating; with 3.3 V the
+  MOSFET limits the current itself.
+- Overcurrent cut-off: all valve currents return through one 0.1 Ω shunt. Above 2.2 A (a shorted
+  valve or cable) an LM393 trips and latches (its output holds its own sense input high through
+  10 kΩ and a 1N4148). It raises the registers' OE (a BC557B), pulls every gate low at once (a
+  BAT54 per channel into one 2N2222A: the gates' discharge peaks at 190 mA, over a BC547B's
+  100 mA) and interrupts the microcontroller, which clears the latch (CLR) and skips the zone.
+- Power-up: the registers come up with random contents, so the cut-off trips itself (10 nF from
+  5 V through a 1N4148 into the latch for about 1 ms). Every output stays off until the firmware has
+  loaded the registers and cleared it. A 100 kΩ pull-up on OE alone was loaded down to 0.7 V and
+  let a valve conduct (found in simulation).
+- Sensor inputs: 0–3 V capacitive probes powered from 3.3 V. Each input has an SMAJ5.0A at the
+  terminal, 10 kΩ in series, BAT54 clamps to 0 V and 3.3 V, and 100 nF, then goes to four CD4067
+  multiplexers and the microcontroller's ADC. With 1 kΩ and the clamps alone, a 1 kV line surge
+  reached 6.8 V and burnt 6 W in the resistor.
+- Supply: 24 V DIN-rail supply (fused), 7805 for the 5 V logic, LM1117-3.3 on the microcontroller
+  board.
+- Verified (TEST_REPORT.md section 3o): power-up with a register output high (no valve current;
+  the cut-off latched until cleared); switching a valve on and off (0.3 A, the drain below 30 V
+  at turn-off); a valve shorted while on (the cut-off latches within 10 µs, the MOSFET is above
+  11 A for under 2 µs); a 2 kV 1.2/50 µs surge on an idle valve's cable (the drain below 60 V);
+  a 1 kV surge on a sensor cable (the multiplexer input stays within −0.3 … 3.6 V). No part is
+  over its ratings in any of these.
+
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a

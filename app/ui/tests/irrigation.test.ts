@@ -16,10 +16,24 @@ function run(o: IrrigationOptions) {
   // and a MOSFET's pulsed rating is a 10 µs one (its sub-microsecond peak is checked below)
   const over = smoke(sheet, connectivity(sheet), r).rows.filter((x) => x.status === 'over' && product.has(x.ref) && !/^power$/.test(x.what) && !/pulsed drain/.test(x.what)).map((x) => `${x.ref} ${x.what}`);
   const id = r.i[`${nb.refOf(sheet, 'QV1')}.2`];
-  return { r, x: r.x, mx, over, id };
+  return { r, x: r.x, mx, over, id, nb, sheet };
 }
 
 describe('irrigation controller: valve channels, overcurrent, sensor inputs', () => {
+  it('power-up with a register output high (they power up at random): every output held off and the cut-off latched until the firmware clears it; then valve 1 switches normally', () => {
+    const s = run({ q2Random: true, offAt: 0.008, stop: '9m' });
+    const at = (t: number) => s.x.findIndex((u) => u >= t);
+    // valve 2's own current (the MOSFET's drain also carries its capacitances' charge at the
+    // register's edge: 14 mA for a few ns)
+    const iv2 = s.r.i[`${s.nb.refOf(s.sheet, 'RV2')}.1`];
+    expect(s.mx(iv2)).toBeLessThan(0.005);
+    expect(Math.max(...s.r.v['G2'].slice(0, at(0.3e-3)))).toBeLessThan(1);
+    expect(s.r.v['OCN'][at(3.5e-3)]).toBeLessThan(1);
+    expect(s.r.v['OCN'][at(4.5e-3)]).toBeGreaterThan(3);
+    expect(s.r.v['OE'][at(4.5e-3)]).toBeLessThan(0.8);
+    expect(Math.abs(s.id[at(7e-3)])).toBeGreaterThan(0.02);
+    expect(s.over).toEqual([]);
+  }, 600_000);
   it('a valve switched on and off: its current settles at 0.3 A, the drain stays below 30 V at turn-off (flyback diode); no part over its ratings', () => {
     const s = run({ offAt: 0.02 });
     expect(s.mx(s.id)).toBeGreaterThan(0.25);
