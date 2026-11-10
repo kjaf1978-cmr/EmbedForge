@@ -11,6 +11,7 @@ import { pumpControl } from '../src/eda/pumpControl';
 import { irrigationFront } from '../src/eda/irrigation';
 import { gateController } from '../src/eda/gate';
 import { trimmer } from '../src/eda/trimmer';
+import { blockMachine } from '../src/eda/blockMachine';
 import type { Sheet } from '../src/eda/schematic';
 
 const DESIGNS: [string, () => { sheet: Sheet }][] = [
@@ -22,6 +23,7 @@ const DESIGNS: [string, () => { sheet: Sheet }][] = [
   ['pump control', () => pumpControl()], ['irrigation', () => irrigationFront({ shortAt: 0.01, surgeKv: 1, sensorSurgeKv: 1, q2Random: true })],
   ['gate controller', () => gateController({ shortAt: 0.5, obstacleAt: 0.5 })],
   ['trimmer', () => trimmer({ jamAt: 0.05 })],
+  ['block moulding machine', () => blockMachine({ k1Welded: true, ch1Bridged: true, k1WeldAt: 0.1, reset2: 0.5 })],
 ];
 
 describe('every design\'s parts name a model of the library', () => {

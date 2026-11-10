@@ -156,6 +156,8 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('LF', 'led', 1500, 1200, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC1', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.v('VB').v('DRN').v('GM').v('SP').v('FLTN').v('FLT').v('IAV').v('SPD').v('CT').v('Q').v('RST').v('SET').v('CLK').v('VBD').v('VREF').v('V12').v('NTH').v('NTM').i('QM', '2').i('M1', '1');
-  nb.sim({ type: 'tran', stop: o.stop ?? '0.08', step: '1u', start: 'zero', thin: true });
+  // about 1 µs steps: 20 points a PWM period at 0.1 s, under the 100 000 output points
+  const stop = o.stop ?? '0.08';
+  nb.sim({ type: 'tran', stop, step: String(Math.max(1e-6, Number(stop) / 90000)), start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }

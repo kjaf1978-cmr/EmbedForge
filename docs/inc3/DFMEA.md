@@ -112,7 +112,7 @@ PV charger's input below its MOSFETs' 200 V; every SPD survives the surges of it
 | SP-5 | Surge into the PV charger | MOSFETs destroyed | Induced on the DC cable | Y varistors at the array and the charger, 5 kW TVS across the charger input | 8 | 3 | 2 | L | surge.test: 195 V with the TVS, 205 V without |
 | SP-6 | Earth potential rise | Flashover from earthed parts to incoming lines | Lightning current in the earth electrode (tens of kV) | All services (mains, PV, data) bonded at the main earthing terminal and protected there | 8 | 2 | 3 | L | surge.test (PE rises 21–35 kV; the SPDs keep L–PE at the socket below 1 kV) |
 
-## 3d. Pump control, irrigation and gate controller (P9)
+## 3d. Pump control, irrigation, gate controller, trimmer and block machine (P9)
 
 Function: fill the tank without overflowing it and without running the pump dry or forever;
 switch each irrigation valve and read each soil sensor, surviving shorts and surges on the field
@@ -138,6 +138,19 @@ cables.
 | GC-5 | Motor moves at power-up | Gate starts by itself | Microcontroller pins floating before its program runs | Cut-off trips itself at power-up until CLR; relay drivers pulled down (47 kΩ) | 7 | 4 | 2 | M | gate.test: power-up |
 | GC-6 | Relay contact welded (closed) | Gate cannot be stopped by that relay | Arcing at end of life | Relays switched without current by the firmware (RUN off first); the MOSFET and the cut-off still stop the motor; the fuse is the last resort | 6 | 3 | 4 | M | review; maintenance FAQ: relay replacement every 100 000 cycles |
 | GC-7 | Remote code copied / interference | Unauthorised opening | IR is line-of-sight and simple | Firmware: a code learnt per remote, a rolling counter (D24, open action) | 6 | 3 | 5 | M | open action (section 7) |
+| TR-1 | Head jammed (line wrapped, stone, root) | MOSFET, brushes or motor destroyed; fire | Cutting into an obstacle | Cycle-by-cycle limit at 40 A; jam timer (25 A mean for about 1 s) latches the drive off until the trigger is released | 7 | 6 | 2 | M | trimmer.test: jammed |
+| TR-2 | Head keeps turning after release | Cut injury | Coasting line head or blade | The trigger switch's brake contact shorts the motor; the main contact removes all power | 8 | 4 | 2 | M | trimmer.test: released |
+| TR-3 | Pack over-discharged | Cells damaged, capacity lost, pack fire on recharge | Running until the motor stalls | 27.5 V cut-off (2.75 V a cell), latched; the pack's BMS as the second line | 7 | 5 | 2 | M | trimmer.test: 26 V |
+| TR-4 | MOSFET or motor overheated | Insulation damage, MOSFET failure | Heavy brush, blocked cooling | NTC on the heatsink and in the motor, stop above 85 °C, latched | 6 | 4 | 2 | L | trimmer.test: 95 °C |
+| TR-5 | MOSFET failed short | Motor runs at full speed while the trigger is pulled; stops on release | End of life, overstress | The trigger's main contact still stops it (released = no power, brake); rated within its pulse rating | 6 | 2 | 3 | L | review |
+| TR-6 | Unintended start | Injury | Trigger pressed while putting down | Mechanical lock-off on the trigger (two actions to start, EN 50636-2-91); soft start | 8 | 3 | 3 | M | review (mechanical) |
+| BM-1 | Machine keeps moving after an E-stop | Crushing injury | A failed contactor or channel | Two channels, two safety contactors in series feeding every coil and valve | 10 | 2 | 2 | M | blockmachine.test: E-stop, channel bridged, K1 welded |
+| BM-2 | Automatic restart after an E-stop | Crushing injury | RESET held or jammed | Reset by a capacitor pulse (K3): a held button cannot restart | 10 | 3 | 2 | M | blockmachine.test: RESET held |
+| BM-3 | Safety contactor welded undetected | Loss of the second channel | Contact welding | Mirror contacts in the reset loop: the next reset is refused | 9 | 2 | 2 | L | blockmachine.test: K1 welded |
+| BM-4 | Pump contactor welded | Hydraulics move without command | Contact welding | Its mirror contact in the reset loop; the E-stop also removes the valves' supply, so no motion | 8 | 2 | 2 | L | review (same loop as BM-3) |
+| BM-5 | Valve slow to release | Overrun of the tamper or the mould | Coil energy | 38 V clamp (SMAJ33A) across each valve driver | 6 | 5 | 2 | L | blockmachine.test: reset and outputs |
+| BM-6 | Reset relay K3 contact welded | The reset acts as a hold: an automatic restart on E-stop release | Contact welding (small currents, unlikely) | Residual; the microcontroller sees the rail return without a RESET press and keeps its outputs off until the next RESET; K3 replaced with K1/K2 at the service interval | 9 | 1 | 4 | M | open action (section 7) |
+| BM-7 | Guard opened during the cycle | Reaching into the mould | Operator | Guard interlock switches in series with the E-stop channels (same two-channel circuit) | 10 | 3 | 2 | M | review (the same circuit as the E-stop) |
 
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 
@@ -234,6 +247,7 @@ section 5 (the HF type).
 | C-9 | change-over, stabiliser | Varistors with thermal disconnector and indicator (type 3 SPD part) | M |
 | S-7 | stabiliser | Thermal cut-out in the autotransformer winding | M |
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
+| BM-6 | block machine | Firmware (D24): no outputs after the safety rail returns without a RESET press; K3 in the service plan | M |
 | GC-7 | gate | Firmware (D24): learnt remote codes and a rolling counter; RUN switched off before the relays change | M |
 | IR-4 | irrigation | Firmware (D24): watchdog, each valve's run time capped, CLR only after the registers are loaded | M |
 | all | all | Layouts (P8): creepage for pollution degree 3, coating keep-outs, power tracks per IPC-2221 | M |

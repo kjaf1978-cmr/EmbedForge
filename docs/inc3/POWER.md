@@ -236,9 +236,9 @@ one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE)
 input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
 board gets the 5KP130A across its PV input (beside RVPV).
 
-### P9 — pump control, irrigation and gate controller (D24, D25; DFMEA section 3d)
+### P9 — pump control, irrigation, gate controller, trimmer, block machine (D24, D25; DFMEA section 3d)
 
-Three of the P9 products, simulated as circuits (the irrigation and gate sequencing runs on a
+Five of the P9 products, simulated as circuits (the irrigation, gate and block machine sequencing runs on a
 microcontroller board, D24; everything around it is discrete).
 
 **Pump control** (`src/eda/pumpControl.ts`, `tests/pumpcontrol.test.ts`): purely discrete, for
@@ -319,6 +319,50 @@ firmware does.
   closing (stall 10.5 A, the cut-off latches about 80 ms later); the motor cable shorted (29 A peak,
   latched within microseconds); the beam broken while closing; both relays commanded; power-up
   with RUN high. No part is over its ratings in any of these.
+
+**Trimmer drive** (D24; `src/eda/trimmer.ts`, `tests/trimmer.test.ts`): a cordless grass and
+brush trimmer, 36 V Li-ion pack (10 cells, 25 … 42 V), brushed DC motor of about 500 W (13–16 A
+cutting). Purely discrete.
+- Trigger switch (power-tool type, 25 A DC): its main contact feeds the motor and the electronics
+  (no standby drain), its pot sets the speed, and its brake contact shorts the motor when released.
+  Releasing it also resets every protection.
+- Drive: IRFP4110 (100 V, 4.5 mΩ) below the motor at 20 kHz, an STTH6003 freewheel diode across
+  the motor, a 5 mΩ shunt, 2 × 470 µF + 1 µF at the input.
+- PWM: an NE555 gives the 20 kHz clock and a 4–8 V ramp. A CD4001 NOR latch is set at the start of
+  each period and reset when the ramp passes the set point (the trigger, through a soft start of
+  about 0.5 s), when the motor current passes 40 A (cycle-by-cycle limit: a jammed head cannot
+  destroy the MOSFET or the brushes), or on a fault. The drive is NOR(Q̄, SET): driving from Q̄
+  alone gave a 2 µs pulse every period at zero duty, because a NOR latch has both outputs low
+  while set and reset are both high (found in simulation). BD139/BD140 emitter followers drive the
+  gate.
+- Protections (LM339 and LM393 onto one open-collector line, held by a PNP latch until the trigger
+  is released): a jam (mean current above 25 A for about 1 s), the battery below 27.5 V (the cells'
+  2.75 V; the pack's BMS is the second line), and above 85 °C at the MOSFET's heatsink or in the
+  motor (an NTC each). A 50 ms power-up blanking keeps comparators that settle as the rails rise
+  from latching a fault. A red LED shows a latched stop.
+- Supply: LM317HV to 12 V, TL431 2.5 V reference.
+
+**Block moulding machine** (D24; `src/eda/blockMachine.ts`, `tests/blockmachine.test.ts`):
+hollow and solid concrete blocks.
+- The machine: a 3 kW mixer/feeder, two 1.5 kW vibrator motors under the mould table, a 7.5 kW
+  hydraulic power pack with 4 solenoid valves (tamper head and mould lift), and the pallet pusher.
+  Each 400 V motor has a motor-protective circuit breaker and a contactor with a 24 V DC coil.
+  A microcontroller board runs the sequence (fill, vibrate and press, demould, eject) from the
+  proximity sensors' end positions and its timings.
+- Safety circuit (discrete, the part simulated):
+  - two-channel emergency stop: an E-stop with two NC contacts, and two safety contactors K1/K2
+    (9 A, 24 V DC, mirror contacts to IEC 60947-4-1 Annex F) whose main contacts in series feed the
+    safety rail V24S. Every contactor coil and valve of the machine is fed from it, so the E-stop
+    stops every motion whatever the microcontroller does;
+  - reset: RESET in series with the NC mirror contacts of K1, K2 and the pump contactor (a welded
+    contact refuses the reset), then 100 µF into a reset relay K3. K3 gives K1 and K2 a pulse of
+    about 0.2 s, and they hold through their own auxiliary contacts. A held or jammed RESET cannot
+    restart the machine after an E-stop. (The capacitor straight into the contactors' coils decayed
+    before they pulled in, found in simulation.)
+- Outputs: the pump contactor's coil and the solenoid valves through IRLZ44Ns from the
+  microcontroller. Each valve is clamped at 38 V (SMAJ33A), so it releases within a few
+  milliseconds; a plain diode would hold it for tens.
+- Inputs: PNP proximity sensors through PC817s.
 
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
