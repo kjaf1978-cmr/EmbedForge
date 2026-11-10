@@ -189,6 +189,29 @@ per IC; RC snubbers at transformer secondaries and relay contacts; two 750k in s
 transformers and references of the independent protections. Every new design is audited the
 same way before release, and the tests count the spare units.
 
+### P4b — stabilisers 5, 10 and 15 kVA with thyristor taps (D27, D41; DFMEA section 3b)
+
+`src/eda/stabiliserT.ts` (`stabiliserT({ kva })`). The 1 kVA unit's sense, reference ladder,
+comparators, restart delay and independent protection; the taps of a 5 / 10 / 15 kVA
+autotransformer (150 … 280 V) switched by seven anti-parallel thyristor pairs (VS-40TPS12 at
+5 kVA, VS-70TPS16 at 10 and 15 kVA, on a heatsink of 0.6 / 0.3 / 0.2 K/W) instead of relays.
+
+- Firing: per pair an opto-triac (FOD4218, 800 V, random phase) between 470 Ω from each side,
+  through a diode to each thyristor's gate: whichever thyristor is forward biased fires each
+  half cycle while the LED is on. A yellow LED in series shows the tap.
+- Tap logic (CMOS at 12 V): the comparators' states O1 … O6 are latched (three CD4013); the
+  decoder (CD4001) gives one tap; six XOR (CD4070) and a diode OR give CHG, "a change is
+  pending", which takes every gate off (CD4081).
+- Break-before-make: each pair's voltage lights its own PC817 through two 22k 1 W and a bridge;
+  the seven phototransistors in series pull OFFN low only when every pair blocks. After
+  0.15 ms of that the latch takes the new tap and its pair fires. A pair that has failed short
+  never blocks, so no second tap is fired onto it.
+- Power-up hold 0.3 s; output contactor (32 / 65 / 95 A, coil on the 230 V tap through the
+  output relay) after the restart delay; protection: 190 … 255 V, a change stuck for 0.12 s,
+  heatsink above 85 °C. Input: breaker 40 / 80 / 125 A C, 20D471K.
+
+Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).
+
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a
