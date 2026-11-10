@@ -2,9 +2,10 @@
 // ground tank) filling an elevated tank. Start when the water falls below the LOW electrode,
 // stop when it reaches HIGH; the OVERFLOW electrode stops the pump and latches a fault (a HIGH
 // electrode or a contactor that failed); a DRY electrode in the borehole (or the ground tank)
-// stops the pump when the source runs dry and holds it off for 10 minutes after the water has
-// come back; a pump that runs longer than 2 hours latches a fault (a burst pipe, a pump that no
-// longer delivers); after a power cut the controller waits 10 s before it may start.
+// stops the pump when the source runs dry and holds it off for 8.5 minutes after the water has
+// come back; a pump that runs longer than 2.3 hours latches a fault (a burst pipe, a pump that no
+// longer delivers); after a power cut the controller waits 8 s before it may start. The times
+// come from a 1 Hz clock and CD4020 counters.
 //
 // The electrodes (stainless rods, one common per tank) are fed with a 200 Hz square through a
 // capacitor, so no DC flows through the water (no electrolysis, no scaling of the rods); each
@@ -19,9 +20,13 @@ export interface PumpOptions {
   /** Test timing: the clock's timing capacitor (product 1 µF: 1 Hz; the times scale with it:
    *  power-up 8 s, dry lockout 8.5 min, maximum run 2.3 h). */
   clkC?: string;
+  /** Test bench: the tank's capacitance (F; 1: a cycle of about 15 s). */
+  tankF?: string;
   /** Test bench: the tank's start level (V, 10 V full), the source dry from `dryAt` for
    *  `dryFor` seconds, a broken HIGH electrode cable, the reset button pressed. */
   level0?: number; dryAt?: number; dryFor?: number; highBroken?: boolean; reset?: boolean;
+  /** Test bench: no water reaches the tank (a burst pipe). */
+  noFlow?: boolean;
   stop?: string;
 }
 
@@ -36,12 +41,12 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('VM', 'vsin', -1250, 0, { value: '325', freq: '50' }, { '1': 'L', '2': 'N' })
     .part('RNE', 'resistor', -1150, 120, { value: '0.1' }, { '1': 'N', '2': 'GND' }, 1)
     .part('V24', 'battery', -1050, 0, { value: '24', rint: '0.1' }, { '1': 'B24', '2': 'GND' }, 1)
-    .part('CTANK', 'capacitor', -950, 100, { value: '1', vmax: '50', ic: String(o.level0 ?? 9) }, { '1': 'LVL', '2': 'GND' }, 1)
+    .part('CTANK', 'capacitor', -950, 100, { value: o.tankF ?? '1', vmax: '50', ic: String(o.level0 ?? 9) }, { '1': 'LVL', '2': 'GND' }, 1)
     .part('RDRAIN', 'resistor', -850, 100, { value: '10', pmax: '1k' }, { '1': 'LVL', '2': 'GND' }, 1)
     .part('VFILL', 'battery', -750, 0, { value: '15', rint: '0.01' }, { '1': 'VF', '2': 'GND' }, 1)
-    .part('RFILL', 'resistor', -650, 0, { value: '5', pmax: '1k' }, { '1': 'VFC', '2': 'LVL' })
+    .part('RFILL', 'resistor', -650, 0, { value: o.noFlow ? '1M' : '5', pmax: '1k' }, { '1': 'VFC', '2': 'LVL' })
     .part('RT3', 'resistor', -1150, 300, { value: '10k' }, { '1': 'B24', '2': 'T3V' }, 1)
-    .part('RT3B', 'resistor', -1150, 400, { value: '7.06k' }, { '1': 'T3V', '2': 'GND' }, 1)
+    .part('RT3B', 'resistor', -1150, 400, { value: '1.43k' }, { '1': 'T3V', '2': 'GND' }, 1)
     .part('RT8', 'resistor', -1050, 300, { value: '2k' }, { '1': 'B24', '2': 'T8V' }, 1)
     .part('RT8B', 'resistor', -1050, 400, { value: '1k' }, { '1': 'T8V', '2': 'GND' }, 1)
     .part('RT95', 'resistor', -950, 300, { value: '1.53k' }, { '1': 'B24', '2': 'T95V' }, 1)
@@ -150,8 +155,15 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RFS', 'resistor', 380, 2200, { value: '100k' }, { '1': 'FSET', '2': 'GND' }, 1)
     .part('SRST', 'button', 450, 2050, { pressed: o.reset ? 'true' : 'false' }, { '1': V, '2': 'FRES' })
     .part('RFR', 'resistor', 520, 2200, { value: '100k' }, { '1': 'FRES', '2': 'GND' }, 1)
-    .part('UN5', 'nor2', 650, 2100, { value: V, pkg: 'NR2' }, { '1': 'FRES', '2': 'FLTQ', '3': 'FLTN' })
-    .part('UN6', 'nor2', 800, 2100, { value: V, pkg: 'NR2' }, { '1': 'FSET', '2': 'FLTN', '3': 'FLTQ' })
+    // the power-on pulse also clears the FAULT latch (it starts in a defined state, not
+    // oscillating between two, found in simulation)
+    .part('DPOR', 'diode', 520, 2100, { value: '1N4148' }, { '2': 'POR', '1': 'FRES' })
+    .part('UN5', 'nor2', 650, 2100, { value: V, pkg: 'NR2' }, { '1': 'FSET', '2': 'FLTQ', '3': 'FLTN' })
+    .part('UN6', 'nor2', 800, 2100, { value: V, pkg: 'NR2' }, { '1': 'FRES', '2': 'FLTN', '3': 'FLTQ' })
+    // 10 nF on one output of each latch: they power up in a defined state (FAULT clear, pump
+    // off); two ideal NOR gates powered together otherwise toggle in step
+    .part('CFQ', 'capacitor', 870, 2200, { value: '10n', vmax: '50' }, { '1': 'FLTQ', '2': 'GND' }, 1)
+    .part('CRQ', 'capacitor', 870, 1950, { value: '10n', vmax: '50' }, { '1': 'RUNQ', '2': 'GND' }, 1)
     .part('DPF', 'diode', 950, 2100, { value: '1N4148' }, { '2': 'PERMIT', '1': 'FLTN' })
     .part('UN7', 'nor2', 650, 2250, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'NSP1' })
     .part('UN8', 'nor2', 800, 2250, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'NSP2' })
@@ -166,7 +178,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
   // divider) drive the pilot relay; its contact feeds the contactor's coil from the mains
   nb.block('output')
     .part('RB1', 'resistor', 1100, 1650, { value: '22k' }, { '1': 'RUNQ', '2': 'BQ' })
-    .part('DB2', 'diode', 1100, 1750, { value: '1N4148' }, { '2': 'BQ', '1': 'NPERM' })
+    .part('DB2', 'diode', 1100, 1750, { value: '1N4148' }, { '2': 'BQ', '1': 'PERMIT' })
     .part('RB2', 'resistor', 1180, 1750, { value: '47k' }, { '1': 'BQ', '2': 'GND' }, 1)
     .part('Q1', 'npn', 1250, 1650, { value: 'BC547B' }, { '1': 'BQ', '2': 'KP', '3': 'GND' })
     .part('DQ1', 'diode', 1350, 1580, { value: '1N4148' }, { '2': 'KP', '1': V }, 3)
