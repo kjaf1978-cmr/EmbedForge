@@ -217,5 +217,16 @@ for n, (li, (i, j)) in enumerate(path):
         else:
             pts.append(p)
 tracks = [t for t in tracks if len(t['pts']) > 1]
+
+
+def in_tht_pad(p):
+    pt = pcbnew.VECTOR2I(pcbnew.FromMM(p[0]), pcbnew.FromMM(p[1]))
+    return any(pad.GetNetname() == net and pad.GetAttribute() == pcbnew.PAD_ATTRIB_PTH and pad.HitTest(pt)
+               for fp in b.GetFootprints() for pad in fp.Pads())
+
+
+# a via inside a through-hole pad of the net is not needed (the pad joins the layers) and its hole
+# would sit on the pad's
+vias = [v for v in vias if not in_tht_pad(v['at'])]
 tracks[0]['pts'].insert(0, list(A)); tracks[-1]['pts'].append(list(B))
 print(json.dumps({'tracks': tracks, 'vias': vias}))
