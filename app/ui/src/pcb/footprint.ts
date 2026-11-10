@@ -133,6 +133,8 @@ add(make('SOT-223', 'SOT-223 (3 pins and tab)', 'tab = pin 2', [smd('1', -2.3, 3
 add(inline('TO-92_Wide', 'TO-92, legs bent to 2.54 mm', 3, 2.54, 0.8, 1.4, 1.4, { d: 3.8, back: 1.9, height: 4.9 }, 'circle'));
 add(inline('TO-126_Vertical', 'TO-126 standing, 2.28 mm', 3, 2.28, 1.0, 1.6, 2.2, { d: 3.4, back: 1.5, height: 11 }));
 add(inline('TO-220_Vertical', 'TO-220 standing, 2.54 mm', 3, 2.54, 1.2, 1.8, 2.4, { d: 5.0, back: 3.4, height: 16 }));
+// two-lead TO-220 (SiC diodes): the leads 5.08 mm apart, no middle pad
+add(inline('TO-220-2_Vertical', 'TO-220-2 standing, 5.08 mm', 2, 5.08, 1.2, 1.8, 2.4, { d: 5.0, back: 3.4, height: 16 }));
 add(inline('TO-247_Vertical', 'TO-247 standing, 5.45 mm', 3, 5.45, 1.4, 2.5, 3.0, { d: 5.4, back: 3.3, height: 21 }));
 // integrated circuits
 add(dip('DIP-4', 'DIP-4 (optocoupler)', 4));

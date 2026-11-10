@@ -315,7 +315,7 @@ export const DESIGNS: Record<string, Design> = {
     classes: () => [POWER(HF_LV_HEAVY)], copperOz: 4, heavy: HF_LV_HEAVY, panel: (p) => !hfRefs().lv.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 180, h: 230,
     plan: () => hfPlan().filter((q) => q.x < 180), tracks: HF_BARS.filter((t) => t.pts[0][0] < 180), zones: HF_PLANES.filter((z) => z.pts[0][0] < 180), region: { x0: 0, x1: 180, y0: 160, y1: 230 } },
   'inverter-hf-48-power-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V power board', revision: 'A',
-    classes: () => [{ ...classFor('HV', hfPowerHv(), 0.6, 0.8), apart: 1.5 }], copperOz: 4, heavy: ['HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2', 'GND'],
+    classes: () => [classFor('HV', [...hfPowerHv(), 'GND'], 0.6, 0.8)], copperOz: 4, heavy: ['HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2', 'GND'],
     panel: (p) => !hfRefs().hvp.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 140, h: 270,
     plan: () => hfPlan().filter((q) => q.x >= 180).map((q) => ({ ...q, x: q.x - 180 })),
     tracks: HF_BARS.filter((t) => t.pts[0][0] >= 180).map((t) => ({ ...t, pts: t.pts.map(([x, y]) => [x - 180, y] as [number, number]) })),
