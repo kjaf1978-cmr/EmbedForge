@@ -155,6 +155,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
       if (v === 'SS34') return [map('D_SMC', { 1: '1', 2: '2' })];
       if (v === '1N5408') return [map('D_DO-201AD', { 1: '1', 2: '2' })];
       if (v === 'C4D20120A' || v === 'C4D02120A') return [map('TO-220-2_Vertical', { 1: '1', 2: '2' }, { note: 'TO-220-2: cathode on pad 1 and the tab, anode on pad 2' })];
+      if (v === 'MBR20100CT') return [map('TO-220_Vertical', { 1: '2', 2: '1' }, { note: 'anode on pad 1, cathode on the centre pad and the tab; pad 3 (the second diode) unused' })];
       if (v === 'STTH6003') return [map('TO-247_Vertical', { 1: '2', 2: '1' }, { note: 'anode on pad 1, cathode on the centre pad and the tab; pad 3 unused' })];
       return [k];
     }

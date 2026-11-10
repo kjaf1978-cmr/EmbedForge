@@ -45,7 +45,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   breaker1: { 'C10 A': e('S201-C10', 'ABB', 'miniature circuit breaker 1-pole, C 10 A, 6 kA', 8, 5, 'live', [{ distributor: 'electrical wholesale' }]) },
   breaker2: { 'C32 A': e('S201-C32NA', 'ABB', 'miniature circuit breaker 1P+N, C 32 A, 6 kA', 35, 25, 'estimate', [{ distributor: 'electrical wholesale' }]) },
   breaker4: { 'C32 A': e('S204-C32', 'ABB', 'miniature circuit breaker 4-pole, C 32 A, 6 kA', 187, 78, 'live', [{ distributor: 'RS', sku: '746-7817', url: 'https://ie.rs-online.com/web/p/mcbs/7467817' }], 'trade price about €78') },
-  relay: { '12 V 30 A': e('832A-1C-S 12VDC', 'Song Chuan', 'power relay SPDT 30 A, coil 12 V DC (PCB)', 3.0, 2.1, 'estimate', [{ distributor: 'Mouser (832AWP variant)' }], 'alternative TE T9AP1D52-12 (SPDT)') },
+  relay: { '24 V 30 A': e('832A-1C-S 24VDC', 'Song Chuan', 'power relay SPDT 30 A, coil 24 V DC (PCB)', 3.0, 2.1, 'estimate', [{ distributor: 'Mouser (832AWP variant)' }], 'alternative TE T9AP1D52-24 (SPDT)'), '12 V 30 A': e('832A-1C-S 12VDC', 'Song Chuan', 'power relay SPDT 30 A, coil 12 V DC (PCB)', 3.0, 2.1, 'estimate', [{ distributor: 'Mouser (832AWP variant)' }], 'alternative TE T9AP1D52-12 (SPDT)') },
   autotransformer: { '1 kVA 230 V, taps 150–280 V': e('made to specification', 'transformer winder (e.g. ABL Transfo or local)', 'autotransformer 1 kVA, 230 V output tap, taps 150/170/190/210/230/250/280 V, class F insulation, thermal cut-out in the winding', 185, 115, 'estimate', [{ distributor: 'transformer winder' }]) },
   mov: {
     '14D471K': e('S14K300 (B72214S0301K101)', 'TDK', 'varistor 14 mm, 300 V AC (14D471K)', 0.3, 0.09, 'live', [{ distributor: 'LCSC', sku: 'C125541' }, { distributor: 'Digi-Key' }]),
@@ -62,6 +62,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   diode: {
     C4D20120A: e('C4D20120A', 'Wolfspeed', 'SiC Schottky diode 1200 V 20 A, TO-220-2 (no reverse recovery)', 9.5, 6.2, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
     C4D02120A: e('C4D02120A', 'Wolfspeed', 'SiC Schottky diode 1200 V 2 A, TO-220-2 (no reverse recovery)', 2.4, 1.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
+    MBR20100CT: e('MBR20100CTG', 'onsemi', 'Schottky diode 2 × 10 A 100 V, TO-220 (common cathode)', 0.95, 0.45, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
     '1N5819': e('1N5819', 'various', 'Schottky diode 1 A 40 V, DO-41', 0.12, 0.03, 'estimate', any('DO-41')),
     UF4007: e('UF4007', 'various', 'ultrafast rectifier 1 A 1000 V, 75 ns, DO-41 (bootstrap diode)', 0.12, 0.03, 'estimate', any('DO-41')),
     STTH6003: e('STTH6003CW', 'STMicroelectronics', 'ultrafast diode 2 × 30 A 300 V, TO-247 (both diodes in parallel)', 2.55, 1.7, 'live', [{ distributor: 'Digi-Key' }, { distributor: 'RS', sku: '168-6090' }], 'lead times up to 25 weeks seen'),

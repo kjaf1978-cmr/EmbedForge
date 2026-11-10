@@ -16,6 +16,7 @@ export const DIODES: NamedModel<DiodeModel>[] = [
   // fitted to the datasheet forward curve: 0.32 V at 1 mA, 0.8 V at 100 mA
   { name: 'BAT54', note: 'small-signal Schottky diode, 30 V / 200 mA', model: { is: 9.7e-8, n: 1.34, rs: 3.2, bv: 30, ibv: 2e-6, xti: 2, eg: 0.69 } },
   // 0.5 V at 3 A
+  { name: 'MBR20100CT', note: 'power Schottky diode, 100 V / 10 A per diode (TO-220, common cathode; one diode used)', model: { is: 2e-6, n: 1.1, rs: 0.01, bv: 100, ibv: 1e-3, xti: 2, eg: 0.69 } },
   { name: 'SS34', note: 'power Schottky diode, 40 V / 3 A (SMC)', model: { is: 5.5e-6, n: 1.2, rs: 0.03, bv: 40, ibv: 0.5e-3, xti: 2, eg: 0.69 } },
   // fitted to the datasheet forward curve at 25 °C: 0.95 V at 30 A, 1.15 V at 60 A
   // SiC Schottky: no reverse recovery (no ringing at the turn-off of a high-voltage rectifier);
@@ -161,14 +162,20 @@ export const OPAMPS: NamedModel<OpampModel>[] = [
   { name: 'LM358', note: 'LM358-like: 100 dB, 1 MHz, output from V− + 0.1 V to V+ − 1.5 V (single supply)', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5, railDropLow: 0.1 } },
   { name: 'TL071', note: 'TL071-like single JFET input: 106 dB, 3 MHz, output 1.5 V from each rail', model: { gain: 2e5, gbw: 3e6, rin: 1e12, rout: 50, railDrop: 1.5 } },
   { name: 'TL072', note: 'TL072-like JFET input: 106 dB, 3 MHz, output 1.5 V from each rail', model: { gain: 2e5, gbw: 3e6, rin: 1e12, rout: 50, railDrop: 1.5 } },
+  { name: 'TL074', note: 'TL074-like quad JFET input (one amplifier): 106 dB, 3 MHz, output 1.5 V from each rail', model: { gain: 2e5, gbw: 3e6, rin: 1e12, rout: 50, railDrop: 1.5 } },
   { name: 'LM324', note: 'LM324-like quad (one amplifier): 100 dB, 1 MHz, output from V− + 0.1 V to V+ − 1.5 V (single supply)', model: { gain: 1e5, gbw: 1e6, rin: 10e6, rout: 50, railDrop: 1.5, railDropLow: 0.1 } },
   { name: 'MCP6002', note: 'MCP6002-like CMOS rail-to-rail: 112 dB, 1 MHz, output 25 mV from each rail, supply up to 6 V', model: { gain: 4e5, gbw: 1e6, rin: 1e13, rout: 50, railDrop: 0.025 } },
   { name: 'NE5532', note: 'NE5532-like low-noise audio: 100 dB, 10 MHz, output 1.5 V from each rail', model: { gain: 1e5, gbw: 10e6, rin: 300e3, rout: 30, railDrop: 1.5 } },
   { name: 'ideal', note: 'near-ideal: 120 dB, 100 MHz, rail-to-rail output', model: { gain: 1e6, gbw: 100e6, rin: 1e12, rout: 1, railDrop: 0.05 } },
 ];
 
+/** Part values that named no model (the first model stood in for them): a design's part with a
+ *  misspelt value would otherwise simulate as another part (tests/modellookup.test.ts). */
+export const MODEL_MISSES = new Set<string>();
 export function findModel<T>(list: NamedModel<T>[], name: string): NamedModel<T> {
-  return list.find((m) => m.name.toLowerCase() === name.toLowerCase()) ?? list[0];
+  const m = list.find((q) => q.name.toLowerCase() === (name ?? '').toLowerCase());
+  if (!m) MODEL_MISSES.add(`${name} (instead: ${list[0]?.name})`);
+  return m ?? list[0];
 }
 
 /** Linear regulators: macro model with reference, error amplifier, NPN pass transistor and a
@@ -199,6 +206,7 @@ export const RELAYS: NamedModel<RelayModel>[] = [
   { name: '5 V', note: '5 V coil, 70 Ω (about 70 mA), changeover contact', model: { vcoil: 5, rcoil: 70, lcoil: 0.14 } },
   { name: '12 V', note: '12 V coil, 400 Ω (30 mA), changeover contact', model: { vcoil: 12, rcoil: 400, lcoil: 0.8 } },
   { name: '24 V', note: '24 V coil, 1.6 kΩ (15 mA), changeover contact', model: { vcoil: 24, rcoil: 1600, lcoil: 3.2 } },
+  { name: '24 V 30 A', note: '24 V coil, 640 Ω (37 mA, 0.9 W), changeover contact 30 A / 250 V AC (power relay, AgSnO2): DC motors with their stall current', model: { vcoil: 24, rcoil: 640, lcoil: 1.6 } },
   { name: '12 V 30 A', note: '12 V coil, 160 Ω (75 mA, 0.9 W), changeover contact 30 A / 250 V AC (power relay, AgSnO2): mains loads with inrush', model: { vcoil: 12, rcoil: 160, lcoil: 0.4 } },
 ];
 
