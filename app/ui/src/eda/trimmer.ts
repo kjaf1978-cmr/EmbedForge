@@ -9,7 +9,7 @@
 //   about 0.5 s) or when the motor current passes 40 A (cycle-by-cycle limit: a jammed head
 //   cannot destroy the MOSFET or the motor's brushes).
 // - Protections, latched until the trigger is released (an LM339 and an LM393 onto FLTN, a PNP
-//   holding it): a jam (the mean current above 25 A for about 1 s), the battery below 27.5 V
+//   holding it): a jam (the current limit acting for about 1 s), the battery below 27.5 V
 //   (the cells' 2.75 V; the pack's BMS is the second line), the MOSFET's heatsink and the motor
 //   above 85 °C (an NTC each).
 // - Supply: LM317HV to 12 V, TL431 2.5 V reference.
@@ -24,7 +24,7 @@ export interface TrimmerOptions {
   vbat?: number;
   /** The head jammed (held still) from `jamAt`; the heatsink's and the motor's temperature. */
   jamAt?: number; tHeatsink?: number; tMotor?: number;
-  /** Test timing: the soft-start, jam-timer and power-up capacitors (product 4.7 µF, 10 µF, 1 µF). */
+  /** Test timing: the soft-start, jam-timer and power-up capacitors (product 4.7 µF, 22 µF, 1 µF). */
   softC?: string; jamC?: string; porC?: string;
   stop?: string;
 }
@@ -32,7 +32,7 @@ export interface TrimmerOptions {
 export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const V = 'V12', trig = o.trigger ?? 1;
-  nb.para('TRIMMER DRIVE (cordless, 36 V Li-ion, brushed motor about 500 W): trigger switch (main contact, speed pot, brake contact); IRFP4110 at 20 kHz with STTH6003 freewheel; NE555 ramp and CD4001 latch set each period, reset by the set point (soft start 0.5 s) or by 40 A (cycle-by-cycle limit); latched stops for a jam (25 A mean for 1 s), battery below 27.5 V and above 85 °C at the heatsink or the motor; released trigger resets.', -1200, -300);
+  nb.para('TRIMMER DRIVE (cordless, 36 V Li-ion, brushed motor about 500 W): trigger switch (main contact, speed pot, brake contact); IRFP4110 at 20 kHz with STTH6003 freewheel; NE555 ramp and CD4001 latch set each period, reset by the set point (soft start 0.5 s) or by 40 A (cycle-by-cycle limit); latched stops for a jam (the current limit acting for 1 s), battery below 27.5 V and above 85 °C at the heatsink or the motor; released trigger resets.', -1200, -300);
 
   // ---- test bench: the pack, the trigger switch (main and brake contacts as MOSFETs), the motor
   nb.block('bench').note('TEST BENCH: the battery pack, the trigger switch, the motor and its load (not part of the board)', -1200, -150)
@@ -120,12 +120,17 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
   // ---- protections onto FLTN (open collector), latched by QFL (FLT high holds the jam
   // comparator's input up through RLT/DLT); FLT blocks the drive (UN4)
   nb.block('protections')
-    // jam: the mean current (RJ/CJ, about 1 s) above 25 A (0.125 V)
-    .part('RJ', 'resistor', 700, 1050, { value: '100k' }, { '1': 'SRC', '2': 'IAV' })
-    .part('CJ', 'capacitor', 750, 1150, { value: o.jamC ?? '10u', vmax: '16' }, { '1': 'IAV', '2': 'GND' }, 1)
-    .part('RJT1', 'resistor', 850, 1050, { value: '19.1k' }, { '1': 'VREF', '2': 'VJ' }, 1)
-    .part('RJT2', 'resistor', 850, 1150, { value: '1k' }, { '1': 'VJ', '2': 'GND' }, 1)
-    .part('UC3', 'comparator', 1000, 1050, { value: 'LM339', pkg: 'CA' }, { '3': 'VJ', '2': 'IAV', '1': 'FLTN', '8': V, '4': 'GND' })
+    // jam: the cycle-by-cycle limit acting period after period for about 1 s. Each limited period
+    // charges CLF (DJ, RJS; held by CLS, RJD between periods), RJ/CJ integrate it, and IAV above
+    // 2.5 V trips. (The mean shunt current stayed near 7 A in a jam: the limit holds the duty at
+    // 18 % and the motor current circulates through the freewheel diode, found in simulation.)
+    .part('DJ', 'diode', 650, 1000, { value: '1N4148' }, { '2': 'RCLO', '1': 'CLJ' })
+    .part('RJS', 'resistor', 650, 1050, { value: '1k' }, { '1': 'CLJ', '2': 'CLF' })
+    .part('CLS', 'capacitor', 600, 1150, { value: '100n', vmax: '25' }, { '1': 'CLF', '2': 'GND' }, 1)
+    .part('RJD', 'resistor', 650, 1150, { value: '1M' }, { '1': 'CLF', '2': 'GND' }, 1)
+    .part('RJ', 'resistor', 700, 1050, { value: '100k' }, { '1': 'CLF', '2': 'IAV' })
+    .part('CJ', 'capacitor', 750, 1150, { value: o.jamC ?? '22u', vmax: '16' }, { '1': 'IAV', '2': 'GND' }, 1)
+    .part('UC3', 'comparator', 1000, 1050, { value: 'LM339', pkg: 'CA' }, { '3': 'VREF', '2': 'IAV', '1': 'FLTN', '8': V, '4': 'GND' })
     // the battery below 27.5 V (100k/10k: 2.5 V). Also the trigger's release: the input
     // capacitors fall within a millisecond once the main contact opens, so the drive is off before
     // the brake contact closes (with the drive still on, the capacitors discharged through the
@@ -159,7 +164,7 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RLF', 'resistor', 1500, 1100, { value: '2.2k' }, { '1': 'FLT', '2': 'LFA' })
     .part('LF', 'led', 1500, 1200, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC1', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
-  nb.v('VB').v('DRN').v('GM').v('SP').v('FLTN').v('FLT').v('IAV').v('SPD').v('CT').v('Q').v('RST').v('SET').v('CLK').v('VBD').v('VREF').v('V12').v('NTH').v('NTM').i('QM', '2').i('M1', '1');
+  nb.v('VB').v('DRN').v('GM').v('SP').v('FLTN').v('FLT').v('IAV').v('CLF').v('SPD').v('CT').v('Q').v('RST').v('SET').v('CLK').v('VBD').v('VREF').v('V12').v('NTH').v('NTM').i('QM', '2').i('M1', '1');
   // about 1 µs steps: 20 points a PWM period at 0.1 s, under the 100 000 output points
   const stop = o.stop ?? '0.08';
   nb.sim({ type: 'tran', stop, step: String(Math.max(1e-6, Number(stop) / 90000)), start: 'zero', thin: true });

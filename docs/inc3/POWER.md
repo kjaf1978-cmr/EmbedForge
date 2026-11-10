@@ -343,7 +343,9 @@ cutting). Purely discrete.
   while set and reset are both high (found in simulation). BD139/BD140 emitter followers drive the
   gate.
 - Protections (LM339 and LM393 onto one open-collector line, held by a PNP latch until the trigger
-  is released): a jam (mean current above 25 A for about 1 s), the battery below 27.5 V (the cells'
+  is released): a jam (the cycle-by-cycle limit acting for about 1 s: the mean shunt current is no
+  measure, since the limit holds the duty low and the motor current circulates through the
+  freewheel diode), the battery below 27.5 V (the cells'
   2.75 V; the pack's BMS is the second line), and above 85 °C at the MOSFET's heatsink or in the
   motor (an NTC each). A 50 ms power-up blanking keeps comparators that settle as the rails rise
   from latching a fault. A red LED shows a latched stop.
