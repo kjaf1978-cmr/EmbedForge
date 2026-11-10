@@ -568,6 +568,29 @@ input, 5 kA 8/20 µs induced into the array cable gives 195 V across the charger
 MOSFETs 200 V); without the TVS 205 V — so the P6 charger now has the TVS. (A spark-gap model
 chattered under an ideal surge current source; the type 1 SPD is the varistor-based kind.)
 
+## 3o. P9: pump control, irrigation, gate controller, trimmer, block machine (10 November 2026)
+
+**Library check (new, `tests/modellookup.test.ts`):** every design's part values must name a
+model of the library. Until now an unknown value silently simulated as the list's first model.
+The check found one: the inverters' TL074 had always simulated as the generic op amp (1 MHz).
+TL074 is now a model (the TL072's JFET input, 3 MHz). The inverters' quick tests pass with it;
+their long runs are being repeated (section 3p).
+
+**Irrigation** (`tests/irrigation.test.ts`, 5 passed): power-up with a register output high
+(no valve current, the cut-off latched until the firmware clears it); a valve switched on and off
+(0.3 A, the drain below 30 V); a valve shorted while on (latched within 10 µs, the MOSFET above its
+11 A pulse rating for under 2 µs); a 2 kV surge on an idle valve's cable (the drain below 60 V); a
+1 kV surge on a sensor cable (the multiplexer's input within −0.3 … 3.6 V). Found and fixed:
+- the outputs could conduct at power-up: a 100 kΩ pull-up on OE was loaded down to 0.7 V. The
+  cut-off now trips itself at power-up;
+- the gate pull-down transistor carried 190 mA, over a BC547B's rating: it is now a 2N2222A.
+
+**Gate controller** (`tests/gate.test.ts`, 7 passed): ERC; opening to the open limit switch,
+which stops and brakes the motor with the firmware still commanding it (start 10 A, running 2.5 A);
+an obstacle while closing (stall 10.5 A, latched about 80 ms later); the motor cable shorted (29 A
+peak, latched within 20 µs of 25 A); the beam broken while closing; both relays commanded (no
+current); power-up with RUN high (no motion). No product part is over its ratings in any of these.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
