@@ -20,6 +20,7 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Gate controller 24 V (P9, D25): motor drive and protections | `gate-controller/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed (automatic placement; a placement plan would shorten the power paths) |
 | Pump controller (P9): control board + DIN-rail panel | `pump-control/` | 165 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; panel wiring in `panel.csv` |
 | Cordless trimmer drive 36 V (P9) | `trimmer-drive/` | 160 × 100 mm, 2 layers, 4 oz | 0 / 0 | routed; power on 3 mm tracks, ground poured on both layers |
+| Block moulding machine (P9): safety circuit and 24 V outputs + DIN-rail panel | `block-machine/` | 100 × 70 mm, 2 layers, 2 oz | 0 / 0 | routed; safety contactors and the motor contactors on the DIN rail, wiring in `panel.csv` |
 
 ## What a folder holds
 
