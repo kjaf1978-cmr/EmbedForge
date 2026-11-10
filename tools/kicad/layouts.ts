@@ -33,6 +33,9 @@ export interface Design {
   post?: { zones?: PlanZone[]; tracks?: PlanTrack[] };
   /** Poles a panel connector block has at most (default 14). */
   block?: number;
+  /** Route in one pass with the insulation rules (a board almost all high voltage: the staged
+   *  routing, without the class-to-class rules, left 74 clearance errors). */
+  oneStage?: boolean;
   sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
 
 // 230 V mains (300 V r.m.s. working voltage): 3.2 mm, the creepage of basic insulation (IEC
@@ -348,7 +351,7 @@ export const DESIGNS: Record<string, Design> = {
   // the optocouplers and pulse transformers that cross the barrier
   'inverter-hf-48-control-lv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: battery-side control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 220, h: 160,
     panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || r.ctlHv.has(p.ref); } },
-  'inverter-hf-48-control-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200, block: 6,
+  'inverter-hf-48-control-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200, block: 6, oneStage: true,
     panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || !r.ctlHv.has(p.ref); } },
   'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
     heavy: LF_HEAVY, panel: (p) => !lfRefs(16).pwr.has(p.ref), bolted: (p) => lfRefs(16).off.has(p.ref), w: 280, h: 170,
