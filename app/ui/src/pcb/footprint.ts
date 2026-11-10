@@ -139,6 +139,9 @@ add(inline('TO-247_Vertical', 'TO-247 standing, 5.45 mm', 3, 5.45, 1.4, 2.5, 3.0
 // integrated circuits
 add(dip('DIP-4', 'DIP-4 (optocoupler)', 4));
 add(dip('DIP-6', 'DIP-6', 6));
+// opto-triacs (FOD4218, MOC30xx): pin 5 is not to be connected, and its pad sat 0.94 mm from the
+// mains pins 4 and 6 on either side; without it they are 5.08 mm apart
+{ const f = dip('DIP-6_NoPin5', 'DIP-6 without pin 5 (opto-triac)', 6); add({ ...f, pads: f.pads.filter((q) => q.id !== '5') }); }
 add(dip('DIP-8', 'DIP-8', 8));
 add(dip('DIP-16', 'DIP-16', 16));
 add(dip('DIP-14', 'DIP-14', 14));
