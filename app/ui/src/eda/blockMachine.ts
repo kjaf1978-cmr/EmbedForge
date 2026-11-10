@@ -59,8 +59,7 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     // the valve: 24 V 26 W (22 Ω, 50 mH); the proximity sensor's output (PNP, on)
     .part('RSV', 'resistor', -750, 300, { value: '22', pmax: '50' }, { '1': 'V24S', '2': 'SVA' }, 1)
     .part('LSV', 'inductor', -750, 400, { value: '50m', imax: '3' }, { '1': 'SVA', '2': 'SVD' }, 1)
-    .part('VPX', 'battery', -650, 300, { value: '23', rint: '10' }, { '1': 'PX1', '2': 'GND' }, 1)
-    .part('V5', 'battery', -550, 300, { value: '5', rint: '0.05' }, { '1': 'V5', '2': 'GND' }, 1);
+    .part('VPX', 'battery', -650, 300, { value: '23', rint: '10' }, { '1': 'PX1', '2': 'GND' }, 1);
   if (o.ch1Bridged) nb.part('SBR', 'switch', -850, 300, { closed: 'true' }, { '1': 'E1L', '2': 'GND' });
   // K1 welded: its armature held by the bench (a second coil supply that never drops)
   if (o.k1Welded) nb.part('RWK', 'resistor', -650, 450, { value: '1' }, { '1': 'V24', '2': 'C1' }).part('RWK2', 'resistor', -550, 450, { value: '1' }, { '1': 'E1L', '2': 'GND' });
@@ -75,7 +74,11 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('XP', 'terminal', 0, -100, { value: '+24 V (panel supply)' }, { '1': 'V24' })
     .part('XN', 'terminal', 0, 0, { value: '0 V' }, { '1': 'GND' })
     .part('F1', 'fuse', 100, -100, { value: '4' }, { '1': 'V24', '2': 'V24F' })
-    .part('DT1', 'tvs', 200, 0, { value: 'SMAJ33A' }, { '1': 'V24F', '2': 'GND' }, 1);
+    .part('DT1', 'tvs', 200, 0, { value: 'SMAJ33A' }, { '1': 'V24F', '2': 'GND' }, 1)
+    // 5 V for the microcontroller and the inputs' pull-ups (a switching regulator in a 7805's place)
+    .part('U5', 'regulator', 300, -100, { value: 'R-78E5.0-1.0' }, { '1': 'V24F', '2': 'GND', '3': 'V5' })
+    .part('C5I', 'capacitor_pol', 300, 0, { value: '22u', vmax: '50' }, { '1': 'V24F', '2': 'GND' }, 1)
+    .part('C5', 'capacitor_pol', 400, 0, { value: '22u', vmax: '16' }, { '1': 'V5', '2': 'GND' }, 1);
 
   // ---- the safety circuit
   nb.block('safety')
@@ -112,7 +115,7 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- outputs on the safety rail: the pump's contactor and a solenoid valve
   nb.block('outputs')
-    .part('KMP', 'contactor', 300, 650, { value: '18 A, coil 24 V DC' }, { A1: 'V24S', A2: 'KPD', '1': 'L1', '2': 'U1', '3': 'L2', '4': 'V1', '5': 'L3', '6': 'W1', '21': 'FB2', '22': 'FB3' })
+    .part('KMP', 'contactor', 300, 650, { value: '18 A, coil 24 V DC' }, { A1: 'V24S', A2: 'KPD', '1': 'L1', '2': 'U1', '3': 'L2', '4': 'V1', '5': 'L3', '6': 'W1', '21': 'FB2', '22': 'FBM' })
     .part('DKP', 'diode', 400, 650, { value: '1N4007' }, { '2': 'KPD', '1': 'V24S' }, 3)
     .part('RGP', 'resistor', 300, 800, { value: '100' }, { '1': 'PUMP', '2': 'GP' })
     .part('RGPD', 'resistor', 300, 900, { value: '10k' }, { '1': 'GP', '2': 'GND' }, 1)
@@ -122,7 +125,36 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RGV', 'resistor', 600, 800, { value: '100' }, { '1': 'VALVE', '2': 'GV' })
     .part('RGVD', 'resistor', 600, 900, { value: '10k' }, { '1': 'GV', '2': 'GND' }, 1)
     .part('QV', 'nmos', 700, 800, { value: 'IRLZ44N' }, { '1': 'GV', '2': 'SVD', '3': 'GND' })
-    .part('DTV', 'tvs', 800, 850, { value: 'SMAJ33A' }, { '1': 'SVD', '2': 'GND' }, 1)
+    .part('DTV', 'tvs', 800, 850, { value: 'SMAJ33A' }, { '1': 'SVD', '2': 'GND' }, 1);
+  // the tamper's other three valves, the same channel
+  for (const k of [2, 3, 4]) {
+    const x = 1000 + 250 * (k - 2);
+    nb.part(`XSV${k}A`, 'terminal', x, 1100, { value: `valve ${k} +` }, { '1': 'V24S' })
+      .part(`XSV${k}B`, 'terminal', x, 1150, { value: `valve ${k} −` }, { '1': `SVD${k}` })
+      .part(`RGV${k}`, 'resistor', x, 1250, { value: '100' }, { '1': `VALVE${k}`, '2': `GV${k}` })
+      .part(`RGVD${k}`, 'resistor', x, 1350, { value: '10k' }, { '1': `GV${k}`, '2': 'GND' }, 1)
+      .part(`QV${k}`, 'nmos', x + 100, 1250, { value: 'IRLZ44N' }, { '1': `GV${k}`, '2': `SVD${k}`, '3': 'GND' })
+      .part(`DTV${k}`, 'tvs', x + 200, 1300, { value: 'SMAJ33A' }, { '1': `SVD${k}`, '2': 'GND' }, 1);
+  }
+  // the mixer / feeder motor and the two vibrators: contactors on the safety rail like the pump's,
+  // their NC mirror contacts in the reset chain too (a welded motor contactor prevents the reset).
+  // Their main contacts on the panel, each motor through its own motor-protective breaker
+  const motors: [string, string, string][] = [['KMM', 'MIXER', 'mixer / feeder 3 kW'], ['KMV1', 'VIB1', 'vibrator 1, 1.5 kW'], ['KMV2', 'VIB2', 'vibrator 2, 1.5 kW']];
+  motors.forEach(([k, cmd, what], i) => {
+    const x = 1000 + 250 * i, fbIn = i === 0 ? 'FBM' : `FBM${i}`, fbOut = i === 2 ? 'FB3' : `FBM${i + 1}`;
+    nb.part(k, 'contactor', x, 1500, { value: '9 A, coil 24 V DC' }, { A1: 'V24S', A2: `${k}D`, '1': 'L1', '2': `${k}U`, '3': 'L2', '4': `${k}V`, '5': 'L3', '6': `${k}W`, '21': fbIn, '22': fbOut })
+      .part(`D${k}`, 'diode', x + 100, 1500, { value: '1N4007' }, { '2': `${k}D`, '1': 'V24S' }, 3)
+      .part(`RG${k}`, 'resistor', x, 1650, { value: '100' }, { '1': cmd, '2': `G${k}` })
+      .part(`RGD${k}`, 'resistor', x, 1750, { value: '10k' }, { '1': `G${k}`, '2': 'GND' }, 1)
+      .part(`Q${k}`, 'nmos', x + 100, 1650, { value: 'IRLZ44N' }, { '1': `G${k}`, '2': `${k}D`, '3': 'GND' })
+      .part(`X${k}U`, 'terminal', x, 1850, { value: `${what}: U` }, { '1': `${k}U` })
+      .part(`X${k}V`, 'terminal', x + 50, 1850, { value: `${what}: V` }, { '1': `${k}V` })
+      .part(`X${k}W`, 'terminal', x + 100, 1850, { value: `${what}: W` }, { '1': `${k}W` })
+      .part(`R${k}U`, 'resistor', x, 1950, { value: '1M' }, { '1': `${k}U`, '2': 'GND' }, 1)
+      .part(`R${k}V`, 'resistor', x + 50, 1950, { value: '1M' }, { '1': `${k}V`, '2': 'GND' }, 1)
+      .part(`R${k}W`, 'resistor', x + 100, 1950, { value: '1M' }, { '1': `${k}W`, '2': 'GND' }, 1);
+  });
+  nb.block('outputs')
     // the motor terminals of the power circuit (400 V: not simulated)
     .part('XL1', 'terminal', 200, 750, { value: 'L1 (from Q1, MPCB 14 … 20 A)' }, { '1': 'L1' })
     .part('XL2', 'terminal', 200, 800, { value: 'L2' }, { '1': 'L2' })
@@ -141,10 +173,30 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('UPX', 'opto', 1100, 650, { value: 'PC817' }, { '1': 'PXA', '2': 'GND', '4': 'IN1', '3': 'GND' })
     .part('DPX', 'diode', 1000, 700, { value: '1N4148' }, { '2': 'GND', '1': 'PXA' }, 1)
     .part('RIN', 'resistor', 1200, 650, { value: '10k' }, { '1': 'V5', '2': 'IN1' }, 1)
-    .part('XIN', 'terminal', 1300, 650, { value: 'to the microcontroller: IN1 (low = target present)' }, { '1': 'IN1' })
-    .part('XMP', 'terminal', 1300, 700, { value: 'from the microcontroller: PUMP' }, { '1': 'PUMP' })
-    .part('XMV', 'terminal', 1300, 750, { value: 'from the microcontroller: VALVE 1' }, { '1': 'VALVE' })
-    .part('XM5', 'terminal', 1300, 800, { value: '+5 V (microcontroller board)' }, { '1': 'V5' });
+    ;
+  // the machine's other end positions and the START button (24 V, NO), each the same input
+  const ins = ['mould down', 'tamper up', 'tamper down', 'feeder home', 'pallet in place', 'START (NO, 24 V)'];
+  ins.forEach((what, i) => {
+    const k = i + 2, y = 1100 + 150 * i;
+    nb.part(`XPX${k}`, 'terminal', 2000, y, { value: k < 7 ? `proximity sensor ${k}: ${what} (PNP out)` : what }, { '1': `PX${k}` })
+      .part(`RPX${k}`, 'resistor', 2100, y, { value: '4.7k' }, { '1': `PX${k}`, '2': `PXA${k}` })
+      .part(`UPX${k}`, 'opto', 2200, y + 50, { value: 'PC817' }, { '1': `PXA${k}`, '2': 'GND', '4': `IN${k}`, '3': 'GND' })
+      .part(`DPX${k}`, 'diode', 2100, y + 100, { value: '1N4148' }, { '2': 'GND', '1': `PXA${k}` }, 1)
+      .part(`RIN${k}`, 'resistor', 2300, y, { value: '10k' }, { '1': 'V5', '2': `IN${k}` }, 1);
+  });
+  nb.part('XPS', 'terminal', 2000, 2050, { value: 'sensors +24 V' }, { '1': 'V24F' })
+    .part('XPS0', 'terminal', 2050, 2050, { value: 'sensors 0 V' }, { '1': 'GND' });
+  // ---- the microcontroller (D24): an Arduino Nano (5 V I/O) on sockets, the sequence's firmware
+  // (fill, vibrate, press, demould, eject). Inputs IN1 … IN7 on D2 … D8 (low = target present /
+  // START pressed); PUMP D9, valves D10, D11, D12, A3; MIXER A0, VIB1 A1, VIB2 A2; the safety rail's
+  // state on A4 (24 V → 4.2 V). Its outputs' gates have 10k pull-downs: all off while it resets.
+  // Not simulated: the bench drives PUMP and VALVE
+  nb.block('microcontroller')
+    .part('UMC', 'nano', 2600, 1200, { value: 'Arduino Nano' }, { '4': 'GND', '29': 'GND', '27': 'V5',
+      '5': 'IN1', '6': 'IN2', '7': 'IN3', '8': 'IN4', '9': 'IN5', '10': 'IN6', '11': 'IN7',
+      '12': 'PUMP', '13': 'VALVE', '14': 'VALVE2', '15': 'VALVE3', '22': 'VALVE4', '19': 'MIXER', '20': 'VIB1', '21': 'VIB2', '23': 'SRS' })
+    .part('RSR1', 'resistor', 2600, 1600, { value: '47k' }, { '1': 'V24S', '2': 'SRS' })
+    .part('RSR2', 'resistor', 2700, 1700, { value: '10k' }, { '1': 'SRS', '2': 'GND' }, 1);
   nb.v('V24S').v('C1').v('C2').v('RP').v('CRN').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '20u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
