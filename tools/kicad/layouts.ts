@@ -4,6 +4,7 @@
 // pollution degree 2, material group IIIb, basic insulation, overvoltage category II).
 import { gateController } from '../../app/ui/src/eda/gate';
 import { pumpControl } from '../../app/ui/src/eda/pumpControl';
+import { trimmer } from '../../app/ui/src/eda/trimmer';
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
@@ -361,6 +362,10 @@ export const DESIGNS: Record<string, Design> = {
   // P9: the pump controller's board (supply, electrodes, timers, logic, the pilot relay); the
   // contactor, breaker and terminals on the DIN rail
   'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'A', classes: mains(['L', 'N']), panel: (p) => PANEL.has(p.sym) },
+  // P9: the trimmer's drive, one board in the handle (the MOSFET and the diode on a small
+  // heatsink at the edge); the motor current (40 A peaks) on 3 mm tracks in 4 oz copper
+  'trimmer-drive': { sheet: () => trimmer().sheet, title: 'Cordless trimmer drive 36 V', revision: 'A',
+    classes: () => [{ name: 'Power', patterns: ['VB', 'DRN', 'SRC', 'GND'].map((n) => `^${n}$`), track: 3, clearance: 0.6 }], copperOz: 4, w: 130, h: 90 },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
