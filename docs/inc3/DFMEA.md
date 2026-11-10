@@ -121,7 +121,7 @@ cables.
 | # | Failure mode | Effect | Cause | Design action (implemented) | S | O | D | AP | Verified by |
 |---|---|---|---|---|---|---|---|---|---|
 | PC-1 | Pump does not stop at HIGH | Tank overflows, water lost, flooding | HIGH electrode's cable broken or rod scaled | Broken cable reads dry; OVERFLOW electrode stops the pump and latches FAULT (manual reset) | 7 | 4 | 2 | M | pumpcontrol.test: HIGH broken |
-| PC-2 | Pump runs with the source dry | Pump destroyed (dry running) | Borehole drawn down, ground tank empty | DRY electrode stops the pump at once; 8.5 min lockout after the water returns | 8 | 5 | 2 | M | pumpcontrol.test: source dry |
+| PC-2 | Pump runs with the source dry | Pump destroyed (dry running) | Borehole drawn down, ground tank empty | DRY electrode stops the pump within about 0.3 s; 8.5 min lockout after the water returns (only after a dry spell: not after a power cut) | 8 | 5 | 2 | M | pumpcontrol.test: source dry |
 | PC-3 | Pump runs without end | Energy wasted, pump worn out, flooding | Burst pipe, pump no longer delivers | Maximum run 2.3 h (CD4020) latches FAULT | 7 | 3 | 2 | L | pumpcontrol.test: burst pipe |
 | PC-4 | Pump restarts at once after a power cut | Contactor chatter, inrush on a weak supply | Mains interruptions | 8 s start delay after power-up; power-up reset of the latches | 5 | 6 | 2 | L | pumpcontrol.test: start delay |
 | PC-5 | Electrodes corrode or scale | False levels | DC through the water | 200 Hz AC excitation through capacitors (no DC) | 6 | 4 | 3 | M | review; maintenance: clean the rods yearly |

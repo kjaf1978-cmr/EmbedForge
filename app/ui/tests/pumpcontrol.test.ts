@@ -47,13 +47,15 @@ describe.runIf(LONG)('pump control: cycle and DFMEA faults', () => {
     expect(s.on(3.9)).toBe(false);
     expect(s.at('LVL', 3.9)).toBeLessThan(3); // below LOW, and still off
   }, 3_600_000);
-  it('the source runs dry while pumping: the pump stops at once and starts again only after the lockout (512 clocks) once the water is back', () => {
-    // dry from 1.45 s (pumping) for 0.3 s; the lockout ends 0.51 s after 1.75 s
-    const s = run({ stop: '3.2', dryAt: 1.45, dryFor: 0.3 });
+  it('the source runs dry while pumping: the pump stops within about 0.3 s (the electrode\'s detection) and starts again only after the lockout (512 clocks) once the water is back', () => {
+    // dry from 1.45 s (pumping) for 0.6 s (the electrodes' filters are not compressed with the
+    // clock: a dry spell must outlast their 0.3 s); the lockout ends 0.51 s after the water is
+    // seen again (about 2.1 s), then the pump waits for LOW
+    const s = run({ stop: '3.2', dryAt: 1.45, dryFor: 0.6 });
     expect(s.on(1.40)).toBe(true);
-    expect(s.on(1.55)).toBe(false);
-    expect(s.on(2.1)).toBe(false); // the water is back, the lockout still runs
-    expect(s.on(2.5)).toBe(true);
+    expect(s.on(1.9)).toBe(false);
+    expect(s.on(2.5)).toBe(false); // the water is back, the lockout still runs
+    expect(s.on(3.1)).toBe(true);
   }, 3_600_000);
   it('a burst pipe (no water reaches the tank): after the maximum run (8192 clocks) FAULT latches and the pump stops', () => {
     const s = run({ stop: '1.6', clkC: '0.1n', noFlow: true, level0: 2 });
