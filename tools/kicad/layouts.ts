@@ -240,14 +240,17 @@ const LF_PLANES: PlanZone[] = [
 const HF_PWR_BLOCKS = new Set(['dc-dc bridge', 'bus', 'current sense', 'dc-dc output', 'bridge']);
 const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1'];
 const HF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
-let hfCache: { pwr: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ref: (k: string) => string } | undefined;
+let hfCache: { pwr: Set<string>; lv: Set<string>; hvp: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ref: (k: string) => string } | undefined;
 const hfRefs = () => hfCache ??= (() => {
   const { sheet, nb } = inverterHF({ load: '0' }), ref = (k: string) => nb.refOf(sheet, k);
   const off = new Set(HF_OFF.map(ref));
   const pwr = new Set(sheet.parts.filter((p) => HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !off.has(p.ref)).map((p) => p.ref));
   pwr.add(ref('X2'));
+  const lv = new Set(sheet.parts.filter((p) => ['dc-dc bridge', 'bus', 'current sense'].includes(nb.blockOf(p.id)) && !off.has(p.ref)).map((p) => p.ref));
+  lv.add(ref('X2'));
+  const hvp = new Set([...pwr].filter((r) => !lv.has(r)));
   const sub = { ...sheet, parts: sheet.parts.filter((p) => !HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !['output', 'bench', 'load', 'battery'].includes(nb.blockOf(p.id))) };
-  return { pwr, off, panel: new Set(HF_PANEL.map(ref)), hv: potentialGroup(sub, ['HVG', 'HBUS'], new Set(['GND', 'OUTL'])), ref };
+  return { pwr, lv, hvp, off, panel: new Set(HF_PANEL.map(ref)), hv: potentialGroup(sub, ['HVG', 'HBUS'], new Set(['GND', 'OUTL'])), ref };
 })();
 // the power board (D44/D45): the DC-DC bridge's eight TO-247 (each leg: its low pair, then its
 // high pair; leg B mirrored) and the sine bridge's four IGBTs in one row (y 150); the switch
@@ -302,10 +305,19 @@ const HF_PLANES: PlanZone[] = [
 const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 2.5 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
 
 export const DESIGNS: Record<string, Design> = {
-  'inverter-hf-48-power': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: power board', revision: 'A',
-    classes: () => [POWER(HF_LV_HEAVY), { ...classFor('HV', hfPowerHv(), 0.6, 0.8), apart: 1.5 }], copperOz: 4,
-    heavy: [...HF_LV_HEAVY, 'HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2'], panel: (p) => !hfRefs().pwr.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 300, h: 230,
-    plan: hfPlan, tracks: HF_BARS, zones: HF_PLANES, region: { x0: 0, x1: 300, y0: 160, y1: 230 } },
+  // two power boards: the battery side (DC-DC bridge, bus, current transformer) and the 380 V side
+  // (rectifier, bus, sine bridge), each from its part of the plan (the 380 V side moved 180 mm
+  // left); on one board the two sections' drivers and gate parts crowded one band and 86
+  // connections stayed unrouted
+  'inverter-hf-48-power-lv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: battery-side power board', revision: 'A',
+    classes: () => [POWER(HF_LV_HEAVY)], copperOz: 4, heavy: HF_LV_HEAVY, panel: (p) => !hfRefs().lv.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 180, h: 230,
+    plan: () => hfPlan().filter((q) => q.x < 180), tracks: HF_BARS.filter((t) => t.pts[0][0] < 180), zones: HF_PLANES.filter((z) => z.pts[0][0] < 180), region: { x0: 0, x1: 180, y0: 160, y1: 230 } },
+  'inverter-hf-48-power-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V power board', revision: 'A',
+    classes: () => [{ ...classFor('HV', hfPowerHv(), 0.6, 0.8), apart: 1.5 }], copperOz: 4, heavy: ['HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2', 'GND'],
+    panel: (p) => !hfRefs().hvp.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 140, h: 270,
+    plan: () => hfPlan().filter((q) => q.x >= 180).map((q) => ({ ...q, x: q.x - 180 })),
+    tracks: HF_BARS.filter((t) => t.pts[0][0] >= 180).map((t) => ({ ...t, pts: t.pts.map(([x, y]) => [x - 180, y] as [number, number]) })),
+    zones: HF_PLANES.filter((z) => z.pts[0][0] >= 180).map((z) => ({ ...z, pts: z.pts.map(([x, y]) => [x - 180, y] as [number, number]) })), region: { x0: 0, x1: 140, y0: 160, y1: 270 } },
   'inverter-hf-48-control': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200,
     panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
   'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
