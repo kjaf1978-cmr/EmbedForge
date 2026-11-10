@@ -591,6 +591,14 @@ an obstacle while closing (stall 10.5 A, latched about 80 ms later); the motor c
 peak, latched within 20 µs of 25 A); the beam broken while closing; both relays commanded (no
 current); power-up with RUN high (no motion). No product part is over its ratings in any of these.
 
+**Pump control** (`tests/pumpcontrol.test.ts`, 5 passed with LONG=1, the clock 1000 times
+faster): the normal cycle (starts below LOW, stops at HIGH, never near OVERFLOW, no part over its
+ratings); the HIGH electrode's cable broken (OVERFLOW stops the pump and latches FAULT); the source
+running dry (the pump stops within about 0.3 s and restarts only after the lockout once the water
+is back); a burst pipe (FAULT after the maximum run); the start delay after power-up. Found and
+fixed: the dry lockout applied after every power cut (8.5 min instead of the 8 s start delay). It
+now applies only after a dry spell, using spare gates of the CD4001s.
+
 **Trimmer** (`tests/trimmer.test.ts`, 7 passed with LONG=1): ERC; full trigger (the soft start
 raises the duty, the cycle-by-cycle limit holds the motor at about 43 A while the head
 accelerates, no trip); half trigger; the head jammed (the limit holds 43.5 A, the jam latch trips);
