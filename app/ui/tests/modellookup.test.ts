@@ -9,6 +9,7 @@ import { stabiliserT } from '../src/eda/stabiliserT';
 import { mainsHouse, pvHouse } from '../src/eda/surge';
 import { pumpControl } from '../src/eda/pumpControl';
 import { irrigationFront } from '../src/eda/irrigation';
+import { gateController } from '../src/eda/gate';
 import type { Sheet } from '../src/eda/schematic';
 
 const DESIGNS: [string, () => { sheet: Sheet }][] = [
@@ -18,6 +19,7 @@ const DESIGNS: [string, () => { sheet: Sheet }][] = [
   ...([5, 10, 15] as const).map((k): [string, () => { sheet: Sheet }] => [`stabiliser ${k} kVA`, () => stabiliserT({ kva: k })]),
   ['surge: mains house', () => mainsHouse('lightning')], ['surge: PV house', () => pvHouse()],
   ['pump control', () => pumpControl()], ['irrigation', () => irrigationFront({ shortAt: 0.01, surgeKv: 1, sensorSurgeKv: 1, q2Random: true })],
+  ['gate controller', () => gateController({ shortAt: 0.5, obstacleAt: 0.5 })],
 ];
 
 describe('every design\'s parts name a model of the library', () => {

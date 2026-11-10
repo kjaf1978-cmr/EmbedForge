@@ -112,7 +112,7 @@ PV charger's input below its MOSFETs' 200 V; every SPD survives the surges of it
 | SP-5 | Surge into the PV charger | MOSFETs destroyed | Induced on the DC cable | Y varistors at the array and the charger, 5 kW TVS across the charger input | 8 | 3 | 2 | L | surge.test: 195 V with the TVS, 205 V without |
 | SP-6 | Earth potential rise | Flashover from earthed parts to incoming lines | Lightning current in the earth electrode (tens of kV) | All services (mains, PV, data) bonded at the main earthing terminal and protected there | 8 | 2 | 3 | L | surge.test (PE rises 21–35 kV; the SPDs keep L–PE at the socket below 1 kV) |
 
-## 3d. Pump control and irrigation (P9)
+## 3d. Pump control, irrigation and gate controller (P9)
 
 Function: fill the tank without overflowing it and without running the pump dry or forever;
 switch each irrigation valve and read each soil sensor, surviving shorts and surges on the field
@@ -131,6 +131,13 @@ cables.
 | IR-3 | Surge on a sensor cable | Multiplexer and ADC destroyed | Induced surges | SMAJ5.0A, 10 kΩ, BAT54 clamps, 100 nF | 6 | 4 | 2 | L | irrigation.test: 1 kV surge |
 | IR-4 | Valve kept open | Over-watering, water lost | Microcontroller hung, register stuck | The cut-off trips itself at power-up (outputs off until the firmware has loaded the registers and cleared it); open: the firmware (D24) must use the microcontroller's watchdog and cap each valve's run time | 6 | 3 | 4 | M | irrigation.test: power-up; firmware: open action (section 7) |
 | IR-5 | Flyback at turn-off | MOSFET avalanche | Valve inductance | SS34 across each valve | 5 | 8 | 1 | L | irrigation.test: drain below 30 V |
+| GC-1 | Gate closes onto a person or vehicle | Injury, damage | Obstacle in the path | Photo-beam NC contact in the close relay's coil (hardware stop); obstacle cut-off (7 A for 0.1 s) latches and the firmware reverses | 9 | 4 | 2 | M | gate.test: beam broken, obstacle |
+| GC-2 | Gate runs past its end | Mechanical damage, gate derailed | Firmware hung, limit input lost | Limit switches NC in series with their relay's coil: the end stop needs no firmware; a broken switch cable also stops the motor | 7 | 3 | 2 | L | gate.test: open limit with the firmware still commanding |
+| GC-3 | Motor cable shorted | MOSFET destroyed, fire | Damaged cable, water in the motor box | Latching cut-off at 25 A within microseconds; 10 A fuse | 7 | 3 | 2 | L | gate.test: short (29 A peak, within the 160 A pulse rating) |
+| GC-4 | Supply shorted through the relays | Fuse blown, relay contacts welded | Both directions commanded | SPDT topology: both relays on puts both terminals on 24 V (no current) | 6 | 3 | 1 | L | gate.test: both relays |
+| GC-5 | Motor moves at power-up | Gate starts by itself | Microcontroller pins floating before its program runs | Cut-off trips itself at power-up until CLR; relay drivers pulled down (47 kΩ) | 7 | 4 | 2 | M | gate.test: power-up |
+| GC-6 | Relay contact welded (closed) | Gate cannot be stopped by that relay | Arcing at end of life | Relays switched without current by the firmware (RUN off first); the MOSFET and the cut-off still stop the motor; the fuse is the last resort | 6 | 3 | 4 | M | review; maintenance FAQ: relay replacement every 100 000 cycles |
+| GC-7 | Remote code copied / interference | Unauthorised opening | IR is line-of-sight and simple | Firmware: a code learnt per remote, a rolling counter (D24, open action) | 6 | 3 | 5 | M | open action (section 7) |
 
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 
@@ -227,6 +234,7 @@ section 5 (the HF type).
 | C-9 | change-over, stabiliser | Varistors with thermal disconnector and indicator (type 3 SPD part) | M |
 | S-7 | stabiliser | Thermal cut-out in the autotransformer winding | M |
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
+| GC-7 | gate | Firmware (D24): learnt remote codes and a rolling counter; RUN switched off before the relays change | M |
 | IR-4 | irrigation | Firmware (D24): watchdog, each valve's run time capped, CLR only after the registers are loaded | M |
 | all | all | Layouts (P8): creepage for pollution degree 3, coating keep-outs, power tracks per IPC-2221 | M |
 

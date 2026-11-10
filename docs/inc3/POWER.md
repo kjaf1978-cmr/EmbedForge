@@ -236,9 +236,9 @@ one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE)
 input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
 board gets the 5KP130A across its PV input (beside RVPV).
 
-### P9 — pump control and irrigation (D24; DFMEA section 3d)
+### P9 — pump control, irrigation and gate controller (D24, D25; DFMEA section 3d)
 
-Two of the P9 products, simulated as circuits (the irrigation sequencing runs on a
+Three of the P9 products, simulated as circuits (the irrigation and gate sequencing runs on a
 microcontroller board, D24; everything around it is discrete).
 
 **Pump control** (`src/eda/pumpControl.ts`, `tests/pumpcontrol.test.ts`): purely discrete, for
@@ -292,6 +292,33 @@ up to 64 zones with soil-moisture sensors.
   11 A for under 2 µs); a 2 kV 1.2/50 µs surge on an idle valve's cable (the drain below 60 V);
   a 1 kV surge on a sensor cable (the multiplexer input stays within −0.3 … 3.6 V). No part is
   over its ratings in any of these.
+
+**Gate controller** (D25; `src/eda/gate.ts`, `tests/gate.test.ts`): a sliding or swing gate with
+one 24 V DC gear motor (up to about 100 W; the model: 2.6 A running, 12 A stalled) and an infrared
+remote. The microcontroller board decodes the remote (TSOP38238, 38 kHz) and sequences
+open / stop / close. Everything that keeps the gate safe is discrete and works whatever the
+firmware does.
+- Direction: two SPDT power relays (Song Chuan 832A-1C-S, 24 V coil, 30 A), driven by BC547B
+  from the microcontroller. Released, both motor terminals sit on the switch node: the motor is
+  shorted and brakes. Both energised, both terminals sit on 24 V: no current, so no command can
+  short the supply.
+- On/off: an IRLZ44N in the switch node's return (gate from RUN through 1 kΩ), a 0.01 Ω shunt, an
+  MBR20100CT freewheel diode to 24 V and an SMAJ33A at each motor terminal (long motor cables).
+- End stops: the open and close limit switches (NC, opened by the gate at its end) are in series
+  with their relay's coil, and the photo-beam's NC contact is in series with the close relay's
+  coil. The end stops and the beam stop the motor in hardware; dividers (47k/10k) report them to
+  the microcontroller.
+- Cut-off (LM393, latching): a short circuit above 25 A trips within microseconds; an obstacle
+  above 7 A for about 0.1 s trips it too, blanked for the first 0.5 s of a run (the motor's start).
+  It turns the MOSFET off (its gate clamped through a BAT54), interrupts the microcontroller
+  (FAULT), and stays tripped until the firmware clears it (CLR) and reverses briefly. It trips itself
+  at power-up, so the motor cannot move before the firmware runs.
+- Supply: 24 V 150 W DIN-rail supply, 10 A fuse, SMAJ33A, 470 µF; 7805 for the 5 V logic.
+- Verified (TEST_REPORT.md section 3o): opening (start peak 10 A, 2.5 A running) up to the open
+  limit, which stops and brakes the motor while the firmware still commands it; an obstacle while
+  closing (stall 10.5 A, the cut-off latches about 80 ms later); the motor cable shorted (29 A peak,
+  latched within microseconds); the beam broken while closing; both relays commanded; power-up
+  with RUN high. No part is over its ratings in any of these.
 
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 

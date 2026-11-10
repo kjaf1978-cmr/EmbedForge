@@ -246,6 +246,16 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'R', name: `${ref}_RT`, a: `${ref}#t`, b: pin['3'], r: 100 },
       );
       if (tl) out.push({ kind: 'I', name: `${ref}_TL`, p: w, n: '0', dc: tl });
+      // a test bench's rigid obstacle: from `obstacle` (s) for `obsfor` (s) the shaft is held at
+      // standstill (the speed node clamped to 0 through 1 mΩ)
+      const obs = Number(p.props.obstacle);
+      if (p.props.obstacle !== undefined && Number.isFinite(obs)) {
+        const ob = `${ref}#ob`, dur = Number(p.props.obsfor ?? 1e3);
+        out.push(
+          { kind: 'V', name: `${ref}_OB`, p: ob, n: '0', dc: 0, wave: { type: 'pulse', v1: 0, v2: 1, td: obs, tr: 1e-6, tf: 1e-6, pw: dur, per: 1e6 } },
+          { kind: 'S', name: `${ref}_OBS`, p: w, n: '0', cp: ob, cn: '0', vt: 0.5, vh: 0.1, ron: 1e-3, roff: 1e12 },
+        );
+      }
       break;
     }
     case 'motor1': case 'motor3': {
