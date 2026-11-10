@@ -526,6 +526,48 @@ Screening (D38) after the changes, full circuit 140 ms:
 The long runs of all three high-frequency units follow the screening; the 50 Hz-transformer
 units' long runs are repeated with the full-resolution stress check (D42).
 
+## 3l. P7d: inverter units in parallel and as three phases (9–10 November 2026)
+
+`tests/inverterlink.test.ts`. The link box: three 50 Hz references 120° (±0.5°) apart at 49.8 Hz,
+each loop's current sink regulating with six units' LEDs in it — passed. The phase-locked loop
+(the 50 Hz, sine and link blocks of two units, ideal supplies, the second unit's filter
+capacitors 5 % off and its oscillator 2 % off): locked to the reference within 0.7 s, the two
+sines 0.03–0.06° apart (a 5 % filter tolerance alone gives 7°) — passed. The whole systems (two
+50 Hz-transformer units in parallel at 10 kW, three units as 3 × 400/230 V, a unit stopping in the
+three-phase system, two high-frequency sine bridges in parallel) run for hours each in the
+long-run queue; results follow in this section.
+
+## 3m. P4b: thyristor-tap stabilisers 5, 10 and 15 kVA (9–10 November 2026)
+
+`tests/stabiliserT.test.ts` (D41). Found in simulation and designed out: (1) the comparators'
+pulled-up outputs chose the 150 V tap at start-up (the winding's top tap rang to 1 kV): a 0.3 s
+power-up hold on the gate drivers; (2) a window on the input current could not tell a pair that
+had stopped from a slow zero crossing: with a pair failed short a second tap fired onto it
+(1.5 kA in the section): the change now waits for every pair to block (a voltage-sense
+optocoupler per pair, the seven in series); (3) 600 V opto-triacs and 630 V snubbers saw over
+600 V at 300 V in: FOD4218 (800 V), 470 Ω, 1000 V snubbers; (4) the sense resistors' 0.54 W:
+1 W parts; (5) a ZW comparator over its 16 mA: 1k in its discharge path.
+
+Results: 16 of 18 passed — steady state at 140, 230 and 300 V for 5 kVA, at 230 and 300 V for
+10 and 15 kVA (output within ±2 % of V_in·230/tap, the thyristors' peak within the rated input's,
+no part over its ratings); tap changes under full load (sag 230 → 195 V, swell 230 → 250 V,
+power factor 0.8) at 5 and 15 kVA without two taps ever conducting; a pair failed short (no
+second tap, the output opened by the stuck-change protection); the heatsink at 95 °C (output
+never closes); no load (the change still happens). Open: 10 and 15 kVA at 140 V in, where the
+output contactor stayed open in the test (being investigated).
+
+## 3n. P5: surge protection (10 November 2026)
+
+`tests/surge.test.ts`, all 6 passed. Mains house (TN-C-S): with a type 1+2 SPD at the main
+board, type 2 in the sub-board 10 m on and type 3 at the socket 15 m further, the appliance sees
+at most 854 V L–N, 815 V L–PE and 600 V N–PE for 12.5 kA 10/350 µs and 20 kA 8/20 µs into the
+service line and for a 6 kV / 3 kA combination wave at the socket; every SPD within its peak
+current and energy. Without the type 3 SPD the socket surge reaches 5.75 kV at the appliance.
+PV house: with Y varistors at the array and the charger and a 5KP130A across the charger's
+input, 5 kA 8/20 µs induced into the array cable gives 195 V across the charger's input (its
+MOSFETs 200 V); without the TVS 205 V — so the P6 charger now has the TVS. (A spark-gap model
+chattered under an ideal surge current source; the type 1 SPD is the varistor-based kind.)
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
