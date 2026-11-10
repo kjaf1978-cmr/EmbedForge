@@ -19,11 +19,13 @@ def run(cmd, **kw):
 
 def drc(pcb_path, report):
     """KiCad's design rule check (pcbnew.WriteDRCReport: kicad-cli has no DRC before KiCad 8):
-    the errors (severity error) by kind and the number of unconnected items."""
-    import pcbnew, re
+    the errors (severity error) by kind and the number of unconnected items. Each check runs in a
+    process of its own: a second check in one process kept the first board's results (a path
+    reported clean crossed three nets)."""
+    import re
     from collections import Counter
-    b = pcbnew.LoadBoard(pcb_path)
-    pcbnew.WriteDRCReport(b, report, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    drc_selftest(pcb_path)
+    run_drc(pcb_path, report)
     text = open(report).read()
     blocks = re.split(r'\n(?=\[)', text)
     errors = [bl for bl in blocks if bl.startswith('[') and 'Severity: error' in bl]
@@ -301,5 +303,62 @@ def finish(d, routed):
               open(os.path.join(d, 'summary.json'), 'w'), indent=1)
 
 
+def run_drc(pcb_path, report):
+    """One check in a process of its own, started through bash: a check started directly from a
+    Python process (subprocess) skipped KiCad 7's copper clearance test, and a second check in one
+    process kept the first one's results (a board with 12 clearance errors came back clean, found
+    while checking a post-routing track). drc_selftest guards against it."""
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    import shlex
+    cmd = f"cd {shlex.quote(here)} && python3 route.py --drc-only {shlex.quote(os.path.abspath(pcb_path))} {shlex.quote(os.path.abspath(report))}"
+    subprocess.run(['bash', '-c', cmd], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+_selftest_done = False
+
+
+def drc_selftest(pcb_path):
+    """Before the first check: a copy of the board under test with one extra track laid over a
+    track of another net must come back with a clearance (or short) error, or the checks cannot be
+    trusted and the run stops."""
+    global _selftest_done
+    if _selftest_done:
+        return
+    import pcbnew, shutil, tempfile
+    d = tempfile.mkdtemp(prefix='drcself')
+    b = pcbnew.LoadBoard(pcb_path)
+    ts = [t for t in b.GetTracks() if t.GetClass() == 'PCB_TRACK' and t.GetLength() > pcbnew.FromMM(2)]
+    if len(ts) < 2:
+        _selftest_done = True
+        return
+    a = ts[0]
+    other = next((t for t in ts if t.GetNetCode() != a.GetNetCode() and t.GetNetCode() > 0), None)
+    if other is None:
+        _selftest_done = True
+        return
+    t = pcbnew.PCB_TRACK(b); t.SetLayer(a.GetLayer()); t.SetWidth(a.GetWidth()); t.SetStart(a.GetStart()); t.SetEnd(a.GetEnd())
+    t.SetNetCode(other.GetNetCode()); b.Add(t)
+    f = os.path.join(d, 'self.kicad_pcb'); b.Save(f)
+    base = os.path.splitext(pcb_path)[0]
+    for ext in ('kicad_dru', 'kicad_pro'):
+        if os.path.exists(f'{base}.{ext}'):
+            shutil.copy(f'{base}.{ext}', os.path.join(d, 'self.' + ext))
+    run_drc(f, os.path.join(d, 'self.rpt'))
+    text = open(os.path.join(d, 'self.rpt')).read()
+    if '[clearance]' not in text and '[shorting_items]' not in text:
+        sys.exit('DRC self-test failed: a track laid over another net was not reported; the checks cannot be trusted')
+    _selftest_done = True
+
+
+def drc_only(pcb_path, report):
+    import pcbnew
+    b = pcbnew.LoadBoard(pcb_path)
+    pcbnew.WriteDRCReport(b, report, pcbnew.EDA_UNITS_MILLIMETRES, True)
+
+
 if __name__ == '__main__':
-    main()
+    if sys.argv[1] == '--drc-only':
+        drc_only(sys.argv[2], sys.argv[3])
+    else:
+        main()
