@@ -141,7 +141,10 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('UPX', 'opto', 1100, 650, { value: 'PC817' }, { '1': 'PXA', '2': 'GND', '4': 'IN1', '3': 'GND' })
     .part('DPX', 'diode', 1000, 700, { value: '1N4148' }, { '2': 'GND', '1': 'PXA' }, 1)
     .part('RIN', 'resistor', 1200, 650, { value: '10k' }, { '1': 'V5', '2': 'IN1' }, 1)
-    .part('XIN', 'terminal', 1300, 650, { value: 'to the microcontroller: IN1 (low = target present)' }, { '1': 'IN1' });
+    .part('XIN', 'terminal', 1300, 650, { value: 'to the microcontroller: IN1 (low = target present)' }, { '1': 'IN1' })
+    .part('XMP', 'terminal', 1300, 700, { value: 'from the microcontroller: PUMP' }, { '1': 'PUMP' })
+    .part('XMV', 'terminal', 1300, 750, { value: 'from the microcontroller: VALVE 1' }, { '1': 'VALVE' })
+    .part('XM5', 'terminal', 1300, 800, { value: '+5 V (microcontroller board)' }, { '1': 'V5' });
   nb.v('V24S').v('C1').v('C2').v('RP').v('CRN').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '20u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
