@@ -16,6 +16,7 @@ import { inverterLF, inverterHF } from '../../app/ui/src/eda/inverters';
 // the 380 V control boards' copper after routing: the HVG pours and the links Freerouting left,
 // drawn by autolink.py and checked with route.py --post-only (48 V board: also the 24 V one)
 import postHfCtlHv48 from './post/inverter-hf-48-control-hv.json';
+import postHfCtlHv12 from './post/inverter-hf-12-control-hv.json';
 
 export interface Design {
   /** The placement plan of the power section (D44): fixed positions (mm) and rotations; the other
@@ -423,7 +424,7 @@ function inverterBoards(cells: 4 | 8 | 16, v: string): Record<string, Design> {
   // the optocouplers and pulse transformers that cross the barrier
   [`inverter-hf-${v}-control-lv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: battery-side control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 220, h: 160,
     panel: (p) => { const r = hfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || r.ctlHv.has(p.ref); } },
-  [`inverter-hf-${v}-control-hv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: 380 V control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 340, h: 240, block: 6, oneStage: true, post: cells === 4 ? undefined : (postHfCtlHv48 as Design['post']),
+  [`inverter-hf-${v}-control-hv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: 380 V control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 340, h: 240, block: 6, oneStage: true, post: (cells === 4 ? postHfCtlHv12 : postHfCtlHv48) as Design['post'],
     panel: (p) => { const r = hfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || !r.ctlHv.has(p.ref); } },
   [`inverter-lf-${v}-power`]: { sheet: () => inverterLF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, 50 Hz transformer: power board`, revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
     heavy: LF_HEAVY, panel: (p) => !lfRefs(cells).pwr.has(p.ref), bolted: (p) => lfRefs(cells).off.has(p.ref), w: 280, h: 170,

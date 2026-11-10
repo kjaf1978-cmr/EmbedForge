@@ -23,6 +23,7 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Inverter 12 V 1.5 kW, high-frequency (P7b): battery-side power board | `inverter-hf-12-power-lv/` | 260 × 230 mm, 2 layers, 4 oz | 0 / 0 | routed; three MOSFETs per switch (twelve in the row), copper bars |
 | Inverter 12 V 1.5 kW, high-frequency (P7b): 380 V power board | `inverter-hf-12-power-hv/` | 140 × 270 mm, 2 layers, 4 oz | 0 / 0 | routed; the 48 V board's plan; conformal coating required |
 | Inverter 12 V 1.5 kW, high-frequency (P7b): battery-side control board | `inverter-hf-12-control-lv/` | 220 × 160 mm, 2 layers, 2 oz | 0 / 0 | routed; `panel.csv`: the nets to the other boards |
+| Inverter 12 V 1.5 kW, high-frequency (P7b): 380 V control board | `inverter-hf-12-control-hv/` | 340 × 240 mm, 2 layers, 2 oz | 0 / 0 | routed; as the 48 V one (HVG pours, links by `autolink.py`) |
 | Gate controller 24 V (P9, D25): motor drive, protections, Arduino Nano and IR receiver | `gate-controller/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; the Nano on sockets, the TSOP38238 behind the enclosure's window; one supply link drawn by `tools/kicad/link.py` |
 | Pump controller (P9): control board + DIN-rail panel | `pump-control/` | 165 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; panel wiring in `panel.csv` |
 | Cordless trimmer drive 36 V (P9) | `trimmer-drive/` | 160 × 100 mm, 2 layers, 4 oz | 0 / 0 | routed; power on 3 mm tracks, ground poured on both layers |
