@@ -380,7 +380,9 @@ export const DESIGNS: Record<string, Design> = {
   // differ only in panel parts): the thyristor pairs on their heatsink, the autotransformer, the
   // breaker, the output contactor and the terminals on the panel; gate leads through J_MAINS
   'stabiliser-t-control': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: control board', revision: 'A',
-    classes: mains(['L_IN', 'N']), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' },
+    // its mains nets carry gate, sense and snubber currents (milliamperes, the snubbers' under
+    // 1 A): 0.5 mm tracks; 1.6 mm left 75 connections open in the mains zone
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
