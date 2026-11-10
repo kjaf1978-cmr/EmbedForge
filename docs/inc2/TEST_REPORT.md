@@ -661,6 +661,21 @@ capacitor (2.2 µF at 48 V, 10 µF at 24 V) now takes the 15 mm box on all units
 in topology (a 9 V supply, three MOSFETs per switch on the high-frequency unit, six bus
 capacitors) and have their own boards.
 
+**P9 products with their microcontrollers.** The irrigation controller became a main board (ESP32
+module, supplies, the cut-off) and an 8-zone channel module (up to eight on a ribbon bus); the gate
+controller and the block machine carry an Arduino Nano (5 V, the level their outputs were
+simulated at) and the gate a TSOP38238 IR receiver. The block machine's board now holds the whole
+machine: the mixer and vibrator contactors (their mirror contacts in the reset chain), four valves,
+six sensors and START; its tests were repeated (8 passed). Found on the way:
+- the block machine's 1 MΩ resistors that give the simulator a DC path on the 400 V nets were
+  product parts and put those nets on the 24 V board: they are now simulation-only;
+- an IC symbol with an even pin count put its pins half a grid off, and none connected (the
+  74HC4051): pins are now on the grid;
+- the parts library check found three symbols never simulated in a test (SCR, optotriac, CD4020)
+  and the MBR20100CT diode without its forward range; all added;
+- a broken bus wire could leave a channel module's register outputs enabled during a fault: each
+  module now pulls OE up (DFMEA IR-6).
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
