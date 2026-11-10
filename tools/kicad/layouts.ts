@@ -420,7 +420,7 @@ function inverterBoards(cells: 4 | 8 | 16, v: string): Record<string, Design> {
   // the optocouplers and pulse transformers that cross the barrier
   [`inverter-hf-${v}-control-lv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: battery-side control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 220, h: 160,
     panel: (p) => { const r = hfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || r.ctlHv.has(p.ref); } },
-  [`inverter-hf-${v}-control-hv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: 380 V control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 280, h: 200, block: 6, oneStage: true,
+  [`inverter-hf-${v}-control-hv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: 380 V control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 340, h: 240, block: 6, oneStage: true,
     panel: (p) => { const r = hfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || !r.ctlHv.has(p.ref); } },
   [`inverter-lf-${v}-power`]: { sheet: () => inverterLF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, 50 Hz transformer: power board`, revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
     heavy: LF_HEAVY, panel: (p) => !lfRefs(cells).pwr.has(p.ref), bolted: (p) => lfRefs(cells).off.has(p.ref), w: 280, h: 170,
