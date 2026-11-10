@@ -12,9 +12,10 @@
 // outputs stay off until the firmware has loaded the registers and cleared it), pulls every gate down (a BAT54 per channel
 // and one transistor) and tells the microcontroller, which
 // clears it (CLR) and skips the zone. 64 sensor inputs (0–3 V capacitive soil-moisture probes,
-// powered from 3.3 V) each through an SMAJ5.0A, 10k, two Schottky clamps to 0 V and 3.3 V and 100 nF into four
-// CD4067 multiplexers to the microcontroller's ADC. 24 V from a DIN-rail supply (fused), 5 V for
-// the logic from it (7805), 3.3 V for the sensors (LM1117-3.3 on the microcontroller board).
+// powered from 3.3 V) each through an SMAJ5.0A, 10k, two Schottky clamps to 0 V and 3.3 V and 100 nF into eight
+// 74HC4051 multiplexers (3.3 V) to the microcontroller's ADC. 24 V from a DIN-rail supply (fused),
+// 5 V from it (a switching regulator), 3.3 V for the logic and sensors (AMS1117-3.3). The product's
+// boards: irrigationBoards.ts.
 
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
@@ -119,7 +120,7 @@ export function irrigationFront(o: IrrigationOptions = {}): { sheet: Sheet; nb: 
     .part('DSH1', 'diode', 200, 820, { value: 'BAT54' }, { '2': 'MX1', '1': 'V33' }, 3)
     .part('DSL1', 'diode', 200, 980, { value: 'BAT54' }, { '2': 'GND', '1': 'MX1' }, 3)
     .part('CS1', 'capacitor', 300, 980, { value: '100n', vmax: '50' }, { '1': 'MX1', '2': 'GND' }, 1)
-    // the multiplexer's input (CD4067 on 5 V: its own input diodes and leakage, as 1 MΩ)
+    // the multiplexer's input (74HC4051: its own input diodes and leakage, as 1 MΩ)
     .part('RMX', 'resistor', 400, 980, { value: '1M' }, { '1': 'MX1', '2': 'GND' }, 1);
   nb.v('OUT1').v('OUT2').v('OCN').v('MX1').v('OE').v('G2').v('GCL').v('BPD').v('POR').v('LTA').v('SRF').i('QV1', '2').i('QV2', '2').i('RV2', '1').i('QCL', '2');
   nb.sim({ type: 'tran', stop: o.stop ?? '40m', step: '1u', start: 'zero', thin: true });
