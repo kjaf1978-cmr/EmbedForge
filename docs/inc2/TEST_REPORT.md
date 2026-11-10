@@ -676,6 +676,14 @@ six sensors and START; its tests were repeated (8 passed). Found on the way:
 - a broken bus wire could leave a channel module's register outputs enabled during a fault: each
   module now pulls OE up (DFMEA IR-6).
 
+**The full test suite** (every test file, the long runs excepted) was run again after this work.
+It found one fault in a design: the 5 kW TVS added across the charger's PV input in P5 was
+unidirectional, so an array connected the wrong way round drove its short-circuit current (36 A)
+forward through it, where the charger's own reverse protection had blocked it. It is now the
+bidirectional 5KP130CA (the same clamping); the reversed-array and surge tests pass again. The other
+failures were the run overlapping edits in progress, or time limits under the load of four
+routers and two long simulations: those tests got limits that hold under load.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
