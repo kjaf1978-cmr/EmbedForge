@@ -18,6 +18,7 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Inverter 48 V 5 kW, high-frequency (P7b): 380 V power board | `inverter-hf-48-power-hv/` | 140 × 270 mm, 2 layers, 4 oz | 0 / 0 | routed; conformal coating required (0.8 mm, IPC-2221 B4); the drivers' HVG poured after routing |
 | Inverter 48 V 5 kW, high-frequency (P7b): battery-side control board | `inverter-hf-48-control-lv/` | 220 × 160 mm, 2 layers, 2 oz | 0 / 0 | routed; `panel.csv`: the nets to the other boards (J_PANEL, J_PANEL2) |
 | Gate controller 24 V (P9, D25): motor drive and protections | `gate-controller/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed (automatic placement; a placement plan would shorten the power paths) |
+| Pump controller (P9): control board + DIN-rail panel | `pump-control/` | 165 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; panel wiring in `panel.csv` |
 
 ## What a folder holds
 

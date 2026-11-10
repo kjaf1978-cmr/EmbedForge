@@ -361,7 +361,9 @@ export const DESIGNS: Record<string, Design> = {
   // two connectors to the panel
   // P9: the pump controller's board (supply, electrodes, timers, logic, the pilot relay); the
   // contactor, breaker and terminals on the DIN rail
-  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'A', classes: mains(['L', 'N']), panel: (p) => PANEL.has(p.sym) },
+  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'A', classes: mains(['L', 'N']), panel: (p) => PANEL.has(p.sym),
+    // the one connection Freerouting left: the pilot relay's fused mains feed (F2 to K5's contact)
+    post: { tracks: [{ net: 'LF2', layer: 'F.Cu', width: 1.6, pts: [[36.29, 82.5], [36.29, 100.25], [46.75, 100.25]] }] } },
   // P9: the trimmer's drive, one board in the handle (the MOSFET and the diode on a small
   // heatsink at the edge); the motor current (40 A peaks) on 3 mm tracks in 4 oz copper
   'trimmer-drive': { sheet: () => trimmer().sheet, title: 'Cordless trimmer drive 36 V', revision: 'A',
