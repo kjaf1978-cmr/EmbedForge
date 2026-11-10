@@ -501,13 +501,15 @@ export const DESIGNS: Record<string, Design> = {
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
-  'block-machine': { sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit and 24 V outputs', revision: 'A',
-    classes: () => [POWER(['V24', 'V24F', 'V24S', 'KPD', 'SVD', 'GND'])], panel: (p) => PANEL.has(p.sym) },
+  'block-machine': { sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit, 24 V outputs, inputs and Arduino Nano', revision: 'A',
+    classes: () => [POWER(['V24', 'V24F', 'V24S', 'KPD', 'SVD', 'SVD2', 'SVD3', 'SVD4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 170, h: 120 },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
   'irrigation-module': { sheet: () => irrigationModule().sheet, title: 'Irrigation controller: 8-zone channel module (up to 8 per controller)', revision: 'A',
-    classes: () => [IRR_POWER], w: 230, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 230, y0: 16, y1: 80 } },
+    classes: () => [IRR_POWER], w: 230, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 230, y0: 16, y1: 80 },
+    // the sensors' supply link Freerouting left (link.py, checked through route.py --post-only)
+    post: { tracks: [{ net: 'V33S', layer: 'F.Cu', width: 0.5, pts: [[45.2,  88.0],  [45.25,  88.0],  [42.5,  90.75],  [21.75,  90.75],  [17.25,  86.25],  [17.2,  86.2981]] }], vias: [{ net: 'V33S', at: [17.25,  86.25] }] } },
   'irrigation-main': { sheet: () => irrigationMain().sheet, title: 'Irrigation controller: main board (supplies, ESP32, overcurrent cut-off, bus)', revision: 'A',
     classes: () => [IRR_POWER], w: 130, h: 100,
     plan: irrMainPlan,
