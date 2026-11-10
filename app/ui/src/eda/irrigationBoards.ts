@@ -52,6 +52,9 @@ export function irrigationModule(): { sheet: Sheet; nb: NB } {
     .part('U2', 'hc595', 450, 0, { value: '74HC595' }, { '14': 'SR2', '11': 'SRCLK', '12': 'RCLK', '13': 'OE', '10': 'V33', '16': 'V33', '8': 'GND', '15': 'MXEN', '9': 'SO' })
     // the multiplexer off while the registers' outputs are off (OE high at power-up and on a fault)
     .part('RMXE', 'resistor', 620, -100, { value: '10k' }, { '1': 'V33', '2': 'MXEN' }, 1)
+    // OE held high (outputs off) if the ribbon's OE conductor breaks; 1 MΩ, so eight modules
+    // (125 kΩ) against the main board's 10 kΩ still leave OE at 0.25 V when it is low
+    .part('ROEU', 'resistor', 300, -100, { value: '1M' }, { '1': 'V33', '2': 'OE' }, 1)
     .part('CD1', 'capacitor', 150, -150, { value: '100n', vmax: '50' }, { '1': 'V33', '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 450, -150, { value: '100n', vmax: '50' }, { '1': 'V33', '2': 'GND' }, 1)
     .part('U3', 'hc4051', 800, 0, { value: '74HC4051' }, { '13': 'MX1', '14': 'MX2', '15': 'MX3', '12': 'MX4', '1': 'MX5', '5': 'MX6', '2': 'MX7', '4': 'MX8', '11': 'A0', '10': 'A1', '9': 'A2', '6': 'MXEN', '3': 'ANA', '16': 'V33', '8': 'GND', '7': 'GND' })
