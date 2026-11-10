@@ -206,8 +206,11 @@ autotransformer (150 … 280 V) switched by seven anti-parallel thyristor pairs 
   the seven phototransistors in series pull OFFN low only when every pair blocks. After
   0.15 ms of that the latch takes the new tap and its pair fires. A pair that has failed short
   never blocks, so no second tap is fired onto it.
-- Power-up hold 0.3 s; output contactor (32 / 65 / 95 A, coil on the 230 V tap through the
-  output relay) after the restart delay; protection: 190 … 255 V, a change stuck for 0.12 s,
+- Power-up hold 0.3 s; output contactor (32 / 65 / 95 A, Siemens 3RT2027/2037/2046-1NP30)
+  after the restart delay. Its coil is on the 230 V tap through the output relay and is a
+  wide-range 200–277 V AC/DC type. At the lowest input (140 V) that tap gives only 213 V,
+  93 % of a 230 V coil and close to its 85 % pull-in, and the 10 and 15 kVA outputs never closed
+  in simulation; protection: 190 … 255 V, a change stuck for 0.12 s,
   heatsink above 85 °C. Input: breaker 40 / 80 / 125 A C, 20D471K.
 
 Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).

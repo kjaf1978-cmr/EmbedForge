@@ -26,7 +26,7 @@ describe('block moulding machine: safety circuit and outputs', () => {
   });
   it('power-up: the safety rail stays off (no automatic start) even with the microcontroller commanding the pump and the valve', () => {
     const s = run({ pump: 0.05, valve: 0.05, stop: '0.5' });
-    expect(s.v('V24S', 0.5)).toBeLessThan(1);
+    expect(s.v('V24S', 0.5)).toBeLessThan(3); // off: the lamp's knee at most
     expect(Math.max(...s.iv.map(Math.abs))).toBeLessThan(0.01);
   }, 600_000);
   it('reset: K1 and K2 pull in and hold, the rail is on; the pump contactor and the valve follow the microcontroller; the valve releases within 5 ms (38 V clamp); no part over its ratings', () => {
@@ -41,13 +41,13 @@ describe('block moulding machine: safety circuit and outputs', () => {
   it('E-stop while running: the rail falls within 50 ms and stays off when the E-stop is released; the valve and the pump are off', () => {
     const s = run({ reset: 0.1, pump: 0.4, valve: 0.5, estop: 0.6, estopTo: 0.8, stop: '1.2' });
     expect(s.offAfter(0.6)).toBeLessThan(0.05);
-    expect(s.v('V24S', 1.2)).toBeLessThan(1);
+    expect(s.v('V24S', 1.2)).toBeLessThan(3); // off: the lamp's knee at most
     expect(Math.abs(s.iv[s.iv.length - 1])).toBeLessThan(0.01);
   }, 600_000);
   it('RESET held down (jammed) through an E-stop: after the E-stop is released the machine does not restart', () => {
     const s = run({ reset: 0.1, resetFor: 1.5, estop: 0.6, estopTo: 0.8, stop: '1.2' });
     expect(s.v('V24S', 0.5)).toBeGreaterThan(22);
-    expect(s.v('V24S', 1.2)).toBeLessThan(1);
+    expect(s.v('V24S', 1.2)).toBeLessThan(3); // off: the lamp's knee at most
   }, 600_000);
   it('one E-stop channel bridged (a cross short): the other channel still stops the machine', () => {
     const s = run({ ch1Bridged: true, reset: 0.1, estop: 0.6, stop: '1' });
@@ -56,12 +56,12 @@ describe('block moulding machine: safety circuit and outputs', () => {
   }, 600_000);
   it('K1 welded from power-up: the reset is refused (K1\'s mirror contact is open)', () => {
     const s = run({ k1Welded: true, reset: 0.1, stop: '0.5' });
-    expect(s.v('V24S', 0.5)).toBeLessThan(1);
+    expect(s.v('V24S', 0.5)).toBeLessThan(3); // off: the lamp's knee at most
   }, 600_000);
   it('K1 welds while running: the E-stop still stops the machine through K2, and the next reset is refused', () => {
     const s = run({ reset: 0.1, k1WeldAt: 0.3, estop: 0.6, estopTo: 0.8, reset2: 1.0, stop: '1.4' });
     expect(s.v('V24S', 0.5)).toBeGreaterThan(22);
     expect(s.offAfter(0.6)).toBeLessThan(0.05);
-    expect(s.v('V24S', 1.4)).toBeLessThan(1);
+    expect(s.v('V24S', 1.4)).toBeLessThan(3); // off: the lamp's knee at most
   }, 600_000);
 });

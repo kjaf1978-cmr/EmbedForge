@@ -14,7 +14,7 @@
 //   in series feed the safety rail V24S: every contactor coil and valve of the machine is fed from
 //   it, so the E-stop stops every motion whatever the microcontroller does;
 // - reset: RESET (NO) in series with the NC mirror contacts of K1, K2 and the pump's contactor
-//   (a welded contact prevents the reset), then a 100 µF capacitor into a reset relay K3: K1 and
+//   (a welded contact prevents the reset) into a reset relay K3 through a 100 µF capacitor: K1 and
 //   K2 get a pulse of about 0.2 s only, so a held or jammed button cannot restart the machine
 //   after an E-stop; K1 and K2 then hold through their own NO auxiliary contacts;
 // - the hydraulic pump's contactor (18 A, 24 V DC) and a solenoid valve (24 V 26 W) switched by
@@ -85,21 +85,30 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('XE2', 'terminal', 0, 400, { value: 'E-stop channel 2 (NC)' }, { '1': 'E2L' })
     .part('XE0', 'terminal', 0, 450, { value: 'E-stop common 0 V' }, { '1': 'GND' })
     // the feedback loop: RESET → NC mirror contacts of K1, K2 and the pump contactor KMP
-    .part('K1', 'contactor', 300, 300, { value: '9 A, coil 24 V DC' }, { A1: 'C1', A2: 'E1L', '1': 'V24F', '2': 'KS', '13': 'V24F', '14': 'C1', '21': 'RS1', '22': 'FB1' })
+    .part('K1', 'contactor', 300, 300, { value: '9 A, coil 24 V DC' }, { A1: 'C1', A2: 'E1L', '1': 'V24F', '2': 'KS', '13': 'V24F', '14': 'C1', '21': 'CRN', '22': 'FB1' })
     .part('K2', 'contactor', 500, 300, { value: '9 A, coil 24 V DC' }, { A1: 'C2', A2: 'E2L', '1': 'KS', '2': 'V24S', '13': 'V24F', '14': 'C2', '21': 'FB1', '22': 'FB2' })
     // the reset pulse: 100 µF into the reset relay K3 (1.6 kΩ coil: on for about 0.2 s), whose
     // contact gives K1 and K2 the full 24 V until their own contacts hold them (the capacitor
     // straight into the contactors' coils decayed before they pulled in, found in simulation)
-    .part('CR', 'capacitor_pol', 700, 250, { value: '100u', vmax: '50' }, { '1': 'FB3', '2': 'K3C' })
-    .part('RDR', 'resistor', 700, 350, { value: '4.7k' }, { '1': 'FB3', '2': 'GND' }, 1)
-    .part('K3', 'relay', 800, 300, { value: '24 V' }, { '1': 'K3C', '2': 'GND', '3': 'V24F', '5': 'RP' })
-    .part('DK3', 'diode', 850, 400, { value: '1N4148' }, { '2': 'GND', '1': 'K3C' }, 1)
+    // the capacitor right after RESET, ahead of the mirror contacts: it stays charged while the
+    // button is held, so the contacts re-closing at an E-stop give no second pulse (behind them it
+    // emptied while running and a held button restarted the machine, found in simulation); RDR
+    // empties it once the button is released
+    .part('CR', 'capacitor_pol', 700, 250, { value: '100u', vmax: '50' }, { '1': 'RS1', '2': 'CRN' })
+    .part('RDR', 'resistor', 700, 350, { value: '4.7k' }, { '1': 'RS1', '2': 'GND' }, 1)
+    // and charges through RCC whatever the mirror contacts do (through K3 alone it charged only
+    // until K1 and K2 pulled in)
+    .part('RCC', 'resistor', 750, 400, { value: '2.2k', pmax: '0.5' }, { '1': 'CRN', '2': 'GND' }, 1)
+    .part('K3', 'relay', 800, 300, { value: '24 V' }, { '1': 'FB3', '2': 'GND', '3': 'V24F', '5': 'RP' })
+    .part('DK3', 'diode', 850, 400, { value: '1N4148' }, { '2': 'GND', '1': 'FB3' }, 1)
     .part('RDP', 'resistor', 900, 350, { value: '10k' }, { '1': 'RP', '2': 'GND' }, 1)
     .part('DR1', 'diode', 800, 250, { value: '1N4007' }, { '2': 'RP', '1': 'C1' })
     .part('DR2', 'diode', 900, 250, { value: '1N4007' }, { '2': 'RP', '1': 'C2' })
     .part('DK1', 'diode', 300, 450, { value: '1N4007' }, { '2': 'E1L', '1': 'C1' }, 3)
     .part('DK2', 'diode', 500, 450, { value: '1N4007' }, { '2': 'E2L', '1': 'C2' }, 3)
-    .part('CS', 'capacitor_pol', 1000, 350, { value: '100u', vmax: '50' }, { '1': 'V24S', '2': 'GND' }, 1);
+    // "safety rail on" lamp. No capacitor on the rail: it kept the valves on after an E-stop
+    .part('RLS', 'resistor', 1100, 300, { value: '2.2k', pmax: '0.5' }, { '1': 'V24S', '2': 'LSA' })
+    .part('LS', 'led', 1100, 400, { colour: 'green' }, { '2': 'LSA', '1': 'GND' }, 1);
 
   // ---- outputs on the safety rail: the pump's contactor and a solenoid valve
   nb.block('outputs')
@@ -133,7 +142,7 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('DPX', 'diode', 1000, 700, { value: '1N4148' }, { '2': 'GND', '1': 'PXA' }, 1)
     .part('RIN', 'resistor', 1200, 650, { value: '10k' }, { '1': 'V5', '2': 'IN1' }, 1)
     .part('XIN', 'terminal', 1300, 650, { value: 'to the microcontroller: IN1 (low = target present)' }, { '1': 'IN1' });
-  nb.v('V24S').v('C1').v('C2').v('RP').v('K3C').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
+  nb.v('V24S').v('C1').v('C2').v('RP').v('CRN').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '20u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }

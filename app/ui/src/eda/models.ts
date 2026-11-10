@@ -255,6 +255,11 @@ const ctr = (ac3: number, coil: 'dc' | 'ac', vcoil: number, rcoil: number, lcoil
   model: { ac3, coil, vcoil, rcoil, lcoil },
 });
 export const CONTACTORS: NamedModel<ContactorModel>[] = [
+  // wide-range electronic coils (200–277 V AC/DC): they pull in from 170 V, so a coil on the
+  // stabilisers' 230 V tap closes at the lowest input (213 V there); modelled as rated 200 V
+  { name: '32 A, coil 200–277 V AC/DC', note: '3 poles AC-3 32 A, 1 NO + 1 NC auxiliary; wide-range coil 200–277 V AC/DC (electronic), pulls in from 170 V', model: { ac3: 32, coil: 'ac', vcoil: 200, rcoil: 260, lcoil: 10.4 } },
+  { name: '65 A, coil 200–277 V AC/DC', note: '3 poles AC-3 65 A, 1 NO + 1 NC auxiliary; wide-range coil 200–277 V AC/DC (electronic), pulls in from 170 V', model: { ac3: 65, coil: 'ac', vcoil: 200, rcoil: 130, lcoil: 5.2 } },
+  { name: '95 A, coil 200–277 V AC/DC', note: '3 poles AC-3 95 A, 1 NO + 1 NC auxiliary; wide-range coil 200–277 V AC/DC (electronic), pulls in from 170 V', model: { ac3: 95, coil: 'ac', vcoil: 200, rcoil: 87, lcoil: 3.5 } },
   ctr(9, 'ac', 230, 600, 20), ctr(18, 'ac', 230, 450, 16), ctr(32, 'ac', 230, 300, 12), ctr(65, 'ac', 230, 150, 6), ctr(95, 'ac', 230, 100, 4),
   ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
   // DC power contactor for battery circuits (pole 1–2 only; rated current on DC, not AC-3)

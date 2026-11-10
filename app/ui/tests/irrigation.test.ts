@@ -43,7 +43,7 @@ describe('irrigation controller: valve channels, overcurrent, sensor inputs', ()
   it('a valve shorted while on: the cut-off latches within 10 µs, every output off; the MOSFET above its 11 A pulse rating for under 2 µs', () => {
     const s = run({ offAt: 0.03, shortAt: 0.01, stop: '25m' });
     const k0 = s.x.findIndex((t) => t >= 0.01);
-    const kt = s.x.findIndex((t, k) => k > k0 && s.r.v['OCN'][k] < 1);
+    const kt = s.x.findIndex((_t, k) => k > k0 && s.r.v['OCN'][k] < 1);
     expect(s.x[kt] - 0.01).toBeLessThan(10e-6);
     expect(s.r.v['OCN'][s.x.length - 1]).toBeLessThan(1); // stays latched
     let above = 0;

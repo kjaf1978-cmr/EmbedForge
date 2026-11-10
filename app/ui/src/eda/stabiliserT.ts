@@ -38,9 +38,9 @@ export interface StabTOptions {
  *  gate resistors. The input current at the lowest input (140 V) is 36, 71 and 107 A; each
  *  thyristor of the conducting pair carries half of it (r.m.s. I/√2). */
 export const STABT_VARIANTS = {
-  5: { at: '5 kVA 230 V, taps 150–280 V', qf: '40', km: '32 A, coil 230 V AC', scr: 'VS-40TPS12', rg: '470', heatsink: '0.6' },
-  10: { at: '10 kVA 230 V, taps 150–280 V', qf: '80', km: '65 A, coil 230 V AC', scr: 'VS-70TPS16', rg: '470', heatsink: '0.3' },
-  15: { at: '15 kVA 230 V, taps 150–280 V', qf: '125', km: '95 A, coil 230 V AC', scr: 'VS-70TPS16', rg: '470', heatsink: '0.2' },
+  5: { at: '5 kVA 230 V, taps 150–280 V', qf: '40', km: '32 A, coil 200–277 V AC/DC', scr: 'VS-40TPS12', rg: '470', heatsink: '0.6' },
+  10: { at: '10 kVA 230 V, taps 150–280 V', qf: '80', km: '65 A, coil 200–277 V AC/DC', scr: 'VS-70TPS16', rg: '470', heatsink: '0.3' },
+  15: { at: '15 kVA 230 V, taps 150–280 V', qf: '125', km: '95 A, coil 200–277 V AC/DC', scr: 'VS-70TPS16', rg: '470', heatsink: '0.2' },
 } as const;
 
 export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
