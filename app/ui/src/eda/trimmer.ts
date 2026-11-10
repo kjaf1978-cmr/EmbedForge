@@ -24,7 +24,7 @@ export interface TrimmerOptions {
   vbat?: number;
   /** The head jammed (held still) from `jamAt`; the heatsink's and the motor's temperature. */
   jamAt?: number; tHeatsink?: number; tMotor?: number;
-  /** Test timing: the soft-start, jam-timer and power-up capacitors (product 4.7 µF, 22 µF, 1 µF). */
+  /** Test timing: the soft-start, jam-timer and power-up capacitors (product 4.7 µF, 6.8 µF, 1 µF). */
   softC?: string; jamC?: string; porC?: string;
   stop?: string;
 }
@@ -132,7 +132,7 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CLS', 'capacitor', 600, 1150, { value: '100n', vmax: '25' }, { '1': 'CLF', '2': 'GND' }, 1)
     .part('RJD', 'resistor', 650, 1150, { value: '1M' }, { '1': 'CLF', '2': 'GND' }, 1)
     .part('RJ', 'resistor', 700, 1050, { value: '100k' }, { '1': 'CLF', '2': 'IAV' })
-    .part('CJ', 'capacitor', 750, 1150, { value: o.jamC ?? '22u', vmax: '16' }, { '1': 'IAV', '2': 'GND' }, 1)
+    .part('CJ', 'capacitor', 750, 1150, { value: o.jamC ?? '6.8u', vmax: '16' }, { '1': 'IAV', '2': 'GND' }, 1)
     .part('UC3', 'comparator', 1000, 1050, { value: 'LM339', pkg: 'CA' }, { '3': 'VREF', '2': 'IAV', '1': 'FLTN', '8': V, '4': 'GND' })
     // the battery below 27.5 V (100k/10k: 2.5 V). Also the trigger's release: the input
     // capacitors fall within a millisecond once the main contact opens, so the drive is off before
