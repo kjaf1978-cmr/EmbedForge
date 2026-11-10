@@ -135,7 +135,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     // PERMIT: a diode AND of READY, DRYOK and not FAULT (10k up)
     .part('RPM', 'resistor', 1000, 1170, { value: '10k' }, { '1': V, '2': 'PERMIT' }, 1)
     .part('DP1', 'diode', 1000, 1250, { value: '1N4148' }, { '2': 'PERMIT', '1': 'RDY' })
-    .part('DP2', 'diode', 1000, 1450, { value: '1N4148' }, { '2': 'PERMIT', '1': 'DOK' })
+    .part('DP2', 'diode', 1000, 1450, { value: '1N4148' }, { '2': 'PERMIT', '1': 'DOKE' })
     .part('CD4', 'capacitor', 1100, 1250, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD5', 'capacitor', 1100, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD6', 'capacitor', 1100, 1650, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
@@ -165,10 +165,14 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CFQ', 'capacitor', 870, 2200, { value: '10n', vmax: '50' }, { '1': 'FLTQ', '2': 'GND' }, 1)
     .part('CRQ', 'capacitor', 870, 1950, { value: '10n', vmax: '50' }, { '1': 'RUNQ', '2': 'GND' }, 1)
     .part('DPF', 'diode', 950, 2100, { value: '1N4148' }, { '2': 'PERMIT', '1': 'FLTN' })
-    .part('UN7', 'nor2', 650, 2250, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'NSP1' })
-    .part('UN8', 'nor2', 800, 2250, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'NSP2' })
-    .part('UN14', 'nor2', 950, 2250, { value: V, pkg: 'NR4' }, { '1': 'GND', '2': 'GND', '3': 'NSP3' })
-    .part('UN15', 'nor2', 1100, 2250, { value: V, pkg: 'NR4' }, { '1': 'GND', '2': 'GND', '3': 'NSP4' })
+    // the dry lockout applies only after a dry spell: DSQ (set while the source is dry, cleared
+    // at power-up) and DOKE = DOK or no dry spell since power-up. Without it the pump waited the
+    // whole lockout (8.5 min) after every power cut, found in simulation
+    .part('UN7', 'nor2', 650, 2250, { value: V, pkg: 'NR2' }, { '1': 'WDN', '2': 'DSQ', '3': 'DSN' })
+    .part('UN8', 'nor2', 800, 2250, { value: V, pkg: 'NR2' }, { '1': 'POR', '2': 'DSN', '3': 'DSQ' })
+    .part('CDS', 'capacitor', 870, 2350, { value: '10n', vmax: '50' }, { '1': 'DSQ', '2': 'GND' }, 1)
+    .part('UN14', 'nor2', 950, 2250, { value: V, pkg: 'NR4' }, { '1': 'DOK', '2': 'DSN', '3': 'DOKN' })
+    .part('UN15', 'nor2', 1100, 2250, { value: V, pkg: 'NR4' }, { '1': 'DOKN', '2': 'DOKN', '3': 'DOKE' })
     .part('UN16', 'nor2', 1250, 2250, { value: V, pkg: 'NR4' }, { '1': 'GND', '2': 'GND', '3': 'NSP5' })
     .part('CD1', 'capacitor', 1000, 2350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 1100, 2350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
@@ -205,7 +209,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('X12', 'terminal', -1250, 1850, { value: 'source DRY' }, { '1': 'ED' });
   // the pump (test load): a 1.1 kW single-phase motor at its rated slip
   nb.block('load').part('MP', 'motor1', 1850, 1650, { value: '0.05' }, { '1': 'LM', '2': 'N' });
-  nb.v('LVL').v('RUNQ').v('PERMIT').v('FLTQ');
+  nb.v('LVL').v('RUNQ').v('PERMIT').v('FLTQ').v('DOKE').v('DSQ').v('RDY');
   nb.sim({ type: 'tran', stop: o.stop ?? '30', step: '1m', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }
