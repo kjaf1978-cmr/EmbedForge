@@ -628,6 +628,39 @@ K1 welding while running (the E-stop still stops, the next reset is refused). Fo
 state at 140, 230 and 300 V for each rating, sags and swells (resistive and power factor 0.8), the
 shorted thyristor pair, the hot heatsink and no load.
 
+## 3p. Boards: the routing pipeline and its checks (D43–D45, 10 November 2026)
+
+Every board in `hardware/` is generated from its schematic (`tools/kicad`), routed by Freerouting
+in up to three stages and checked twice: KiCad's design rule check, and an independent geometric
+check of every pair of copper items against the net-class clearances and the insulation
+distances (`route.py`, `geo_check`). A board is packaged only with no errors and no unconnected
+pads in both. Found and fixed while doing so:
+- **KiCad's check reported clean boards that were not.** Run from Python directly, KiCad 7's
+  scripted check skipped the clearance test, and a second check in the same process repeated the
+  first board's result (a search script found "clean" paths that crossed three nets). The check
+  now runs in a fresh shell process each time, and the geometric check runs beside it; their
+  errors are added together.
+- **Copper added after routing was filled with the wrong rules.** The post-routing step loaded
+  the board without its project file, so the pours were filled with KiCad's default clearance
+  instead of the net classes' (47 errors on the 12 V power board). The project file is now copied
+  beside the board first.
+- **Stage 3's tracks lay under the pours.** The pours were filled before stage 3 added its
+  tracks and were not filled again (a ground track through the bus plane). They are now filled
+  after stage 3.
+- **Links Freerouting leaves** (P4b's two boards, the 12 V high-frequency battery-side board, the
+  pump board, the high-frequency 380 V power board) are drawn in the design (`post`), each path
+  checked through the same post-routing step that builds the final board.
+- **Boards too dense to route** were split: the P4b control into a thyristor-pair driver (seven per
+  unit, the triac drivers isolating it from the logic) and a logic board; the high-frequency
+  inverter's control at its isolation barrier into a battery-side and a 380 V board.
+
+**24 V and 12 V inverters.** The 24 V units' parts and connections match the 48 V boards exactly,
+only values differ (`tools/kicad/variant.ts` checks parts, footprints and nets): each 48 V board's
+folder holds the 24 V parts list. One part needed a change for that: the bridge supply's coupling
+capacitor (2.2 µF at 48 V, 10 µF at 24 V) now takes the 15 mm box on all units. The 12 V units differ
+in topology (a 9 V supply, three MOSFETs per switch on the high-frequency unit, six bus
+capacitors) and have their own boards.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
