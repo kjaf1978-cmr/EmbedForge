@@ -79,6 +79,25 @@ range.
 | S-10 | Undervoltage passed to the load | Motors stall | Input below 140 V, a relay stuck off | Output cut-off below 190 V (S-1 circuit) | 8 | 2 | 2 | L | stabiliser.test (140 V gives 215 V; the cut-off window) |
 | S-11 | Diagnosis | — | — | An LED beside each relay coil (which tap), OUTPUT and FAULT LEDs | 4 | 3 | 3 | L | review |
 
+## 3b. Mains voltage stabilisers 5, 10 and 15 kVA (thyristor taps, P4b, D27/D41)
+
+Function: as section 3, for 5, 10 and 15 kVA, with the taps switched by anti-parallel thyristor
+pairs at the current zero (`src/eda/stabiliserT.ts`). The input breaker (40 / 80 / 125 A C), the
+output contactor (32 / 65 / 95 A, coil on the 230 V tap) and the thyristors (VS-40TPS12 for 5 kVA,
+VS-70TPS16 for 10 and 15 kVA) are sized per rating.
+
+| # | Failure mode | Effect | Cause | Design action (implemented) | S | O | D | AP | Verified by |
+|---|---|---|---|---|---|---|---|---|---|
+| ST-1 | Two taps conducting at once | A winding section shorted through two pairs: kA, thyristors and winding destroyed | A new pair fired while the old one still conducts (a thyristor stops only at its current's zero) | Break-before-make: CHG takes every gate off; the latch takes the new tap only after **every pair blocks** (a voltage across each, seen by its own optocoupler, seven phototransistors in series) for 0.15 ms. A current window on the input, the first design, could not tell a stopped pair from a slow zero crossing (1.5 kA with a shorted pair, found in simulation) | 10 | 2 | 2 | L | stabiliserT.test: tap changes (resistive, PF 0.8, swell and sag), thyristor peak within the rated input's |
+| ST-2 | A thyristor pair fails short | It holds its tap; a change onto another tap would short a section | Overload, surge, end of life | A shorted pair never blocks, so no second tap is ever fired onto it (ST-1); after 0.12 s of a pending change the stuck-change protection opens the output contactor (FAULT LED) | 9 | 3 | 2 | L | stabiliserT.test: "a thyristor pair failed short …" |
+| ST-3 | Start-up on a wrong tap | 1 kV on the winding's top tap (found in simulation: the comparators' pulled-up outputs chose the 150 V tap at 230 V in) | The comparators and the sense filter not yet working | Power-up hold: the gate drivers' emitters reach ground only 0.3 s after the 12 V rail (10k, 47 µF, 5.1 V Zener, QPE); the output contactor waits for its restart delay (about 8 s) | 8 | 2 | 2 | L | stabiliserT.test: steady state runs (no part over its ratings from the start) |
+| ST-4 | Opto-triac or snubber over its rating | Gate drive dead, a pair never fires or fires at random | 470 V peak on the highest taps at 300 V in; firing at up to 470 V | FOD4218 (800 V, 1 A peak), 470 Ω in its path (1 A at 470 V); snubbers 47 Ω + 100 nF 1000 V. With a 600 V MOC3052 and 330 Ω both ratings were exceeded (found in simulation) | 7 | 2 | 2 | L | stabiliserT.test: 300 V in, no part over its ratings |
+| ST-5 | Thyristor overheating | Thermal runaway, a pair shorts (ST-2) | Full load at 140 V in, hot ambient, fan or heatsink failure | Heatsink per rating (0.6 / 0.3 / 0.2 K/W); NTC on the heatsink: above 85 °C the protection opens the output (FAULT) | 9 | 3 | 2 | L | stabiliserT.test: "the heatsink above 85 °C" |
+| ST-6 | Output over- or undervoltage | Appliances destroyed or motors stall | Control failure, a stuck tap | Independent protection as S-1 (190 … 255 V at the 230 V tap) opens the contactor | 9 | 2 | 2 | L | stabiliserT.test; S-1 |
+| ST-7 | No tap change at no load | Output out of band with nothing connected | Only the autotransformer's magnetising current flows | The change waits for the pairs to block, not for a load current | 5 | 2 | 2 | L | stabiliserT.test: "no load …" |
+| ST-8 | Sense resistors overheating | Drift, open sense: a pair seen as conducting, changes stop (ST-2 then opens the output) | 0.54 W in each 22k at 300 V in | 1 W resistors (2 × 22k per pair) | 5 | 2 | 3 | L | stabiliserT.test: 300 V in |
+| ST-9 | Surge | Thyristors or opto-triacs destroyed | Lightning, switching | 20D471K varistor at the input; RC snubber on every pair; 1600 V thyristors at 10 and 15 kVA | 8 | 3 | 4 | M | review (P5 adds the coordinated SPDs) |
+
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 
 Function: charge the battery from the array with maximum power, never above 56.6 V (3.54 V per
