@@ -98,6 +98,20 @@ VS-70TPS16 for 10 and 15 kVA) are sized per rating.
 | ST-8 | Sense resistors overheating | Drift, open sense: a pair seen as conducting, changes stop (ST-2 then opens the output) | 0.54 W in each 22k at 300 V in | 1 W resistors (2 × 22k per pair) | 5 | 2 | 3 | L | stabiliserT.test: 300 V in |
 | ST-9 | Surge | Thyristors or opto-triacs destroyed | Lightning, switching | 20D471K varistor at the input; RC snubber on every pair; 1600 V thyristors at 10 and 15 kVA | 8 | 3 | 4 | M | review (P5 adds the coordinated SPDs) |
 
+## 3c. Surge and lightning protection (P5)
+
+Function: keep surges at the appliances below their withstand (category I, 1.5 kV) and at the
+PV charger's input below its MOSFETs' 200 V; every SPD survives the surges of its class.
+
+| # | Failure mode | Effect | Cause | Design action (implemented) | S | O | D | AP | Verified by |
+|---|---|---|---|---|---|---|---|---|---|
+| SP-1 | Lightning current through the installation | SPDs and appliances destroyed, fire | Strike on the line or the building | Type 1+2 SPD at the PEN split (Iimp 12.5 kA), main earthing terminal on an earth electrode ≤ 10 Ω | 9 | 3 | 3 | M | surge.test: 12.5 kA 10/350 µs |
+| SP-2 | Let-through above the appliances' withstand | Electronics destroyed | Up of the upstream SPDs plus the cable's L·di/dt | Type 2 in the sub-board, type 3 at the socket of sensitive appliances, coordinated by ≥ 10 m of cable | 8 | 3 | 2 | L | surge.test: all three surges below 1.5 kV; without type 3 above it |
+| SP-3 | SPD at the end of its life (varistor degraded) | Leakage, heating, fire; then no protection | Many surges, TOV | DIN-rail SPDs with thermal disconnector and status window (and remote contact); the SPDs' own backup fuse per maker | 8 | 3 | 3 | M | review; maintenance FAQ: check the windows yearly and after storms |
+| SP-4 | Temporary overvoltage (lost neutral, 400 V) | Varistors conduct at 50 Hz and burn | Broken PEN | 275 V SPDs survive seconds only: the stabiliser's and inverters' own cut-offs; the thermal disconnector takes the SPD off | 8 | 2 | 3 | L | review |
+| SP-5 | Surge into the PV charger | MOSFETs destroyed | Induced on the DC cable | Y varistors at the array and the charger, 5 kW TVS across the charger input | 8 | 3 | 2 | L | surge.test: 195 V with the TVS, 205 V without |
+| SP-6 | Earth potential rise | Flashover from earthed parts to incoming lines | Lightning current in the earth electrode (tens of kV) | All services (mains, PV, data) bonded at the main earthing terminal and protected there | 8 | 2 | 3 | L | surge.test (PE rises 21–35 kV; the SPDs keep L–PE at the socket below 1 kV) |
+
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 
 Function: charge the battery from the array with maximum power, never above 56.6 V (3.54 V per

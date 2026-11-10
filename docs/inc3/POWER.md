@@ -212,6 +212,30 @@ autotransformer (150 … 280 V) switched by seven anti-parallel thyristor pairs 
 
 Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).
 
+### P5 — surge and lightning protection (D20; DFMEA section 3c)
+
+`src/eda/surge.ts`, installation designs (DIN-rail SPDs, earthing, wiring), verified by
+simulation (`tests/surge.test.ts`, TEST_REPORT.md section 3n). The cables are their inductance
+(about 1 µH per metre of conductor) and resistance; the SPDs coordinate through them.
+
+Mains house (TN-C-S, single phase): main board: a varistor-based type 1+2 SPD L–PE (275 V,
+Iimp 12.5 kA 10/350 µs, Up ≤ 1.5 kV) at the PEN split (main earthing terminal on an earth
+electrode of ≤ 10 Ω); 10 m (10 mm²) to the sub-board: a type 2 SPD L–PE (275 V, In 20 kA) and a
+600 V gas discharge tube N–PE; 15 m (2.5 mm²) to the socket of sensitive appliances: a type 3
+outlet (14D431K L–N and L–PE, GDT N–PE). Results: the appliance sees at most about 850 V L–N and
+800 V L–PE for 12.5 kA 10/350 µs and 20 kA 8/20 µs into the service line and for a 6 kV / 3 kA
+combination wave at the socket (overvoltage category I: 1.5 kV); every SPD within its ratings.
+Without the type 3 outlet the socket surge reaches the appliance at 5.75 kV, and the induced
+surge at 1.86 kV L–PE: sensitive appliances need it. (A spark-gap type 1 SPD, Up 4 kV, would need
+a second type 2 within a few metres.)
+
+PV house (the 48 V MPPT charger's array, three 280 Wp in series, 25 m of DC cable with its PE
+conductor alongside): two 20D201K (170 V DC) in Y (DC+ and DC− to the frame) in the array box,
+one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE) and a 5KP130A
+(5 kW TVS) across the charger's input. With 5 kA 8/20 µs induced into the cable the charger's
+input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
+board gets the 5KP130A across its PV input (beside RVPV).
+
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a
