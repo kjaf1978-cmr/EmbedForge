@@ -36,8 +36,8 @@ describe('thyristor-switched stabiliser: the drawing', () => {
 describe.runIf(LONG)('thyristor-switched stabiliser: steady state at full load', () => {
   for (const kva of [5, 10, 15] as const) for (const v of [140, 230, 300]) {
     it(`${kva} kVA, ${v} V in: tap ${tapFor(v)} V, output ${(v * 230 / tapFor(v)).toFixed(0)} V ±2 %; the thyristors' peak within the rated input's; no part over its ratings`, () => {
-      const s = run({ kva, vin: v, stop: '1' });
-      const o = s.rms(s.out, 0.9);
+      const s = run({ kva, vin: v, stop: '1.2' });
+      const o = s.rms(s.out, 1.1);
       expect(o).toBeGreaterThan(v * 230 / tapFor(v) * 0.98);
       expect(o).toBeLessThan(v * 230 / tapFor(v) * 1.02);
       expect(s.scrPeak).toBeLessThan(1.5 * ipk(kva));
