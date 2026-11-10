@@ -37,6 +37,7 @@ const tvs = (name: string, vrwm: number, vbr: number, vc: number, ipp: number): 
 export const TVS: NamedModel<TvsModel>[] = [
   ...tvs('SMAJ5.0', 5, 6.7, 9.2, 43.5), ...tvs('SMAJ12', 12, 14, 19.9, 20.1), ...tvs('SMAJ24', 24, 28.1, 38.9, 10.3), ...tvs('SMAJ33', 33, 38.7, 53.3, 7.5),
   // 5 kW (10/1000 µs), P600 case: absorbs the inductor energy of a converter when its battery is cut off
+  { name: '5KP130A', note: 'TVS diode 5 kW (P600), unidirectional: stand-off 130 V, breakdown 144 V, clamps at 209 V with 23.9 A: across a PV input up to 130 V open circuit', model: { vrwm: 130, vbr: 144, vc: 209, ipp: 23.9, bidirectional: false } },
   { name: '5KP64A', note: 'TVS diode 5 kW (P600), unidirectional: stand-off 64 V, breakdown 71.1 V, clamps at 103 V with 48.5 A', model: { vrwm: 64, vbr: 71.1, vc: 103, ipp: 48.5, bidirectional: false } },
 ];
 
@@ -214,6 +215,7 @@ export const VARISTORS: NamedModel<VaristorModel>[] = [
   { name: '14D431K', note: 'Ø 14 mm disc, 275 V AC (430 V at 1 mA), clamps 710 V at 50 A, 6 kA, 125 J', model: { vn: 430, vc: 710, ic: 50, imax: 6000, energy: 125, vac: 275 } },
   { name: '14D681K', note: 'Ø 14 mm disc, 420 V AC, for 400 V line voltage: clamps 1120 V at 50 A, 6 kA, 190 J', model: { vn: 680, vc: 1120, ic: 50, imax: 6000, energy: 190, vac: 420 } },
   { name: '14D201K', note: 'Ø 14 mm disc, 130 V AC / 170 V DC (200 V at 1 mA), clamps 340 V at 50 A, 6 kA, 60 J: inputs of PV chargers up to 150 V', model: { vn: 200, vc: 340, ic: 50, imax: 6000, energy: 60, vac: 130 } },
+  { name: '20D201K', note: 'Ø 20 mm disc, 130 V AC / 170 V DC (200 V at 1 mA), clamps 340 V at 100 A, 10 kA, 100 J: DC surge arrester of 48 V PV arrays (array box and charger, in Y to PE)', model: { vn: 200, vc: 340, ic: 100, imax: 10000, energy: 100, vac: 130 } },
   { name: '14D121K', note: 'Ø 14 mm disc, 75 V AC / 100 V DC (120 V at 1 mA), clamps 200 V at 50 A, 4.5 kA, 30 J', model: { vn: 120, vc: 200, ic: 50, imax: 4500, energy: 30, vac: 75 } },
   { name: 'SPD-T2 275', note: 'surge protective device type 2, 275 V AC, In 20 kA, Imax 40 kA (8/20 µs), Up ≤ 1.3 kV: a 40 kA MOV block', model: { vn: 430, vc: 1300, ic: 20000, imax: 40000, energy: 1200, vac: 275 } },
   { name: 'SPD-T2 PV 1000', note: 'surge protective device type 2 for PV, 1000 V DC, In 20 kA, Imax 40 kA, Up ≤ 3.8 kV: MOV blocks in series', model: { vn: 1250, vc: 3800, ic: 20000, imax: 40000, energy: 2400, vac: 700 } },
