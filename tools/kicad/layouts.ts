@@ -238,7 +238,8 @@ const LF_PLANES: PlanZone[] = [
 // output's N and the sine bridge's leg B joins the two sides; 8 mm, a reinforced barrier, could
 // not be routed in 80 minutes), the output line 3.2 mm
 const HF_PWR_BLOCKS = new Set(['dc-dc bridge', 'bus', 'current sense', 'dc-dc output', 'bridge']);
-const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1'];
+// TCT: the bus current transformer is a window type on the busbar from J_BUS to J_BUSD
+const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1', 'TCT'];
 const HF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
 let hfCache: { pwr: Set<string>; lv: Set<string>; hvp: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ref: (k: string) => string } | undefined;
 const hfRefs = () => hfCache ??= (() => {
@@ -265,15 +266,15 @@ const hfPowerHv = () => { const { sheet } = { sheet: inverterHF({ load: '0' }).s
 const HF_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QHA1', 60], ['QHA2', 80], ['QHB2', 100], ['QHB1', 120], ['QLB1', 140], ['QLB2', 160],
   ['QIHA', 200], ['QILA', 222], ['QILB', 250], ['QIHB', 276]];
 const HF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 55, 30, 0], ['CE2', 55, 80, 0], ['CB1', 105, 20, 0], ['CB2', 105, 50, 0], ['CB3', 105, 80, 0],
-  ['CB4', 150, 20, 0], ['CB5', 150, 50, 0], ['CB6', 150, 80, 0], ['TCT', 90, 110, 0], ['CBD1', 75, 126, 0], ['CBD2', 105, 126, 0], ['X2', 15, 40, 0],
+  ['CB4', 150, 20, 0], ['CB5', 150, 50, 0], ['CB6', 150, 80, 0], ['CBD1', 75, 126, 0], ['CBD2', 105, 126, 0], ['X2', 15, 40, 0],
   ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 100, 0], ['CHF2', 270, 100, 0], ['RSHI', 241, 112, 0]];
-const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 200, 112], ['J_GND', 15, 65]];
+const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 200, 112], ['J_BUSD', 86.19, 108]];
 const hfPlan = (): Placed[] => {
   const { ref } = hfRefs();
   const gate = (k: string) => `RG${k.slice(1)}`;
   return [...HF_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 150, rot: 0 as const })),
     ...HF_ROW.map(([k, x]) => ({ ref: ref(gate(k)), x: x - 5.45, y: 163, rot: 90 as const })),
-    ...HF_FIX.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...HF_LUGS.slice(0, 5).map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
+    ...HF_FIX.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...HF_LUGS.map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
 };
 const HF_BARS: PlanTrack[] = (() => {
   const t: PlanTrack[] = [], stub = (net: string, layer: 'F.Cu' | 'B.Cu', x: number, y1: number, w = 4) => t.push({ net, layer, width: w, pts: [[x, 150], [x, y1]] });
