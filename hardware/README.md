@@ -12,6 +12,10 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Mains change-over 3P+N, 32 A (P3): control board + DIN-rail panel | `changeover-3p/` | 225 × 150 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
 | MPPT solar charger 48 V, 80 A (P6): power board | `mppt-power/` | 280 × 160 mm, 2 layers, 4 oz | 0 / 0 | routed; copper bars and lugs below |
 | MPPT solar charger 48 V, 80 A (P6): control board | `mppt-control/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; `link.csv`: the nets to the power board |
+| Inverter 48 V 5 kW, 50 Hz transformer (P7a): power board | `inverter-lf-48-power/` | 280 × 170 mm, 2 layers, 4 oz | 0 / 0 | routed; copper bars and lugs, bus and ground planes |
+| Inverter 48 V 5 kW, 50 Hz transformer (P7a): control board | `inverter-lf-48-control/` | 200 × 150 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart |
+| Inverter 48 V 5 kW, high-frequency (P7b): battery-side power board | `inverter-hf-48-power-lv/` | 180 × 230 mm, 2 layers, 4 oz | 0 / 0 | routed; copper bars, the current transformer off-board |
+| Inverter 48 V 5 kW, high-frequency (P7b): 380 V power board | `inverter-hf-48-power-hv/` | 140 × 270 mm, 2 layers, 4 oz | 0 / 0 | routed; conformal coating required (0.8 mm, IPC-2221 B4); the drivers' HVG poured after routing |
 
 ## What a folder holds
 

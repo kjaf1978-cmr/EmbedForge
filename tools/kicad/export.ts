@@ -45,7 +45,7 @@ const pinKeep = (want: boolean): [number, number, number, number][] => {
   return r;
 };
 // the zones for the two-stage routing (route.py): the mains zone is x < split
-writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: d.region ? d.region.x0 - 3 : placed ? undefined : placement.split, edge: d.edge ?? (placed ? undefined : placement.edge), keep1: [...(d.keep1 ?? []), ...pinKeep(false)], keep2: pinKeep(true), w: b.w, h: b.h }));
+writeFileSync(join(out, 'zones.json'), JSON.stringify({ split: d.region ? d.region.x0 - 3 : placed ? undefined : placement.split, edge: d.edge ?? (placed ? undefined : placement.edge), keep1: [...(d.keep1 ?? []), ...pinKeep(false)], keep2: pinKeep(true), w: b.w, h: b.h, post: d.post }));
 // the router's class-to-class clearances (route.py adds them to the Specctra file)
 writeFileSync(join(out, 'apart.json'), JSON.stringify(classes.filter((c) => c.apart).map((c) => ({ cls: c.name, mm: c.apart }))));
 writeFileSync(join(out, 'nets.txt'), nl.nets.join('\n') + '\n');

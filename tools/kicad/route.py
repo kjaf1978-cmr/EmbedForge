@@ -131,6 +131,30 @@ def keepout(board, x0, y0, x1, y1):
     return z
 
 
+def apply_post(board, post):
+    """Copper added after the autorouter (layouts.ts `post`): pours (thermal reliefs, 0.8 mm or
+    their clearance) and tracks."""
+    import pcbnew
+    layer = {'F.Cu': pcbnew.F_Cu, 'B.Cu': pcbnew.B_Cu}
+    mm = lambda x, y: pcbnew.VECTOR2I(pcbnew.FromMM(x), pcbnew.FromMM(y))
+    for zd in (post or {}).get('zones') or []:
+        z = pcbnew.ZONE(board); z.SetLayer(layer[zd['layer']]); z.SetNet(board.FindNet(zd['net']))
+        z.SetLocalClearance(pcbnew.FromMM(zd.get('clearance', 0.8))); z.SetMinThickness(pcbnew.FromMM(0.5))
+        z.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
+        z.SetThermalReliefGap(pcbnew.FromMM(0.8)); z.SetThermalReliefSpokeWidth(pcbnew.FromMM(0.8))
+        z.SetAssignedPriority(5)
+        o = z.Outline(); o.NewOutline()
+        for x, y in zd['pts']:
+            o.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
+        board.Add(z)
+    for td in (post or {}).get('tracks') or []:
+        for (x0, y0), (x1, y1) in zip(td['pts'], td['pts'][1:]):
+            t = pcbnew.PCB_TRACK(board); t.SetLayer(layer[td['layer']]); t.SetNet(board.FindNet(td['net']))
+            t.SetWidth(pcbnew.FromMM(td['width'])); t.SetStart(mm(x0, y0)); t.SetEnd(mm(x1, y1)); t.SetLocked(True)
+            board.Add(t)
+    return bool(post)
+
+
 def freeroute(board, d, tag, passes, apart=True):
     """Freerouting on a board (DSN out, SES back); returns the session file."""
     import pcbnew
@@ -159,6 +183,16 @@ def main():
     pcb = os.path.join(d, 'board.kicad_pcb')
     zones = json.load(open(os.path.join(d, 'zones.json'))) if os.path.exists(os.path.join(d, 'zones.json')) else {}
     split = zones.get('split') or 0
+    routed = os.path.join(d, 'routed.kicad_pcb')
+    pre = os.path.join(d, 'routed-pre.kicad_pcb')
+    if '--post-only' in sys.argv:
+        # the routed board kept from the last run (before its post copper): only the post copper,
+        # the fill, the DRC and the fabrication files again
+        board = pcbnew.LoadBoard(pre)
+        apply_post(board, zones.get('post'))
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+        board.Save(routed)
+        return finish(d, routed)
     if split and 0 < split < zones['w']:
         # stage 1: the mains nets alone, kept out of the control zone (every other pad without
         # its net, so the router leaves it), so the mains wiring stays on its side
@@ -210,7 +244,6 @@ def main():
         print(f'solder mask opened on {bars} bar segments', flush=True)
     filler = pcbnew.ZONE_FILLER(board)
     filler.Fill(board.Zones())
-    routed = os.path.join(d, 'routed.kicad_pcb')
     board.Save(routed)
     # the custom rules go with the routed board's project (KiCad looks for <name>.kicad_dru)
     import shutil
@@ -232,7 +265,23 @@ def main():
         board = pcbnew.LoadBoard(routed)
         import_ses(board, ses3)
         board.Save(routed)
-        errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
+    import shutil
+    shutil.copy(routed, pre)
+    if zones.get('post'):
+        board = pcbnew.LoadBoard(routed)
+        apply_post(board, zones['post'])
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+        board.Save(routed)
+    finish(d, routed)
+
+
+def finish(d, routed):
+    import shutil
+    for ext in ('kicad_dru', 'kicad_pro'):
+        src = os.path.join(d, 'board.' + ext)
+        if os.path.exists(src):
+            shutil.copy(src, os.path.join(d, 'routed.' + ext))
+    errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
     print(f'DRC: {len(errors)} errors {dict(kinds)}, {unconnected} unconnected', flush=True)
     fab = os.path.join(d, 'fab')
     os.makedirs(fab, exist_ok=True)

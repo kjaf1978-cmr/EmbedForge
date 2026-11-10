@@ -22,6 +22,9 @@ export interface Design {
   bolted?: (p: Part) => boolean;
   /** The panel's wire for a net: cross-section and type (wiring list, panel.csv). */
   wire?: (net: string, toBoard: boolean, isMains: boolean) => string;
+  /** Copper added after the autorouter (route.py, before the zone fill and DRC): pours and tracks
+   *  that close what Freerouting left, laid where the routed board has room. */
+  post?: { zones?: PlanZone[]; tracks?: PlanTrack[] };
   sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
 
 // 230 V mains (300 V r.m.s. working voltage): 3.2 mm, the creepage of basic insulation (IEC
@@ -319,7 +322,11 @@ export const DESIGNS: Record<string, Design> = {
     panel: (p) => !hfRefs().hvp.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 140, h: 270,
     plan: () => hfPlan().filter((q) => q.x >= 180).map((q) => ({ ...q, x: q.x - 180 })),
     tracks: HF_BARS.filter((t) => t.pts[0][0] >= 180).map((t) => ({ ...t, pts: t.pts.map(([x, y]) => [x - 180, y] as [number, number]) })),
-    zones: HF_PLANES.filter((z) => z.pts[0][0] >= 180).map((z) => ({ ...z, pts: z.pts.map(([x, y]) => [x - 180, y] as [number, number]) })), region: { x0: 0, x1: 140, y0: 160, y1: 270 } },
+    zones: HF_PLANES.filter((z) => z.pts[0][0] >= 180).map((z) => ({ ...z, pts: z.pts.map(([x, y]) => [x - 180, y] as [number, number]) })), region: { x0: 0, x1: 140, y0: 160, y1: 270 },
+    // the drivers' HVG (below the IGBT row) as pours on both layers, joined to the HVG plane by a
+    // track along the right edge: the routed gate and source tracks close the gap in the IGBT row
+    post: { zones: [{ net: 'HVG', layer: 'B.Cu', pts: [[2, 150], [50, 150], [50, 107], [60, 107], [60, 150], [138, 150], [138, 268], [2, 268]] }, { net: 'HVG', layer: 'F.Cu', pts: [[2, 150], [138, 150], [138, 268], [2, 268]] }],
+      tracks: [{ net: 'HVG', layer: 'F.Cu', width: 1, pts: [[112, 100], [133, 100], [133, 245.75], [118.79, 245.75]] }] } },
   'inverter-hf-48-control': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200,
     panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
   'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
