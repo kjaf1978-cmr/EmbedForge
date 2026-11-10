@@ -441,15 +441,16 @@ function inverterBoards(cells: 4 | 8 | 16, v: string): Record<string, Design> {
 }
 
 // P9 irrigation (D24): the channel module's field terminals in one row along its bottom edge, per
-// zone the valve's two poles and the sensor's three (+3.3 V, out, 0 V); the bus headers at the top
+// zone the valve's two poles and the sensor's three (+3.3 V, out, 0 V), single-pole blocks 5.6 mm
+// apart (at 5.08 their courtyards overlap); the bus headers at the top
 // corners (in left, out right, so the modules chain left to right). The main board: the ESP32
 // module at the top edge, its antenna over the edge (no copper under it), the 24 V terminals on the
 // left, the bus header at the bottom right
 const IRR_TERMS = [1, 2, 3, 4, 5, 6, 7, 8].flatMap((k) => [`XVC${k}`, `XV${k}`, `XSP${k}`, `XS${k}`, `XSG${k}`]);
 const irrModulePlan = (): Placed[] => {
   const { sheet, nb } = irrigationModule(), ref = (k: string) => nb.refOf(sheet, k);
-  return [...IRR_TERMS.map((k, i) => ({ ref: ref(k), x: 6 + 5.08 * i, y: 88, rot: 0 as const })),
-    { ref: ref('J_IN'), x: 24, y: 8, rot: 0 }, { ref: ref('J_OUT'), x: 188, y: 8, rot: 0 }];
+  return [...IRR_TERMS.map((k, i) => ({ ref: ref(k), x: 6 + 5.6 * i, y: 88, rot: 0 as const })),
+    { ref: ref('J_IN'), x: 24, y: 8, rot: 0 }, { ref: ref('J_OUT'), x: 206, y: 8, rot: 0 }];
 };
 const irrMainPlan = (): Placed[] => {
   const { sheet, nb } = irrigationMain(), ref = (k: string) => nb.refOf(sheet, k);
@@ -506,13 +507,15 @@ export const DESIGNS: Record<string, Design> = {
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
   'irrigation-module': { sheet: () => irrigationModule().sheet, title: 'Irrigation controller: 8-zone channel module (up to 8 per controller)', revision: 'A',
-    classes: () => [IRR_POWER], w: 212, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 212, y0: 16, y1: 80 } },
+    classes: () => [IRR_POWER], w: 230, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 230, y0: 16, y1: 80 } },
   'irrigation-main': { sheet: () => irrigationMain().sheet, title: 'Irrigation controller: main board (supplies, ESP32, overcurrent cut-off, bus)', revision: 'A',
     classes: () => [IRR_POWER], w: 130, h: 100,
     plan: irrMainPlan,
     region: { x0: 0, x1: 130, y0: 54, y1: 100 } },
-  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V, motor drive and protections', revision: 'A',
-    classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110 },
+  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V: motor drive, protections, Arduino Nano and IR receiver', revision: 'A',
+    classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110,
+    // the supply link Freerouting left (link.py, checked through route.py --post-only)
+    post: { tracks: [{ net: 'V24F', layer: 'B.Cu', width: 2, pts: [[42.65,  13.0],  [42.75,  13.0],  [39.5,  9.75],  [33.5,  9.75],  [28.25,  15.0],  [28.25,  16.5],  [28.23,  16.58]] }] } },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,

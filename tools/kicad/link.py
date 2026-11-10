@@ -23,6 +23,11 @@ classes = {c['name']: c for c in pro['net_settings']['classes']}
 default_clr = classes['Default']['clearance']
 apart = {a['cls']: a['mm'] for a in json.load(open(os.path.join(d, 'apart.json')))} if os.path.exists(os.path.join(d, 'apart.json')) else {}
 zones = json.load(open(os.path.join(d, 'zones.json')))
+# the board's project beside it, or KiCad gives every net the default class
+import shutil  # noqa: E402
+for ext in ('kicad_dru', 'kicad_pro'):
+    if os.path.exists(os.path.join(d, 'board.' + ext)):
+        shutil.copy(os.path.join(d, 'board.' + ext), os.path.join(d, 'routed-pre.' + ext))
 b = pcbnew.LoadBoard(os.path.join(d, 'routed-pre.kicad_pcb'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from route import apply_post  # noqa: E402
@@ -131,14 +136,31 @@ def cell(p):
     return (round(p[0] / G), round(p[1] / G))
 
 
+def layers_at(p):
+    """The copper layers (0 F.Cu, 1 B.Cu) where the net's copper lies at p: a path must start and
+    end there (ending on the other layer would leave the link unjoined)."""
+    out = set()
+    pt = pcbnew.VECTOR2I(pcbnew.FromMM(p[0]), pcbnew.FromMM(p[1]))
+    for t in b.GetTracks():
+        if t.GetNetname() == net and t.HitTest(pt, pcbnew.FromMM(0.05)):
+            out |= {li for li, L in enumerate(LAYERS) if t.IsOnLayer(L)}
+    for fp in b.GetFootprints():
+        for pad in fp.Pads():
+            if pad.GetNetname() == net and pad.HitTest(pt):
+                out |= {li for li, L in enumerate(LAYERS) if pad.IsOnLayer(L)}
+    return out or {0, 1}
+
+
 s, g = cell(A), cell(B)
+LS, LG = layers_at(A), layers_at(B)
 VIA_COST = 8 / G
 start = [(0, s), (1, s)]
 for li in range(2):
-    # the ends are pads or tracks of the net: free around them
+    # the ends are pads or tracks of the net: their own cells free (only those: freeing around
+    # them let the path start too close to a neighbour)
     for (i, j) in (s, g):
-        for dj in range(-2, 3):
-            for di in range(-2, 3):
+        for dj in range(0, 1):
+            for di in range(0, 1):
                 k = (j + dj) * NX + i + di
                 if 0 <= k < NX * NY:
                     blocked[li][k] = 0
@@ -148,7 +170,7 @@ h = lambda i, j: math.hypot(i - g[0], j - g[1])
 TURN = 1.0
 steps = [(1, 0, 1), (-1, 0, 1), (0, 1, 1), (0, -1, 1), (1, 1, 1.4142), (1, -1, 1.4142), (-1, 1, 1.4142), (-1, -1, 1.4142)]
 openq, came, cost = [], {}, {}
-for li in range(2):
+for li in LS:
     st = (li, s, -1)
     cost[st] = 0
     heapq.heappush(openq, (h(*s), 0, st))
@@ -158,7 +180,7 @@ while openq:
     li, (i, j), dr = node
     if c_ > cost.get(node, 1e18):
         continue
-    if (i, j) == g:
+    if (i, j) == g and li in LG:
         found = node; break
     nxt = []
     for n_, (di, dj, w) in enumerate(steps):

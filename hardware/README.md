@@ -21,10 +21,11 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Inverter 12 V 1.5 kW, 50 Hz transformer (P7a): control board | `inverter-lf-12-control/` | 200 × 150 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; one link drawn by `tools/kicad/link.py` |
 | Inverter 12 V 1.5 kW, high-frequency (P7b): battery-side power board | `inverter-hf-12-power-lv/` | 260 × 230 mm, 2 layers, 4 oz | 0 / 0 | routed; three MOSFETs per switch (twelve in the row), copper bars |
 | Inverter 12 V 1.5 kW, high-frequency (P7b): 380 V power board | `inverter-hf-12-power-hv/` | 140 × 270 mm, 2 layers, 4 oz | 0 / 0 | routed; the 48 V board's plan; conformal coating required |
-| Gate controller 24 V (P9, D25): motor drive and protections | `gate-controller/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed (automatic placement; a placement plan would shorten the power paths) |
+| Gate controller 24 V (P9, D25): motor drive, protections, Arduino Nano and IR receiver | `gate-controller/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; the Nano on sockets, the TSOP38238 behind the enclosure's window; one supply link drawn by `tools/kicad/link.py` |
 | Pump controller (P9): control board + DIN-rail panel | `pump-control/` | 165 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; panel wiring in `panel.csv` |
 | Cordless trimmer drive 36 V (P9) | `trimmer-drive/` | 160 × 100 mm, 2 layers, 4 oz | 0 / 0 | routed; power on 3 mm tracks, ground poured on both layers |
 | Block moulding machine (P9): safety circuit and 24 V outputs + DIN-rail panel | `block-machine/` | 100 × 70 mm, 2 layers, 2 oz | 0 / 0 | routed; safety contactors and the motor contactors on the DIN rail, wiring in `panel.csv` |
+| Irrigation controller (P9, D24): main board | `irrigation-main/` | 130 × 100 mm, 2 layers, 2 oz | 0 / 0 | routed; ESP32-DevKitC on sockets (antenna over the top edge), 24 V in, bus to the modules (20-way ribbon) |
 | Mains stabiliser 5/10/15 kVA, thyristor taps (P4b, D41): logic board | `stabiliser-t-logic/` | 205 × 140 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; thyristors, autotransformer and the pair boards wired per `panel.csv` |
 | Mains stabiliser 5/10/15 kVA, thyristor taps (P4b): thyristor pair driver (7 per unit) | `stabiliser-t-pair/` | 120 × 80 mm, 2 layers, 2 oz | 0 / 0 | routed; optotriac isolation to the logic side (DIP-6 with pin 5 removed); `panel.csv`: J_MAINS/J_PANEL wiring |
 
