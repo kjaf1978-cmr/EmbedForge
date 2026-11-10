@@ -328,13 +328,25 @@ const HF_PLANES: PlanZone[] = [
 ];
 const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 2.5 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
 
+// the pair driver's plan (120 × 80 mm): the mains parts in rows on the left, the mains connector
+// (to the thyristors and the input/tap leads) along the bottom, the two optocouplers across the
+// zone boundary (x 75: their mains pins at 71.2, their control pins at 78.8), the control
+// connector on the right
+const STABT_PAIR_PLAN: [string, number, number, Placed['rot']][] = [
+  ['RA1', 15, 10, 0], ['DB1', 36, 10, 0], ['RGB1', 55, 10, 0],
+  ['RB1', 15, 20, 0], ['DA1', 36, 20, 0], ['RGA1', 55, 20, 0],
+  ['RSN1', 17, 32, 0], ['CSN1', 42, 32, 0],
+  ['RVA1', 15, 44, 0], ['RVB1', 38, 44, 0],
+  ['BV1', 30, 56, 0],
+  ['UO1', 75, 15, 180], ['US1', 75, 44, 0],
+];
 // the P4b pair drivers' parts (by schematic key): pair 1 and all seven
 const STABT_PAIR = ['UO', 'RA', 'RB', 'DA', 'DB', 'RGA', 'RGB', 'RVA', 'RVB', 'BV', 'US', 'RSN', 'CSN'];
-let stabTCache: { pair1: Set<string>; pairs: Set<string> } | undefined;
+let stabTCache: { pair1: Set<string>; pairs: Set<string>; ref: (k: string) => string } | undefined;
 const stabTRefs = () => stabTCache ??= (() => {
   const { sheet, nb } = stabiliserT({ kva: 10 }), ref = (k: string) => nb.refOf(sheet, k);
   const all = [1, 2, 3, 4, 5, 6, 7].flatMap((k) => STABT_PAIR.map((x) => ref(`${x}${k}`)));
-  return { pair1: new Set(STABT_PAIR.map((x) => ref(`${x}1`))), pairs: new Set(all) };
+  return { pair1: new Set(STABT_PAIR.map((x) => ref(`${x}1`))), pairs: new Set(all), ref };
 })();
 
 export const DESIGNS: Record<string, Design> = {
@@ -391,7 +403,9 @@ export const DESIGNS: Record<string, Design> = {
   // (supply, sense, comparators, logic, protection, the output relay). One control board of
   // 240 parts, its mains zone holding all seven drivers, left 48 … 75 connections open
   'stabiliser-t-pair': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA: thyristor pair driver (7 per unit)', revision: 'A',
-    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => !stabTRefs().pair1.has(p.ref), w: 120, h: 80 },
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => !stabTRefs().pair1.has(p.ref), w: 120, h: 80,
+    plan: () => [...STABT_PAIR_PLAN.map(([k, x, y, rot]) => ({ ref: stabTRefs().ref(k), x, y, rot })), { ref: 'J_MAINS', x: 25, y: 70, rot: 0 }, { ref: 'J_PANEL', x: 100, y: 30, rot: 0 }],
+    region: { x0: 78, x1: 120 } },
   'stabiliser-t-logic': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: logic board', revision: 'A',
     classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' || stabTRefs().pairs.has(p.ref), },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
