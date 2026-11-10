@@ -150,9 +150,9 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`X${k}U`, 'terminal', x, 1850, { value: `${what}: U` }, { '1': `${k}U` })
       .part(`X${k}V`, 'terminal', x + 50, 1850, { value: `${what}: V` }, { '1': `${k}V` })
       .part(`X${k}W`, 'terminal', x + 100, 1850, { value: `${what}: W` }, { '1': `${k}W` })
-      .part(`R${k}U`, 'resistor', x, 1950, { value: '1M' }, { '1': `${k}U`, '2': 'GND' }, 1)
-      .part(`R${k}V`, 'resistor', x + 50, 1950, { value: '1M' }, { '1': `${k}V`, '2': 'GND' }, 1)
-      .part(`R${k}W`, 'resistor', x + 100, 1950, { value: '1M' }, { '1': `${k}W`, '2': 'GND' }, 1);
+      .part(`R${k}U`, 'resistor', x, 1950, { value: '1M', scope: 'test' }, { '1': `${k}U`, '2': 'GND' }, 1)
+      .part(`R${k}V`, 'resistor', x + 50, 1950, { value: '1M', scope: 'test' }, { '1': `${k}V`, '2': 'GND' }, 1)
+      .part(`R${k}W`, 'resistor', x + 100, 1950, { value: '1M', scope: 'test' }, { '1': `${k}W`, '2': 'GND' }, 1);
   });
   nb.block('outputs')
     // the motor terminals of the power circuit (400 V: not simulated)
@@ -162,9 +162,10 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     .part('XU', 'terminal', 400, 950, { value: 'pump motor U' }, { '1': 'U1' })
     .part('XV', 'terminal', 450, 950, { value: 'pump motor V' }, { '1': 'V1' })
     .part('XW', 'terminal', 500, 950, { value: 'pump motor W' }, { '1': 'W1' })
-    .part('RL1', 'resistor', 200, 950, { value: '1M' }, { '1': 'L1', '2': 'GND' }, 1)
-    .part('RL2', 'resistor', 250, 950, { value: '1M' }, { '1': 'L2', '2': 'GND' }, 1)
-    .part('RL3', 'resistor', 300, 950, { value: '1M' }, { '1': 'L3', '2': 'GND' }, 1);
+    // the 400 V nets' 1 MΩ to ground: a DC path for the simulator only (scope test: not on the board)
+    .part('RL1', 'resistor', 200, 950, { value: '1M', scope: 'test' }, { '1': 'L1', '2': 'GND' }, 1)
+    .part('RL2', 'resistor', 250, 950, { value: '1M', scope: 'test' }, { '1': 'L2', '2': 'GND' }, 1)
+    .part('RL3', 'resistor', 300, 950, { value: '1M', scope: 'test' }, { '1': 'L3', '2': 'GND' }, 1);
 
   // ---- a proximity sensor (PNP, 24 V) to the microcontroller (5 V) through a PC817
   nb.block('inputs')

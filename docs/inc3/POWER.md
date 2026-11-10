@@ -336,6 +336,12 @@ firmware does.
   (FAULT), and stays tripped until the firmware clears it (CLR) and reverses briefly. It trips itself
   at power-up, so the motor cannot move before the firmware runs.
 - Supply: 24 V 150 W DIN-rail supply, 10 A fuse, SMAJ33A, 470 µF; 7805 for the 5 V logic.
+- Microcontroller (on the board): an Arduino Nano on sockets (5 V I/O, the commands' level in the
+  simulation) and a TSOP38238 IR receiver on 100 Ω and 4.7 µF behind the enclosure's window.
+  FAULT on D2 and the receiver on D3 (the interrupt pins), OPEN D5, CLOSE D6, CLR D7, RUN D9, the
+  limit and beam inputs on A0, A1. Firmware (D24, Increment 4's board emulation): decode the
+  remote (a code learnt per remote and a rolling counter, DFMEA GC-7), switch RUN off before a
+  relay changes, clear the cut-off (CLR) after a fault and reverse briefly.
 - Verified (TEST_REPORT.md section 3o): opening (start peak 10 A, 2.5 A running) up to the open
   limit, which stops and brakes the motor while the firmware still commands it; an obstacle while
   closing (stall 10.5 A, the cut-off latches about 80 ms later); the motor cable shorted (29 A peak,
@@ -382,8 +388,8 @@ hollow and solid concrete blocks.
     (9 A, 24 V DC, mirror contacts to IEC 60947-4-1 Annex F) whose main contacts in series feed the
     safety rail V24S. Every contactor coil and valve of the machine is fed from it, so the E-stop
     stops every motion whatever the microcontroller does;
-  - reset: RESET in series with the NC mirror contacts of K1, K2 and the pump contactor (a welded
-    contact refuses the reset), then 100 µF into a reset relay K3. K3 gives K1 and K2 a pulse of
+  - reset: RESET in series with the NC mirror contacts of K1, K2 and every motor contactor (pump,
+    mixer, both vibrators: a welded contact refuses the reset), then 100 µF into a reset relay K3. K3 gives K1 and K2 a pulse of
     about 0.2 s, and they hold through their own auxiliary contacts. A held or jammed RESET cannot
     restart the machine after an E-stop. (The capacitor straight into the contactors' coils decayed
     before they pulled in, found in simulation.)
@@ -391,6 +397,13 @@ hollow and solid concrete blocks.
   microcontroller. Each valve is clamped at 38 V (SMAJ33A), so it releases within a few
   milliseconds; a plain diode would hold it for tens.
 - Inputs: PNP proximity sensors through PC817s.
+- The board (`hardware/block-machine/`): the safety circuit, K3, the coil drivers for the pump,
+  mixer and both vibrators' contactors, the four valve channels, six proximity-sensor inputs and
+  START (each a PC817), an R-78E5.0-1.0 for 5 V, and an Arduino Nano on sockets (5 V I/O, as the
+  outputs are simulated): inputs on D2–D8, PUMP D9, valves D10–D12 and A3, MIXER A0, vibrators A1,
+  A2, the safety rail's state on A4 (47k/10k from V24S). The 400 V wiring, the contactors and the
+  motor-protective breakers are on the panel (`panel.csv`). Every output's gate has 10 kΩ to 0 V:
+  all off while the Nano resets, and nothing moves without V24S anyway.
 
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 
