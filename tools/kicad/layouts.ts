@@ -224,12 +224,16 @@ const LF_ROW: [string, number][] = [['QHA1', 20], ['QHA2', 42], ['QHA3', 64], ['
 const LF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 60, 40, 0], ['CE2', 220, 40, 0], ['CB1', 110, 22, 0], ['CB2', 110, 50, 0], ['CB3', 110, 78, 0],
   ['CB4', 180, 22, 0], ['CB5', 180, 50, 0], ['CB6', 180, 78, 0], ['RSH', 145, 88, 0], ['X2', 20, 40, 0]];
 const LF_LUGS: [string, number, number][] = [['J_BUS', 20, 15], ['J_GND', 20, 66], ['J_SWA', 70, 88], ['J_SWB', 210, 88]];
-const lfPlan = (): Placed[] => {
-  const { ref } = lfRefs(16);
+// the 12 V unit's six bus capacitors (4700 µF 35 V snap-in, 25 mm): three each side of the film
+// capacitors, where the 48 V unit has its two 35 mm ones
+const LF12_CE: [string, number, number, Placed['rot']][] = [['CE1', 42, 28, 0], ['CE3', 72, 28, 0], ['CE5', 57, 62, 0], ['CE2', 212, 28, 0], ['CE4', 242, 28, 0], ['CE6', 227, 62, 0]];
+const lfPlan = (cells: 4 | 8 | 16 = 16): Placed[] => {
+  const { ref } = lfRefs(cells);
+  const fix = cells === 4 ? [...LF_FIX.filter(([k]) => !k.startsWith('CE')), ...LF12_CE] : LF_FIX;
   return [...LF_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 118, rot: 0 as const })),
     // the gate resistors standing under their gates (pad 2, the gate, up)
     ...LF_ROW.map(([k, x]) => ({ ref: ref(`RG${k.slice(1)}`), x: x - 5.45, y: 131, rot: 90 as const })),
-    ...LF_FIX.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...LF_LUGS.map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
+    ...fix.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...LF_LUGS.map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
 };
 const LF_BARS: PlanTrack[] = (() => {
   const t: PlanTrack[] = [], stub = (net: string, layer: 'F.Cu' | 'B.Cu', x: number, y1: number) => t.push({ net, layer, width: 4, pts: [[x, 118], [x, y1]] });
@@ -257,9 +261,11 @@ const HF_PWR_BLOCKS = new Set(['dc-dc bridge', 'bus', 'current sense', 'dc-dc ou
 // TCT: the bus current transformer is a window type on the busbar from J_BUS to J_BUSD
 const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1', 'TCT'];
 const HF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
-let hfCache: { pwr: Set<string>; lv: Set<string>; hvp: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ctlHv: Set<string>; ref: (k: string) => string } | undefined;
-const hfRefs = () => hfCache ??= (() => {
-  const { sheet, nb } = inverterHF({ load: '0' }), ref = (k: string) => nb.refOf(sheet, k);
+type HfRefs = { pwr: Set<string>; lv: Set<string>; hvp: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ctlHv: Set<string>; ref: (k: string) => string };
+const hfCache = new Map<number, HfRefs>();
+const hfRefs = (cells: 4 | 8 | 16 = 16): HfRefs => { let r = hfCache.get(cells); if (!r) { r = hfRefsOf(cells); hfCache.set(cells, r); } return r; };
+const hfRefsOf = (cells: 4 | 8 | 16): HfRefs => {
+  const { sheet, nb } = inverterHF({ cells, load: '0' }), ref = (k: string) => nb.refOf(sheet, k);
   const off = new Set(HF_OFF.map(ref));
   const pwr = new Set(sheet.parts.filter((p) => HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !off.has(p.ref)).map((p) => p.ref));
   pwr.add(ref('X2'));
@@ -274,7 +280,7 @@ const hfRefs = () => hfCache ??= (() => {
   const ctlHv = new Set(sub.parts.filter((p) => !pwr.has(p.ref) && !off.has(p.ref) && !panel.has(p.ref) && p.props.scope !== 'test'
     && [...c.pinNet.entries()].some(([k, n]) => k.startsWith(`${p.ref}.`) && hv.has(n))).map((p) => p.ref));
   return { pwr, lv, hvp, off, panel, hv, ctlHv, ref };
-})();
+};
 // the power board (D44/D45): the DC-DC bridge's eight TO-247 (each leg: its low pair, then its
 // high pair; leg B mirrored) and the sine bridge's four IGBTs in one row (y 150); the switch
 // nodes LA, LB (F.Cu) and the drains BUSD (B.Cu) as 8 mm bars above it; above them the battery
@@ -284,15 +290,15 @@ const hfRefs = () => hfCache ??= (() => {
 // nets keep 0.8 mm among themselves (IPC-2221 B4, 301–500 V) and 1.5 mm to the battery side (2.5 mm
 // uncoated could not be met at the drivers' own 2.54 mm pins: 129 connections left unrouted)
 const HF_LV_HEAVY = ['BUS', 'BUSD', 'GND', 'LA', 'LB'];
-const hfPowerHv = () => { const { sheet } = { sheet: inverterHF({ load: '0' }).sheet }; return [...potentialGroup(sheet, ['HVG', 'HBUS'], new Set(['GND', 'OUTL']))].filter((n) => !HF_LV_HEAVY.includes(n)); };
+const hfPowerHv = (cells: 4 | 8 | 16 = 16) => { const { sheet } = { sheet: inverterHF({ cells, load: '0' }).sheet }; return [...potentialGroup(sheet, ['HVG', 'HBUS'], new Set(['GND', 'OUTL']))].filter((n) => !HF_LV_HEAVY.includes(n)); };
 const HF_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QHA1', 60], ['QHA2', 80], ['QHB2', 100], ['QHB1', 120], ['QLB1', 140], ['QLB2', 160],
   ['QIHA', 200], ['QILA', 222], ['QIHB', 248], ['QILB', 276]];
 const HF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 55, 30, 0], ['CE2', 55, 80, 0], ['CB1', 105, 20, 0], ['CB2', 105, 50, 0], ['CB3', 105, 80, 0],
   ['CB4', 150, 20, 0], ['CB5', 150, 50, 0], ['CB6', 150, 80, 0], ['CBD1', 75, 126, 0], ['CBD2', 105, 126, 0], ['X2', 15, 40, 0],
   ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 92, 0], ['CHF2', 270, 92, 0], ['RSHI', 245, 110, 180]];
 const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 214, 112], ['J_GND', 290, 112], ['J_BUSD', 86.19, 108]];
-const hfPlan = (): Placed[] => {
-  const { ref } = hfRefs();
+const hfPlan = (cells: 4 | 8 | 16 = 16): Placed[] => {
+  const { ref } = hfRefs(cells);
   const gate = (k: string) => `RG${k.slice(1)}`;
   return [...HF_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 150, rot: 0 as const })),
     ...HF_ROW.map(([k, x]) => ({ ref: ref(gate(k)), x: x - 5.45, y: 163, rot: 90 as const })),
@@ -326,7 +332,39 @@ const HF_PLANES: PlanZone[] = [
   { net: 'HVG', layer: 'F.Cu', pts: [[186, 3], [297, 3], [297, 118], [186, 118]] },
   { net: 'HBUS', layer: 'B.Cu', pts: [[186, 3], [297, 3], [297, 118], [186, 118]] },
 ];
-const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 2.5 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
+// the 12 V unit's battery-side power board (260 mm): three MOSFETs per switch, twelve in the row
+// (each leg: its low trio, then its high trio; leg B mirrored), the bars drawn the same way as the
+// 48 V board's over the longer row, six 25 mm bus capacitors and the film capacitors spread over the
+// two legs
+const HF12_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QLA3', 60], ['QHA1', 80], ['QHA2', 100], ['QHA3', 120],
+  ['QHB3', 140], ['QHB2', 160], ['QHB1', 180], ['QLB1', 200], ['QLB2', 220], ['QLB3', 240]];
+const HF12_FIX: [string, number, number, Placed['rot']][] = [['CE1', 38, 22, 0], ['CE2', 68, 22, 0], ['CE3', 38, 52, 0], ['CE4', 68, 52, 0], ['CE5', 38, 84, 0], ['CE6', 68, 84, 0],
+  ['CB1', 110, 20, 0], ['CB2', 110, 50, 0], ['CB3', 110, 80, 0], ['CB4', 190, 20, 0], ['CB5', 190, 50, 0], ['CB6', 190, 80, 0],
+  ['CBD1', 115, 126, 0], ['CBD2', 145, 126, 0], ['X2', 15, 40, 0]];
+const HF12_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 215, 110], ['J_BUSD', 126.19, 108]];
+const hfPlanLv = (cells: 4 | 8 | 16): Placed[] => {
+  if (cells !== 4) return hfPlan(cells).filter((q) => q.x < 180);
+  const { ref } = hfRefs(cells);
+  return [...HF12_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 150, rot: 0 as const })),
+    ...HF12_ROW.map(([k, x]) => ({ ref: ref(`RG${k.slice(1)}`), x: x - 5.45, y: 163, rot: 90 as const })),
+    ...HF12_FIX.map(([k, x, y, rot]) => ({ ref: ref(k), x, y, rot })), ...HF12_LUGS.map(([k, x, y]) => ({ ref: k, x, y, rot: 0 as const }))];
+};
+const hfBarsLv = (cells: 4 | 8 | 16): PlanTrack[] => {
+  if (cells !== 4) return HF_BARS.filter((t) => t.pts[0][0] < 180);
+  const t: PlanTrack[] = [], stub = (net: string, layer: 'F.Cu' | 'B.Cu', x: number, y1: number) => t.push({ net, layer, width: 4, pts: [[x, 150], [x, y1]] });
+  for (const x of [20, 40, 60, 85.45, 105.45, 125.45]) stub('LA', 'F.Cu', x, 137);
+  for (const x of [145.45, 165.45, 185.45, 200, 220, 240]) stub('LB', 'F.Cu', x, 137);
+  for (const x of [80, 100, 120, 140, 160, 180]) stub('BUSD', 'B.Cu', x, 137);
+  for (const x of [25.45, 45.45, 65.45, 205.45, 225.45, 245.45]) stub('GND', 'B.Cu', x, 119);
+  t.push({ net: 'LA', layer: 'F.Cu', width: 8, pts: [[20, 137], [125.45, 137]] }, { net: 'LA', layer: 'F.Cu', width: 6, pts: [[40, 137], [40, 110]] },
+    { net: 'LB', layer: 'F.Cu', width: 8, pts: [[145.45, 137], [240, 137]] }, { net: 'LB', layer: 'F.Cu', width: 6, pts: [[215, 137], [215, 110]] },
+    { net: 'BUSD', layer: 'B.Cu', width: 8, pts: [[80, 137], [180, 137]] }, { net: 'BUSD', layer: 'B.Cu', width: 6, pts: [[126.19, 137], [126.19, 110]] },
+    { net: 'BUSD', layer: 'B.Cu', width: 3, pts: [[110, 126], [110, 137]] }, { net: 'BUSD', layer: 'B.Cu', width: 3, pts: [[140, 126], [140, 137]] });
+  return t;
+};
+const hfPlanesLv = (cells: 4 | 8 | 16): PlanZone[] => cells !== 4 ? HF_PLANES.filter((z) => z.pts[0][0] < 180)
+  : [{ net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [257, 3], [257, 120], [3, 120]] }, { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [257, 3], [257, 120], [3, 120]] }];
+const hfControlClasses = (cells: 4 | 8 | 16 = 16): NetClass[] => [{ ...classFor('HV', hfRefs(cells).hv, 0.3, 0.5), apart: 2.5 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
 
 // the pair driver's plan (120 × 80 mm): the mains parts in rows on the left, the mains connector
 // (to the thyristors and the input/tap leads) along the bottom, the two optocouplers across the
@@ -349,18 +387,27 @@ const stabTRefs = () => stabTCache ??= (() => {
   return { pair1: new Set(STABT_PAIR.map((x) => ref(`${x}1`))), pairs: new Set(all), ref };
 })();
 
-export const DESIGNS: Record<string, Design> = {
+// the inverters' boards (P7) for 16, 8 and 4 cells (48, 24, 12 V): the same boards; the 12 V
+// unit's battery-side power board is wider (three MOSFETs per switch, six bus capacitors). The 24 V
+// unit's parts fit the 48 V boards (tools/kicad/variant.ts checks it): its boards are the 48 V ones
+// with the 24 V parts list
+function inverterBoards(cells: 4 | 8 | 16, v: string): Record<string, Design> {
+  const kw = cells === 16 ? 5 : cells === 8 ? 3 : 1.5, lvW = cells === 4 ? 260 : 180;
+  return {
   // two power boards: the battery side (DC-DC bridge, bus, current transformer) and the 380 V side
   // (rectifier, bus, sine bridge), each from its part of the plan (the 380 V side moved 180 mm
   // left); on one board the two sections' drivers and gate parts crowded one band and 86
   // connections stayed unrouted
-  'inverter-hf-48-power-lv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: battery-side power board', revision: 'A',
-    classes: () => [POWER(HF_LV_HEAVY)], copperOz: 4, heavy: HF_LV_HEAVY, panel: (p) => !hfRefs().lv.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 180, h: 230,
-    plan: () => hfPlan().filter((q) => q.x < 180), tracks: HF_BARS.filter((t) => t.pts[0][0] < 180), zones: HF_PLANES.filter((z) => z.pts[0][0] < 180), region: { x0: 0, x1: 180, y0: 160, y1: 230 } },
-  'inverter-hf-48-power-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V power board', revision: 'A',
-    classes: () => [classFor('HV', [...hfPowerHv(), 'GND'], 0.6, 0.8)], copperOz: 4, heavy: ['HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2', 'GND'],
-    panel: (p) => !hfRefs().hvp.has(p.ref), bolted: (p) => hfRefs().off.has(p.ref), w: 140, h: 270,
-    plan: () => hfPlan().filter((q) => q.x >= 180).map((q) => ({ ...q, x: q.x - 180 })),
+  [`inverter-hf-${v}-power-lv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: battery-side power board`, revision: 'A',
+    classes: () => [POWER(HF_LV_HEAVY)], copperOz: 4, heavy: HF_LV_HEAVY, panel: (p) => !hfRefs(cells).lv.has(p.ref), bolted: (p) => hfRefs(cells).off.has(p.ref), w: lvW, h: 230,
+    plan: () => hfPlanLv(cells), tracks: hfBarsLv(cells), zones: hfPlanesLv(cells), region: { x0: 0, x1: lvW, y0: 160, y1: 230 },
+    // 12 V: the panel connector's BUS pin (the supply's feed) to the bus plane, which Freerouting
+    // left: on B.Cu up the left edge, a via into the plane
+    post: cells === 4 ? { tracks: [{ net: 'BUS', layer: 'B.Cu', width: 1, pts: [[14.88, 189.5], [14.88, 184], [10, 179.12], [10, 115]] }], vias: [{ net: 'BUS', at: [10, 115] }] } : undefined },
+  [`inverter-hf-${v}-power-hv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: 380 V power board`, revision: 'A',
+    classes: () => [classFor('HV', [...hfPowerHv(cells), 'GND'], 0.6, 0.8)], copperOz: 4, heavy: ['HBUS', 'HVG', 'SWA', 'RP', 'S1', 'S2', 'GND'],
+    panel: (p) => !hfRefs(cells).hvp.has(p.ref), bolted: (p) => hfRefs(cells).off.has(p.ref), w: 140, h: 270,
+    plan: () => hfPlan(cells).filter((q) => q.x >= 180).map((q) => ({ ...q, x: q.x - 180 })),
     tracks: HF_BARS.filter((t) => t.pts[0][0] >= 180).map((t) => ({ ...t, pts: t.pts.map(([x, y]) => [x - 180, y] as [number, number]) })),
     zones: HF_PLANES.filter((z) => z.pts[0][0] >= 180).map((z) => ({ ...z, pts: z.pts.map(([x, y]) => [x - 180, y] as [number, number]) })), region: { x0: 0, x1: 140, y0: 160, y1: 270 },
     // the drivers' HVG (below the IGBT row) as pours on both layers, joined to the HVG plane by a
@@ -370,15 +417,20 @@ export const DESIGNS: Record<string, Design> = {
   // two control boards, split at the isolation barrier (on one board, 276 parts with the 380 V
   // nets 2.5 mm apart left 300 connections unrouted): the battery side, and the 380 V side with
   // the optocouplers and pulse transformers that cross the barrier
-  'inverter-hf-48-control-lv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: battery-side control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 220, h: 160,
-    panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || r.ctlHv.has(p.ref); } },
-  'inverter-hf-48-control-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200, block: 6, oneStage: true,
-    panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || !r.ctlHv.has(p.ref); } },
-  'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
-    heavy: LF_HEAVY, panel: (p) => !lfRefs(16).pwr.has(p.ref), bolted: (p) => lfRefs(16).off.has(p.ref), w: 280, h: 170,
-    plan: lfPlan, tracks: LF_BARS, zones: LF_PLANES, region: { x0: 0, x1: 280, y0: 124, y1: 170 } },
-  'inverter-lf-48-control': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: control board', revision: 'A', classes: lfMains, fill: 2.6, w: 200, h: 150,
-    panel: (p) => { const r = lfRefs(16); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
+  [`inverter-hf-${v}-control-lv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: battery-side control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 220, h: 160,
+    panel: (p) => { const r = hfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || r.ctlHv.has(p.ref); } },
+  [`inverter-hf-${v}-control-hv`]: { sheet: () => inverterHF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, high-frequency: 380 V control board`, revision: 'A', classes: () => hfControlClasses(cells), fill: 2.6, w: 280, h: 200, block: 6, oneStage: true,
+    panel: (p) => { const r = hfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || !r.ctlHv.has(p.ref); } },
+  [`inverter-lf-${v}-power`]: { sheet: () => inverterLF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, 50 Hz transformer: power board`, revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
+    heavy: LF_HEAVY, panel: (p) => !lfRefs(cells).pwr.has(p.ref), bolted: (p) => lfRefs(cells).off.has(p.ref), w: 280, h: 170,
+    plan: () => lfPlan(cells), tracks: LF_BARS, zones: LF_PLANES, region: { x0: 0, x1: 280, y0: 124, y1: 170 } },
+  [`inverter-lf-${v}-control`]: { sheet: () => inverterLF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, 50 Hz transformer: control board`, revision: 'A', classes: lfMains, fill: 2.6, w: 200, h: 150,
+    panel: (p) => { const r = lfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
+  };
+}
+
+export const DESIGNS: Record<string, Design> = {
+  ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
     keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }) },
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
@@ -434,3 +486,4 @@ export const DESIGNS: Record<string, Design> = {
     plan: mpptPlan, tracks: MPPT_BARS, region: { x0: 0, x1: 280 } },
   'mppt-control': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: control board', revision: 'A', classes: () => [], fill: 2.6, panel: (p) => mpptRefs().pwr.has(p.ref) || mpptRefs().off.has(p.ref) },
 };
+

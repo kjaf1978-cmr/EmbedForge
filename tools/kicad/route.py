@@ -202,7 +202,12 @@ def main():
     pre = os.path.join(d, 'routed-pre.kicad_pcb')
     if '--post-only' in sys.argv:
         # the routed board kept from the last run (before its post copper): only the post copper,
-        # the fill, the DRC and the fabrication files again
+        # the fill, the DRC and the fabrication files again. The board's project beside it first:
+        # without it KiCad fills with the default clearance, not the net classes'
+        import shutil
+        for ext in ('kicad_dru', 'kicad_pro'):
+            if os.path.exists(os.path.join(d, 'board.' + ext)):
+                shutil.copy(os.path.join(d, 'board.' + ext), os.path.join(d, 'routed-pre.' + ext))
         board = pcbnew.LoadBoard(pre)
         apply_post(board, zones.get('post'))
         pcbnew.ZONE_FILLER(board).Fill(board.Zones())
@@ -281,6 +286,8 @@ def main():
         ses3 = freeroute(c, d, 'stage3', passes, apart=True)
         board = pcbnew.LoadBoard(routed)
         import_ses(board, ses3)
+        # the pours again around stage 3's tracks (filled before them, they would overlap them)
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
         board.Save(routed)
     import shutil
     shutil.copy(routed, pre)

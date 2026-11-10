@@ -858,7 +858,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   // 19 V there in every unit: ratio 1.2, 2.7 and 6.2 instead of 1, 2 and 4 (the same primary and
   // core, the winding's resistance by the turns²)
   nb.block('hv supply')
-    .part('CXB', 'capacitor', 1150, 300, { value: hv.cxb, vmax: '100' }, { '1': 'XB', '2': 'GND' }, 1)
+    .part('CXB', 'capacitor', 1150, 300, { value: hv.cxb, vmax: '100', footprint: 'C_Film_P15' }, { '1': 'XB', '2': 'GND' }, 1)
     // saturates at 50 mA magnetising current, 2.7 × the 18 mA of ±29 V for 12.5 µs
     .part('TRA', 'transformer', 1250, 200, { value: hv.tra, lp: hv.tralp, rp: hv.trarp, rs: hv.tras, k: '0.99', rc: hv.trarc, isat: hv.traisat }, { '1': 'LA', '2': 'XB', '3': 'XA1', '4': 'XA2' })
     // 10k across the winding damp the ringing of its leakage with the bridge's capacitance

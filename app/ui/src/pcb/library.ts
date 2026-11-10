@@ -120,8 +120,10 @@ export function footprintChoices(p: Part): FootprintChoice[] {
       if (c <= 1 && vm <= 63) return [same('C_Disc_5.08', pins), same('Chip_0805', pins)];
       // DC-link film of 20 µF and more above 200 V: the parts list orders a 450 V part (catalogue)
       if (c >= 20 && vm > 200) return [same('C_Film_P52.5', pins)];
-      const by = cv <= 100 ? 'C_Film_P7.5' : cv <= 300 ? 'C_Film_P10' : cv <= 1000 ? 'C_Film_P15' : cv <= 3000 ? 'C_Film_P22.5' : cv <= 7000 ? 'C_Film_P27.5' : 'C_Film_P37.5';
-      return [same(by, pins)];
+      // the box for C·V first, then the larger boxes (a board shared by variants takes the largest)
+      const film = ['C_Film_P7.5', 'C_Film_P10', 'C_Film_P15', 'C_Film_P22.5', 'C_Film_P27.5', 'C_Film_P37.5'];
+      const by = cv <= 100 ? 0 : cv <= 300 ? 1 : cv <= 1000 ? 2 : cv <= 3000 ? 3 : cv <= 7000 ? 4 : 5;
+      return film.slice(by).map((f) => same(f, pins));
     }
     case 'capacitor_pol': {
       // radial or snap-in can by C·V (Panasonic FR/FC, Nichicon UHE/UCY case sizes)
