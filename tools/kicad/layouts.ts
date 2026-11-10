@@ -425,7 +425,17 @@ function inverterBoards(cells: 4 | 8 | 16, v: string): Record<string, Design> {
     heavy: LF_HEAVY, panel: (p) => !lfRefs(cells).pwr.has(p.ref), bolted: (p) => lfRefs(cells).off.has(p.ref), w: 280, h: 170,
     plan: () => lfPlan(cells), tracks: LF_BARS, zones: LF_PLANES, region: { x0: 0, x1: 280, y0: 124, y1: 170 } },
   [`inverter-lf-${v}-control`]: { sheet: () => inverterLF({ cells, load: '0' }).sheet, title: `Inverter ${v} V ${kw} kW, 50 Hz transformer: control board`, revision: 'A', classes: lfMains, fill: 2.6, w: 200, h: 150,
-    panel: (p) => { const r = lfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
+    panel: (p) => { const r = lfRefs(cells); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); },
+    // 12 V: the one link Freerouting left (the DC servo's feedback), found by link.py and checked
+    // through route.py --post-only
+    post: cells === 4 ? { tracks: [{ net: 'VFX', layer: 'F.Cu', width: 0.3, pts: [[113.42, 94.0], [113.5, 94.0], [121.25, 94.0], [123.5, 96.25]] },
+        { net: 'VFX', layer: 'B.Cu', width: 0.3, pts: [[123.5, 96.25], [133.5, 96.25]] },
+        { net: 'VFX', layer: 'F.Cu', width: 0.3, pts: [[133.5, 96.25], [136.5, 93.25], [137.75, 93.25], [139.0, 94.5], [139.0, 95.25], [145.75, 95.25]] },
+        { net: 'VFX', layer: 'B.Cu', width: 0.3, pts: [[145.75, 95.25], [147.0, 96.5], [151.5, 96.5]] },
+        { net: 'VFX', layer: 'F.Cu', width: 0.3, pts: [[151.5, 96.5], [152.75, 97.75], [160.25, 97.75], [165.0, 93.0]] },
+        { net: 'VFX', layer: 'B.Cu', width: 0.3, pts: [[165.0, 93.0], [167.0, 91.0], [167.0, 90.75]] },
+        { net: 'VFX', layer: 'F.Cu', width: 0.3, pts: [[167.0, 90.75], [170.25, 90.75], [170.29, 90.75]] }],
+      vias: [{ net: 'VFX', at: [123.5,  96.25] }, { net: 'VFX', at: [133.5,  96.25] }, { net: 'VFX', at: [145.75,  95.25] }, { net: 'VFX', at: [151.5,  96.5] }, { net: 'VFX', at: [165.0,  93.0] }, { net: 'VFX', at: [167.0,  90.75] }] } : undefined },
   };
 }
 
