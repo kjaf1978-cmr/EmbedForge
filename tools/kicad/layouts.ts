@@ -382,7 +382,9 @@ export const DESIGNS: Record<string, Design> = {
   'stabiliser-t-control': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: control board', revision: 'A',
     // its mains nets carry gate, sense and snubber currents (milliamperes, the snubbers' under
     // 1 A): 0.5 mm tracks; 1.6 mm left 75 connections open in the mains zone
-    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' },
+    // in one pass with the insulation rules, on 300 × 200 mm (staged on 270 × 180 mm: 52 open, 25
+    // mains-to-control clearances in the boundary column)
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer', w: 300, h: 200, oneStage: true },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
