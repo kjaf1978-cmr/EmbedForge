@@ -284,11 +284,30 @@ up to 64 zones with soil-moisture sensors.
   loaded the registers and cleared it. A 100 kΩ pull-up on OE alone was loaded down to 0.7 V and
   let a valve conduct (found in simulation).
 - Sensor inputs: 0–3 V capacitive probes powered from 3.3 V. Each input has an SMAJ5.0A at the
-  terminal, 10 kΩ in series, BAT54 clamps to 0 V and 3.3 V, and 100 nF, then goes to four CD4067
-  multiplexers and the microcontroller's ADC. With 1 kΩ and the clamps alone, a 1 kV line surge
-  reached 6.8 V and burnt 6 W in the resistor.
-- Supply: 24 V DIN-rail supply (fused), 7805 for the 5 V logic, LM1117-3.3 on the microcontroller
-  board.
+  terminal, 10 kΩ in series, BAT54 clamps to 0 V and 3.3 V, and 100 nF, then goes to a 74HC4051
+  multiplexer per eight sensors (on 3.3 V: a CD4067 on 5 V would not see the 3.3 V address lines as
+  high) and the microcontroller's ADC. With 1 kΩ and the clamps alone, a 1 kV line surge reached
+  6.8 V and burnt 6 W in the resistor.
+- The product (`src/eda/irrigationBoards.ts`, boards in `hardware/irrigation-main/` and
+  `hardware/irrigation-module/`): a main board and up to eight 8-zone channel modules on a 20-way
+  ribbon cable. One 64-zone board would need about 250 field terminals; each module carries its
+  eight zones' terminals along one edge (per zone: valve +24 V and output; sensor +3.3 V, signal,
+  0 V), two 74HC595 (the valves; the second enables the module's multiplexer and passes the chain
+  on), a 74HC4051 and the channel circuits above. The main board: 24 V in through a 3.15 A fuse, an
+  SS34 against reverse polarity and an SMAJ33A; 5 V from an R-78E5.0-1.0 switching regulator (a 7805
+  would dissipate 11 W at 0.6 A); 3.3 V from an AMS1117-3.3 for the registers, multiplexers and
+  sensors; the sensors' supply switched by an AO3401, on only while the firmware scans them (64
+  probes draw about 0.3 A); the ESP32-DevKitC-32E on two 19-pin sockets (its antenna over the
+  board's edge); the overcurrent cut-off; pull-downs on the bus's clock, data and address lines
+  while the module boots. The bus carries V24 and the valves' return (SRET) on two conductors
+  each: the firmware opens one valve at a time, two at most.
+- Firmware (D24, the board emulation of Increment 4): load every register (valves off,
+  multiplexers off), then pulse CLR (IO4); to scan, switch the sensors on (IO26 low), wait 20 ms,
+  enable one module's multiplexer, set A0–A2 (IO16, IO17, IO25), read IO36; to water, set the
+  zone's bit and pulse RCLK (IO5; data IO23, clock IO18); OE high on IO34 means the cut-off has
+  tripped: clear every bit, mark the zone, pulse CLR. A watchdog and a run-time limit per zone
+  (DFMEA IR-4).
+- Supply: 24 V DIN-rail supply (for 8 modules: 24 V 2.5 A, e.g. Mean Well HDR-60-24).
 - Verified (TEST_REPORT.md section 3o): power-up with a register output high (no valve current;
   the cut-off latched until cleared); switching a valve on and off (0.3 A, the drain below 30 V
   at turn-off); a valve shorted while on (the cut-off latches within 10 µs, the MOSFET is above
