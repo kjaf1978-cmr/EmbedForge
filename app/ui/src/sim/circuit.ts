@@ -84,7 +84,7 @@ export type Element =
    *  stages). It has no SPICE primitive; the export says so. */
   | { kind: 'T'; name: string; gnd: string; trig: string; out: string; rst: string; ctrl: string; thr: string; dis: string; vcc: string };
 
-export type LogicFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'schmitt' | 'dff';
+export type LogicFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'schmitt' | 'dff' | 'ctr';
 
 export interface Circuit {
   title?: string;

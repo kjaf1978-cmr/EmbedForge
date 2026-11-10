@@ -91,6 +91,10 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 1 %, TO-92', 0.3, 0.1, 'estimate', any('TO-92')), TL431B: e('TL431BCLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 0.5 %, TO-92', 0.45, 0.15, 'estimate', any('TO-92')) },
   // logic by family (the footprint's): CD4000 on a rail above 6 V, 74HC on 5 V and 3.3 V
+  cd4020: {
+    CD: e('CD4020BE', 'Texas Instruments', '14-stage binary ripple counter, CMOS 3–18 V, DIP-16', 0.55, 0.25, 'estimate', any('DIP-16')),
+    HC: e('SN74HC4020N', 'Texas Instruments', '14-stage binary ripple counter, 2–6 V, DIP-16', 0.6, 0.3, 'estimate', any('DIP-16')),
+  },
   dff: {
     CD: e('CD4013BE', 'Texas Instruments', 'dual D flip-flop, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
     HC: e('SN74HC74N', 'Texas Instruments', 'dual D flip-flop with preset and clear, 2–6 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
@@ -227,7 +231,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
-    case 'dff': case 'nor2': case 'and2': case 'nand2': case 'or2': case 'xor2': case 'not': case 'schmitt':
+    case 'dff': case 'cd4020': case 'nor2': case 'and2': case 'nand2': case 'or2': case 'xor2': case 'not': case 'schmitt':
       return BY_VALUE[line.sym][logicFamily(v)]; // its value is the supply rail
     default: return BY_VALUE[line.sym]?.[v] ?? null;
   }

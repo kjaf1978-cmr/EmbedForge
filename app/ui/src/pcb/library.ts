@@ -65,6 +65,7 @@ const LOGIC: Record<string, FootprintChoice> = {
   and2: HC('08', { 1: '1', 2: '2', 3: '3' }), nand2: HC('00', { 1: '1', 2: '2', 3: '3' }), or2: HC('32', { 1: '1', 2: '2', 3: '3' }), xor2: HC('86', { 1: '1', 2: '2', 3: '3' }),
   nor2: HC('02', { 1: '2', 2: '3', 3: '1' }), not: HC('04', { 1: '1', 2: '2' }), schmitt: HC('14', { 1: '1', 2: '2' }),
   dff: HC('74', { 1: '2', 2: '3', 3: '5', 4: '6' }, { rail: ['14', '1', '4'], note: 'flip-flop 1 of a 74HC74; CLR and PRE (pins 1, 4) tied high' }),
+  cd4020: map('DIP-16', Object.fromEntries(['10', '11', '9', '7', '5', '4', '6', '13', '12', '14', '15', '1', '2', '3'].map((k) => [k, k])), { rail: ['16'], gnd: ['8'], note: '74HC4020: VCC 16, GND 8' }),
 };
 // CD4000 logic for rails above 6 V (3–18 V): VDD on 14, VSS on 7
 const CD = (chip: string, m: Record<string, string>, extra: Partial<FootprintChoice> = {}): FootprintChoice =>
@@ -74,6 +75,7 @@ const LOGIC_CD: Record<string, FootprintChoice> = {
   nor2: CD('4001', { 1: '1', 2: '2', 3: '3' }), not: CD('4069UB', { 1: '1', 2: '2' }), schmitt: CD('40106', { 1: '1', 2: '2' }),
   // RESET and SET are active high, so they go to VSS (the 74HC74's CLR and PRE go to VCC)
   dff: CD('4013', { 1: '5', 2: '3', 3: '1', 4: '2' }, { gnd: ['7', '4', '6'], note: 'flip-flop 1 of a CD4013; RESET and SET (pins 4, 6) tied to VSS' }),
+  cd4020: map('DIP-16', Object.fromEntries(['10', '11', '9', '7', '5', '4', '6', '13', '12', '14', '15', '1', '2', '3'].map((k) => [k, k])), { rail: ['16'], gnd: ['8'], note: 'CD4020BE: VDD 16, VSS 8' }),
 };
 /** Highest supply the 74HC family is rated for. */
 const HC_VMAX = 6;

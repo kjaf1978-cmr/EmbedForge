@@ -610,6 +610,10 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
     .part('XPVP', 'terminal', -1450, 250, { value: 'PV+' }, { '1': 'PVP' })
     .part('XPVN', 'terminal', -1450, 360, { value: 'PV−' }, { '1': 'PVN' })
     .part('RVPV', 'mov', -1300, 300, { value: '14D201K' }, { '1': 'PVP', '2': 'PVN' }, 1)
+    // P5: a surge induced into the array cable reached 205 V across the input with the varistors
+    // alone (the MOSFETs are 200 V parts); the 5 kW TVS (144 V breakdown, above the array's 127 V
+    // open circuit at −10 °C) keeps it at 195 V
+    .part('DTVP', 'tvs', -1220, 300, { value: '5KP130A' }, { '1': 'PVP', '2': 'PVN' }, 1)
     .part('QPV', 'nmos', -1150, 470, { value: 'IRFP4668', heatsink: HS }, { '1': 'GPV', '2': 'PVN', '3': 'SPV' })
     .part('QPV2', 'nmos', -1140, 620, { value: 'IRFP4668', heatsink: HS }, { '1': 'GPV', '2': 'GND', '3': 'SPV' }, 2)
     .part('RGPV', 'resistor', -1300, 450, { value: '470k' }, { '1': 'PVP', '2': 'GPV' }, 1)

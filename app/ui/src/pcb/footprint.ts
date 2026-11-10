@@ -138,6 +138,7 @@ add(inline('TO-247_Vertical', 'TO-247 standing, 5.45 mm', 3, 5.45, 1.4, 2.5, 3.0
 add(dip('DIP-4', 'DIP-4 (optocoupler)', 4));
 add(dip('DIP-6', 'DIP-6', 6));
 add(dip('DIP-8', 'DIP-8', 8));
+add(dip('DIP-16', 'DIP-16', 16));
 add(dip('DIP-14', 'DIP-14', 14));
 add(soic('SOIC-8', 'SOIC-8', 8));
 // connectors: parts that are off the board are wired to a connector

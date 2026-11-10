@@ -49,6 +49,7 @@ function unitTable(p: Part): UnitTable | null {
   const s = symbolOf(p.sym), v = p.props[s.value.key] ?? s.value.default;
   if (s.id === 'comparator') return v === 'LM339' ? LM339 : LM393;
   if (s.id === 'opamp') return v === 'TL074' || v === 'LM324' ? QUAD_OA : DUAL_OA;
+  if (s.id === 'cd4020') return { footprint: 'DIP-16', units: [Object.fromEntries(s.pins.map((x) => [x.id, x.id]))], supply: { __rail: ['16'], __gnd: ['8'] } };
   if (s.logic) {
     if (logicFamily(v) === 'CD') { const t = CD[s.id]; return t ? { footprint: 'DIP-14', units: t.units, supply: { __rail: ['14'], __gnd: ['7', ...(t.vss ?? [])] } } : null; }
     const t = HC[s.id];

@@ -999,6 +999,9 @@ class Logic implements Device {
   out: number[];
   private inHigh = false;
   private lastClk = false;
+  /** The counter's state (fn 'ctr'). */
+  private count = 0;
+  private nextCount = 0;
   private static readonly GOUT = 1 / 50;
   private static readonly GIN = 1e-7;
   constructor(public el: Element & { kind: 'X' }, private ins: number[], private outs: number[], private vcc: number) {
@@ -1022,6 +1025,18 @@ class Logic implements Device {
         out = [inHigh ? 0 : 1];
         break;
       }
+      case 'ctr': {
+        // ripple counter (CD4020): advances on the clock's falling edge, RESET high clears it;
+        // outputs are bits 0, 3, 4 … 13 (Q1, Q4 … Q14)
+        clk = a[0];
+        let n = this.count;
+        if (a[1]) n = 0;
+        else if (!clk && this.lastClk) n = (n + 1) % 16384;
+        const bits = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        out = bits.map((b) => (n >> b) & 1);
+        this.nextCount = n;
+        break;
+      }
       case 'dff': {
         clk = a[1];
         if (clk && !this.lastClk) out = a[0] ? [1, 0] : [0, 1];
@@ -1033,9 +1048,9 @@ class Logic implements Device {
   }
   pending(x: Float64Array) {
     const n = this.next(x);
-    return n.inHigh !== this.inHigh || n.clk !== this.lastClk || n.out.some((v, k) => v !== this.out[k]);
+    return n.inHigh !== this.inHigh || n.clk !== this.lastClk || n.out.some((v, k) => v !== this.out[k]) || (this.el.fn === 'ctr' && this.nextCount !== this.count);
   }
-  commitState(x: Float64Array) { const n = this.next(x); this.out = n.out; this.inHigh = n.inHigh; this.lastClk = n.clk; }
+  commitState(x: Float64Array) { const n = this.next(x); this.out = n.out; this.inHigh = n.inHigh; this.lastClk = n.clk; if (this.el.fn === 'ctr') this.count = this.nextCount; }
   private stamp(c: { A: Float64Array; n: number }) {
     for (const i of this.ins) stampG(c, i, -1, Logic.GIN);
     this.outs.forEach((o, k) => stampG(c, o, this.out[k] ? this.vcc : -1, Logic.GOUT));

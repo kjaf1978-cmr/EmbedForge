@@ -146,6 +146,15 @@ const LOGIC: SymbolDef[] = [
       text(-13, -7, 'D', 7), text(13, -7, 'Q', 7), text(13, 13, 'Q̄', 7)],
     value: RAIL, params: [],
   },
+  {
+    id: 'cd4020', name: '14-stage binary counter (CD4020)', category: 'Logic', keywords: ['u', 'counter', 'ripple counter', 'divider', 'timer', '4020', '74hc4020', 'logic'], prefix: 'U', logic: true,
+    description: 'Ripple counter (CD4020 / 74HC4020 pin numbers): advances on each falling edge of CLK, RESET high clears it; Q1 and Q4 … Q14 are the counter\'s bits (Q14 high after 8192 clocks). With a slow clock a long timer: gate the clock with the output that ends the time, so the count stops there.',
+    pins: [{ id: '10', name: 'CLK', x: -50, y: -10, type: 'input' }, { id: '11', name: 'RST', x: -50, y: 10, type: 'input' }, { id: '9', name: 'Q1', x: 50, y: -60, type: 'output', optional: true }, { id: '7', name: 'Q4', x: 50, y: -50, type: 'output', optional: true }, { id: '5', name: 'Q5', x: 50, y: -40, type: 'output', optional: true }, { id: '4', name: 'Q6', x: 50, y: -30, type: 'output', optional: true }, { id: '6', name: 'Q7', x: 50, y: -20, type: 'output', optional: true }, { id: '13', name: 'Q8', x: 50, y: -10, type: 'output', optional: true }, { id: '12', name: 'Q9', x: 50, y: 0, type: 'output', optional: true }, { id: '14', name: 'Q10', x: 50, y: 10, type: 'output', optional: true }, { id: '15', name: 'Q11', x: 50, y: 20, type: 'output', optional: true }, { id: '1', name: 'Q12', x: 50, y: 30, type: 'output', optional: true }, { id: '2', name: 'Q13', x: 50, y: 40, type: 'output', optional: true }, { id: '3', name: 'Q14', x: 50, y: 50, type: 'output', optional: true }],
+    refAt: { x: 0, y: -76 }, valAt: { x: 0, y: 76 }, simulated: true,
+    gfx: () => [path('M -50 -10 H -30 M -50 10 H -30'), path('M -30 -66 H 30 V 66 H -30 Z', 'bg'), path('M 30 -60 H 50 M 30 -50 H 50 M 30 -40 H 50 M 30 -30 H 50 M 30 -20 H 50 M 30 -10 H 50 M 30 0 H 50 M 30 10 H 50 M 30 20 H 50 M 30 30 H 50 M 30 40 H 50 M 30 50 H 50'),
+      path('M -30 -15 L -23 -10 L -30 -5'), text(0, 0, '4020', 8)],
+    value: RAIL, params: [],
+  },
 ];
 
 export const SYMBOLS: SymbolDef[] = [

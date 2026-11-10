@@ -282,6 +282,9 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
     case 'not': case 'schmitt':
       out.push({ kind: 'X', name: ref, fn: s.id as LogicFn, ins: [pin['1']], outs: [pin['2']], vcc: logicRail(p) });
       break;
+    case 'cd4020':
+      out.push({ kind: 'X', name: ref, fn: 'ctr', ins: [pin['10'], pin['11']], outs: ['9', '7', '5', '4', '6', '13', '12', '14', '15', '1', '2', '3'].map((k) => pin[k] ?? `${ref}#q${k}`), vcc: logicRail(p) });
+      break;
     case 'dff':
       out.push({ kind: 'X', name: ref, fn: 'dff', ins: [pin['1'], pin['2']], outs: [pin['3'], pin['4']], vcc: logicRail(p) });
       break;
