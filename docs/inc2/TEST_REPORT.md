@@ -624,7 +624,9 @@ K1 welding while running (the E-stop still stops, the next reset is refused). Fo
 
 **P4b at 140 V input:** the 10 and 15 kVA output contactors never closed. Their 230 V coils got
 213 V there (93 %, close to the 85 % pull-in). All three ratings now use wide-range
-200–277 V AC/DC coils (Siemens 3RT2…-1NP30); the 18 long runs are being repeated.
+200–277 V AC/DC coils (Siemens 3RT2…-1NP30). All 18 long runs repeated and passed: steady
+state at 140, 230 and 300 V for each rating, sags and swells (resistive and power factor 0.8), the
+shorted thyristor pair, the hot heatsink and no load.
 
 ## 4. Usability (section 22 step 4)
 
