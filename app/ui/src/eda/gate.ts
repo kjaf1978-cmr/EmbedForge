@@ -76,8 +76,8 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
   // from the microcontroller; contacts: COM to the motor, NO to 24 V, NC to the switch node
   nb.block('relays')
     .part('XLO', 'terminal', 0, 200, { value: 'open limit (NC)' }, { '1': 'LSO' })
-    .part('XLC', 'terminal', 0, 300, { value: 'close limit (NC)' }, { '1': 'LSC' })
-    .part('XBM', 'terminal', 0, 400, { value: 'photo-beam (NC)' }, { '1': 'BMC' })
+    // the close limit and the beam's contact in series in the field: one return to the board
+    .part('XBM', 'terminal', 0, 400, { value: 'close limit and photo-beam (NC, in series)' }, { '1': 'BMC' })
     .part('XLV', 'terminal', 0, 500, { value: 'limit / beam common +24 V' }, { '1': 'V24F' })
     .part('KO', 'relay', 200, 250, { value: '24 V 30 A' }, { '1': 'LSO', '2': 'KOC', '3': 'MA', '4': 'SW', '5': 'V24F' })
     .part('DKO', 'diode', 150, 350, { value: '1N4148' }, { '2': 'KOC', '1': 'LSO' }, 3)

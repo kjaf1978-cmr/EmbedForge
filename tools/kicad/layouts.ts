@@ -2,6 +2,7 @@
 // its size where it is fixed, and the net classes: the power paths' widths (IPC-2221 for their
 // current) and the clearances of the mains and high-voltage nets (IEC 62368-1 / IEC 60664-1,
 // pollution degree 2, material group IIIb, basic insulation, overvoltage category II).
+import { gateController } from '../../app/ui/src/eda/gate';
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
@@ -356,6 +357,11 @@ export const DESIGNS: Record<string, Design> = {
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
   // connectors, the MOVs (after the breakers) and the control, its mains and its control nets on
   // two connectors to the panel
+  // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
+  // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
+  // 2 mm tracks in 2 oz copper
+  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V, motor drive and protections', revision: 'A',
+    classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
