@@ -85,7 +85,7 @@ describe('sources', () => {
 });
 
 describe('semiconductors, every model', () => {
-  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5408': [0.5, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35], STTH6003: [0.3, 0.6], UF4007: [0.6, 0.8], C4D20120A: [0.6, 0.95], C4D02120A: [0.7, 1.05] };
+  const fwd: Record<string, [number, number]> = { '1N4148': [0.6, 0.8], '1N4007': [0.6, 0.8], '1N5408': [0.5, 0.8], '1N5819': [0.12, 0.45], BAT54: [0.3, 0.45], SS34: [0.12, 0.35], STTH6003: [0.3, 0.6], MBR20100CT: [0.12, 0.45], UF4007: [0.6, 0.8], C4D20120A: [0.6, 0.95], C4D02120A: [0.7, 1.05] };
   for (const m of DIODES) it(`diode ${m.name}: conducts forward, blocks reverse`, () => {
     const f = run([V(5, 'A'), R('1k', 'A', 'K'), ['diode', { value: m.name }, { '2': 'K', '1': 'GND' }]]);
     expect(f.v('K')).toBeGreaterThan(fwd[m.name][0]); expect(f.v('K')).toBeLessThan(fwd[m.name][1]);
@@ -486,8 +486,31 @@ describe('installation and power parts (detailed checks in installation.test.ts)
     ['isurge', [['isurge', {}, { '1': 'S', '2': 'GND' }], R('1', 'S', 'GND')], { type: 'tran', stop: '20u', step: '50n' }],
     ['comparator', [V(5, 'VCC'), V(1, 'P'), ['comparator', {}, { '3': 'P', '2': 'GND', '1': 'O', '8': 'VCC', '4': 'GND' }], R('10k', 'VCC', 'O')]],
     ['hbdriver', [V(15, 'VCC'), V(0, 'IN'), ['hbdriver', {}, { '1': 'IN', '8': 'VCC', '3': 'GND', '7': 'VCC', '6': 'HO', '5': 'GND', '4': 'LO' }], R('1k', 'HO', 'GND'), R('1k', 'LO', 'GND')]],
+    ['scr', [V(12, 'A'), R('100', 'A', 'AN'), ['scr', {}, { '1': 'AN', '2': 'GND', '3': 'G' }], V(5, 'GP'), R('470', 'GP', 'G')]],
+    ['optotriac', [V(5, 'P'), R('330', 'P', 'LA'), ['optotriac', {}, { '1': 'LA', '2': 'GND', '6': 'MT', '4': 'GND' }], V(12, 'S'), R('1k', 'S', 'MT')]],
+    ['cd4020', [V(5, 'V5'), ['vpulse', { value: '5', low: '0', freq: '1k', duty: '50' }, { '1': 'CK', '2': 'GND' }], ['cd4020', { value: 'V5' }, { '10': 'CK', '11': 'GND', '9': 'Q1' }], R('10k', 'Q1', 'GND')], { type: 'tran', stop: '5m', step: '10u' }],
   ];
   for (const [sym, parts, sim] of decks) it(`${sym} simulates in a minimal circuit and exports to SPICE`, () => { run(parts, sim); });
+});
+
+describe('board-only parts (P9 irrigation)', () => {
+  // the microcontroller module and its peripherals are placed on the product's boards, not
+  // simulated (the firmware runs in the board emulation, Increment 4); the bus header simulates as
+  // its connection points
+  it('the 74HC595, 74HC4051 and the ESP32 module are flagged as not simulated and have footprints; the ribbon header simulates', async () => {
+    const { footprintOf } = await import('../src/pcb/library');
+    for (const [sym, value] of [['hc595', '74HC595'], ['hc4051', '74HC4051'], ['mcu', 'ESP32-DevKitC-32E'], ['idc20', 'IDC 2×10']] as const) {
+      const sd = SYMBOLS.find((x) => x.id === sym)!;
+      expect(sd.simulated, sym).toBe(sym === 'idc20');
+      const fp = footprintOf({ id: 'x', ref: 'U1', sym, x: 0, y: 0, rot: 0, mirror: false, props: { value } } as never)!;
+      expect(fp, sym).not.toBeNull();
+      // every pin of the symbol has a pad
+      for (const p of sd.pins) expect(fp.choice.pins[p.id]?.length, `${sym} ${p.id}`).toBeGreaterThan(0);
+      for (const ps of Object.values(fp.choice.pins)) for (const pad of ps) expect(fp.fp.pads.some((q) => q.id === pad), `${sym} pad ${pad}`).toBe(true);
+      tested.add(sym);
+    }
+    run([R('1k', 'A', 'GND'), ['idc20', {}, { '1': 'A', '2': 'GND' }], V(5, 'A')]);
+  });
 });
 
 describe('coverage', () => {

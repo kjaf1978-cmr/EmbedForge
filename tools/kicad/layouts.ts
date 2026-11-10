@@ -7,6 +7,7 @@ import { pumpControl } from '../../app/ui/src/eda/pumpControl';
 import { trimmer } from '../../app/ui/src/eda/trimmer';
 import { blockMachine } from '../../app/ui/src/eda/blockMachine';
 import { stabiliserT } from '../../app/ui/src/eda/stabiliserT';
+import { irrigationMain, irrigationModule } from '../../app/ui/src/eda/irrigationBoards';
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
@@ -439,6 +440,23 @@ function inverterBoards(cells: 4 | 8 | 16, v: string): Record<string, Design> {
   };
 }
 
+// P9 irrigation (D24): the channel module's field terminals in one row along its bottom edge, per
+// zone the valve's two poles and the sensor's three (+3.3 V, out, 0 V); the bus headers at the top
+// corners (in left, out right, so the modules chain left to right). The main board: the ESP32
+// module at the top edge, its antenna over the edge (no copper under it), the 24 V terminals on the
+// left, the bus header at the bottom right
+const IRR_TERMS = [1, 2, 3, 4, 5, 6, 7, 8].flatMap((k) => [`XVC${k}`, `XV${k}`, `XSP${k}`, `XS${k}`, `XSG${k}`]);
+const irrModulePlan = (): Placed[] => {
+  const { sheet, nb } = irrigationModule(), ref = (k: string) => nb.refOf(sheet, k);
+  return [...IRR_TERMS.map((k, i) => ({ ref: ref(k), x: 6 + 5.08 * i, y: 88, rot: 0 as const })),
+    { ref: ref('J_IN'), x: 24, y: 8, rot: 0 }, { ref: ref('J_OUT'), x: 188, y: 8, rot: 0 }];
+};
+const irrMainPlan = (): Placed[] => {
+  const { sheet, nb } = irrigationMain(), ref = (k: string) => nb.refOf(sheet, k);
+  return [{ ref: ref('U7'), x: 70, y: 26, rot: 0 }, { ref: ref('X24P'), x: 6, y: 60, rot: 90 }, { ref: ref('X24N'), x: 6, y: 65.08, rot: 90 }, { ref: ref('J_BUS'), x: 106, y: 92, rot: 0 }];
+};
+const IRR_POWER: NetClass = { name: 'Power', patterns: ['^V24$', '^SRET$', '^VIN$', '^VFU$'], track: 1, clearance: 0.3 };
+
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
@@ -487,6 +505,12 @@ export const DESIGNS: Record<string, Design> = {
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
+  'irrigation-module': { sheet: () => irrigationModule().sheet, title: 'Irrigation controller: 8-zone channel module (up to 8 per controller)', revision: 'A',
+    classes: () => [IRR_POWER], w: 212, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 212, y0: 16, y1: 80 } },
+  'irrigation-main': { sheet: () => irrigationMain().sheet, title: 'Irrigation controller: main board (supplies, ESP32, overcurrent cut-off, bus)', revision: 'A',
+    classes: () => [IRR_POWER], w: 130, h: 100,
+    plan: irrMainPlan,
+    region: { x0: 0, x1: 130, y0: 54, y1: 100 } },
   'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V, motor drive and protections', revision: 'A',
     classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },

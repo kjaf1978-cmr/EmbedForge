@@ -47,7 +47,7 @@ const FET: Record<string, FootprintChoice> = {
 };
 // regulators: symbol pins 1 IN, 2 GND, 3 OUT
 const REG: Record<string, FootprintChoice> = {
-  '7805': legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT'), '7809': legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT'), '7812': legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT'),
+  '7805': legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT'), 'R-78E5.0-1.0': legs('TO-220_Vertical', ['1', '2', '3'], 'Recom SIP-3: VIN-GND-VOUT, 2.54 mm'), '7809': legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT'), '7812': legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT'),
   'AMS1117-3.3': map('SOT-223', { 1: '3', 2: '1', 3: ['2', '4'] }, { note: 'GND-OUT-IN, tab OUT' }), 'AMS1117-5.0': map('SOT-223', { 1: '3', 2: '1', 3: ['2', '4'] }, { note: 'GND-OUT-IN, tab OUT' }),
   'MCP1700-3.3': legs('TO-92_Wide', ['2', '1', '3'], 'GND-IN-OUT'), L78L05: legs('TO-92_Wide', ['3', '2', '1'], 'OUT-GND-IN'),
 };
@@ -178,6 +178,10 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'breaker4': return [map('TerminalBlock_1x8', { 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', N1: '7', N2: '8' }, { note: 'DIN-rail device: L1, L2, L3, N in/out' })];
     case 'contactor': return [map('TerminalBlock_1x14', Object.fromEntries(['A1', 'A2', '1', '2', '3', '4', '5', '6', '7', '8', '13', '14', '21', '22'].map((x, k) => [x, String(k + 1)])), { note: 'DIN-rail contactor: A1 A2 1 2 3 4 5 6 7 8 13 14 21 22' })];
     case 'terminal': return [same('TerminalBlock_1x1', pins, 'one pole; poles of one function group sit side by side in one block')];
+    case 'hc595': return [same('DIP-16', pins, '74HC595: VCC 16, GND 8'), same('SOIC-16', pins, '74HC595D: VCC 16, GND 8')];
+    case 'hc4051': return [same('DIP-16', pins, '74HC4051: VCC 16, VEE 7, GND 8'), same('SOIC-16', pins, '74HC4051D: VCC 16, VEE 7, GND 8')];
+    case 'mcu': return [same('ESP32_DevKitC', pins, 'the module on two 1 × 19 female headers, 2.54 mm')];
+    case 'idc20': return [same('IDC_Header_2x10', pins, 'box header; the ribbon cable with IDC sockets between the boards')];
     case 'pv': return [same('TerminalBlock_1x2', pins, 'PV cable (via MC4 connectors): + and −')];
     case 'autotransformer': return [map('TerminalBlock_1x8', { N: '1', T1: '2', T2: '3', T3: '4', T4: '5', T5: '6', T6: '7', T7: '8' }, { note: 'off-board autotransformer: N, T1 … T7' })];
     case 'comparator': return v === 'LM339' ? [map('DIP-14', { 3: '5', 2: '4', 1: '2', 8: '3', 4: '12' }, { note: 'comparator 1 of the LM339; tie the inputs of the unused ones to GND' })] : [same('DIP-8', pins, 'comparator A of the LM393'), same('SOIC-8', pins)];

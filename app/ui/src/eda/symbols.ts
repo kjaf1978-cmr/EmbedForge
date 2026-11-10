@@ -157,6 +157,50 @@ const LOGIC: SymbolDef[] = [
   },
 ];
 
+// ---- board-only parts (P9 irrigation): placed on the product's boards, not simulated (the
+// microcontroller's firmware runs in the board emulation of Increment 4; the registers and the
+// multiplexer are its peripherals there)
+type IcPin = [id: string, name: string, type: PinType, optional?: boolean];
+/** A rectangular IC symbol: the left pins top-down, then the right ones; 10 units apart. */
+function icSymbol(id: string, name: string, description: string, keywords: string[], prefix: string, label: string, left: IcPin[], right: IcPin[], value: ParamDef, category: Category = 'Integrated circuits'): SymbolDef {
+  // pins on the 10-unit grid (an even count centred would put them half a grid off)
+  const n = Math.max(left.length, right.length), y0 = -Math.floor(n / 2) * 10, top = y0 - 10, bot = y0 + (n - 1) * 10 + 10, w = 40;
+  const pin = ([pid, nm, type, optional]: IcPin, k: number, side: -1 | 1): PinDef => ({ id: pid, name: nm, x: side * (w + 20), y: y0 + k * 10, type, ...(optional ? { optional } : {}) });
+  const pins = [...left.map((q, k) => pin(q, k, -1)), ...right.map((q, k) => pin(q, k, 1))];
+  return {
+    id, name, category, keywords, prefix, description, pins, refAt: { x: 0, y: top - 10 }, valAt: { x: 0, y: bot + 12 }, simulated: false,
+    gfx: () => [path(pins.map((q) => `M ${q.x} ${q.y} H ${Math.sign(q.x) * w}`).join(' ')), path(`M ${-w} ${top} H ${w} V ${bot} H ${-w} Z`, 'bg'),
+      ...pins.map((q) => text(Math.sign(q.x) * (w - 3 - q.name.length * 2), q.y + 2.5, q.name, 6)), text(0, bot - 4, label, 7)],
+    value, params: [],
+  };
+}
+const ESP32_J1: [string, string][] = [['3V3', 'power_in'], ['EN', 'input'], ['IO36', 'input'], ['IO39', 'input'], ['IO34', 'input'], ['IO35', 'input'], ['IO32', 'passive'], ['IO33', 'passive'], ['IO25', 'passive'], ['IO26', 'passive'],
+  ['IO27', 'passive'], ['IO14', 'passive'], ['IO12', 'passive'], ['GND', 'power_in'], ['IO13', 'passive'], ['SD2', 'passive'], ['SD3', 'passive'], ['CMD', 'passive'], ['5V', 'power_in']];
+const ESP32_J3: [string, string][] = [['GND', 'power_in'], ['IO23', 'passive'], ['IO22', 'passive'], ['TX0', 'passive'], ['RX0', 'passive'], ['IO21', 'passive'], ['GND', 'power_in'], ['IO19', 'passive'], ['IO18', 'passive'], ['IO5', 'passive'],
+  ['IO17', 'passive'], ['IO16', 'passive'], ['IO4', 'passive'], ['IO0', 'passive'], ['IO2', 'passive'], ['IO15', 'passive'], ['SD1', 'passive'], ['SD0', 'passive'], ['CLK', 'passive']];
+const BOARD_ONLY: SymbolDef[] = [
+  icSymbol('hc595', '8-bit shift register with output latch (74HC595)', 'Serial in, parallel out: on each rising SRCLK the bits move on (SER into QA); a rising RCLK copies them to the outputs QA … QH; OE̅ high puts the outputs in high impedance; QH\' feeds the next register. VCC 2–6 V. Board only: not simulated.',
+    ['u', '595', 'shift register', 'serial', 'spi', 'output expander', 'latch'], 'U', '595',
+    [['14', 'SER', 'input'], ['11', 'SRCLK', 'input'], ['12', 'RCLK', 'input'], ['13', 'OE̅', 'input'], ['10', 'SRCLR̅', 'input'], ['16', 'VCC', 'power_in'], ['8', 'GND', 'power_in']],
+    [['15', 'QA', 'output', true], ['1', 'QB', 'output', true], ['2', 'QC', 'output', true], ['3', 'QD', 'output', true], ['4', 'QE', 'output', true], ['5', 'QF', 'output', true], ['6', 'QG', 'output', true], ['7', 'QH', 'output', true], ['9', 'QH\'', 'output', true]],
+    { key: 'value', label: 'Type', kind: 'text', default: '74HC595' }),
+  icSymbol('hc4051', '8-channel analogue multiplexer (74HC4051)', 'Connects one of Y0 … Y7 (chosen by S2 S1 S0) to Z while E̅ is low; all off while E̅ is high. About 80 Ω on at 3.3 V; signals between VEE and VCC. Board only: not simulated.',
+    ['u', '4051', 'multiplexer', 'mux', 'analog switch', 'analogue switch', 'adc'], 'U', '4051',
+    [['13', 'Y0', 'passive', true], ['14', 'Y1', 'passive', true], ['15', 'Y2', 'passive', true], ['12', 'Y3', 'passive', true], ['1', 'Y4', 'passive', true], ['5', 'Y5', 'passive', true], ['2', 'Y6', 'passive', true], ['4', 'Y7', 'passive', true],
+      ['11', 'S0', 'input'], ['10', 'S1', 'input'], ['9', 'S2', 'input'], ['6', 'E̅', 'input']],
+    [['3', 'Z', 'passive'], ['16', 'VCC', 'power_in'], ['8', 'GND', 'power_in'], ['7', 'VEE', 'power_in']],
+    { key: 'value', label: 'Type', kind: 'text', default: '74HC4051' }),
+  icSymbol('mcu', 'Microcontroller module (ESP32-DevKitC)', 'The ESP32-DevKitC-32E module on two 19-pin headers (J1 left, J3 right, as printed on the module), plugged into sockets on the board. 5 V in on J1-19 (its own 3.3 V regulator); its GPIO are 3.3 V only. Board only: the firmware runs in the board emulation (Increment 4).',
+    ['u', 'esp32', 'microcontroller', 'mcu', 'module', 'devkit', 'wifi'], 'U', 'ESP32-DevKitC',
+    ESP32_J1.map(([nm, t], k) => [`J1-${k + 1}`, nm, t as PinType, true]), ESP32_J3.map(([nm, t], k) => [`J3-${k + 1}`, nm, t as PinType, true]),
+    { key: 'value', label: 'Module', kind: 'text', default: 'ESP32-DevKitC-32E' }),
+  icSymbol('idc20', 'Box header 2 × 10 (IDC ribbon cable)', 'Shrouded 2.54 mm box header for a 20-way IDC ribbon cable; pin 1 marked, odd pins in one row, even in the other. Electrically 20 connection points.',
+    ['j', 'idc', 'ribbon', 'header', 'box header', 'connector', 'bus'], 'J', 'IDC 2×10',
+    ['1', '3', '5', '7', '9', '11', '13', '15', '17', '19'].map((id) => [id, id, 'passive', true] as IcPin), ['2', '4', '6', '8', '10', '12', '14', '16', '18', '20'].map((id) => [id, id, 'passive', true] as IcPin),
+    { key: 'value', label: 'Type', kind: 'text', default: 'IDC 2×10' }, 'Installation'),
+];
+BOARD_ONLY[3].simulated = true; // a connector: connection points only
+
 export const SYMBOLS: SymbolDef[] = [
   {
     id: 'resistor', name: 'Resistor', category: 'Passive', keywords: ['r', 'ohm', 'resistance'], prefix: 'R',
@@ -751,6 +795,7 @@ export const SYMBOLS: SymbolDef[] = [
     value: { key: 'value', label: 'Rail', kind: 'text', default: '+5V' }, params: [],
   },
   ...LOGIC,
+  ...BOARD_ONLY,
 ];
 
 export const SYMBOL = new Map(SYMBOLS.map((s) => [s.id, s]));

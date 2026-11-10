@@ -118,9 +118,14 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     CD: e('CD4013BE', 'Texas Instruments', 'dual D flip-flop, CMOS 3–18 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
     HC: e('SN74HC74N', 'Texas Instruments', 'dual D flip-flop with preset and clear, 2–6 V, DIP-14', 0.45, 0.2, 'estimate', any('DIP-14')),
   },
+  // P9 irrigation (board-only parts)
+  hc595: { '74HC595': e('SN74HC595N', 'Texas Instruments', '8-bit shift register with output latch, 2–6 V, DIP-16', 0.55, 0.25, 'estimate', [{ distributor: 'Mouser', sku: '595-SN74HC595N' }, { distributor: 'LCSC' }]) },
+  hc4051: { '74HC4051': e('SN74HC4051N', 'Texas Instruments', '8-channel analogue multiplexer, 2–6 V, DIP-16', 0.55, 0.25, 'estimate', [{ distributor: 'Mouser', sku: '595-SN74HC4051N' }, { distributor: 'LCSC' }]) },
+  mcu: { 'ESP32-DevKitC-32E': e('ESP32-DevKitC-32E', 'Espressif', 'ESP32 module board (Wi-Fi, 3.3 V GPIO, 5 V in), with two 1 × 19 female headers 2.54 mm (e.g. Samtec SSW-119-01-T-S)', 10.5, 9.5, 'estimate', [{ distributor: 'Mouser', sku: '356-ESP32-DEVKITC32E' }, { distributor: 'Digi-Key' }], 'the headers about €1.50 the pair') },
+  idc20: { 'IDC 2×10': e('61202021621 (WR-BHD)', 'Würth Elektronik', 'box header 2 × 10, 2.54 mm, straight, THT; per cable two IDC sockets 61202013021 and 20-way flat cable', 0.6, 0.35, 'estimate', [{ distributor: 'Mouser', sku: '710-61202021621' }, { distributor: 'Digi-Key' }]) },
   timer555: { NE555: e('NE555P', 'Texas Instruments', 'timer, DIP-8', 0.35, 0.12, 'estimate', any('DIP-8')) },
   opto: { PC817: e('PC817X1NSZ1B', 'Sharp', 'optocoupler, transistor output, DIP-4', 0.3, 0.1, 'estimate', any('DIP-4')) },
-  regulator: { '7805': e('L7805CV', 'STMicroelectronics', 'linear regulator 5 V 1.5 A, TO-220', 0.4, 0.2, 'estimate', [{ distributor: 'LCSC' }, { distributor: 'Mouser' }]), 'LM2940-9.0': e('LM2940CT-9.0/NOPB', 'Texas Instruments', 'low-dropout regulator 9 V, 1 A, input up to 26 V, TO-220', 2.4, 1.5, 'live', [{ distributor: 'Mouser', sku: '926-LM2940CT-9.0NOPB' }]) },
+  regulator: { 'R-78E5.0-1.0': e('R-78E5.0-1.0', 'Recom', 'switching regulator 5 V 1 A, 7805 replacement, input 7–28 V, SIP-3', 4.2, 3.3, 'estimate', [{ distributor: 'Mouser', sku: '919-R-78E5.0-1.0' }, { distributor: 'Farnell' }]), 'AMS1117-3.3': e('AMS1117-3.3', 'Advanced Monolithic Systems', 'low-dropout regulator 3.3 V 1 A, SOT-223', 0.15, 0.05, 'estimate', [{ distributor: 'LCSC', sku: 'C6186' }]), '7805': e('L7805CV', 'STMicroelectronics', 'linear regulator 5 V 1.5 A, TO-220', 0.4, 0.2, 'estimate', [{ distributor: 'LCSC' }, { distributor: 'Mouser' }]), 'LM2940-9.0': e('LM2940CT-9.0/NOPB', 'Texas Instruments', 'low-dropout regulator 9 V, 1 A, input up to 26 V, TO-220', 2.4, 1.5, 'live', [{ distributor: 'Mouser', sku: '926-LM2940CT-9.0NOPB' }]) },
   lm317: { LM317HV: e('LM317HVT/NOPB', 'Texas Instruments', 'adjustable regulator, 60 V input–output, 1.5 A, TO-220', 2.2, 1.26, 'live', [{ distributor: 'Mouser', sku: '926-LM317HVT/NOPB' }, { distributor: 'RS', sku: '197-7244' }], 'on a heatsink of 8 K/W: Fischer SK 76 37,5 SA (RS 221-2176), about €3.50') },
   npn: {
     '2N2222A': e('PN2222A', 'onsemi', 'NPN 40 V 1 A, TO-92 (2N2222A in plastic)', 0.1, 0.03, 'estimate', [{ distributor: 'Mouser' }]),
@@ -129,6 +134,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     BC547B: e('BC547B', 'onsemi', 'NPN 45 V 100 mA, TO-92', 0.1, 0.03, 'estimate', any('TO-92')),
     MJE340: e('MJE340G', 'onsemi', 'NPN 300 V 0.5 A, TO-126 (on the heatsink, insulated)', 0.84, 0.35, 'live', [{ distributor: 'Mouser', sku: '863-MJE340G' }, { distributor: 'LCSC', sku: 'C898406' }, { distributor: 'RS', sku: '046-4205' }]),
   },
+  pmos: { AO3401: e('AO3401A', 'Alpha & Omega', 'MOSFET P logic level 30 V 4 A, SOT-23', 0.12, 0.04, 'estimate', [{ distributor: 'LCSC', sku: 'C15127' }, { distributor: 'Mouser' }]) },
   pnp: { BC557B: e('BC557B', 'onsemi', 'PNP 45 V 100 mA, TO-92', 0.1, 0.03, 'estimate', any('TO-92')), BD140: e('BD140-16', 'STMicroelectronics', 'PNP 80 V 1.5 A, TO-126', 0.45, 0.2, 'estimate', any('TO-126')), D45H11: e('D45H11G', 'onsemi', 'PNP 80 V 10 A switching, TO-220', 0.95, 0.45, 'estimate', any('TO-220')) },
   led: {
     green: e('5 mm green LED, 20 mA', 'Kingbright (e.g. L-53GD)', 'LED 5 mm green, diffused', 0.12, 0.04, 'estimate', any('5 mm LED')),

@@ -209,4 +209,22 @@ const movDisc = (id: string, name: string, pitch: number, D: number, t: number) 
 movDisc('MOV_Disc_10', 'Varistor disc Ø 10 mm, 7.5 mm', 7.5, 12, 5);
 movDisc('MOV_Disc_14', 'Varistor disc Ø 14 mm, 7.5 mm', 7.5, 16, 6);
 movDisc('MOV_Disc_20', 'Varistor disc Ø 20 mm, 10 mm', 10, 22, 6.5);
+// P9 irrigation: the 74HC595 and 74HC4051 also in SOIC-16; the ribbon-cable bus; the ESP32 module
+add(soic('SOIC-16', 'SOIC-16', 16));
+add((() => {
+  // shrouded box header 2 × 10, 2.54 mm: odd pins in the top row (1 left), even below
+  const pads: Pad[] = [];
+  for (let k = 0; k < 10; k++) { pads.push(tht(String(2 * k + 1), (k - 4.5) * 2.54, -1.27, 1.7, 1.0, k === 0 ? 'rect' : 'circle')); pads.push(tht(String(2 * k + 2), (k - 4.5) * 2.54, 1.27, 1.7, 1.0)); }
+  const bx = 16.6, by = 4.45;
+  return make('IDC_Header_2x10', 'Box header 2 × 10, 2.54 mm (IDC ribbon cable)', 'shrouded, keyed; pin 1 top left', pads,
+    [...box(-bx, -by, bx, by), line(-2.2, by, -2.2, by - 1), line(2.2, by, 2.2, by - 1), line(-bx - 1, -2.5, -bx - 1, -0.5)], { x0: -bx, y0: -by, x1: bx, y1: by, h: 9 });
+})());
+add((() => {
+  // ESP32-DevKitC: two rows of 19 pins, 2.54 mm, 25.4 mm apart, into 1 × 19 female headers (the
+  // module stands on them, its antenna beyond the top edge of the rows)
+  const pads: Pad[] = [];
+  for (let k = 0; k < 19; k++) { pads.push(tht(`J1-${k + 1}`, -12.7, (k - 9) * 2.54, 1.7, 1.0, k === 0 ? 'rect' : 'circle')); pads.push(tht(`J3-${k + 1}`, 12.7, (k - 9) * 2.54, 1.7, 1.0, k === 0 ? 'rect' : 'circle')); }
+  return make('ESP32_DevKitC', 'ESP32-DevKitC module on two 1 × 19 sockets', 'rows 25.4 mm apart; the module 28 × 54 mm, its antenna up (keep copper away from it)', pads,
+    [...box(-14, -29, 14, 25), line(-14, -25, 14, -25)], { x0: -14, y0: -29, x1: 14, y1: 25, h: 18 });
+})());
 add(axial('GDT_Axial_8x6', 'Gas discharge tube 8 × 6 mm, axial, 15.24 mm', 15.24, 1.0, 2.0, 6, 8, 8));

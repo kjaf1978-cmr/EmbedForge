@@ -701,7 +701,7 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       break;
     }
     // a terminal is a connection point: nothing to simulate
-    case 'terminal': break;
+    case 'terminal': case 'idc20': break;
     default: throw new SimSetupError(`no simulation model for ${s.id}`);
   }
 }
