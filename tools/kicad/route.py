@@ -140,7 +140,7 @@ def apply_post(board, post):
     for zd in (post or {}).get('zones') or []:
         z = pcbnew.ZONE(board); z.SetLayer(layer[zd['layer']]); z.SetNet(board.FindNet(zd['net']))
         z.SetLocalClearance(pcbnew.FromMM(zd.get('clearance', 0.8))); z.SetMinThickness(pcbnew.FromMM(0.5))
-        z.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
+        z.SetPadConnection(pcbnew.ZONE_CONNECTION_FULL if zd.get('solid') else pcbnew.ZONE_CONNECTION_THERMAL)
         z.SetThermalReliefGap(pcbnew.FromMM(0.8)); z.SetThermalReliefSpokeWidth(pcbnew.FromMM(0.8))
         z.SetAssignedPriority(5)
         o = z.Outline(); o.NewOutline()
