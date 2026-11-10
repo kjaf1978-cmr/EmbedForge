@@ -331,7 +331,7 @@ export interface KicadBoardOptions {
 }
 
 /** A copper pour of a placement plan: a net, a layer and its outline (mm); its pads connect solid. */
-export interface PlanZone { net: string; layer: 'F.Cu' | 'B.Cu'; pts: [number, number][]; clearance?: number }
+export interface PlanZone { net: string; layer: 'F.Cu' | 'B.Cu'; pts: [number, number][]; clearance?: number; /** post-routing pours: pads connected solid */ solid?: boolean }
 
 /** A track of a placement plan: a polyline on one layer (mm). */
 export interface PlanTrack { net: string; layer: 'F.Cu' | 'B.Cu'; width: number; pts: [number, number][] }

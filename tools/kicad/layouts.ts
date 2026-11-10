@@ -367,10 +367,10 @@ export const DESIGNS: Record<string, Design> = {
   // P9: the trimmer's drive, one board in the handle (the MOSFET and the diode on a small
   // heatsink at the edge); the motor current (40 A peaks) on 3 mm tracks in 4 oz copper
   'trimmer-drive': { sheet: () => trimmer().sheet, title: 'Cordless trimmer drive 36 V', revision: 'A',
-    classes: () => [{ name: 'Power', patterns: ['VB', 'DRN', 'SRC', 'GND'].map((n) => `^${n}$`), track: 3, clearance: 0.6 }], copperOz: 4, w: 150, h: 100,
-    // 150 × 100 mm (on 130 × 90 mm 5 connections stayed open; a ground plane while routing was cut
+    classes: () => [{ name: 'Power', patterns: ['VB', 'DRN', 'SRC', 'GND'].map((n) => `^${n}$`), track: 3, clearance: 0.6 }], copperOz: 4, w: 160, h: 100,
+    // 160 × 100 mm (on 130 × 90 and 150 × 100 mm connections stayed open; a ground plane while routing was cut
     // into islands by the B.Cu tracks); ground poured on both layers after routing
-    post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [148, 2], [148, 98], [2, 98]], clearance: 0.6 }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [148, 2], [148, 98], [2, 98]], clearance: 0.6 }] } },
+    post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 98], [2, 98]], clearance: 0.6, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 98], [2, 98]], clearance: 0.6, solid: true }] } },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
