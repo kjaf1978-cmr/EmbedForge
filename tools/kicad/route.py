@@ -24,9 +24,18 @@ def drc(pcb_path, report):
     reported clean crossed three nets)."""
     import re
     from collections import Counter
-    drc_selftest(pcb_path)
     run_drc(pcb_path, report)
     text = open(report).read()
+    # the independent clearance check: its findings count as errors too
+    import shlex, subprocess as sp
+    here = os.path.dirname(os.path.abspath(__file__))
+    ap = os.path.join(os.path.dirname(os.path.abspath(pcb_path)), 'apart.json')
+    out = sp.run(['bash', '-c', f"cd {shlex.quote(here)} && python3 route.py --geo-check {shlex.quote(os.path.abspath(pcb_path))} {shlex.quote(ap)} 2>/dev/null | tail -1"],
+                 capture_output=True, text=True).stdout.strip()
+    geo = json.loads(out) if out.startswith('[') else ['geo check failed to run']
+    if geo:
+        text += ''.join(f'\n[geo_clearance]: {g}\n    Severity: error\n' for g in geo)
+        open(report, 'a').write(''.join(f'\n[geo_clearance]: {g}\n    Severity: error\n' for g in geo))
     blocks = re.split(r'\n(?=\[)', text)
     errors = [bl for bl in blocks if bl.startswith('[') and 'Severity: error' in bl]
     kinds = Counter(bl[1:bl.index(']')] for bl in errors)
@@ -307,7 +316,7 @@ def run_drc(pcb_path, report):
     """One check in a process of its own, started through bash: a check started directly from a
     Python process (subprocess) skipped KiCad 7's copper clearance test, and a second check in one
     process kept the first one's results (a board with 12 clearance errors came back clean, found
-    while checking a post-routing track). drc_selftest guards against it."""
+    while checking a post-routing track). geo_check is the second opinion that guards against it."""
     import subprocess
     here = os.path.dirname(os.path.abspath(__file__))
     import shlex
@@ -315,40 +324,111 @@ def run_drc(pcb_path, report):
     subprocess.run(['bash', '-c', cmd], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-_selftest_done = False
-
-
-def drc_selftest(pcb_path):
-    """Before the first check: a copy of the board under test with one extra track laid over a
-    track of another net must come back with a clearance (or short) error, or the checks cannot be
-    trusted and the run stops."""
-    global _selftest_done
-    if _selftest_done:
-        return
-    import pcbnew, shutil, tempfile
-    d = tempfile.mkdtemp(prefix='drcself')
+def geo_check(pcb_path, apart_json=None):
+    """An independent clearance check, a second opinion to KiCad's: every two copper items of
+    different nets (tracks, vias, pads, filled zones; a pad without a net counts as a net of its
+    own) on a common layer must be at least the larger of their classes' clearances apart, and an
+    insulation class (apart.json) its distance from every other class. KiCad 7's scripted DRC left
+    the clearance test out on some boards without a word."""
+    import pcbnew
+    from collections import defaultdict
     b = pcbnew.LoadBoard(pcb_path)
-    ts = [t for t in b.GetTracks() if t.GetClass() == 'PCB_TRACK' and t.GetLength() > pcbnew.FromMM(2)]
-    if len(ts) < 2:
-        _selftest_done = True
-        return
-    a = ts[0]
-    other = next((t for t in ts if t.GetNetCode() != a.GetNetCode() and t.GetNetCode() > 0), None)
-    if other is None:
-        _selftest_done = True
-        return
-    t = pcbnew.PCB_TRACK(b); t.SetLayer(a.GetLayer()); t.SetWidth(a.GetWidth()); t.SetStart(a.GetStart()); t.SetEnd(a.GetEnd())
-    t.SetNetCode(other.GetNetCode()); b.Add(t)
-    f = os.path.join(d, 'self.kicad_pcb'); b.Save(f)
-    base = os.path.splitext(pcb_path)[0]
-    for ext in ('kicad_dru', 'kicad_pro'):
-        if os.path.exists(f'{base}.{ext}'):
-            shutil.copy(f'{base}.{ext}', os.path.join(d, 'self.' + ext))
-    run_drc(f, os.path.join(d, 'self.rpt'))
-    text = open(os.path.join(d, 'self.rpt')).read()
-    if '[clearance]' not in text and '[shorting_items]' not in text:
-        sys.exit('DRC self-test failed: a track laid over another net was not reported; the checks cannot be trusted')
-    _selftest_done = True
+    apart = {a['cls']: pcbnew.FromMM(a['mm']) for a in (json.load(open(apart_json)) if apart_json and os.path.exists(apart_json) else [])}
+    nets = b.GetNetInfo()
+    def cls_of(code):
+        if code <= 0:
+            return 'Default'
+        n = nets.GetNetItem(code)
+        return n.GetNetClassName() if n else 'Default'
+    def clr_of(code):
+        if code <= 0:
+            return b.GetDesignSettings().m_MinClearance
+        n = nets.GetNetItem(code)
+        try:
+            return n.GetNetClass().GetClearance()
+        except Exception:
+            return b.GetDesignSettings().m_MinClearance
+    layers = [pcbnew.F_Cu, pcbnew.B_Cu]
+    items = []  # (layer, key, net code, class, clearance, shape, bbox)
+    nc = [0]
+    def add(item, code, key, layer, shape):
+        bb = shape.BBox()
+        items.append((layer, key, code, cls_of(code), clr_of(code), shape, (bb.GetX(), bb.GetY(), bb.GetRight(), bb.GetBottom()), item))
+    for t in b.GetTracks():
+        for L in layers:
+            if t.IsOnLayer(L):
+                add(t, t.GetNetCode(), ('n', t.GetNetCode()), L, t.GetEffectiveShape(L))
+    for fp in b.GetFootprints():
+        for pad in fp.Pads():
+            code = pad.GetNetCode()
+            key = ('n', code) if code > 0 else ('nc', fp.GetReference(), pad.GetNumber())
+            for L in layers:
+                if pad.IsOnLayer(L):
+                    add(pad, code, key, L, pad.GetEffectiveShape(L))
+    zones = []
+    for z in b.Zones():
+        if z.GetIsRuleArea():
+            continue
+        for L in layers:
+            if z.IsOnLayer(L) and z.HasFilledPolysForLayer(L):
+                zones.append((L, z.GetNetCode(), z.GetFilledPolysList(L)))
+    # 5 mm grid buckets
+    G = pcbnew.FromMM(5)
+    grid = defaultdict(list)
+    for k, it in enumerate(items):
+        x0, y0, x1, y1 = it[6]
+        for gx in range(x0 // G, x1 // G + 1):
+            for gy in range(y0 // G, y1 // G + 1):
+                grid[(it[0], gx, gy)].append(k)
+    def need(a, b2):
+        c = max(a[4], b2[4])
+        if a[3] in apart and b2[3] != a[3]:
+            c = max(c, apart[a[3]])
+        if b2[3] in apart and a[3] != b2[3]:
+            c = max(c, apart[b2[3]])
+        return c
+    seen, bad = set(), []
+    for cell in grid.values():
+        for i in range(len(cell)):
+            for j in range(i + 1, len(cell)):
+                a, b2 = items[cell[i]], items[cell[j]]
+                if a[1] == b2[1] or (cell[i], cell[j]) in seen:
+                    continue
+                seen.add((cell[i], cell[j]))
+                c = need(a, b2)
+                if a[6][0] - c > b2[6][2] or b2[6][0] - c > a[6][2] or a[6][1] - c > b2[6][3] or b2[6][1] - c > a[6][3]:
+                    continue
+                if a[5].Collide(b2[5], c - 1):
+                    bad.append(f"{pcbnew.LayerName(a[0]) if hasattr(pcbnew, 'LayerName') else a[0]}: {a[7].GetClass()} [{nets.GetNetItem(a[2]).GetNetname() if a[2] > 0 else 'no net'}] / {b2[7].GetClass()} [{nets.GetNetItem(b2[2]).GetNetname() if b2[2] > 0 else 'no net'}] closer than {pcbnew.ToMM(c):.2f} mm")
+    # filled zones against the items of other nets: the zone's fill as polygons, each item as
+    # segments (a track's centre line widened by half its width, a via's centre, a pad's outline)
+    for L, code, polys in zones:
+        zb = polys.BBox()
+        zc = (L, None, code, cls_of(code), clr_of(code), None, None, None)
+        for it in items:
+            if it[0] != L or it[2] == code:
+                continue
+            c = need(zc, it)
+            x0, y0, x1, y1 = it[6]
+            if x1 < zb.GetX() - c or x0 > zb.GetRight() + c or y1 < zb.GetY() - c or y0 > zb.GetBottom() + c:
+                continue
+            obj = it[7]; k = obj.GetClass(); hit = False
+            if k == 'PCB_TRACK':
+                hit = polys.Collide(pcbnew.SEG(obj.GetStart(), obj.GetEnd()), c + obj.GetWidth() // 2 - 1)
+            elif k == 'PCB_VIA':
+                hit = polys.Collide(obj.GetPosition(), c + obj.GetWidth() // 2 - 1)
+            elif k == 'PAD':
+                pp = obj.GetEffectivePolygon()
+                for o in range(pp.OutlineCount()):
+                    ch = pp.COutline(o)
+                    for e in range(ch.SegmentCount()):
+                        if polys.Collide(ch.CSegment(e), c - 1):
+                            hit = True; break
+                    if hit:
+                        break
+            if hit:
+                bad.append(f"zone [{nets.GetNetItem(code).GetNetname() if code > 0 else 'no net'}] / {k} [{nets.GetNetItem(it[2]).GetNetname() if it[2] > 0 else 'no net'}] closer than {pcbnew.ToMM(c):.2f} mm")
+    return bad
 
 
 def drc_only(pcb_path, report):
@@ -360,5 +440,8 @@ def drc_only(pcb_path, report):
 if __name__ == '__main__':
     if sys.argv[1] == '--drc-only':
         drc_only(sys.argv[2], sys.argv[3])
+    elif sys.argv[1] == '--geo-check':
+        bad = geo_check(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
+        print(json.dumps(bad))
     else:
         main()
