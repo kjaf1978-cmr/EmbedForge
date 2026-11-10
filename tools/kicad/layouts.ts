@@ -502,7 +502,9 @@ export const DESIGNS: Record<string, Design> = {
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
   'block-machine': { sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit, 24 V outputs, inputs and Arduino Nano', revision: 'A',
-    classes: () => [POWER(['V24', 'V24F', 'V24S', 'KPD', 'SVD', 'SVD2', 'SVD3', 'SVD4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 170, h: 120 },
+    classes: () => [POWER(['V24', 'V24F', 'V24S', 'KPD', 'SVD', 'SVD2', 'SVD3', 'SVD4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 170, h: 120,
+    // the coil-drive link Freerouting left (link.py, checked through route.py --post-only)
+    post: { tracks: [{ net: 'KMV1D', layer: 'B.Cu', width: 0.3, pts: [[79.02,  91.55],  [79.0,  91.5],  [80.5,  90.0],  [80.5,  89.75]] }, { net: 'KMV1D', layer: 'F.Cu', width: 0.3, pts: [[80.5,  89.75],  [83.5,  89.75]] }, { net: 'KMV1D', layer: 'B.Cu', width: 0.3, pts: [[83.5,  89.75],  [84.25,  90.5],  [84.25,  92.75],  [84.25,  92.75]] }], vias: [{ net: 'KMV1D', at: [80.5,  89.75] }, { net: 'KMV1D', at: [83.5,  89.75] }] } },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
