@@ -6,3 +6,4 @@ app/ui/playwright-report/
 app/src-tauri/target/
 app/src-tauri/gen/
 app/ui/tests/tmp/
+__pycache__/
