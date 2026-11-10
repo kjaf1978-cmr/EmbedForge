@@ -267,7 +267,7 @@ const HF_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QHA1', 60], ['
   ['QIHA', 200], ['QILA', 222], ['QIHB', 248], ['QILB', 276]];
 const HF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 55, 30, 0], ['CE2', 55, 80, 0], ['CB1', 105, 20, 0], ['CB2', 105, 50, 0], ['CB3', 105, 80, 0],
   ['CB4', 150, 20, 0], ['CB5', 150, 50, 0], ['CB6', 150, 80, 0], ['CBD1', 75, 126, 0], ['CBD2', 105, 126, 0], ['X2', 15, 40, 0],
-  ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 100, 0], ['CHF2', 270, 100, 0], ['RSHI', 245, 112, 0]];
+  ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 92, 0], ['CHF2', 270, 92, 0], ['RSHI', 245, 110, 180]];
 const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 214, 112], ['J_GND', 290, 112], ['J_BUSD', 86.19, 108]];
 const hfPlan = (): Placed[] => {
   const { ref } = hfRefs();
@@ -294,7 +294,7 @@ const HF_BARS: PlanTrack[] = (() => {
   for (const x of [227.45, 281.45]) stub('SRC', 'F.Cu', x, 143, 3);
   for (const x of [253.45, 276]) stub('GND', 'B.Cu', x, 140, 3);
   t.push({ net: 'SWA', layer: 'F.Cu', width: 4, pts: [[205.45, 137], [222, 137]] }, { net: 'SWA', layer: 'F.Cu', width: 4, pts: [[214, 137], [214, 112]] },
-    { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[227.45, 143], [281.45, 143]] }, { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[235, 143], [235, 112]] },
+    { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[227.45, 143], [281.45, 143]] }, { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[255, 143], [255, 110]] },
     { net: 'GND', layer: 'B.Cu', width: 4, pts: [[253.45, 140], [290, 140]] }, { net: 'GND', layer: 'B.Cu', width: 4, pts: [[290, 140], [290, 112]] });
   return t;
 })();
