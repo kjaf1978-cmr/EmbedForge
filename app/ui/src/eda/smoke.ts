@@ -44,7 +44,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   led: { '*': { If: 0.03, Vr: 5 } },
   npn: { '2N3904': { Vce: 40, Ic: 0.2, P: 0.625 }, BC547B: { Vce: 45, Ic: 0.1, P: 0.5 }, '2N2222A': { Vce: 40, Ic: 0.8, P: 0.5 }, BD139: { Vce: 80, Ic: 1.5, P: 1.25 }, D44H11: { Vce: 80, Ic: 20, P: 2 }, MJE340: { Vce: 300, Ic: 0.5, P: 1.25 } },
   pnp: { '2N3906': { Vce: 40, Ic: 0.2, P: 0.625 }, BC557B: { Vce: 45, Ic: 0.1, P: 0.5 }, BD140: { Vce: 80, Ic: 1.5, P: 1.25 }, D45H11: { Vce: 80, Ic: 20, P: 2 } },
-  nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 }, AO3400: { Vds: 30, Id: 5.8, Vgs: 12, P: 1.4 }, IRF540N: { Vds: 100, Id: 33, Vgs: 20, P: 2 },
+  nmos: { '2N7000': { Vds: 60, Id: 0.2, Vgs: 20, P: 0.4 }, BS170: { Vds: 60, Id: 0.5, Vgs: 20, P: 0.83 }, IRLZ44N: { Vds: 55, Id: 47, Vgs: 16, P: 2 }, AO3400: { Vds: 30, Id: 5.8, Vgs: 12, P: 1.4 }, IRLML0060: { Vds: 60, Id: 2.7, Vgs: 16, P: 1.25, Idm: 11 }, IRF540N: { Vds: 100, Id: 33, Vgs: 20, P: 2 },
     // Idm (switching MOSFETs): taken as twice the package-limited current, below the datasheet's pulsed rating
     IRFP4468: { Vds: 100, Id: 195, Vgs: 20, P: 3.5, Idm: 390 }, IRFP4110: { Vds: 100, Id: 120, Vgs: 20, P: 3.5 }, IRFB4115: { Vds: 150, Id: 104, Vgs: 20, P: 2.4 }, IPW65R041: { Vds: 650, Id: 68, Vgs: 20, P: 3.5 }, IRFP4668: { Vds: 200, Id: 130, Vgs: 30, P: 3.5, Idm: 260 } },
   pmos: { BS250: { Vds: 45, Id: 0.23, Vgs: 20, P: 0.83 }, IRF9540N: { Vds: 100, Id: 23, Vgs: 20, P: 2 }, AO3401: { Vds: 30, Id: 4, Vgs: 12, P: 1.4 } },

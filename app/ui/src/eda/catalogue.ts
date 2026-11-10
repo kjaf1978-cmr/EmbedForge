@@ -52,6 +52,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '14D201K': e('S14K130 (B72214S0131K101)', 'TDK', 'varistor 14 mm, 130 V AC (14D201K)', 0.35, 0.1, 'estimate', [{ distributor: 'Bürklin', sku: '82E2229' }]),
   },
   nmos: {
+    IRLML0060: e('IRLML0060TRPBF', 'Infineon', 'MOSFET N logic level 60 V 2.7 A, SOT-23', 0.45, 0.2, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
     IRFP4668: e('IRFP4668PBFXKMA1', 'Infineon', 'MOSFET N 200 V 130 A, TO-247 (successor of IRFP4668PBF, end of life)', 4.75, 3.0, 'live', [{ distributor: 'Digi-Key' }, { distributor: 'LCSC', sku: 'C2921' }, { distributor: 'Farnell', sku: '1684526' }]),
     IRFP4468: e('IRFP4468PBFXKMA1', 'Infineon', 'MOSFET N 100 V 195 A, TO-247 (successor of IRFP4468PBF, end of life)', 5.1, 3.0, 'live', [{ distributor: 'Digi-Key', sku: 'IRFP4468PBF-ND' }, { distributor: 'LCSC', sku: 'C2919' }]),
     IRLZ44N: e('IRLZ44NPBF', 'Infineon', 'MOSFET N logic level 55 V 47 A, TO-220', 1.85, 0.75, 'live', [{ distributor: 'Mouser' }, { distributor: 'LCSC', sku: 'C38774' }]),

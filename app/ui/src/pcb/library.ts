@@ -41,7 +41,7 @@ const BJT: Record<string, FootprintChoice> = {
 const FET: Record<string, FootprintChoice> = {
   '2N7000': legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D'), BS170: legs('TO-92_Wide', ['2', '1', '3'], 'D-G-S'), BS250: legs('TO-92_Wide', ['2', '1', '3'], 'D-G-S'),
   IRLZ44N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF9540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
-  AO3400: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), AO3401: legs('SOT-23', ['1', '3', '2'], 'G-S-D'),
+  AO3400: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), IRLML0060: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), AO3401: legs('SOT-23', ['1', '3', '2'], 'G-S-D'),
   IRFP4468: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4110: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IPW65R041: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
   IRFB4115: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4668: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
 };

@@ -41,7 +41,7 @@ describe.runIf(LONG)('pump control: cycle and DFMEA faults', () => {
   it('the HIGH electrode\'s cable broken: OVERFLOW stops the pump and latches FAULT; it stays off when the tank falls below LOW again', () => {
     const s = run({ stop: '4', highBroken: true });
     expect(Math.max(...s.lvl)).toBeLessThan(10);
-    const tf = s.x.find((t, k) => s.r.v['FLTQ'][k] > 6)!;
+    const tf = s.x.find((_t, k) => s.r.v['FLTQ'][k] > 6)!;
     expect(tf).toBeDefined();
     expect(s.at('LVL', tf)).toBeGreaterThan(9.3);
     expect(s.on(3.9)).toBe(false);
