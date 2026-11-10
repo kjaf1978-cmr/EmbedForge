@@ -264,11 +264,11 @@ const hfRefs = () => hfCache ??= (() => {
 const HF_LV_HEAVY = ['BUS', 'BUSD', 'GND', 'LA', 'LB'];
 const hfPowerHv = () => { const { sheet } = { sheet: inverterHF({ load: '0' }).sheet }; return [...potentialGroup(sheet, ['HVG', 'HBUS'], new Set(['GND', 'OUTL']))].filter((n) => !HF_LV_HEAVY.includes(n)); };
 const HF_ROW: [string, number][] = [['QLA1', 20], ['QLA2', 40], ['QHA1', 60], ['QHA2', 80], ['QHB2', 100], ['QHB1', 120], ['QLB1', 140], ['QLB2', 160],
-  ['QIHA', 200], ['QILA', 222], ['QILB', 250], ['QIHB', 276]];
+  ['QIHA', 200], ['QILA', 222], ['QIHB', 248], ['QILB', 276]];
 const HF_FIX: [string, number, number, Placed['rot']][] = [['CE1', 55, 30, 0], ['CE2', 55, 80, 0], ['CB1', 105, 20, 0], ['CB2', 105, 50, 0], ['CB3', 105, 80, 0],
   ['CB4', 150, 20, 0], ['CB5', 150, 50, 0], ['CB6', 150, 80, 0], ['CBD1', 75, 126, 0], ['CBD2', 105, 126, 0], ['X2', 15, 40, 0],
-  ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 100, 0], ['CHF2', 270, 100, 0], ['RSHI', 241, 112, 0]];
-const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 200, 112], ['J_BUSD', 86.19, 108]];
+  ['CH1', 210, 25, 0], ['CH2', 255, 25, 0], ['CH3', 210, 68, 0], ['CH4', 255, 68, 0], ['CHF1', 225, 100, 0], ['CHF2', 270, 100, 0], ['RSHI', 245, 112, 0]];
+const HF_LUGS: [string, number, number][] = [['J_BUS', 15, 15], ['J_GND', 15, 65], ['J_LA', 40, 110], ['J_LB', 130, 110], ['J_SWA', 214, 112], ['J_GND', 290, 112], ['J_BUSD', 86.19, 108]];
 const hfPlan = (): Placed[] => {
   const { ref } = hfRefs();
   const gate = (k: string) => `RG${k.slice(1)}`;
@@ -286,15 +286,16 @@ const HF_BARS: PlanTrack[] = (() => {
     { net: 'LB', layer: 'F.Cu', width: 8, pts: [[105.45, 137], [160, 137]] }, { net: 'LB', layer: 'F.Cu', width: 6, pts: [[130, 137], [130, 110]] },
     { net: 'BUSD', layer: 'B.Cu', width: 8, pts: [[60, 137], [120, 137]] }, { net: 'BUSD', layer: 'B.Cu', width: 6, pts: [[86.19, 137], [86.19, 110]] },
     { net: 'BUSD', layer: 'B.Cu', width: 3, pts: [[70, 126], [70, 137]] }, { net: 'BUSD', layer: 'B.Cu', width: 3, pts: [[100, 126], [100, 137]] });
-  // the sine bridge: HBUS (B.Cu) from the high collectors into its plane; SWA (F.Cu) to its lug;
-  // SRC (F.Cu) to the shunt; GND (B.Cu) to the N lug
-  for (const x of [200, 276]) stub('HBUS', 'B.Cu', x, 117);
-  for (const x of [205.45, 222]) stub('SWA', 'F.Cu', x, 137);
-  for (const x of [227.45, 255.45]) stub('SRC', 'F.Cu', x, 143);
-  for (const x of [250, 281.45]) stub('GND', 'B.Cu', x, 140);
-  t.push({ net: 'SWA', layer: 'F.Cu', width: 4, pts: [[205.45, 137], [222, 137]] }, { net: 'SWA', layer: 'F.Cu', width: 4, pts: [[205.45, 137], [200, 130], [200, 112]] },
-    { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[227.45, 143], [255.45, 143]] }, { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[231, 143], [231, 112]] },
-    { net: 'GND', layer: 'B.Cu', width: 4, pts: [[250, 140], [281.45, 140]] }, { net: 'GND', layer: 'B.Cu', width: 4, pts: [[281.45, 140], [292, 130], [292, 112]] });
+  // the sine bridge (3 mm stubs: 2.45 mm between a collector's and its emitter's): HBUS (B.Cu)
+  // from the high collectors into its plane; SWA (F.Cu) to its lug; SRC (F.Cu) to the shunt; GND
+  // (B.Cu) to the N lug. Leg B's high side first, so GND and HBUS never cross
+  for (const x of [200, 248]) stub('HBUS', 'B.Cu', x, 117, 3);
+  for (const x of [205.45, 222]) stub('SWA', 'F.Cu', x, 137, 3);
+  for (const x of [227.45, 281.45]) stub('SRC', 'F.Cu', x, 143, 3);
+  for (const x of [253.45, 276]) stub('GND', 'B.Cu', x, 140, 3);
+  t.push({ net: 'SWA', layer: 'F.Cu', width: 4, pts: [[205.45, 137], [222, 137]] }, { net: 'SWA', layer: 'F.Cu', width: 4, pts: [[214, 137], [214, 112]] },
+    { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[227.45, 143], [281.45, 143]] }, { net: 'SRC', layer: 'F.Cu', width: 4, pts: [[235, 143], [235, 112]] },
+    { net: 'GND', layer: 'B.Cu', width: 4, pts: [[253.45, 140], [290, 140]] }, { net: 'GND', layer: 'B.Cu', width: 4, pts: [[290, 140], [290, 112]] });
   return t;
 })();
 const HF_PLANES: PlanZone[] = [
