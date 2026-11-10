@@ -6,6 +6,7 @@ import { gateController } from '../../app/ui/src/eda/gate';
 import { pumpControl } from '../../app/ui/src/eda/pumpControl';
 import { trimmer } from '../../app/ui/src/eda/trimmer';
 import { blockMachine } from '../../app/ui/src/eda/blockMachine';
+import { stabiliserT } from '../../app/ui/src/eda/stabiliserT';
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
@@ -372,6 +373,11 @@ export const DESIGNS: Record<string, Design> = {
     // 160 × 100 mm (on 130 × 90 and 150 × 100 mm connections stayed open; a ground plane while routing was cut
     // into islands by the B.Cu tracks); ground poured on both layers after routing
     post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 98], [2, 98]], clearance: 0.6, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 98], [2, 98]], clearance: 0.6, solid: true }] } },
+  // P4b: the thyristor-tap stabilisers' control board, one for 5, 10 and 15 kVA (the ratings
+  // differ only in panel parts): the thyristor pairs on their heatsink, the autotransformer, the
+  // breaker, the output contactor and the terminals on the panel; gate leads through J_MAINS
+  'stabiliser-t-control': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: control board', revision: 'A',
+    classes: mains(['L_IN', 'N']), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail

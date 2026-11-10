@@ -130,8 +130,8 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   }
   nb.part('RCH', 'resistor', 1500, 1750, { value: '100k' }, { '1': 'CHG', '2': 'GND' }, 1)
     .part('UN7', 'nor2', 1500, 1850, { value: V, pkg: 'NR2' }, { '1': 'CHG', '2': 'CHG', '3': 'NCHG' })
-    .part('UX7', 'xor2', 1500, 1650, { value: V, pkg: 'XR2' }, { '1': 'GND', '2': 'GND', '3': 'XSP1' })
-    .part('UX8', 'xor2', 1650, 1650, { value: V, pkg: 'XR2' }, { '1': 'GND', '2': 'GND', '3': 'XSP2' })
+    .part('UX7', 'xor2', 1500, 1650, { value: V, pkg: 'XR2' }, { '1': 'GND', '2': 'GND', '3': 'nc_XSP1' })
+    .part('UX8', 'xor2', 1650, 1650, { value: V, pkg: 'XR2' }, { '1': 'GND', '2': 'GND', '3': 'nc_XSP2' })
     .part('UCK', 'and2', 1500, 1450, { value: V, pkg: 'AN2' }, { '1': 'CHG', '2': 'ZWD', '3': 'CK' })
     .part('CD2', 'capacitor', 1650, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD3', 'capacitor', 1750, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
