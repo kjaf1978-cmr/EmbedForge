@@ -1,0 +1,526 @@
+** Drc report for /tmp/claude-0/-home-user-EmbedForge/b7bd11a3-356f-58b9-b4d0-5e457da9f7d3/scratchpad/kc/w_hf-12-control-lv/routed.kicad_pcb **
+** Created on 2026-11-10 10:59:45 **
+
+** Found 153 DRC violations **
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(85.4000 mm, 105.7500 mm): Line on F.Silkscreen
+    @(85.7500 mm, 106.0000 mm): Reference 'C55'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(100.2500 mm, 88.7500 mm): Reference 'R86'
+    @(103.4000 mm, 88.5000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(100.5000 mm, 92.7500 mm): Reference 'R97'
+    @(103.4000 mm, 92.5000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(75.7500 mm, 121.5000 mm): Reference 'R146'
+    @(78.8500 mm, 121.3500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(97.0000 mm, 110.0000 mm): Reference 'R68'
+    @(100.4000 mm, 109.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(90.7500 mm, 119.2500 mm): Reference 'R153'
+    @(90.1500 mm, 118.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(90.7500 mm, 119.2500 mm): Reference 'R153'
+    @(90.1500 mm, 116.2500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(93.9000 mm, 123.0000 mm): Line on F.Silkscreen
+    @(86.7500 mm, 123.5000 mm): Reference 'C66'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(86.7500 mm, 123.5000 mm): Reference 'C66'
+    @(87.6000 mm, 123.0000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(66.5000 mm, 102.5000 mm): Reference 'R145'
+    @(66.9000 mm, 102.2500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(66.5000 mm, 102.5000 mm): Reference 'R145'
+    @(66.9000 mm, 99.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(63.7500 mm, 98.5000 mm): Reference 'R160'
+    @(66.9000 mm, 98.0000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(83.5000 mm, 110.5000 mm): Reference 'R135'
+    @(89.3500 mm, 110.3500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(97.2500 mm, 106.0000 mm): Reference 'R126'
+    @(105.3500 mm, 105.8500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(98.1500 mm, 105.8500 mm): Line on F.Silkscreen
+    @(97.2500 mm, 106.0000 mm): Reference 'R126'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(83.5000 mm, 110.5000 mm): Reference 'R135'
+    @(82.1500 mm, 110.3500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(85.4000 mm, 103.2500 mm): Line on F.Silkscreen
+    @(85.7500 mm, 106.0000 mm): Reference 'C55'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(90.2500 mm, 63.0000 mm): Reference 'C42'
+    @(92.9000 mm, 62.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(93.8500 mm, 67.3500 mm): Line on F.Silkscreen
+    @(88.2500 mm, 67.7500 mm): Reference 'R96'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(41.7500 mm, 64.5000 mm): Reference 'C38'
+    @(44.5000 mm, 64.1000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(88.5000 mm, 71.7500 mm): Reference 'R81'
+    @(91.4000 mm, 71.5000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(88.2500 mm, 75.7500 mm): Reference 'R65'
+    @(91.6500 mm, 75.5000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(74.7500 mm, 76.2500 mm): Reference 'R82'
+    @(76.0000 mm, 75.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(74.7500 mm, 76.2500 mm): Reference 'R82'
+    @(76.0000 mm, 73.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(69.2500 mm, 60.6000 mm): Reference 'Q23'
+    @(73.4000 mm, 60.0000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(60.6500 mm, 75.8500 mm): Line on F.Silkscreen
+    @(59.7500 mm, 76.5000 mm): Reference 'R67'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(59.7500 mm, 76.5000 mm): Reference 'R67'
+    @(67.8500 mm, 75.8500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(64.2500 mm, 71.5000 mm): Reference 'C43'
+    @(63.6500 mm, 71.2500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(64.2500 mm, 71.5000 mm): Reference 'C43'
+    @(63.6500 mm, 68.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(131.2900 mm, 93.3600 mm): Line on F.Silkscreen
+    @(132.5000 mm, 111.5000 mm): Reference 'C57'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(131.2900 mm, 111.1400 mm): Line on F.Silkscreen
+    @(132.5000 mm, 111.5000 mm): Reference 'C57'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(112.7500 mm, 76.0000 mm): Reference 'R87'
+    @(112.6000 mm, 75.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(112.7500 mm, 76.0000 mm): Reference 'R87'
+    @(118.9000 mm, 75.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(115.9000 mm, 79.7500 mm): Line on F.Silkscreen
+    @(110.5000 mm, 80.0000 mm): Reference 'RT1'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(109.6000 mm, 79.7500 mm): Line on F.Silkscreen
+    @(110.5000 mm, 80.0000 mm): Reference 'RT1'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(114.1000 mm, 84.3500 mm): Line on F.Silkscreen
+    @(114.7500 mm, 85.0000 mm): Reference 'R129'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(112.7500 mm, 66.2500 mm): Reference 'R62'
+    @(116.1500 mm, 66.0000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(113.0000 mm, 62.2500 mm): Reference 'R98'
+    @(113.0000 mm, 62.0000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(113.0000 mm, 62.2500 mm): Reference 'R98'
+    @(113.0000 mm, 60.0000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(114.2500 mm, 89.0000 mm): Reference 'R130'
+    @(117.9000 mm, 88.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(48.2500 mm, 71.7500 mm): Line on F.Silkscreen
+    @(42.0000 mm, 72.1000 mm): Reference 'U1'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(56.5000 mm, 90.0000 mm): Reference 'R116'
+    @(73.0600 mm, 89.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(44.5000 mm, 90.1100 mm): Reference 'U18'
+    @(73.0600 mm, 89.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(26.5000 mm, 76.5000 mm): Reference 'R99'
+    @(29.5600 mm, 76.1500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(15.7500 mm, 90.1700 mm): Reference 'U19'
+    @(73.0600 mm, 89.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(100.2500 mm, 84.7500 mm): Reference 'R157'
+    @(103.0400 mm, 84.3900 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(63.9000 mm, 112.2500 mm): Line on F.Silkscreen
+    @(57.2500 mm, 112.5000 mm): Reference 'D23'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(57.6000 mm, 112.2500 mm): Line on F.Silkscreen
+    @(57.2500 mm, 112.5000 mm): Reference 'D23'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(8.7500 mm, 106.0000 mm): Reference 'R105'
+    @(11.6500 mm, 105.7500 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(141.5000 mm, 103.7500 mm): Reference 'R159'
+    @(146.1500 mm, 103.5000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(139.8500 mm, 103.5000 mm): Line on F.Silkscreen
+    @(141.5000 mm, 103.7500 mm): Reference 'R159'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(144.6500 mm, 107.5000 mm): Line on F.Silkscreen
+    @(139.5000 mm, 107.7500 mm): Reference 'D25'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(138.3500 mm, 107.5000 mm): Line on F.Silkscreen
+    @(139.5000 mm, 107.7500 mm): Reference 'D25'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(119.9000 mm, 104.0000 mm): Line on F.Silkscreen
+    @(118.7500 mm, 104.3500 mm): Reference 'Q30'
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(118.7500 mm, 104.3500 mm): Reference 'Q30'
+    @(119.9000 mm, 101.5000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(118.7500 mm, 123.2500 mm): Reference 'R131'
+    @(117.1900 mm, 122.9000 mm): Line on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; Severity: warning
+    @(118.7500 mm, 123.2500 mm): Reference 'R131'
+    @(124.8100 mm, 122.9000 mm): Line on F.Silkscreen
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(37.5000 mm, 85.7500 mm): Footprint J_PANEL
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(202.5000 mm, 31.7500 mm): Footprint C26
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(100.5000 mm, 75.5000 mm): Footprint U12
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(44.5000 mm, 100.2500 mm): Footprint U18
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(139.7500 mm, 88.0000 mm): Footprint U16
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(128.7500 mm, 102.2500 mm): Footprint U22
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(54.0000 mm, 36.5000 mm): Footprint C31
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(15.7500 mm, 96.5000 mm): Footprint U19
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(88.2500 mm, 93.5000 mm): Footprint U21
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(75.7500 mm, 96.5000 mm): Footprint U13
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(41.7500 mm, 68.7500 mm): Footprint C38
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(40.0000 mm, 62.5000 mm): Footprint R39
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(14.2500 mm, 77.2500 mm): Footprint D13
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(182.5000 mm, 33.7500 mm): Footprint J_PANEL2
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(69.2500 mm, 65.2500 mm): Footprint Q23
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(42.0000 mm, 76.7500 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(56.2500 mm, 65.7500 mm): Footprint D5
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(63.7500 mm, 29.7500 mm): Footprint R40
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(74.5000 mm, 70.0000 mm): Footprint R63
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(88.5000 mm, 74.2500 mm): Footprint R81
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(60.5000 mm, 70.0000 mm): Footprint R64
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(74.7500 mm, 78.7500 mm): Footprint R82
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(70.2500 mm, 53.0000 mm): Footprint R58
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(70.2500 mm, 58.7500 mm): Footprint R94
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(88.2500 mm, 78.2500 mm): Footprint R65
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(89.7500 mm, 61.5000 mm): Footprint R83
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(83.7500 mm, 57.2500 mm): Footprint R66
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(97.2500 mm, 57.2500 mm): Footprint R84
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(88.2500 mm, 70.2500 mm): Footprint R96
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(59.7500 mm, 79.0000 mm): Footprint R67
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(53.2500 mm, 75.0000 mm): Footprint R85
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(97.0000 mm, 112.5000 mm): Footprint R68
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(100.2500 mm, 91.2500 mm): Footprint R86
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(63.7500 mm, 96.7500 mm): Footprint R59
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(100.5000 mm, 95.2500 mm): Footprint R97
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(131.2500 mm, 58.0000 mm): Footprint R60
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(26.5000 mm, 79.0000 mm): Footprint R99
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(152.0000 mm, 89.7500 mm): Footprint R77
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(161.0000 mm, 93.7500 mm): Footprint R100
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(143.0000 mm, 102.2500 mm): Footprint R61
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(49.5000 mm, 119.2500 mm): Footprint R127
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(66.5000 mm, 105.0000 mm): Footprint R145
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(87.0000 mm, 117.5000 mm): Footprint R152
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(60.7500 mm, 111.0000 mm): Footprint R128
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(69.7500 mm, 115.5000 mm): Footprint R163
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(64.2500 mm, 119.5000 mm): Footprint R144
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(112.7500 mm, 78.5000 mm): Footprint R87
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(115.7500 mm, 74.5000 mm): Footprint R69
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(121.7500 mm, 82.7500 mm): Footprint R88
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(112.7500 mm, 68.7500 mm): Footprint R62
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(113.0000 mm, 64.7500 mm): Footprint R98
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(8.7500 mm, 108.5000 mm): Footprint R105
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(8.5000 mm, 104.5000 mm): Footprint R118
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(56.5000 mm, 92.5000 mm): Footprint R116
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(82.2500 mm, 85.5000 mm): Footprint R115
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(82.2500 mm, 104.5000 mm): Footprint R119
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(114.0000 mm, 96.0000 mm): Footprint R109
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(116.7500 mm, 102.7500 mm): Footprint R106
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(83.5000 mm, 113.0000 mm): Footprint R135
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(97.2500 mm, 108.5000 mm): Footprint R126
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(75.7500 mm, 124.0000 mm): Footprint R146
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(90.7500 mm, 121.7500 mm): Footprint R153
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(114.7500 mm, 87.5000 mm): Footprint R129
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(114.2500 mm, 91.5000 mm): Footprint R130
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(100.2500 mm, 87.2500 mm): Footprint R157
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(118.7500 mm, 125.7500 mm): Footprint R131
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(141.5000 mm, 106.2500 mm): Footprint R159
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(63.7500 mm, 101.0000 mm): Footprint R160
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(119.0000 mm, 115.7500 mm): Footprint R168
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(65.5000 mm, 44.0000 mm): Footprint U7
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(25.7500 mm, 74.2500 mm): Footprint Q28
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(149.7500 mm, 97.5000 mm): Footprint Q27
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(63.2500 mm, 125.0000 mm): Footprint Q34
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(118.7500 mm, 107.5000 mm): Footprint Q30
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(72.2500 mm, 109.7500 mm): Footprint Q32
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(108.5000 mm, 109.2500 mm): Footprint Q33
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(121.0000 mm, 121.0000 mm): Footprint Q35
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(102.2500 mm, 121.2500 mm): Footprint Q38
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(90.2500 mm, 65.7500 mm): Footprint C42
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(64.2500 mm, 74.2500 mm): Footprint C43
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(130.7500 mm, 73.0000 mm): Footprint C44
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(86.7500 mm, 126.2500 mm): Footprint C66
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(110.5000 mm, 82.7500 mm): Footprint RT1
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(20.0000 mm, 104.7500 mm): Footprint C53
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(25.5000 mm, 100.2500 mm): Footprint C51
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(34.7500 mm, 102.2500 mm): Footprint C52
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(85.7500 mm, 108.7500 mm): Footprint C55
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(93.2500 mm, 101.7500 mm): Footprint C54
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(132.5000 mm, 114.2500 mm): Footprint C57
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(101.7500 mm, 104.2500 mm): Footprint C61
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(75.2500 mm, 119.7500 mm): Footprint C60
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(130.0000 mm, 122.7500 mm): Footprint C62
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(74.0000 mm, 74.7500 mm): Footprint D16
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(57.2500 mm, 114.7500 mm): Footprint D23
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(111.0000 mm, 61.0000 mm): Footprint D17
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(139.5000 mm, 110.0000 mm): Footprint D25
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** End of Report **
