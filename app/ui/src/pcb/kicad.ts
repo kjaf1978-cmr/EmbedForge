@@ -91,6 +91,8 @@ export interface BoardOptions {
   /** Off-board parts bolted to the board (an inductor, a fuse holder, busbars): a heavy net to one
    *  gets an M5 lug; nets to the other off-board parts (another board) get terminal-block poles. */
   bolted?: (p: Part) => boolean;
+  /** Poles a panel connector block has at most (14: the longest terminal block). */
+  block?: number;
 }
 
 /** The mains variant of a footprint for a part with a mains net on a pad. */
@@ -173,14 +175,18 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
     const groups: [string, string[], boolean][] = [['J_MAINS', shared.filter((n) => o.mains?.has(n)), true], ['J_PANEL', shared.filter((n) => !o.mains?.has(n)), false]];
     const poleOf = new Map<string, string>();
     const sx = Math.min(...product.map((p) => p.x)), sy = product.reduce((a, p) => a + p.y, 0) / Math.max(product.length, 1);
-    for (const [ref, nets, isMains] of groups) {
-      if (!nets.length) continue;
-      const poles = [1, 2, 3, 4, 6, 8, 12, 14].find((k) => k >= nets.length) ?? 14;
-      if (nets.length > 14) warnings.push(`${ref}: ${nets.length} poles, more than one 14-pole block`);
-      const fp = FOOTPRINTS[`TerminalBlock_1x${poles}${isMains ? '_P7.62' : ''}`];
-      const pads: Record<string, string> = {};
-      nets.slice(0, 14).forEach((n, k) => { pads[String(k + 1)] = n; poleOf.set(n, `${ref}:${k + 1}`); });
-      parts.push({ ref, value: isMains ? 'mains to the panel' : 'to the panel', footprint: fp, pads, sx, sy, note: 'screw terminals to the panel wiring' });
+    // blocks of up to 14 poles (J_PANEL, J_PANEL2, …): one block used to drop every net past the
+    // 14th without a word
+    for (const [base, all, isMains] of groups) {
+      const B = o.block ?? 14;
+      for (let b = 0; b * B < all.length; b++) {
+        const ref = b ? `${base}${b + 1}` : base, nets = all.slice(b * B, b * B + B);
+        const poles = [1, 2, 3, 4, 6, 8, 12, 14].find((k) => k >= nets.length) ?? 14;
+        const fp = FOOTPRINTS[`TerminalBlock_1x${poles}${isMains ? '_P7.62' : ''}`];
+        const pads: Record<string, string> = {};
+        nets.forEach((n, k) => { pads[String(k + 1)] = n; poleOf.set(n, `${ref}:${k + 1}`); });
+        parts.push({ ref, value: isMains ? 'mains to the panel' : 'to the panel', footprint: fp, pads, sx, sy, note: 'screw terminals to the panel wiring' });
+      }
     }
     for (const [n, e] of [...ends].sort(([a], [b]) => a.localeCompare(b))) {
       const pole = [poleOf.get(n), lugNets.includes(n) ? `J_${n}:1` : undefined].filter(Boolean).join(' ') || undefined;
@@ -369,7 +375,10 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
   // a placement plan (fixed parts) leaves the rest to a region of its own
   // (at least the widest mains part with the margins: a small mains section of one transformer)
   const widest = Math.max(0, ...ms.map((p) => p.footprint.courtyard.x1 - p.footprint.courtyard.x0));
-  const split = region ? region.x0 : ms.length && cs.length ? Math.max(Math.round(w * parea(ms) / parea(parts)), Math.ceil(widest + 2 * margin + 2)) : ms.length ? w : 0;
+  // and the control zone at least as wide as its widest part (a board almost all mains or high
+  // voltage, with a few low-voltage parts, otherwise left them a zone 1 mm wide)
+  const widestC = Math.max(0, ...cs.map((p) => p.footprint.courtyard.x1 - p.footprint.courtyard.x0));
+  const split = region ? region.x0 : ms.length && cs.length ? Math.min(Math.max(Math.round(w * parea(ms) / parea(parts)), Math.ceil(widest + 2 * margin + 2)), Math.floor(w - widestC - 2 * margin - 8)) : ms.length ? w : 0;
   placement.split = split;
   const zone = (p: BoardPart) => (region ? region : kind(p) === 'ctl' ? { x0: split ? split + 6 : 0, x1: w } : { x0: 0, x1: split || w });
   const rotOf = (p: BoardPart): 0 | 180 => {
@@ -406,7 +415,7 @@ export function placeFromSchematic(parts: BoardPart[], w: number, h: number, mar
         best = [x, y]; break;
       }
     }
-    if (!best) throw new Error(`placement: no room for ${p.ref} in its zone of ${w} × ${h} mm`);
+    if (!best) throw new Error(`placement: no room for ${p.ref} (${(c.x1 - c.x0).toFixed(0)} × ${(c.y1 - c.y0).toFixed(0)} mm, ${kind(p)}) in its zone x ${z.x0.toFixed(0)} … ${z.x1.toFixed(0)} of ${w} × ${h} mm`);
     boxes.push({ x0: best[0] + c.x0 - 0.5, y0: best[1] + c.y0 - 0.5, x1: best[0] + c.x1 + 0.5, y1: best[1] + c.y1 + 0.5, m: pm });
     out.push({ ref: p.ref, x: best[0], y: best[1], rot });
   }

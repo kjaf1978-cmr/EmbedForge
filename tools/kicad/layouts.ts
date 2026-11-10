@@ -3,6 +3,7 @@
 // current) and the clearances of the mains and high-voltage nets (IEC 62368-1 / IEC 60664-1,
 // pollution degree 2, material group IIIb, basic insulation, overvoltage category II).
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
+import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
 import { stabiliser, changeover1, changeover3, mpptCharger } from '../../app/ui/src/eda/powerExamples';
 import { inverterLF, inverterHF } from '../../app/ui/src/eda/inverters';
@@ -25,6 +26,8 @@ export interface Design {
   /** Copper added after the autorouter (route.py, before the zone fill and DRC): pours and tracks
    *  that close what Freerouting left, laid where the routed board has room. */
   post?: { zones?: PlanZone[]; tracks?: PlanTrack[] };
+  /** Poles a panel connector block has at most (default 14). */
+  block?: number;
   sheet: () => Sheet; title: string; revision: string; classes: (s: Sheet) => NetClass[]; w?: number; h?: number; copperOz?: number; fill?: number }
 
 // 230 V mains (300 V r.m.s. working voltage): 3.2 mm, the creepage of basic insulation (IEC
@@ -246,7 +249,7 @@ const HF_PWR_BLOCKS = new Set(['dc-dc bridge', 'bus', 'current sense', 'dc-dc ou
 // TCT: the bus current transformer is a window type on the busbar from J_BUS to J_BUSD
 const HF_OFF = ['F1', 'K1', 'RPC', 'DPC', 'TR1', 'LF1', 'TCT'];
 const HF_PANEL = ['COUT', 'RVO', 'X1', 'X3', 'X4', 'X5'];
-let hfCache: { pwr: Set<string>; lv: Set<string>; hvp: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ref: (k: string) => string } | undefined;
+let hfCache: { pwr: Set<string>; lv: Set<string>; hvp: Set<string>; off: Set<string>; panel: Set<string>; hv: Set<string>; ctlHv: Set<string>; ref: (k: string) => string } | undefined;
 const hfRefs = () => hfCache ??= (() => {
   const { sheet, nb } = inverterHF({ load: '0' }), ref = (k: string) => nb.refOf(sheet, k);
   const off = new Set(HF_OFF.map(ref));
@@ -256,7 +259,13 @@ const hfRefs = () => hfCache ??= (() => {
   lv.add(ref('X2'));
   const hvp = new Set([...pwr].filter((r) => !lv.has(r)));
   const sub = { ...sheet, parts: sheet.parts.filter((p) => !HF_PWR_BLOCKS.has(nb.blockOf(p.id)) && !['output', 'bench', 'load', 'battery'].includes(nb.blockOf(p.id))) };
-  return { pwr, lv, hvp, off, panel: new Set(HF_PANEL.map(ref)), hv: potentialGroup(sub, ['HVG', 'HBUS'], new Set(['GND', 'OUTL'])), ref };
+  const hv = potentialGroup(sub, ['HVG', 'HBUS'], new Set(['GND', 'OUTL'])), panel = new Set(HF_PANEL.map(ref));
+  // the control parts with a pin on the 380 V side (the optocouplers and pulse transformers that
+  // span the barrier among them): the 380 V control board; the others the battery-side one
+  const c = connectivity(sheet);
+  const ctlHv = new Set(sub.parts.filter((p) => !pwr.has(p.ref) && !off.has(p.ref) && !panel.has(p.ref) && p.props.scope !== 'test'
+    && [...c.pinNet.entries()].some(([k, n]) => k.startsWith(`${p.ref}.`) && hv.has(n))).map((p) => p.ref));
+  return { pwr, lv, hvp, off, panel, hv, ctlHv, ref };
 })();
 // the power board (D44/D45): the DC-DC bridge's eight TO-247 (each leg: its low pair, then its
 // high pair; leg B mirrored) and the sine bridge's four IGBTs in one row (y 150); the switch
@@ -329,8 +338,13 @@ export const DESIGNS: Record<string, Design> = {
     // track along the right edge: the routed gate and source tracks close the gap in the IGBT row
     post: { zones: [{ net: 'HVG', layer: 'B.Cu', pts: [[2, 150], [50, 150], [50, 107], [60, 107], [60, 150], [138, 150], [138, 268], [2, 268]] }, { net: 'HVG', layer: 'F.Cu', pts: [[2, 150], [138, 150], [138, 268], [2, 268]] }],
       tracks: [{ net: 'HVG', layer: 'F.Cu', width: 1, pts: [[112, 100], [133, 100], [133, 245.75], [118.79, 245.75]] }] } },
-  'inverter-hf-48-control': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200,
-    panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref); } },
+  // two control boards, split at the isolation barrier (on one board, 276 parts with the 380 V
+  // nets 2.5 mm apart left 300 connections unrouted): the battery side, and the 380 V side with
+  // the optocouplers and pulse transformers that cross the barrier
+  'inverter-hf-48-control-lv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: battery-side control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 220, h: 160,
+    panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || r.ctlHv.has(p.ref); } },
+  'inverter-hf-48-control-hv': { sheet: () => inverterHF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, high-frequency: 380 V control board', revision: 'A', classes: hfControlClasses, fill: 2.6, w: 280, h: 200, block: 6,
+    panel: (p) => { const r = hfRefs(); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.panel.has(p.ref) || !r.ctlHv.has(p.ref); } },
   'inverter-lf-48-power': { sheet: () => inverterLF({ load: '0' }).sheet, title: 'Inverter 48 V 5 kW, 50 Hz transformer: power board', revision: 'A', classes: () => [POWER(LF_HEAVY)], copperOz: 4,
     heavy: LF_HEAVY, panel: (p) => !lfRefs(16).pwr.has(p.ref), bolted: (p) => lfRefs(16).off.has(p.ref), w: 280, h: 170,
     plan: lfPlan, tracks: LF_BARS, zones: LF_PLANES, region: { x0: 0, x1: 280, y0: 124, y1: 170 } },
