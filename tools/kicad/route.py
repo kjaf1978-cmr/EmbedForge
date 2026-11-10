@@ -207,7 +207,7 @@ def main():
         apply_post(board, zones.get('post'))
         pcbnew.ZONE_FILLER(board).Fill(board.Zones())
         board.Save(routed)
-        return finish(d, routed)
+        return finish(d, routed, fab='--no-fab' not in sys.argv)
     if split and 0 < split < zones['w']:
         # stage 1: the mains nets alone, kept out of the control zone (every other pad without
         # its net, so the router leaves it), so the mains wiring stays on its side
@@ -292,7 +292,7 @@ def main():
     finish(d, routed)
 
 
-def finish(d, routed):
+def finish(d, routed, fab=True):
     import shutil
     for ext in ('kicad_dru', 'kicad_pro'):
         src = os.path.join(d, 'board.' + ext)
@@ -300,6 +300,9 @@ def finish(d, routed):
             shutil.copy(src, os.path.join(d, 'routed.' + ext))
     errors, unconnected, kinds = drc(routed, os.path.join(d, 'drc.rpt'))
     print(f'DRC: {len(errors)} errors {dict(kinds)}, {unconnected} unconnected', flush=True)
+    if not fab:
+        json.dump({'drc_errors': len(errors), 'kinds': kinds, 'unconnected': unconnected}, open(os.path.join(d, 'summary.json'), 'w'))
+        return
     fab = os.path.join(d, 'fab')
     os.makedirs(fab, exist_ok=True)
     run(['kicad-cli', 'pcb', 'export', 'gerbers', '-o', fab + '/', '--layers', 'F.Cu,B.Cu,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts', routed])

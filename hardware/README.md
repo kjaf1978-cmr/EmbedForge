@@ -21,6 +21,8 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Pump controller (P9): control board + DIN-rail panel | `pump-control/` | 165 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; panel wiring in `panel.csv` |
 | Cordless trimmer drive 36 V (P9) | `trimmer-drive/` | 160 × 100 mm, 2 layers, 4 oz | 0 / 0 | routed; power on 3 mm tracks, ground poured on both layers |
 | Block moulding machine (P9): safety circuit and 24 V outputs + DIN-rail panel | `block-machine/` | 100 × 70 mm, 2 layers, 2 oz | 0 / 0 | routed; safety contactors and the motor contactors on the DIN rail, wiring in `panel.csv` |
+| Mains stabiliser 5/10/15 kVA, thyristor taps (P4b, D41): logic board | `stabiliser-t-logic/` | 205 × 140 mm, 2 layers, 2 oz | 0 / 0 | routed; mains nets 3.2 mm apart; thyristors, autotransformer and the pair boards wired per `panel.csv` |
+| Mains stabiliser 5/10/15 kVA, thyristor taps (P4b): thyristor pair driver (7 per unit) | `stabiliser-t-pair/` | 120 × 80 mm, 2 layers, 2 oz | 0 / 0 | routed; optotriac isolation to the logic side (DIP-6 with pin 5 removed); `panel.csv`: J_MAINS/J_PANEL wiring |
 
 ## What a folder holds
 

@@ -1,0 +1,55 @@
+** Drc report for /tmp/claude-0/-home-user-EmbedForge/b7bd11a3-356f-58b9-b4d0-5e457da9f7d3/scratchpad/kc/stab_pair/routed.kicad_pcb **
+** Created on 2026-11-10 10:01:55 **
+
+** Found 15 DRC violations **
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(15.0000 mm, 10.0000 mm): Footprint R8
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(36.0000 mm, 10.0000 mm): Footprint D1
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(55.0000 mm, 10.0000 mm): Footprint R47
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(15.0000 mm, 20.0000 mm): Footprint R25
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(36.0000 mm, 20.0000 mm): Footprint D17
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(55.0000 mm, 20.0000 mm): Footprint R37
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(17.0000 mm, 32.0000 mm): Footprint R56
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(42.0000 mm, 32.0000 mm): Footprint C7
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(15.0000 mm, 44.0000 mm): Footprint R67
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(38.0000 mm, 44.0000 mm): Footprint R75
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(57.0000 mm, 56.0000 mm): Footprint BR3
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(75.0000 mm, 15.0000 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(75.0000 mm, 44.0000 mm): Footprint U12
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(25.0000 mm, 70.0000 mm): Footprint J_MAINS
+[lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
+    Local override; Severity: warning
+    @(100.0000 mm, 30.0000 mm): Footprint J_PANEL
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** End of Report **
