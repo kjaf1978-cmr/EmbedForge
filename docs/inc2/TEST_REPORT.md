@@ -591,6 +591,33 @@ an obstacle while closing (stall 10.5 A, latched about 80 ms later); the motor c
 peak, latched within 20 µs of 25 A); the beam broken while closing; both relays commanded (no
 current); power-up with RUN high (no motion). No product part is over its ratings in any of these.
 
+**Trimmer** (`tests/trimmer.test.ts`, 7 passed with LONG=1): ERC; full trigger (the soft start
+raises the duty, the cycle-by-cycle limit holds the motor at about 43 A while the head
+accelerates, no trip); half trigger; the head jammed (the limit holds 43.5 A, the jam latch trips);
+the battery at 26 V and 95 °C at the heatsink or the motor (no start); the trigger released while
+running (the head braked to a third of its speed within 20 ms). Found and fixed:
+- every period gave a 2 µs drive pulse at zero duty (a NOR latch's both-low state): the drive is
+  now NOR(Q̄, SET);
+- the reset line reached only 5.7 V: its pull-down is now 100 kΩ;
+- the fault latch tripped at power-up: a 50 ms power-up blanking;
+- releasing the trigger with both contacts changing at once put 836 A through the MOSFET: the
+  trigger switch must break before it makes, and battery-low detection is faster;
+- the jam timer never tripped, because the mean shunt current stays low in a jam: it now times the
+  current limit acting, through a buffer (unbuffered, it disabled the limit: 110 A).
+
+**Block moulding machine** (`tests/blockmachine.test.ts`, 8 passed): ERC; no automatic start at
+power-up; reset, outputs and the valve's fast release; E-stop while running; RESET held through an
+E-stop (no restart); one E-stop channel bridged; K1 welded from power-up (the reset is refused);
+K1 welding while running (the E-stop still stops, the next reset is refused). Found and fixed:
+- the reset capacitor alone could not pull the contactors in: a reset relay K3;
+- a held RESET restarted the machine after an E-stop: the capacitor now sits ahead of the
+  mirror contacts and has its own charging path;
+- a capacitor on the safety rail kept the valves on after an E-stop: removed.
+
+**P4b at 140 V input:** the 10 and 15 kVA output contactors never closed. Their 230 V coils got
+213 V there (93 %, close to the 85 % pull-in). All three ratings now use wide-range
+200–277 V AC/DC coils (Siemens 3RT2…-1NP30); the 18 long runs are being repeated.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
