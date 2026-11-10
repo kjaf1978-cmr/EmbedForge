@@ -1,5 +1,5 @@
 "on this board","qty","references","part","value","details","footprint","MPN","maker","distributors (order numbers)","unit EUR","total EUR","price basis"
-"yes","4","C9 C10 C22 C27","Capacitor","2.2 µF","voltage rating 100 V","C_Film_P10","MKT film 2.2uF 100 V (e.g. WIMA MKS4, TDK B32529)","WIMA / TDK","any distributor (film)","0.35","1.40","estimate"
+"yes","4","C9 C10 C22 C27","Capacitor","2.2 µF","voltage rating 100 V","C_Film_P15","MKT film 2.2uF 100 V (e.g. WIMA MKS4, TDK B32529)","WIMA / TDK","any distributor (film)","0.35","1.40","estimate"
 "yes","2","C28 C29","Capacitor","10 µF","voltage rating 25 V","C_Film_P10","MKT film 10uF 25 V (e.g. WIMA MKS4, TDK B32529)","WIMA / TDK","any distributor (film)","0.80","1.60","estimate"
 "yes","13","C35 C36 C37 C40 C44 C46 C48 C49 C53 C55 C56 C59 C68","Capacitor","100 nF","voltage rating 50 V","C_Disc_5.08","ceramic X7R or MKT 100nF 50 V, 5.08 mm","KEMET / Vishay","any distributor (5.08 mm)","0.12","1.56","estimate"
 "yes","2","C38 C39","Capacitor","470 nF","voltage rating 25 V","C_Disc_5.08","ceramic X7R or MKT 470nF 25 V, 5.08 mm","KEMET / Vishay","any distributor (5.08 mm)","0.12","0.24","estimate"
