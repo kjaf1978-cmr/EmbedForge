@@ -423,7 +423,7 @@
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 00000000-0000-4000-8000-000000000074)
     )
-    (fp_text value "5KP130A" (at 0 5.8 90) (layer "F.Fab")
+    (fp_text value "5KP130CA" (at 0 5.8 90) (layer "F.Fab")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 00000000-0000-4000-8000-000000000075)
     )

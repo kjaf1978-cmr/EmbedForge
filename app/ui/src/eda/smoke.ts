@@ -29,7 +29,7 @@ export interface Stress {
 const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>> = {
   diode: { '1N4148': { If: 0.2, Vr: 100, P: 0.5 }, '1N4007': { If: 1, Vr: 1000, P: 3 }, UF4007: { If: 1, Vr: 1000, P: 3 }, '1N5408': { If: 3, Vr: 1000, P: 6 }, '1N5819': { If: 1, Vr: 40, P: 1.25 }, BAT54: { If: 0.2, Vr: 30, P: 0.2 }, SS34: { If: 3, Vr: 40, P: 1.5 }, MBR20100CT: { If: 10, Vr: 100, P: 8 }, STTH6003: { If: 60, Vr: 300, P: 3.5 }, C4D20120A: { If: 20, Vr: 1200, P: 3.5 }, C4D02120A: { If: 2, Vr: 1200, P: 1.5 } },
   // TVS: 1 W steady state, 400 W peak pulse (10/1000 µs)
-  tvs: { '*': { P: 1, Ppk: 400 }, '5KP64A': { P: 8, Ppk: 5000 }, '5KP130A': { P: 8, Ppk: 5000 } },
+  tvs: { '*': { P: 1, Ppk: 400 }, '5KP64A': { P: 8, Ppk: 5000 }, '5KP130A': { P: 8, Ppk: 5000 }, '5KP130CA': { P: 8, Ppk: 5000 } },
   bridge: { DB107: { If: 1, Vr: 1000 }, KBP206: { If: 2, Vr: 600 }, GBU8K: { If: 8, Vr: 800 } },
   // IGBTs: collector current at 100 °C case; power in free air (TO-247); Icm: the datasheet's
   // pulsed rating (ICpuls)

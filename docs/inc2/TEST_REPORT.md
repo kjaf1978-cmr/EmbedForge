@@ -563,7 +563,7 @@ board, type 2 in the sub-board 10 m on and type 3 at the socket 15 m further, th
 at most 854 V L–N, 815 V L–PE and 600 V N–PE for 12.5 kA 10/350 µs and 20 kA 8/20 µs into the
 service line and for a 6 kV / 3 kA combination wave at the socket; every SPD within its peak
 current and energy. Without the type 3 SPD the socket surge reaches 5.75 kV at the appliance.
-PV house: with Y varistors at the array and the charger and a 5KP130A across the charger's
+PV house: with Y varistors at the array and the charger and a 5KP130CA across the charger's
 input, 5 kA 8/20 µs induced into the array cable gives 195 V across the charger's input (its
 MOSFETs 200 V); without the TVS 205 V — so the P6 charger now has the TVS. (A spark-gap model
 chattered under an ideal surge current source; the type 1 SPD is the varistor-based kind.)

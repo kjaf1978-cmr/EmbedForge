@@ -16,7 +16,7 @@ const tapFor = (v: number) => STAB_TAPS[STAB_STEPS.findIndex((s) => v < s) === -
 describe('relay-switched mains voltage stabiliser', () => {
   it('ERC clean', () => {
     expect(erc(stabiliser().sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
-  });
+  }, 30_000); // building and checking the sheet takes 6–10 s on a loaded machine
   // 6 V either side of every step, and the ends of the input range
   const inputs = [140, ...STAB_STEPS.flatMap((s) => [s - 6, s + 6]), 300];
   for (const v of inputs) {

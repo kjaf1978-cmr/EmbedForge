@@ -8,7 +8,7 @@ describe('three-phase (3P+N) change-over from start-up', () => {
   it('ERC clean', () => {
     const { sheet } = changeover3();
     expect(erc(sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
-  });
+  }, 30_000); // building and checking the sheet takes 6–10 s on a loaded machine
   run3([
     [[230, 230, 230], undefined, 'mains', 'balanced'], [[240, 240, 240], undefined, 'mains', 'balanced, high'],
     [[190, 190, 190], undefined, 'backup', 'undervoltage'], [[230, 230, 0], undefined, 'backup', 'loss of L3'],

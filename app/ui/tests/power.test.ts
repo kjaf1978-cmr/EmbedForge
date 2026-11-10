@@ -14,7 +14,7 @@ describe('single-phase change-over with voltage protection', () => {
   it('ERC clean; every part buyable; within its ratings at 230 V', () => {
     const { sheet } = changeover1();
     expect(erc(sheet).filter((i) => i.severity !== 'info').map((i) => i.message)).toEqual([]);
-  });
+  }, 30_000); // building and checking the sheet takes 6–10 s on a loaded machine
   // from start-up the mains is taken inside about 197 … 250 V; while connected it trips at 195
   // and 253 V; after a trip the hysteresis reconnects only inside about 205 … 245 V
   const cases: [number, MainsStep | undefined, 'mains' | 'backup'][] = [

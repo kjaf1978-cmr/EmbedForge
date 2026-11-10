@@ -234,10 +234,10 @@ a second type 2 within a few metres.)
 
 PV house (the 48 V MPPT charger's array, three 280 Wp in series, 25 m of DC cable with its PE
 conductor alongside): two 20D201K (170 V DC) in Y (DC+ and DC− to the frame) in the array box,
-one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE) and a 5KP130A
+one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE) and a 5KP130CA
 (5 kW TVS) across the charger's input. With 5 kA 8/20 µs induced into the cable the charger's
 input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
-board gets the 5KP130A across its PV input (beside RVPV).
+board gets the 5KP130CA (bidirectional: a unidirectional one would short an array connected the wrong way round) across its PV input (beside RVPV).
 
 ### P9 — pump control, irrigation, gate controller, trimmer, block machine (D24, D25; DFMEA section 3d)
 

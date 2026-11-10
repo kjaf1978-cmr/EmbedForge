@@ -39,6 +39,7 @@ export const TVS: NamedModel<TvsModel>[] = [
   ...tvs('SMAJ5.0', 5, 6.7, 9.2, 43.5), ...tvs('SMAJ12', 12, 14, 19.9, 20.1), ...tvs('SMAJ24', 24, 28.1, 38.9, 10.3), ...tvs('SMAJ33', 33, 38.7, 53.3, 7.5),
   // 5 kW (10/1000 µs), P600 case: absorbs the inductor energy of a converter when its battery is cut off
   { name: '5KP130A', note: 'TVS diode 5 kW (P600), unidirectional: stand-off 130 V, breakdown 144 V, clamps at 209 V with 23.9 A: across a PV input up to 130 V open circuit', model: { vrwm: 130, vbr: 144, vc: 209, ipp: 23.9, bidirectional: false } },
+  { name: '5KP130CA', note: 'TVS diode 5 kW (P600), bidirectional: stand-off ±130 V, breakdown 144 V, clamps at 209 V with 23.9 A: across a PV input, where a unidirectional one would short an array connected the wrong way round', model: { vrwm: 130, vbr: 144, vc: 209, ipp: 23.9, bidirectional: true } },
   { name: '5KP64A', note: 'TVS diode 5 kW (P600), unidirectional: stand-off 64 V, breakdown 71.1 V, clamps at 103 V with 48.5 A', model: { vrwm: 64, vbr: 71.1, vc: 103, ipp: 48.5, bidirectional: false } },
 ];
 

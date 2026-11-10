@@ -94,7 +94,7 @@ export function pvHouse(o: { tvs?: boolean; spdArray?: boolean; spdCharger?: boo
   if (s.spdCharger) nb.part('FC1', 'mov', -400, 60, { value: '20D201K' }, { '1': 'PVC', '2': 'PEC' }, 1);
   // the charger's own input: its varistor and capacitors, its load (the converter at its MPP)
   nb.part('RVPV', 'mov', -200, 60, { value: '14D201K' }, { '1': 'PVC', '2': 'NVC' }, 1);
-  if (s.tvs) nb.part('DTVS', 'tvs', -100, 60, { value: '5KP130A' }, { '1': 'PVC', '2': 'NVC' }, 1);
+  if (s.tvs) nb.part('DTVS', 'tvs', -100, 60, { value: '5KP130CA' }, { '1': 'PVC', '2': 'NVC' }, 1);
   nb.block('load').note('THE CHARGER (test load: its input capacitors and its MPP current)', 0, -100)
     .part('CIN', 'capacitor', 0, 60, { value: '20u', vmax: '200' }, { '1': 'PVC', '2': 'NVC' }, 1)
     .part('RLD', 'resistor', 100, 60, { value: '11.5', pmax: '2k' }, { '1': 'PVC', '2': 'NVC' }, 1)

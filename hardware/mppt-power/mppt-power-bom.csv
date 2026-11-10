@@ -5,7 +5,7 @@
 "yes","1","C10","Electrolytic capacitor","100 µF","voltage rating 25 V","CP_Radial_D10","100uF 25 V 105 °C (e.g. Panasonic FC series)","Panasonic / Nichicon","any distributor (radial)","0.25","0.25","estimate"
 "yes","1","C11","Electrolytic capacitor","10 µF","voltage rating 25 V","CP_Radial_D5","10uF 25 V 105 °C (e.g. Panasonic FC series)","Panasonic / Nichicon","any distributor (radial)","0.10","0.10","estimate"
 "yes","3","C23 C25 C27","Capacitor","1 µF","voltage rating 25 V","C_Disc_5.08","MKT film 1uF 25 V (e.g. WIMA MKS4, TDK B32529)","WIMA / TDK","any distributor (film)","0.35","1.05","estimate"
-"yes","1","D1","TVS diode","5KP130A","","D_P600","5KP130A","Littelfuse","Mouser; Farnell","1.70","1.70","estimate"
+"yes","1","D1","TVS diode","5KP130CA","","D_P600","5KP130CA","Littelfuse","Mouser; Farnell","1.80","1.80","estimate"
 "yes","1","D2","TVS diode","5KP64A","","D_P600","5KP64A","Littelfuse","Farnell 3392434","1.55","1.55","live"
 "yes","1","D3","Diode","STTH6003","heatsink (case to air) 1.5 K/W","TO-247_Vertical","STTH6003CW","STMicroelectronics","Digi-Key; RS 168-6090","2.55","2.55","live"
 "yes","3","D4 D5 D8","Zener diode","BZX55C12","","D_DO-35","BZX55C12","Vishay","any distributor (DO-35)","0.08","0.24","estimate"
@@ -68,4 +68,4 @@
 "no","2","U10 U13","555 timer","NE555","","","NE555P","Texas Instruments","any distributor (DIP-8)","0.35","0.70","estimate"
 "no","1","U12","Op-amp","TL071","","","TL071CP","Texas Instruments","any distributor (DIP-8)","0.60","0.60","estimate"
 
-"Parts on this board: EUR 109.52 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
+"Parts on this board: EUR 109.62 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
