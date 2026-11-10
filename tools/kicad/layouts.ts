@@ -30,7 +30,7 @@ export interface Design {
   wire?: (net: string, toBoard: boolean, isMains: boolean) => string;
   /** Copper added after the autorouter (route.py, before the zone fill and DRC): pours and tracks
    *  that close what Freerouting left, laid where the routed board has room. */
-  post?: { zones?: PlanZone[]; tracks?: PlanTrack[] };
+  post?: { zones?: PlanZone[]; tracks?: PlanTrack[]; vias?: { net: string; at: [number, number] }[] };
   /** Poles a panel connector block has at most (default 14). */
   block?: number;
   /** Route in one pass with the insulation rules (a board almost all high voltage: the staged
@@ -393,7 +393,7 @@ export const DESIGNS: Record<string, Design> = {
   'stabiliser-t-pair': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA: thyristor pair driver (7 per unit)', revision: 'A',
     classes: mains(['L_IN', 'N'], 0.5), panel: (p) => !stabTRefs().pair1.has(p.ref), w: 120, h: 80 },
   'stabiliser-t-logic': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: logic board', revision: 'A',
-    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' || stabTRefs().pairs.has(p.ref) },
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' || stabTRefs().pairs.has(p.ref), },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail

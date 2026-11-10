@@ -147,6 +147,10 @@ def apply_post(board, post):
         for x, y in zd['pts']:
             o.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
         board.Add(z)
+    for vd in (post or {}).get('vias') or []:
+        v = pcbnew.PCB_VIA(board); v.SetNet(board.FindNet(vd['net'])); v.SetPosition(mm(*vd['at']))
+        v.SetWidth(pcbnew.FromMM(vd.get('size', 0.8))); v.SetDrill(pcbnew.FromMM(vd.get('drill', 0.4))); v.SetLocked(True)
+        board.Add(v)
     for td in (post or {}).get('tracks') or []:
         for (x0, y0), (x1, y1) in zip(td['pts'], td['pts'][1:]):
             t = pcbnew.PCB_TRACK(board); t.SetLayer(layer[td['layer']]); t.SetNet(board.FindNet(td['net']))
