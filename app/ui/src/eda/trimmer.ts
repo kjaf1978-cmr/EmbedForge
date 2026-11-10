@@ -124,7 +124,10 @@ export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
     // charges CLF (DJ, RJS; held by CLS, RJD between periods), RJ/CJ integrate it, and IAV above
     // 2.5 V trips. (The mean shunt current stayed near 7 A in a jam: the limit holds the duty at
     // 18 % and the motor current circulates through the freewheel diode, found in simulation.)
-    .part('DJ', 'diode', 650, 1000, { value: '1N4148' }, { '2': 'RCLO', '1': 'CLJ' })
+    // through an emitter follower (QJ): 1k straight from RCLO loaded its 10k pull-up below the
+    // latch's reset threshold and the limit stopped working (110 A, found in simulation)
+    .part('QJ', 'npn', 600, 1000, { value: 'BC547B' }, { '1': 'RCLO', '2': V, '3': 'CLE' })
+    .part('DJ', 'diode', 650, 1000, { value: '1N4148' }, { '2': 'CLE', '1': 'CLJ' })
     .part('RJS', 'resistor', 650, 1050, { value: '1k' }, { '1': 'CLJ', '2': 'CLF' })
     .part('CLS', 'capacitor', 600, 1150, { value: '100n', vmax: '25' }, { '1': 'CLF', '2': 'GND' }, 1)
     .part('RJD', 'resistor', 650, 1150, { value: '1M' }, { '1': 'CLF', '2': 'GND' }, 1)
