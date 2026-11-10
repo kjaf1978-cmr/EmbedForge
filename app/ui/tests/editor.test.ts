@@ -28,7 +28,7 @@ describe('examples (UI-24)', () => {
         if (p.kind === 'i') { const part = s.parts.find((q) => q.id === p.part)!; expect(res.i[`${part.ref}.${p.pin}`]).toBeDefined(); }
       }
       expect(schematicSpice(s)).toMatch(/\.end/);
-    }, 120_000);
+    }, 300_000); // the high-frequency inverter takes 130–170 s on a loaded 4-core machine
   }
   it('LED example: about 9 mA through the LED', () => {
     const s = EXAMPLES.find((e) => e.id === 'led')!.build();

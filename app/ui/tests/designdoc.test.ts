@@ -70,5 +70,5 @@ describe('design document', () => {
     expect(xml).toContain('Bill of materials');
     expect(xml).toContain('Diagnostics, maintenance and FAQ');
     expect(Object.keys(files).filter((f) => f.endsWith('.svg')).length).toBeGreaterThanOrEqual(3);
-  }, 120_000);
+  }, 300_000); // the high-frequency inverter takes 130–170 s on a loaded 4-core machine
 });
