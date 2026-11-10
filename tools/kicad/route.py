@@ -197,8 +197,10 @@ def main():
         # stage 1: the mains nets alone, kept out of the control zone (every other pad without
         # its net, so the router leaves it), so the mains wiring stays on its side
         a = pcbnew.LoadBoard(pcb)
+        # the mains zone's classes, as export.ts sorts them (Mains and HV): only Mains here left
+        # the high-voltage nets to no stage at all (300 connections unrouted on the HF control)
         for pad in a.GetPads():
-            if pad.GetNetClassName() != 'Mains':
+            if pad.GetNetClassName() not in ('Mains', 'HV'):
                 pad.SetNetCode(0)
         keepout(a, split + 1, 0, zones['w'], zones['h'])
         for x0, y0, x1, y1 in zones.get('keep1', []):
