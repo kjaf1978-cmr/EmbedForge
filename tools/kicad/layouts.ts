@@ -328,6 +328,15 @@ const HF_PLANES: PlanZone[] = [
 ];
 const hfControlClasses = (): NetClass[] => [{ ...classFor('HV', hfRefs().hv, 0.3, 0.5), apart: 2.5 }, { ...classFor('Mains', ['OUTL'], 0.5, 1.5), apart: 3.2 }];
 
+// the P4b pair drivers' parts (by schematic key): pair 1 and all seven
+const STABT_PAIR = ['UO', 'RA', 'RB', 'DA', 'DB', 'RGA', 'RGB', 'RVA', 'RVB', 'BV', 'US', 'RSN', 'CSN'];
+let stabTCache: { pair1: Set<string>; pairs: Set<string> } | undefined;
+const stabTRefs = () => stabTCache ??= (() => {
+  const { sheet, nb } = stabiliserT({ kva: 10 }), ref = (k: string) => nb.refOf(sheet, k);
+  const all = [1, 2, 3, 4, 5, 6, 7].flatMap((k) => STABT_PAIR.map((x) => ref(`${x}${k}`)));
+  return { pair1: new Set(STABT_PAIR.map((x) => ref(`${x}1`))), pairs: new Set(all) };
+})();
+
 export const DESIGNS: Record<string, Design> = {
   // two power boards: the battery side (DC-DC bridge, bus, current transformer) and the 380 V side
   // (rectifier, bus, sine bridge), each from its part of the plan (the 380 V side moved 180 mm
@@ -376,15 +385,15 @@ export const DESIGNS: Record<string, Design> = {
     // 160 × 100 mm (on 130 × 90 and 150 × 100 mm connections stayed open; a ground plane while routing was cut
     // into islands by the B.Cu tracks); ground poured on both layers after routing
     post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 98], [2, 98]], clearance: 0.6, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 98], [2, 98]], clearance: 0.6, solid: true }] } },
-  // P4b: the thyristor-tap stabilisers' control board, one for 5, 10 and 15 kVA (the ratings
-  // differ only in panel parts): the thyristor pairs on their heatsink, the autotransformer, the
-  // breaker, the output contactor and the terminals on the panel; gate leads through J_MAINS
-  'stabiliser-t-control': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: control board', revision: 'A',
-    // its mains nets carry gate, sense and snubber currents (milliamperes, the snubbers' under
-    // 1 A): 0.5 mm tracks; 1.6 mm left 75 connections open in the mains zone
-    // 300 × 200 mm (on 270 × 180 mm: 52 open, 25 mains-to-control clearances in the boundary
-    // column; routing it in one pass with the insulation rules sent Freerouting into an error loop)
-    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer', w: 300, h: 200 },
+  // P4b: the thyristor-tap stabilisers, for 5, 10 and 15 kVA alike (the ratings differ only in
+  // panel parts): a driver board per thyristor pair (7, the same board: opto-triac, gate parts,
+  // snubber, the pair's voltage sense) mounted at the heatsink beside its pair, and a logic board
+  // (supply, sense, comparators, logic, protection, the output relay). One control board of
+  // 240 parts, its mains zone holding all seven drivers, left 48 … 75 connections open
+  'stabiliser-t-pair': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA: thyristor pair driver (7 per unit)', revision: 'A',
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => !stabTRefs().pair1.has(p.ref), w: 120, h: 80 },
+  'stabiliser-t-logic': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: logic board', revision: 'A',
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' || stabTRefs().pairs.has(p.ref) },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
