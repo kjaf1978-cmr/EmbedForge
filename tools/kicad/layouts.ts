@@ -337,7 +337,7 @@ const STABT_PAIR_PLAN: [string, number, number, Placed['rot']][] = [
   ['RB1', 15, 20, 0], ['DA1', 36, 20, 0], ['RGA1', 55, 20, 0],
   ['RSN1', 17, 32, 0], ['CSN1', 42, 32, 0],
   ['RVA1', 15, 44, 0], ['RVB1', 38, 44, 0],
-  ['BV1', 30, 56, 0],
+  ['BV1', 57, 56, 0],
   ['UO1', 75, 15, 180], ['US1', 75, 44, 0],
 ];
 // the P4b pair drivers' parts (by schematic key): pair 1 and all seven
