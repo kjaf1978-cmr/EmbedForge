@@ -509,9 +509,7 @@ export const DESIGNS: Record<string, Design> = {
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper
   'irrigation-module': { sheet: () => irrigationModule().sheet, title: 'Irrigation controller: 8-zone channel module (up to 8 per controller)', revision: 'A',
-    classes: () => [IRR_POWER], w: 230, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 230, y0: 16, y1: 80 },
-    // the sensors' supply link Freerouting left (link.py, checked through route.py --post-only)
-    post: { tracks: [{ net: 'V33S', layer: 'F.Cu', width: 0.5, pts: [[45.2,  88.0],  [45.25,  88.0],  [42.5,  90.75],  [21.75,  90.75],  [17.25,  86.25],  [17.2,  86.2981]] }], vias: [{ net: 'V33S', at: [17.25,  86.25] }] } },
+    classes: () => [IRR_POWER], w: 230, h: 95, plan: irrModulePlan, region: { x0: 0, x1: 230, y0: 16, y1: 80 } },
   'irrigation-main': { sheet: () => irrigationMain().sheet, title: 'Irrigation controller: main board (supplies, ESP32, overcurrent cut-off, bus)', revision: 'A',
     classes: () => [IRR_POWER], w: 130, h: 100,
     plan: irrMainPlan,
