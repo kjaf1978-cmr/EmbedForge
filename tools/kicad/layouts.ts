@@ -123,7 +123,7 @@ const coWire = (net: string, toBoard: boolean, isMains: boolean) =>
 // with the solder mask open, a 4 × 3 mm copper bar soldered along them (12 mm²: 80 A); the
 // TO-247 and TO-126 parts stand in a row along the bottom edge, their tabs to the heatsink.
 const mppt = () => mpptCharger();
-const MPPT_PWR = ['XPVP', 'XPVN', 'RVPV', 'QPV', 'QPV2', 'RGPV', 'DZPV', 'OPV', 'RZA', 'DZA', 'CZA', 'QA', 'CAUX', 'CIN1', 'CIN2', 'CIN3', 'CIN4', 'Q1', 'D1', 'RSN', 'CSN',
+const MPPT_PWR = ['XPVP', 'XPVN', 'RVPV', 'DTVP', 'QPV', 'QPV2', 'RGPV', 'DZPV', 'OPV', 'RZA', 'DZA', 'CZA', 'QA', 'CAUX', 'CIN1', 'CIN2', 'CIN3', 'CIN4', 'Q1', 'D1', 'RSN', 'CSN',
   'COUT1', 'COUT2', 'COUT3', 'DTV', 'XBP', 'XBN', 'QB2', 'QB', 'RSH', 'RGB2', 'RGS2', 'DZB2', 'OPB', 'RGS', 'DZB', 'U8', 'DB', 'CB', 'RG', 'CDD'];
 const MPPT_OFF = ['L1', 'FB'];
 const MPPT_SINK = ['QPV', 'QPV2', 'QA', 'Q1', 'D1', 'QB', 'QB2'];
@@ -140,6 +140,8 @@ const MPPT_PLAN: [string, number, number, Placed['rot']][] = [
   // heatsink row (y 153): PV protection, auxiliary, buck (D1 left of Q1), battery switch
   ['QPV', 20, 153, 180], ['QPV2', 40, 153, 180], ['QA', 58, 153, 180], ['D1', 80, 153, 180], ['Q1', 100, 153, 180], ['QB', 235, 153, 180], ['QB2', 257, 153, 180],
   ['XPVP', 15, 22, 0], ['XPVN', 15, 47, 0], ['RVPV', 38, 34, 0],
+  // the PV input's 5 kW TVS (P5): beside the varistor, across PV+ and PV−
+  ['DTVP', 38, 62, 90],
   // the input DC-link capacitors (47 µF 450 V, 57.5 × 35 mm) stacked over D1 and Q1, GND pins to
   // the left (towards D1's anode), PV+ to the right (towards Q1's drain)
   ['CIN1', 95, 130, 180], ['CIN2', 95, 93, 180], ['CIN3', 95, 56, 180], ['CIN4', 95, 19, 180],
