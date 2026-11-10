@@ -453,7 +453,7 @@ const irrModulePlan = (): Placed[] => {
 };
 const irrMainPlan = (): Placed[] => {
   const { sheet, nb } = irrigationMain(), ref = (k: string) => nb.refOf(sheet, k);
-  return [{ ref: ref('U7'), x: 70, y: 26, rot: 0 }, { ref: ref('X24P'), x: 6, y: 60, rot: 90 }, { ref: ref('X24N'), x: 6, y: 65.08, rot: 90 }, { ref: ref('J_BUS'), x: 106, y: 92, rot: 0 }];
+  return [{ ref: ref('U7'), x: 70, y: 26, rot: 0 }, { ref: ref('X24P'), x: 6, y: 60, rot: 90 }, { ref: ref('X24N'), x: 6, y: 66, rot: 90 }, { ref: ref('J_BUS'), x: 106, y: 92, rot: 0 }];
 };
 const IRR_POWER: NetClass = { name: 'Power', patterns: ['^V24$', '^SRET$', '^VIN$', '^VFU$'], track: 1, clearance: 0.3 };
 

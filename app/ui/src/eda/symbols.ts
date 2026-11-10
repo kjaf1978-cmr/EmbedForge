@@ -199,6 +199,20 @@ const BOARD_ONLY: SymbolDef[] = [
     ['1', '3', '5', '7', '9', '11', '13', '15', '17', '19'].map((id) => [id, id, 'passive', true] as IcPin), ['2', '4', '6', '8', '10', '12', '14', '16', '18', '20'].map((id) => [id, id, 'passive', true] as IcPin),
     { key: 'value', label: 'Type', kind: 'text', default: 'IDC 2×10' }, 'Installation'),
 ];
+const NANO_L: [string, PinType][] = [['D1/TX', 'passive'], ['D0/RX', 'passive'], ['RST', 'input'], ['GND', 'power_in'], ['D2', 'passive'], ['D3', 'passive'], ['D4', 'passive'], ['D5', 'passive'], ['D6', 'passive'], ['D7', 'passive'],
+  ['D8', 'passive'], ['D9', 'passive'], ['D10', 'passive'], ['D11', 'passive'], ['D12', 'passive']];
+const NANO_R: [string, PinType][] = [['D13', 'passive'], ['3V3', 'power_out'], ['AREF', 'passive'], ['A0', 'passive'], ['A1', 'passive'], ['A2', 'passive'], ['A3', 'passive'], ['A4', 'passive'], ['A5', 'passive'], ['A6', 'input'],
+  ['A7', 'input'], ['5V', 'power_in'], ['RST', 'input'], ['GND', 'power_in'], ['VIN', 'power_in']];
+BOARD_ONLY.push(
+  icSymbol('nano', 'Microcontroller module (Arduino Nano, 5 V)', 'Arduino Nano (ATmega328P, 5 V I/O) on two 15-pin sockets: pins 1–15 on one side (D1 … D12), 16–30 on the other (D13 … VIN), as a DIP-30 with rows 15.24 mm apart. 5 V in on pin 27 from the board\'s regulator. Board only: the firmware runs in the board emulation (Increment 4).',
+    ['u', 'arduino', 'nano', 'atmega328', 'microcontroller', 'mcu', 'module'], 'U', 'Arduino Nano',
+    NANO_L.map(([nm, t], k) => [String(k + 1), nm, t, true]), NANO_R.map(([nm, t], k) => [String(16 + k), nm, t, true]),
+    { key: 'value', label: 'Module', kind: 'text', default: 'Arduino Nano' }),
+  icSymbol('irrx', 'Infrared receiver 38 kHz (TSOP38238)', 'Demodulating IR receiver for remote controls (38 kHz carrier): OUT low while a burst is received. Supply 2.5–5.5 V through 100 Ω with 4.7 µF at its pins (the datasheet\'s filter). Board only: not simulated.',
+    ['u', 'ir', 'infrared', 'remote', 'receiver', 'tsop', '38 khz'], 'U', 'IR 38k',
+    [['3', 'VS', 'power_in'], ['2', 'GND', 'power_in']], [['1', 'OUT', 'output']],
+    { key: 'value', label: 'Type', kind: 'text', default: 'TSOP38238' }),
+);
 BOARD_ONLY[3].simulated = true; // a connector: connection points only
 
 export const SYMBOLS: SymbolDef[] = [

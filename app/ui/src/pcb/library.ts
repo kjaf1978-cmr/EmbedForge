@@ -182,6 +182,8 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'hc4051': return [same('DIP-16', pins, '74HC4051: VCC 16, VEE 7, GND 8'), same('SOIC-16', pins, '74HC4051D: VCC 16, VEE 7, GND 8')];
     case 'mcu': return [same('ESP32_DevKitC', pins, 'the module on two 1 × 19 female headers, 2.54 mm')];
     case 'idc20': return [same('IDC_Header_2x10', pins, 'box header; the ribbon cable with IDC sockets between the boards')];
+    case 'nano': return [same('Arduino_Nano', pins, 'the module on two 1 × 15 female headers, 2.54 mm')];
+    case 'irrx': return [same('IR_Receiver_TSOP382', pins, 'TSOP38238: 1 OUT, 2 GND, 3 VS; lens towards the front panel window')];
     case 'pv': return [same('TerminalBlock_1x2', pins, 'PV cable (via MC4 connectors): + and −')];
     case 'autotransformer': return [map('TerminalBlock_1x8', { N: '1', T1: '2', T2: '3', T3: '4', T4: '5', T5: '6', T6: '7', T7: '8' }, { note: 'off-board autotransformer: N, T1 … T7' })];
     case 'comparator': return v === 'LM339' ? [map('DIP-14', { 3: '5', 2: '4', 1: '2', 8: '3', 4: '12' }, { note: 'comparator 1 of the LM339; tie the inputs of the unused ones to GND' })] : [same('DIP-8', pins, 'comparator A of the LM393'), same('SOIC-8', pins)];

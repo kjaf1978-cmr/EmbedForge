@@ -129,7 +129,6 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RBB', 'resistor', 650, 1200, { value: '100k' }, { '1': 'BBL', '2': 'GND' }, 1)
     .part('QBL', 'npn', 750, 1100, { value: 'BC547B' }, { '1': 'BBL', '2': 'ISF', '3': 'GND' })
     .part('RFP', 'resistor', 950, 600, { value: '10k' }, { '1': 'V5', '2': 'FLTN' }, 1)
-    .part('XFL', 'terminal', 1050, 550, { value: 'FAULT (to the microcontroller, low = tripped)' }, { '1': 'FLTN' })
     .part('RFB', 'resistor', 1000, 700, { value: '10k' }, { '1': 'FLTN', '2': 'BFL' })
     .part('QFL', 'pnp', 1100, 700, { value: 'BC557B' }, { '1': 'BFL', '2': 'FLT', '3': 'V5' })
     .part('ROF', 'resistor', 1100, 820, { value: '10k' }, { '1': 'FLT', '2': 'GND' }, 1)
@@ -145,16 +144,18 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RCL', 'resistor', 1300, 950, { value: '10k' }, { '1': 'CLR', '2': 'BCL' })
     .part('RCLD', 'resistor', 1300, 1050, { value: '100k' }, { '1': 'CLR', '2': 'GND' }, 1)
     .part('QCL', 'npn', 1400, 950, { value: 'BC547B' }, { '1': 'BCL', '2': 'SRF', '3': 'GND' })
-    .part('COC', 'capacitor', 950, 800, { value: '100n', vmax: '50' }, { '1': 'V5', '2': 'GND' }, 1)
-    // the microcontroller's connector
-    .part('XU1', 'terminal', 1500, 400, { value: 'OPEN' }, { '1': 'OPEN' })
-    .part('XU2', 'terminal', 1500, 450, { value: 'CLOSE' }, { '1': 'CLOSE' })
-    .part('XU3', 'terminal', 1500, 500, { value: 'RUN' }, { '1': 'RUN' })
-    .part('XU4', 'terminal', 1500, 550, { value: 'CLR' }, { '1': 'CLR' })
-    .part('XU5', 'terminal', 1500, 600, { value: 'open limit (4.2 V = not at the end)' }, { '1': 'LOI' })
-    .part('XU6', 'terminal', 1500, 650, { value: 'close limit and beam' }, { '1': 'LCI' })
-    .part('XU7', 'terminal', 1500, 700, { value: '+5 V' }, { '1': 'V5' })
-    .part('XU8', 'terminal', 1500, 750, { value: '0 V' }, { '1': 'GND' });
+    .part('COC', 'capacitor', 950, 800, { value: '100n', vmax: '50' }, { '1': 'V5', '2': 'GND' }, 1);
+  // ---- the microcontroller (D24): an Arduino Nano on sockets (5 V I/O, as the commands above are
+  // simulated), on the board's 5 V; the IR receiver (TSOP38238, 38 kHz) on its own filtered 5 V
+  // (100 Ω, 4.7 µF), behind the enclosure's window. Not simulated: the bench drives its outputs.
+  // FAULT (FLTN) on D2 and the receiver on D3 (the two interrupt pins); OPEN D5, CLOSE D6, CLR D7,
+  // RUN D9; the limit and beam inputs on A0, A1
+  nb.block('microcontroller')
+    .part('UMC', 'nano', 1600, 500, { value: 'Arduino Nano' }, { '4': 'GND', '29': 'GND', '27': 'V5', '5': 'FLTN', '6': 'IRO', '8': 'OPEN', '9': 'CLOSE', '10': 'CLR', '12': 'RUN', '19': 'LOI', '20': 'LCI' })
+    .part('RIR', 'resistor', 1450, 900, { value: '100' }, { '1': 'V5', '2': 'VIR' })
+    .part('CIR', 'capacitor_pol', 1500, 1000, { value: '4.7u', vmax: '16' }, { '1': 'VIR', '2': 'GND' }, 1)
+    .part('UIR', 'irrx', 1650, 950, { value: 'TSOP38238' }, { '3': 'VIR', '2': 'GND', '1': 'IRO' })
+    .part('RIRP', 'resistor', 1750, 900, { value: '10k' }, { '1': 'V5', '2': 'IRO' }, 1);
   nb.v('MA').v('MB').v('SW').v('FLTN').v('FLT').v('ISF').v('SRF').v('SPD').v('GM').i('QM', '2').i('M1', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '2', step: '20u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };

@@ -497,9 +497,9 @@ describe('board-only parts (P9 irrigation)', () => {
   // the microcontroller module and its peripherals are placed on the product's boards, not
   // simulated (the firmware runs in the board emulation, Increment 4); the bus header simulates as
   // its connection points
-  it('the 74HC595, 74HC4051 and the ESP32 module are flagged as not simulated and have footprints; the ribbon header simulates', async () => {
+  it('the 74HC595, 74HC4051, the ESP32 and Nano modules and the IR receiver are flagged as not simulated and have footprints; the ribbon header simulates', async () => {
     const { footprintOf } = await import('../src/pcb/library');
-    for (const [sym, value] of [['hc595', '74HC595'], ['hc4051', '74HC4051'], ['mcu', 'ESP32-DevKitC-32E'], ['idc20', 'IDC 2×10']] as const) {
+    for (const [sym, value] of [['hc595', '74HC595'], ['hc4051', '74HC4051'], ['mcu', 'ESP32-DevKitC-32E'], ['nano', 'Arduino Nano'], ['irrx', 'TSOP38238'], ['idc20', 'IDC 2×10']] as const) {
       const sd = SYMBOLS.find((x) => x.id === sym)!;
       expect(sd.simulated, sym).toBe(sym === 'idc20');
       const fp = footprintOf({ id: 'x', ref: 'U1', sym, x: 0, y: 0, rot: 0, mirror: false, props: { value } } as never)!;

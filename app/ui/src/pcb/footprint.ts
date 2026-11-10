@@ -211,6 +211,8 @@ movDisc('MOV_Disc_14', 'Varistor disc Ø 14 mm, 7.5 mm', 7.5, 16, 6);
 movDisc('MOV_Disc_20', 'Varistor disc Ø 20 mm, 10 mm', 10, 22, 6.5);
 // P9 irrigation: the 74HC595 and 74HC4051 also in SOIC-16; the ribbon-cable bus; the ESP32 module
 add(soic('SOIC-16', 'SOIC-16', 16));
+add(dip('Arduino_Nano', 'Arduino Nano on two 1 × 15 sockets (DIP-30, 15.24 mm rows)', 30, 15.24));
+add(inline('IR_Receiver_TSOP382', 'IR receiver TSOP382xx, 3 pins 2.54 mm (OUT, GND, VS)', 3, 2.54, 0.8, 1.5, 1.5, { d: 5.8, back: 1.5, height: 12 }));
 add((() => {
   // shrouded box header 2 × 10, 2.54 mm: odd pins in the top row (1 left), even below
   const pads: Pad[] = [];
