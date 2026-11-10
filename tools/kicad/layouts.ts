@@ -3,6 +3,7 @@
 // current) and the clearances of the mains and high-voltage nets (IEC 62368-1 / IEC 60664-1,
 // pollution degree 2, material group IIIb, basic insulation, overvoltage category II).
 import { gateController } from '../../app/ui/src/eda/gate';
+import { pumpControl } from '../../app/ui/src/eda/pumpControl';
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
@@ -357,6 +358,9 @@ export const DESIGNS: Record<string, Design> = {
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
   // connectors, the MOVs (after the breakers) and the control, its mains and its control nets on
   // two connectors to the panel
+  // P9: the pump controller's board (supply, electrodes, timers, logic, the pilot relay); the
+  // contactor, breaker and terminals on the DIN rail
+  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'A', classes: mains(['L', 'N']), panel: (p) => PANEL.has(p.sym) },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper

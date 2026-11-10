@@ -173,7 +173,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CDS', 'capacitor', 870, 2350, { value: '10n', vmax: '50' }, { '1': 'DSQ', '2': 'GND' }, 1)
     .part('UN14', 'nor2', 950, 2250, { value: V, pkg: 'NR4' }, { '1': 'DOK', '2': 'DSN', '3': 'DOKN' })
     .part('UN15', 'nor2', 1100, 2250, { value: V, pkg: 'NR4' }, { '1': 'DOKN', '2': 'DOKN', '3': 'DOKE' })
-    .part('UN16', 'nor2', 1250, 2250, { value: V, pkg: 'NR4' }, { '1': 'GND', '2': 'GND', '3': 'NSP5' })
+    .part('UN16', 'nor2', 1250, 2250, { value: V, pkg: 'NR4' }, { '1': 'GND', '2': 'GND', '3': 'nc_NSP5' })
     .part('CD1', 'capacitor', 1000, 2350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 1100, 2350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD3', 'capacitor', 1200, 2350, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
