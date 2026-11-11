@@ -148,6 +148,7 @@ export const SHUNT_REFS: NamedModel<ShuntRefModel>[] = [
 export const BRIDGES: NamedModel<DiodeModel>[] = [
   { name: 'DB107', note: 'bridge rectifier 1000 V / 1 A', model: { is: 7.03e-9, n: 1.808, rs: 0.0342, bv: 1000, ibv: 5e-6, cj: 15e-12 } },
   { name: 'KBP206', note: 'bridge rectifier 600 V / 2 A', model: { is: 1.4e-8, n: 1.8, rs: 0.02, bv: 600, ibv: 5e-6, cj: 25e-12 } },
+  { name: 'GBPC3510', note: 'bridge rectifier 1000 V / 35 A (metal case, on a heatsink): mains input of drives up to about 4 kW', model: { is: 2e-7, n: 1.8, rs: 0.004, bv: 1000, ibv: 5e-6, cj: 200e-12 } },
   { name: 'GBU8K', note: 'bridge rectifier 800 V / 8 A', model: { is: 5e-8, n: 1.8, rs: 0.008, bv: 800, ibv: 5e-6, cj: 55e-12 } },
 ];
 
