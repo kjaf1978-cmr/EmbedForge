@@ -178,7 +178,10 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   }
   nb.part('U1', 'regulator', 400, 500, { value: '7812' }, { '1': 'V24', '2': 'GND', '3': V })
     .part('C12', 'capacitor_pol', 500, 550, { value: '47u', vmax: '25' }, { '1': V, '2': 'GND' }, 1)
-    .part('RREF', 'resistor', 600, 500, { value: '2.2k' }, { '1': V, '2': 'VREF' })
+    // the reference fed with 20 mA: the trimmers and dividers on it draw about 7 mA (with 2.2k the
+    // TL431 starved and every threshold sagged: the current limit at 74 % of its setting, found in
+    // simulation)
+    .part('RREF', 'resistor', 600, 500, { value: '470', pmax: '0.5' }, { '1': V, '2': 'VREF' })
     .part('UREF', 'tl431', 600, 650, { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' });
 
   // ---- the run chain: E-STOP, STOP, the motor's thermal switch (and the reversing switch's
@@ -310,7 +313,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('LF', 'led', 1600, 1650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC2', 'capacitor', 1150, 1700, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  nb.v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
+  nb.v('VREF').v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
     .i('M1', '1').i('RSH', '1');
   if (mains) nb.i('BR1', '1');
   const stop = o.stop ?? '0.3';
