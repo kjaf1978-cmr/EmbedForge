@@ -123,3 +123,56 @@ climate.
 **How long does a unit last?** The predicted MTBF at 45 °C is 80 to 115 years for random
 failures (Reliability tab in the app); in practice the installation (terminals, water,
 insects, surges) decides, which is why the inspections above matter.
+
+## Agricultural and machinery designs (P9)
+
+**Safety first.** The pump controller, the block machine's panel and the 240 V grinder drive
+work at mains voltage; on the 240 V grinder drive the whole control board, the speed pot and
+the buttons are at mains potential (the control is not isolated). The trimmer, the gate and
+the 24 V grinder drive carry battery currents of up to 200 A. Switch off and lock out every
+source and wait 1 minute before opening an enclosure; a motor that turns generates voltage.
+
+| Design | LED or sign | Means |
+|---|---|---|
+| Pump controller | FAULT (red) | the tank's electrodes disagree (HIGH without LOW) or the source ran dry: the pump is locked until the next dry-spell check |
+| Irrigation | FAULT (red, main board) | the overcurrent cut-off holds every valve off (a shorted valve or cable, or the power-up state until the firmware clears it) |
+| Gate controller | — | the cut-off (short circuit or obstacle) is reported to the Nano, which reverses briefly and waits |
+| Trimmer | FAULT (red) | a jam, the battery below 27.5 V or a temperature above 85 °C: release the trigger to reset |
+| Block machine | SAFETY RAIL (green) | K1 and K2 are on: the machine may move; off after an E-stop until RESET |
+| Grinder drive | RUN (green) | K1 and the main contactor are on |
+| Grinder drive | FAULT (red) | stall (the torque limit held about 3 s), overload (above 115 % for about 20 s), heatsink above 85 °C, or on 24 V the battery below 21 V: press START again once the cause is removed |
+
+**Planned maintenance (yearly):** check the E-stop and every limit switch, beam and guard
+switch for function (the gate must stop on the beam, the block machine on each E-stop and
+guard); check the contactor contacts of the block machine and the grinder (burn marks); clean
+the heatsinks; on the grinder, check the motor's brushes (replace below 8 mm or as the motor's
+maker says) and the reversing switch; on the irrigation controller, test each zone and look
+at the ribbon cable and its connectors.
+
+**The grinder does not start.** START only works with the E-stop and STOP released, the
+motor's thermal switch closed (a hot motor needs about 20 minutes) and, on 240 V, the
+reversing switch in FWD or REV (its middle position opens the run chain on purpose). After a
+power cut, a STOP or a fault, START must be pressed again: the drive never restarts by
+itself.
+
+**Settings of the grinder drive per machine.** Set with the five trimmers on the control
+board, the drive switched off first (the 240 V board is live). Turn the speed pot fully up,
+start, and set MAX with a tachometer on the tool; then MIN with the pot fully down; IR COMP
+until the speed no longer drops under load (too much makes it hunt); ACCEL for the start
+time; CURRENT LIMIT last.
+
+| Machine | Transmission | MAX | MIN | ACCEL | CURRENT LIMIT | Notes |
+|---|---|---|---|---|---|---|
+| Angle grinder (disc) | belt up, e.g. 1 : 2.5 | the disc's rated speed, never above (its label) | 30 % | 2 s | 120 % | wheel guard; no reversing |
+| Bench grinder | direct, 3000 rpm | the wheel's rated speed (above 3000 rpm needs a wheel rated for it) | 30 % | 2 s | 120 % | tool rests within 2 mm of the wheel |
+| Grain or maize mill | belt or gearbox down to 300 … 1000 rpm | the mill maker's speed | 20 % | 5 s | 150 % | start empty when possible; the stall trip catches a choked mill |
+| Meat mincer | gearbox down to 150 … 250 rpm | the mincer maker's speed | 10 % | 1 s | 150 % | REV (240 V) to clear a jam: stop, wait for standstill, switch, START |
+
+**The grinder trips FAULT under heavy load.** Stall: the load needed the full torque for 3 s
+(a choked mill, a jammed mincer); clear it and restart. Overload: the motor ran above 115 %
+of its rated current for 20 s; reduce the feed or raise the transmission's ratio. Heatsink:
+clean the fins and check the fan.
+
+**Can the grinder's speed drop under load?** A few per cent with IR COMP set right; more
+means the current limit acts (the load needs more torque than CURRENT LIMIT allows) or IR
+COMP is too low.
