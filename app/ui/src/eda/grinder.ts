@@ -109,13 +109,14 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('SES', 'nmos', -750, 300, { value: 'IRLZ44N' }, { '1': 'GES', '2': 'V24', '3': 'ESO' })
     // the motor's thermal switch (closed) and, on 240 V, the reversing switch's auxiliary contact
     .part('STH', 'switch', -650, 150, { closed: 'true' }, { '1': 'STO', '2': mains ? 'THO' : 'RV' });
-  if (mains) nb.part('SRV', 'switch', -650, 300, { closed: 'true' }, { '1': 'THO', '2': 'RV' });
+  if (mains) nb.part('SRV', 'switch', -650, 300, { closed: 'true' }, { '1': 'THO', '2': 'RV' })
+    .part('RMA', 'resistor', -550, 300, { value: '0.01' }, { '1': 'LAO', '2': 'MA' });
   // the speed pot (10k) between MAX and MIN
   const sp = o.speed ?? 1;
   nb.part('RVS', 'potentiometer', -550, 0, { value: '10k', position: pos(sp, 1) }, { '1': 'SMN', '2': 'WIP', '3': 'SMX' })
     // the motor and its tool: a load torque rising with speed (b = load / rated speed)
     .part('M1', 'dcmotor', -450, 300, { value: String(G.k), ra: String(G.ra), la: G.la, j: String(o.inertia ?? 0.004), b: String(Math.max(1e-6, (o.load ?? 0) / 314)),
-      ...(o.jamAt !== undefined ? { obstacle: String(o.jamAt) } : {}) }, { '1': 'SWN', '2': 'SHN', '3': 'SPD' });
+      ...(o.jamAt !== undefined ? { obstacle: String(o.jamAt) } : {}) }, { '1': mains ? 'MA' : 'SWN', '2': 'SHN', '3': 'SPD' });
 
   // ---- power stage
   nb.block('power');
@@ -153,7 +154,14 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     nb.part('RGHE', 'resistor', 1250, -100, { value: '10k' }, { '1': 'HO', '2': 'SWN' }, 1)
       .part('RGLE', 'resistor', 1250, 150, { value: '10k' }, { '1': 'LO', '2': 'GND' }, 1);
   }
-  nb.part('XM1', 'terminal', 900, 300, { value: mains ? 'motor A+ (through the reversing switch)' : 'motor A+' }, { '1': 'SWN' })
+  // 240 V: a 15 mH armature choke (off the board, on the chassis) keeps the motor's current flowing
+  // through the mains' valleys: with the motor's own 8 mH the current came in pulses at the mains'
+  // peaks, the armature voltage stayed at its back-EMF and the motor reached 2540 rpm at rated load
+  // (found in simulation)
+  if (mains) nb.part('LA', 'inductor', 850, 250, { value: '15m', imax: '20' }, { '1': 'SWN', '2': 'LAO' })
+    .part('XLA1', 'terminal', 900, 200, { value: 'armature choke (from the switch node)' }, { '1': 'SWN' })
+    .part('XLA2', 'terminal', 900, 250, { value: 'armature choke (to the motor)' }, { '1': 'LAO' });
+  nb.part('XM1', 'terminal', 900, 300, { value: mains ? 'motor A+ (through the reversing switch)' : 'motor A+' }, { '1': mains ? 'LAO' : 'SWN' })
     .part('XM2', 'terminal', 900, 350, { value: mains ? 'motor A− (through the reversing switch)' : 'motor A−' }, { '1': 'SHN' })
     .part('RSH', 'resistor', 1000, 400, { value: G.rsh, pmax: mains ? '5' : '10' }, { '1': 'SHN', '2': 'GND' }, 1)
     // the half-bridge driver and its bootstrap; SD low (K1 off or a fault) holds both off
@@ -293,7 +301,12 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   // ---- protections onto FLTN, latched by a CD4001 (cleared while K1 is off)
   nb.block('protections')
     // stall: the torque limit acting (TLO low switches QJ on) for about 3 s
-    .part('RJB2', 'resistor', 550, 1450, { value: '10k' }, { '1': 'TLO', '2': 'JB' })
+    // (two diodes in its base: the LM358's 10.5 V high would still switch on a PNP from 12 V, and
+    // the stall timer ran up at every start, found in simulation)
+    .part('RJB2', 'resistor', 500, 1450, { value: '10k' }, { '1': 'TLO', '2': 'JD2' })
+    .part('DJ2', 'diode', 520, 1500, { value: '1N4148' }, { '2': 'JD1', '1': 'JD2' })
+    .part('DJ1', 'diode', 540, 1450, { value: '1N4148' }, { '2': 'JB', '1': 'JD1' })
+    .part('RJU', 'resistor', 560, 1400, { value: '47k' }, { '1': V, '2': 'JB' })
     .part('QJ', 'pnp', 600, 1500, { value: 'BC557B' }, { '1': 'JB', '2': 'CLE', '3': V })
     .part('DJ', 'diode', 650, 1500, { value: '1N4148' }, { '2': 'CLE', '1': 'CLJ' })
     .part('RJS', 'resistor', 650, 1550, { value: '1k' }, { '1': 'CLJ', '2': 'CLF' })
