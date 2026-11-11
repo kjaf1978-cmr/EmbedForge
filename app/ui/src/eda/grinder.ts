@@ -233,11 +233,12 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RSC', 'resistor', 1000, 1000, { value: '10k' }, { '1': 'SPR', '2': 'SPC' })
     .part('RVIR', 'potentiometer', 1000, 1100, { value: '1M', position: pos(o.irComp, 0.5) }, { '1': 'ISA', '2': 'IRW', '3': 'IRW' })
     .part('RIR', 'resistor', 1050, 1150, { value: '100k' }, { '1': 'IRW', '2': 'SPC' })
-    // the speed amplifier: PI (100k, 470k + 0.47 µF), its integrator shorted while K1 is off
+    // the speed amplifier: PI (100k; 2.2M + 100 nF: proportional gain 22, integral 0.22 s), its
+    // integrator shorted while K1 is off (at a gain of 4.7 the motor lagged its ramp by half)
     .part('RIN', 'resistor', 1100, 1000, { value: '100k' }, { '1': 'FBD', '2': 'PIN' })
     .part('UB', 'opamp', 1200, 1000, { value: 'LM358' }, { '3': 'SPC', '2': 'PIN', '6': 'DUT', '7': V, '4': 'GND' })
-    .part('RPI', 'resistor', 1250, 1100, { value: '470k' }, { '1': 'DUT', '2': 'PIX' })
-    .part('CPI', 'capacitor', 1300, 1100, { value: '470n', vmax: '50' }, { '1': 'PIX', '2': 'PIN' })
+    .part('RPI', 'resistor', 1250, 1100, { value: '2.2M' }, { '1': 'DUT', '2': 'PIX' })
+    .part('CPI', 'capacitor', 1300, 1100, { value: '100n', vmax: '50' }, { '1': 'PIX', '2': 'PIN' })
     .part('QIR', 'nmos', 1350, 1150, { value: '2N7000' }, { '1': 'ENN', '2': 'PIX', '3': 'PIN' })
     .part('RVCL', 'potentiometer', 1100, 1250, { value: '1k', position: pos(o.currentLimit, 0.9) }, { '1': 'GND', '2': 'VCL', '3': 'VREF' })
     .part('CCL', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': 'VCL', '2': 'GND' }, 1);

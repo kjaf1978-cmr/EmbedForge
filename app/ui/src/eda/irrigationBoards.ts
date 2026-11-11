@@ -119,7 +119,7 @@ export function irrigationMain(): { sheet: Sheet; nb: NB } {
     .part('ROI', 'resistor', 200, 350, { value: '1k' }, { '1': 'OE', '2': 'OEI' })
     // the fault lamp: on while the cut-off holds every valve off
     .part('RLF', 'resistor', 600, 600, { value: '1k' }, { '1': 'OE', '2': 'LFA' })
-    .part('LF', 'led', 650, 650, { value: 'red' }, { '1': 'LFA', '2': 'GND' }, 1)
+    .part('LF', 'led', 650, 650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('J_BUS', 'idc20', 800, 400, { value: 'IDC 2×10' }, { ...IRR_BUS })
     // the bus lines held low while the module boots (its GPIO float until the firmware runs)
     .part('RPS1', 'resistor', 950, 250, { value: '10k' }, { '1': 'SER', '2': 'GND' }, 1)

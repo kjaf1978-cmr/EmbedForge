@@ -134,7 +134,9 @@ source and wait 1 minute before opening an enclosure; a motor that turns generat
 
 | Design | LED or sign | Means |
 |---|---|---|
-| Pump controller | FAULT (red) | the tank's electrodes disagree (HIGH without LOW) or the source ran dry: the pump is locked until the next dry-spell check |
+| Pump controller | RUN (green) | the pump's contactor is on |
+| Pump controller | FAULT (red) | latched: the OVERFLOW electrode was reached (a HIGH electrode or the contactor failed) or the pump ran longer than 2.3 hours (a burst pipe, a pump that no longer delivers); switch off and on to reset after the repair |
+| Pump controller | SOURCE DRY (yellow) | the DRY electrode is out of the water: the pump is held off until 8.5 minutes after the water is back |
 | Irrigation | FAULT (red, main board) | the overcurrent cut-off holds every valve off (a shorted valve or cable, or the power-up state until the firmware clears it) |
 | Gate controller | — | the cut-off (short circuit or obstacle) is reported to the Nano, which reverses briefly and waits |
 | Trimmer | FAULT (red) | a jam, the battery below 27.5 V or a temperature above 85 °C: release the trigger to reset |
