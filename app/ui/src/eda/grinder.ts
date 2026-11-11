@@ -31,13 +31,13 @@
 // - Speed: the speed pot between the MIN and MAX trimmers' levels, through the ACCEL trimmer into
 //   4.7 µF (0.1 … 5 s ramp; held at zero while K1 is off: every start is a soft start); the
 //   armature voltage (divided, 1 ms filter) is the feedback; a PI amplifier (LM358) sets the duty.
-// - Torque: the motor current, cycle by cycle against the CURRENT LIMIT trimmer (up to 150 % of
-//   the rated current): the motor delivers full torque at any speed and cannot be overloaded at
-//   standstill.
+// - Torque: the motor current averaged over 10 ms against the CURRENT LIMIT trimmer (up to 160 %
+//   of the rated current; an amplifier pulls the duty down): full torque at any speed, no overload
+//   at standstill; a cycle-by-cycle limit at 200 % protects the switches and the magnets.
 // - PWM: an NE555 ramp at 20 kHz and a CD4001 latch (set each period, reset by the duty or by the
-//   current limit), as in the trimmer drive; the driver's SD holds both switches off while K1 is
+//   200 % limit), as in the trimmer drive; the driver's SD holds both switches off while K1 is
 //   off or a fault is latched.
-// - Faults (LM339/LM393 onto FLTN, latched by a CD4001): stall (the current limit acting for about
+// - Faults (LM339/LM393 onto FLTN, latched by a CD4001): stall (the torque limit acting for about
 //   3 s), overload (the mean motor current above 115 % of rated for about 20 s), the heatsink above
 //   85 °C (NTC), and on 24 V the battery below 21 V.
 // - Supplies: 240 V: a 230/18 V 10 VA transformer (before KM) and a bridge for the 24 V coils,
@@ -242,12 +242,29 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     // the speed amplifier: PI (100k; 2.2M + 100 nF: proportional gain 22, integral 0.22 s), its
     // integrator shorted while K1 is off (at a gain of 4.7 the motor lagged its ramp by half)
     .part('RIN', 'resistor', 1100, 1000, { value: '100k' }, { '1': 'FBD', '2': 'PIN' })
-    .part('UB', 'opamp', 1200, 1000, { value: 'LM358' }, { '3': 'SPC', '2': 'PIN', '6': 'DUT', '7': V, '4': 'GND' })
-    .part('RPI', 'resistor', 1250, 1100, { value: '2.2M' }, { '1': 'DUT', '2': 'PIX' })
+    .part('UB', 'opamp', 1200, 1000, { value: 'LM358' }, { '3': 'SPC', '2': 'PIN', '6': 'DUTP', '7': V, '4': 'GND' })
+    .part('RDU', 'resistor', 1300, 1000, { value: '2.2k' }, { '1': 'DUTP', '2': 'DUT' })
+    .part('RPI', 'resistor', 1250, 1100, { value: '2.2M' }, { '1': 'DUTP', '2': 'PIX' })
     .part('CPI', 'capacitor', 1300, 1100, { value: '100n', vmax: '50' }, { '1': 'PIX', '2': 'PIN' })
     .part('QIR', 'nmos', 1350, 1150, { value: '2N7000' }, { '1': 'ENN', '2': 'PIX', '3': 'PIN' })
     .part('RVCL', 'potentiometer', 1100, 1250, { value: '1k', position: pos(o.currentLimit, 0.9) }, { '1': 'GND', '2': 'VCL', '3': 'VREF' })
-    .part('CCL', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': 'VCL', '2': 'GND' }, 1);
+    .part('CCL', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': 'VCL', '2': 'GND' }, 1)
+    // the torque limit: the motor current averaged over 10 ms (half a mains period) against CURRENT
+    // LIMIT (0 … 160 % of rated); above it the amplifier pulls the duty down through DTL. The
+    // average, not the peak: on 240 V the motor takes its current in pulses at the mains' peaks,
+    // and a peak limit at 145 % held the mean to 13 A, the motor below its rated speed at rated load
+    // (found in simulation)
+    .part('RAF', 'resistor', 1000, 1400, { value: '10k' }, { '1': 'ISA', '2': 'IAF' })
+    .part('CAF', 'capacitor', 1050, 1500, { value: '1u', vmax: '25' }, { '1': 'IAF', '2': 'GND' }, 1)
+    .part('RTI', 'resistor', 1100, 1400, { value: '10k' }, { '1': 'IAF', '2': 'TLN' })
+    .part('UTL', 'opamp', 1200, 1400, { value: 'LM358' }, { '3': 'VCL', '2': 'TLN', '6': 'TLO', '7': V, '4': 'GND' })
+    .part('RTL', 'resistor', 1250, 1500, { value: '47k' }, { '1': 'TLO', '2': 'TLX' })
+    .part('CTL', 'capacitor', 1300, 1500, { value: '100n', vmax: '50' }, { '1': 'TLX', '2': 'TLN' })
+    .part('DTL', 'diode', 1350, 1400, { value: '1N4148' }, { '2': 'DUT', '1': 'TLO' })
+    // the cycle-by-cycle limit, fixed at 200 % of rated (the IGBT's or MOSFETs' and the magnets'
+    // protection): 3.1 V from the 12 V rail
+    .part('RPK1', 'resistor', 1400, 1250, { value: '28.7k' }, { '1': V, '2': 'VPK' }, 1)
+    .part('RPK2', 'resistor', 1400, 1350, { value: '10k' }, { '1': 'VPK', '2': 'GND' }, 1);
 
   // ---- PWM: NE555 ramp 4 … 8 V at 20 kHz; CD4001 latch set each period, reset by the duty or
   // the current limit; DRV = NOR(QN, SET)
@@ -264,7 +281,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('UC1', 'comparator', 1600, 700, { value: 'LM339', pkg: 'CA' }, { '3': 'CT', '2': 'DUT', '1': 'RPW', '8': V, '4': 'GND' })
     .part('RPW', 'resistor', 1700, 700, { value: '10k' }, { '1': V, '2': 'RPW' }, 1)
     .part('DR1', 'diode', 1800, 700, { value: '1N4148' }, { '2': 'RPW', '1': 'RST' })
-    .part('UC2', 'comparator', 1600, 850, { value: 'LM339', pkg: 'CA' }, { '3': 'ISA', '2': 'VCL', '1': 'RCLO', '8': V, '4': 'GND' })
+    .part('UC2', 'comparator', 1600, 850, { value: 'LM339', pkg: 'CA' }, { '3': 'ISA', '2': 'VPK', '1': 'RCLO', '8': V, '4': 'GND' })
     .part('RCLP', 'resistor', 1700, 850, { value: '10k' }, { '1': V, '2': 'RCLO' }, 1)
     .part('DR2', 'diode', 1800, 850, { value: '1N4148' }, { '2': 'RCLO', '1': 'RST' })
     .part('RRS', 'resistor', 1900, 800, { value: '100k' }, { '1': 'RST', '2': 'GND' }, 1)
@@ -275,8 +292,9 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- protections onto FLTN, latched by a CD4001 (cleared while K1 is off)
   nb.block('protections')
-    // stall: the current limit acting period after period (its flag through QJ), about 3 s
-    .part('QJ', 'npn', 600, 1500, { value: 'BC547B' }, { '1': 'RCLO', '2': V, '3': 'CLE' })
+    // stall: the torque limit acting (TLO low switches QJ on) for about 3 s
+    .part('RJB2', 'resistor', 550, 1450, { value: '10k' }, { '1': 'TLO', '2': 'JB' })
+    .part('QJ', 'pnp', 600, 1500, { value: 'BC557B' }, { '1': 'JB', '2': 'CLE', '3': V })
     .part('DJ', 'diode', 650, 1500, { value: '1N4148' }, { '2': 'CLE', '1': 'CLJ' })
     .part('RJS', 'resistor', 650, 1550, { value: '1k' }, { '1': 'CLJ', '2': 'CLF' })
     .part('CLS', 'capacitor', 600, 1650, { value: '100n', vmax: '25' }, { '1': 'CLF', '2': 'GND' }, 1)
@@ -313,7 +331,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('LF', 'led', 1600, 1650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC2', 'capacitor', 1150, 1700, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  nb.v('VREF').v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
+  nb.v('TLO').v('IAF').v('VREF').v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
     .i('M1', '1').i('RSH', '1');
   if (mains) nb.i('BR1', '1');
   const stop = o.stop ?? '0.3';
