@@ -65,7 +65,7 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
   nb.block('supply')
     .part('XP', 'terminal', 0, -100, { value: '+24 V' }, { '1': 'V24' })
     .part('XN', 'terminal', 0, 0, { value: '0 V' }, { '1': 'GND' })
-    .part('F1', 'fuse', 100, -100, { value: '10' }, { '1': 'V24', '2': 'V24F' })
+    .part('F1', 'fuse', 100, -100, { value: '10', r: '0.01' }, { '1': 'V24', '2': 'V24F' })
     .part('DT0', 'tvs', 200, 0, { value: 'SMAJ33A' }, { '1': 'V24F', '2': 'GND' }, 1)
     .part('C0', 'capacitor_pol', 300, 0, { value: '470u', vmax: '50' }, { '1': 'V24F', '2': 'GND' }, 1)
     .part('U1', 'regulator', 400, -100, { value: '7805' }, { '1': 'V24F', '2': 'GND', '3': 'V5' })

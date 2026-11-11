@@ -139,7 +139,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   } else {
     nb.part('XBP', 'terminal', 0, -100, { value: 'battery + (through the 200 A fuse and KM)' }, { '1': 'BUS' })
       .part('XBN', 'terminal', 0, 0, { value: 'battery −' }, { '1': 'GND' })
-      .part('F1', 'fuse', 100, -100, { value: '200' }, { '1': 'BAT', '2': 'BATF' })
+      .part('F1', 'fuse', 100, -100, { value: '200', r: '0.0003' }, { '1': 'BAT', '2': 'BATF' })
       .part('KM', 'contactor', 250, -50, { value: '250 A DC, coil 24 V' }, { A1: 'CH2', A2: 'CR', '1': 'BATF', '2': 'BUS' });
     for (let k = 1; k <= 8; k++) nb.part(`CB${k}`, 'capacitor_pol', 300 + 50 * k, 0, { value: '2200u', vmax: '35' }, { '1': 'BUS', '2': 'GND' }, 1);
     nb.part('CBF1', 'capacitor', 750, 0, { value: '10u', vmax: '100' }, { '1': 'BUS', '2': 'GND' }, 1)
@@ -230,7 +230,10 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RG2', 'resistor', 850, 1350, { value: mains ? '9.09k' : '24.3k' }, { '1': 'ISA', '2': 'ISN' })
     // IR compensation: the set point raised with the current (IR COMP trimmer: 10k against
     // 100k … 1.1M, up to 9 % of the current signal; MAX is set after it)
-    .part('RSC', 'resistor', 1000, 1000, { value: '10k' }, { '1': 'SPR', '2': 'SPC' })
+    .part('RSC', 'resistor', 1000, 1000, { value: '10k' }, { '1': 'SPB', '2': 'SPC' })
+    // the ramp buffered: the IR COMP network straight on the ramp capacitor pulled the set point
+    // down to 60 % (found in simulation)
+    .part('UC', 'opamp', 950, 900, { value: 'LM358' }, { '3': 'SPR', '2': 'SPB', '6': 'SPB', '7': V, '4': 'GND' })
     .part('RVIR', 'potentiometer', 1000, 1100, { value: '1M', position: pos(o.irComp, 0.5) }, { '1': 'ISA', '2': 'IRW', '3': 'IRW' })
     .part('RIR', 'resistor', 1050, 1150, { value: '100k' }, { '1': 'IRW', '2': 'SPC' })
     // the speed amplifier: PI (100k; 2.2M + 100 nF: proportional gain 22, integral 0.22 s), its
@@ -307,7 +310,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('LF', 'led', 1600, 1650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC2', 'capacitor', 1150, 1700, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  nb.v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
+  nb.v('VBS').v('HO').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
     .i('M1', '1').i('RSH', '1');
   if (mains) nb.i('BR1', '1');
   const stop = o.stop ?? '0.3';

@@ -73,7 +73,7 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
   nb.block('supply')
     .part('XP', 'terminal', 0, -100, { value: '+24 V (panel supply)' }, { '1': 'V24' })
     .part('XN', 'terminal', 0, 0, { value: '0 V' }, { '1': 'GND' })
-    .part('F1', 'fuse', 100, -100, { value: '4' }, { '1': 'V24', '2': 'V24F' })
+    .part('F1', 'fuse', 100, -100, { value: '4', r: '0.02' }, { '1': 'V24', '2': 'V24F' })
     .part('DT1', 'tvs', 200, 0, { value: 'SMAJ33A' }, { '1': 'V24F', '2': 'GND' }, 1)
     // 5 V for the microcontroller and the inputs' pull-ups (a switching regulator in a 7805's place)
     .part('U5', 'regulator', 300, -100, { value: 'R-78E5.0-1.0' }, { '1': 'V24F', '2': 'GND', '3': 'V5' })
