@@ -183,6 +183,15 @@ describe('protection, power and interface parts', () => {
     const off = run(parts('10k', 0));
     expect(off.v('C')).toBeGreaterThan(4.99);
   });
+  it('isolated amplifier AMC1311B: OUTP − OUTN = IN about 1.44 V above GND2, with the output side 100 V from the input side', () => {
+    for (const vin of [0.5, 1.5]) {
+      const r = run([V(5, 'VD1'), V(vin, 'IN'), V(100, 'G2'), ['vdc', { value: '5' }, { '1': 'VD2', '2': 'G2' }],
+        ['isoamp', { value: 'AMC1311B' }, { '1': 'VD1', '2': 'IN', '3': 'GND', '4': 'GND', '5': 'G2', '6': 'ON', '7': 'OP', '8': 'VD2' }],
+        R('10k', 'OP', 'G2'), R('10k', 'ON', 'G2')]);
+      near(r.v('OP') - r.v('ON'), vin, 0.001);
+      near((r.v('OP') + r.v('ON')) / 2 - r.v('G2'), 1.44, 0.001);
+    }
+  });
   for (const m of SHUNT_REFS) it(`${m.name}: REF tied to K is ${m.model.vref} V; with a 1:1 divider twice that`, () => {
     const vref = m.model.vref, vin = m.name === 'TLV431' ? 5 : 12;
     const ref = run([V(vin, 'S'), R('1k', 'S', 'K'), ['tl431', { value: m.name }, { '1': 'K', '2': 'GND', '3': 'K' }]]);
