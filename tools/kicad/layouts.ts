@@ -603,7 +603,9 @@ export const DESIGNS: Record<string, Design> = {
     post: { tracks: [{ net: 'TLO', layer: 'F.Cu', width: 0.3, pts: [[110.69, 91.5], [110.75, 91.5], [122.5, 79.75], [125.25, 79.75], [125.19, 79.69]] }] } },
   'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
     classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 130,
-    plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 143, x1: 197, y0: 3, y1: 57 } },
+    plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 143, x1: 197, y0: 3, y1: 57 },
+    // the shunt's sense link Freerouting left (link.py, checked through route.py --post-only)
+    post: { tracks: [{ net: 'SHN', layer: 'B.Cu', width: 0.5, pts: [[170.6593, 61.0537], [170.75, 61.0], [165.0, 66.75], [165.0, 75.0]] }] } },
   'grinder-24-control': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [], panel: (p) => grRefs('24').pwr.has(p.ref) || grRefs('24').off.has(p.ref), w: 180, h: 130 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
