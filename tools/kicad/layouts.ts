@@ -485,6 +485,35 @@ const grRefs = (v: '240' | '24') => grCache[v] ??= (() => {
 const GR_HV = ['L', 'N', 'LK', 'NK', 'BUS', 'SWN', 'LAO', 'GH', 'HO', 'VBS', 'LT'];
 const GR24_HEAVY = ['BUS', 'GND', 'SWN', 'SHN'];
 
+// the 24 V power board (200 × 130 mm): the six MOSFETs in a row along the bottom edge (the
+// heatsink), the high trio left, the low trio right; the bus on F.Cu (a plane over the
+// capacitors, a 4 mm stub from each high drain), the switch node a 6 mm bar on B.Cu from the high
+// sources and the low drains to the motor's A+ lug between the trios, ground a plane on B.Cu (the
+// low sources into it below the bar, the battery's − lug at the bottom right), the motor's A−
+// return a pour on F.Cu from its lug to the shunt; 4 oz copper with the bars' mask open for
+// tinning (120 A)
+const GR24_ROW: [string, number][] = [['QH1', 20], ['QH2', 40], ['QH3', 60], ['QL1', 90], ['QL2', 110], ['QL3', 130]];
+const gr24Plan = (): Placed[] => {
+  const { ref } = grRefs('24');
+  return [...GR24_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 115, rot: 0 as const })),
+    ...[1, 2, 3, 4].map((k) => ({ ref: ref(`CB${k}`), x: 10 + 25 * k, y: 18, rot: 0 as const })),
+    ...[5, 6, 7, 8].map((k) => ({ ref: ref(`CB${k}`), x: 10 + 25 * (k - 4), y: 42, rot: 0 as const })),
+    { ref: ref('CBF1'), x: 40, y: 66, rot: 0 }, { ref: ref('CBF2'), x: 100, y: 66, rot: 0 },
+    { ref: ref('XBP'), x: 15, y: 75, rot: 0 }, { ref: ref('XBN'), x: 185, y: 115, rot: 0 },
+    { ref: ref('XM1'), x: 75, y: 104, rot: 0 }, { ref: ref('XM2'), x: 155, y: 75, rot: 0 },
+    { ref: ref('RSH'), x: 175, y: 75, rot: 0 }, { ref: ref('RTH'), x: 75, y: 122, rot: 0 }];
+};
+const GR24_BARS: PlanTrack[] = [
+  ...[20, 40, 60].map((x): PlanTrack => ({ net: 'BUS', layer: 'F.Cu', width: 4, pts: [[x, 115], [x, 88]] })),
+  ...[25.45, 45.45, 65.45, 90, 110, 130].map((x): PlanTrack => ({ net: 'SWN', layer: 'B.Cu', width: 4, pts: [[x, 115], [x, 104]] })),
+  { net: 'SWN', layer: 'B.Cu', width: 6, pts: [[25.45, 104], [130, 104]] },
+];
+const GR24_PLANES: PlanZone[] = [
+  { net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [140, 3], [140, 92], [3, 92]] },
+  { net: 'SHN', layer: 'F.Cu', pts: [[145, 60], [197, 60], [197, 90], [145, 90]] },
+  { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 127], [3, 127]] },
+];
+
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
@@ -547,13 +576,19 @@ export const DESIGNS: Record<string, Design> = {
     post: { tracks: [{ net: 'V24F', layer: 'B.Cu', width: 2, pts: [[42.65,  13.0],  [42.75,  13.0],  [39.5,  9.75],  [33.5,  9.75],  [28.25,  15.0],  [28.25,  16.5],  [28.23,  16.58]] }] } },
   // P9 (D26, D46): the grinder drive's boards (see GR_POWER)
   'grinder-240-power': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: power board (bridge, bus, IGBTs, driver, shunt)', revision: 'A',
-    classes: () => [{ ...classFor('HV', GR_HV, 2.5, 1.5), apart: 3.2 }, { name: 'Power', patterns: ['^GND$', '^SHN$'], track: 2.5, clearance: 0.6 }], copperOz: 2,
+    // the whole board at the mains' potential (the control's ground is the bridge's negative):
+    // functional insulation between its nets, 0.8 mm on the coated board (IPC-2221 B4, up to
+    // 500 V), as on the inverters' 380 V power board; 3.2 mm between pins at 2.54 … 5.45 mm pitch
+    // (the driver, the IGBTs, the bridge) could not be had
+    classes: () => [classFor('Mains', ['L', 'N', 'LK', 'NK'], 2.5, 1.5), classFor('HV', ['BUS', 'SWN', 'LAO', 'GND', 'SHN'], 2.5, 0.8), classFor('HVS', ['GH', 'HO', 'VBS', 'GL', 'V12', 'DRV', 'SDN', 'NTH', 'nc_LO'], 0.5, 0.8)], copperOz: 2,
     panel: (p) => !grRefs('240').pwr.has(p.ref), w: 160, h: 110 },
   'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
-    classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }], panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130 },
+    classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }], panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130,
+    // the torque limit's link Freerouting left (link.py, checked through route.py --post-only)
+    post: { tracks: [{ net: 'TLO', layer: 'F.Cu', width: 0.3, pts: [[110.69, 91.5], [110.75, 91.5], [122.5, 79.75], [125.25, 79.75], [125.19, 79.69]] }] } },
   'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
-    classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 140,
-    zones: [{ net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [197, 3], [197, 137], [3, 137]] }, { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 137], [3, 137]] }] },
+    classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 130,
+    plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 80, x1: 197, y0: 3, y1: 55 } },
   'grinder-24-control': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [], panel: (p) => grRefs('24').pwr.has(p.ref) || grRefs('24').off.has(p.ref), w: 180, h: 130 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
