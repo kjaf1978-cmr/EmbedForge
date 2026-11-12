@@ -726,6 +726,31 @@ Found and fixed:
 after these changes (the control boards gained the two 100 Ω resistors), all four DRC 0 and 0
 unconnected, packaged with their BOM and panel lists.
 
+**The 240 V drive's isolated operator controls** (your choice of 12 November 2026: DFMEA GR-9).
+Everything the operator handles is now PELV (its 0 V bonded to earth): the run chain, the coils
+of K1 and KM, the speed pot with MAX and MIN on their own reference, from the safety transformer
+TR1. The control stays at the mains' potential on its own transformer TR2 and meets the operator's
+side only in an AMC1311B isolated amplifier (the set point), a PC817 (the fault into QEN) and
+K1's contacts. A new part type (the isolated amplifier: simulation, ERC, ratings, catalogue,
+SOIC-8 wide footprint) carries the AMC1311B. Checked:
+- the two sides: the nets reached from the PELV 0 V through the board's parts (crossing an
+  isolating part only within one of its sides) are 16 PELV nets and none of the control's;
+- the six 240 V long runs and ERC again on the isolated circuit: all pass (the set point crosses
+  the barrier exactly, 1.71 V either side; QEN's gate at 10.8 V through the optocoupler);
+- the boards: the PELV side and the barrier are an operator interface board of its own (120 × 90
+  mm), 5.5 mm between its PELV nets and the control's (the clearance for a 4 kV impulse); DRC 0,
+  0 unconnected; the control board re-routed without them, DRC 0. TR1 on the panel (its terminal
+  block's pitch cannot keep 5.5 mm).
+
+Found on the way: two new parts placed on top of others in the drawing joined their nets (the
+check of the two sides found it); with the mains' swing across the ideal barriers, or the PELV
+side on 1 MΩ, the simulation did not converge (the PELV 0 V now 1 Ω to the control's ground in
+the test bench only: each side's currents return in their own loops); on the interface board a
+spare pole of its connector floated inside the 5.5 mm gap (spare poles now on the block's last
+net), and the router's keep-outs around a barrier part's pins were the mains boards' 3.3 mm
+(they now follow the board's insulation distance). Open: the motor's thermal switch must be
+rated for reinforced insulation from its winding (it is in the PELV run chain).
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).
