@@ -580,8 +580,13 @@ export const DESIGNS: Record<string, Design> = {
     // functional insulation between its nets, 0.8 mm on the coated board (IPC-2221 B4, up to
     // 500 V), as on the inverters' 380 V power board; 3.2 mm between pins at 2.54 … 5.45 mm pitch
     // (the driver, the IGBTs, the bridge) could not be had
-    classes: () => [classFor('Mains', ['L', 'N', 'LK', 'NK'], 2.5, 1.5), classFor('HV', ['BUS', 'SWN', 'LAO', 'GND', 'SHN'], 2.5, 0.8), classFor('HVS', ['GH', 'HO', 'VBS', 'GL', 'V12', 'DRV', 'SDN', 'NTH', 'nc_LO'], 0.5, 0.8)], copperOz: 2,
-    panel: (p) => !grRefs('240').pwr.has(p.ref), w: 160, h: 110 },
+    classes: () => [classFor('Mains', ['L', 'N', 'LK', 'NK'], 3, 1.5), classFor('HV', ['BUS', 'SWN', 'LAO', 'GND', 'SHN'], 3, 0.8), classFor('HVS', ['GH', 'HO', 'VBS', 'GL', 'V12', 'DRV', 'SDN', 'NTH', 'nc_LO'], 0.5, 0.8)], copperOz: 4,
+    // the bridge and the IGBTs in a row on the bottom edge, bolted to one heatsink; 3 mm tracks in
+    // 4 oz copper (about 20 A at 20 K rise, IPC-2221; 2.5 mm in 2 oz carried 10.6 A)
+    panel: (p) => !grRefs('240').pwr.has(p.ref), w: 160, h: 110,
+    plan: () => [{ ref: grRefs('240').ref('BR1'), x: 30, y: 102, rot: 0 }, { ref: grRefs('240').ref('QH'), x: 70, y: 102, rot: 0 }, { ref: grRefs('240').ref('QL'), x: 100, y: 102, rot: 0 },
+      { ref: grRefs('240').ref('RTH'), x: 85, y: 104, rot: 0 }],
+    region: { x0: 3, x1: 157, y0: 3, y1: 92 } },
   'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }], panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130,
     // the torque limit's link Freerouting left (link.py, checked through route.py --post-only)
