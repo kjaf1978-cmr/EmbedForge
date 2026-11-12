@@ -1,0 +1,4 @@
+(version 1)
+(rule "HV insulation"
+  (constraint clearance (min 5.5mm))
+  (condition "A.NetClass == 'HV' && B.NetClass != 'HV'"))

@@ -625,7 +625,11 @@ export const DESIGNS: Record<string, Design> = {
   // the clearance for a 4 kV impulse; the creepage needs 5 mm)
   'grinder-240-interface': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: operator interface (PELV run chain, speed pot, isolated set point and fault)', revision: 'A',
     classes: () => [{ ...classFor('HV', ['GND', 'V12', 'VD2', 'SPP', 'SPN', 'OKA'], 0.4, 0.3), apart: 5.5 }], panel: (p) => !grRefs('240').iso.has(p.ref), w: 120, h: 90,
-    bondSpare: true },
+    bondSpare: true,
+    // the two links Freerouting left (autolink.py, checked through route.py --post-only)
+    post: { tracks: [{ net: 'GND', layer: 'F.Cu', width: 0.4, pts: [[45.19, 54.02], [45.25, 54.0], [45.25, 59.75], [46.25, 60.75], [46.25, 60.845]] },
+      { net: 'OKG', layer: 'F.Cu', width: 0.4, pts: [[52.81, 54.02], [52.75, 54.0], [65.75, 41.0], [82.75, 41.0]] },
+      { net: 'OKG', layer: 'B.Cu', width: 0.4, pts: [[82.75, 41.0], [87.0, 41.0], [86.96, 41.0]] }], vias: [{ net: 'OKG', at: [82.75, 41.0] }] } },
   'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
     classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 130,
     plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 143, x1: 197, y0: 3, y1: 57 },
