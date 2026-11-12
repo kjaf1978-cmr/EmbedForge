@@ -444,10 +444,21 @@ mincers), from 240 V single-phase or from a 24 V battery.
 - Run chain (24 V coils): E-STOP, STOP, the motor's thermal switch, on 240 V the reversing
   switch's auxiliary contact, then START with K1's holding contact into K1 and KM, returned
   through QEN. No restart after a power cut, a stop or a fault without START.
+- Isolated operator side (240 V): everything the operator handles is PELV, its 0 V bonded to
+  protective earth: the run chain, the coils of K1 and KM, the speed pot with MAX and MIN on their
+  own TL431 reference, all from the safety transformer TR1 (24 V). The control stays at the mains'
+  potential, fed by its own transformer TR2 (15 V, 7812). They meet only in reinforced parts: the
+  wiper halved into an AMC1311B isolated amplifier (gain 1, 7071 V peak) and doubled back by an
+  LM358 difference amplifier; OK into a PC817 (rank B, 2.2 mA) that drives QEN's gate from the 24 V
+  side; K1's contact for EN. The PELV side and the barrier are a board of their own (the operator
+  interface, 5.5 mm between the sides: the clearance for a 4 kV impulse); TR1 on the panel. The
+  motor's thermal switch must be rated for reinforced insulation from the winding (it is in the
+  PELV run chain).
 - Faults latched (LM339/LM393, CD4001): stall (the torque limit acting about 3 s: a PNP timer
   with a 5.1 V zener so its leakage does not trip it), overload (above 115 % for about 20 s),
   heatsink above 85 °C (NTC), on 24 V the battery below 21 V.
-- Boards (`hardware/grinder-*`): per supply a power board and a control board, the contactors,
+- Boards (`hardware/grinder-*`): per supply a power board and a control board (240 V also the
+  operator interface board), the contactors,
   breaker or 200 A fuse, the armature choke and the motor on the panel. 240 V power: the bridge and
   both IGBTs on the heatsink edge, 3 mm tracks in 4 oz copper, ground poured on both layers, the
   whole board at mains potential (0.8 mm between nets, 1.5 mm around the mains input, conformal

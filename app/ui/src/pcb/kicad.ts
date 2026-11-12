@@ -93,6 +93,8 @@ export interface BoardOptions {
   bolted?: (p: Part) => boolean;
   /** Poles a panel connector block has at most (14: the longest terminal block). */
   block?: number;
+  /** A mains block's spare poles on its last net (a reinforced barrier on the board). */
+  bondSpare?: boolean;
 }
 
 /** The mains variant of a footprint for a part with a mains net on a pad. */
@@ -185,6 +187,8 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
         const fp = FOOTPRINTS[`TerminalBlock_1x${poles}${isMains ? '_P7.62' : ''}`];
         const pads: Record<string, string> = {};
         nets.forEach((n, k) => { pads[String(k + 1)] = n; poleOf.set(n, `${ref}:${k + 1}`); });
+        // a mains block's spare poles on its last net (a floating screw inside a reinforced gap)
+        if (isMains && o.bondSpare) for (let k = nets.length; k < poles; k++) pads[String(k + 1)] = nets[nets.length - 1];
         parts.push({ ref, value: isMains ? 'mains to the panel' : 'to the panel', footprint: fp, pads, sx, sy, note: 'screw terminals to the panel wiring' });
       }
     }
