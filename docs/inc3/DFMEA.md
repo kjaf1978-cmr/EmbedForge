@@ -112,7 +112,7 @@ PV charger's input below its MOSFETs' 200 V; every SPD survives the surges of it
 | SP-5 | Surge into the PV charger | MOSFETs destroyed | Induced on the DC cable | Y varistors at the array and the charger, 5 kW TVS across the charger input | 8 | 3 | 2 | L | surge.test: 195 V with the TVS, 205 V without |
 | SP-6 | Earth potential rise | Flashover from earthed parts to incoming lines | Lightning current in the earth electrode (tens of kV) | All services (mains, PV, data) bonded at the main earthing terminal and protected there | 8 | 2 | 3 | L | surge.test (PE rises 21–35 kV; the SPDs keep L–PE at the socket below 1 kV) |
 
-## 3d. Pump control, irrigation, gate controller, trimmer and block machine (P9)
+## 3d. Pump control, irrigation, gate controller, trimmer, block machine and grinder drive (P9)
 
 Function: fill the tank without overflowing it and without running the pump dry or forever;
 switch each irrigation valve and read each soil sensor, surviving shorts and surges on the field
@@ -153,6 +153,17 @@ cables.
 | BM-5 | Valve slow to release | Overrun of the tamper or the mould | Coil energy | 38 V clamp (SMAJ33A) across each valve driver | 6 | 5 | 2 | L | blockmachine.test: reset and outputs |
 | BM-6 | Reset relay K3 contact welded | The reset acts as a hold: an automatic restart on E-stop release | Contact welding (small currents, unlikely) | Residual; the microcontroller sees the rail return without a RESET press and keeps its outputs off until the next RESET; K3 replaced with K1/K2 at the service interval | 9 | 1 | 4 | M | open action (section 7) |
 | BM-7 | Guard opened during the cycle | Reaching into the mould | Operator | Guard interlock switches in series with the E-stop channels (same two-channel circuit) | 10 | 3 | 2 | M | review (the same circuit as the E-stop) |
+| GR-1 | Shaft jammed or a mill choked | Motor demagnetised or burnt, switches destroyed, belt or gearbox broken | Foreign object, overfeeding, a mincer's bone | Torque limit on the averaged current (CURRENT LIMIT trimmer, default 145 % of rated) holds the current at standstill; cycle-by-cycle limit at 200 %; the stall timer (the limit acting about 3 s) latches the fault, K1 and KM drop | 7 | 6 | 2 | M | grinder.test: jam (240 V, 24 V) |
+| GR-2 | Sustained overload | Motor winding and brushes overheated | Overfeeding, blunt tool, a wrong ratio | Overload filter (mean current above 115 % for about 20 s) latches the fault; the motor's thermal switch in the run chain | 6 | 5 | 2 | L | grinder.test: overload 130 % |
+| GR-3 | Restart by itself after a power cut | Injury (a mincer or a mill starting under the operator's hand) | Mains or battery interruption | Run chain with START and K1's holding contact: K1 and KM drop with the supply and need START again; the ramp held at zero while K1 is off (every start is a soft start) | 9 | 6 | 2 | M | grinder.test: power cut and return |
+| GR-4 | Drive keeps running after the E-stop | Injury | A failed driver or switch | E-STOP opens the run chain: K1 and KM (the main contactor: the power, not only the control) drop; the driver's SD holds both switches off | 9 | 3 | 2 | M | grinder.test: E-stop (EN within 50 ms, no current, no restart on release) |
+| GR-5 | Disc or wheel over its rated speed | Disc bursts: severe injury | MAX trimmer set too high, a wrong belt | MAX trimmer set with a tachometer (FAQ); IR compensation cannot raise the speed above MAX's armature voltage; the label of the disc in the FAQ table; the speed held within 3 % of the set point | 10 | 3 | 3 | H → M | grinder.test: start (set point held); FAQ settings table; mechanical: the wheel guard |
+| GR-6 | Heatsink overheated | IGBT or MOSFET failure | Blocked fins, a failed fan, a hot room | NTC on the heatsink, fault above 85 °C latched; START refused while hot | 6 | 4 | 2 | L | grinder.test: heatsink 95 °C |
+| GR-7 | Battery over-discharged (24 V) | Cells damaged, capacity lost | Running until the battery is flat | START refused and the drive stopped below 21 V (1.75 V a cell, lead-acid; 2.6 V a cell, 8S LiFePO4); the battery's BMS as the second line | 7 | 5 | 2 | M | grinder.test: battery 20.5 V |
+| GR-8 | High-side switch failed short | Motor runs at full voltage | End of life, overstress | KM (the main contactor) in the supply: STOP, E-STOP or a fault drops it, the motor stops; the 240 V bridge's breaker (C16) or the 24 V 200 A fuse clears a shoot-through | 7 | 2 | 3 | L | review |
+| GR-9 | Operator touches the live control (240 V) | Electric shock | The control's ground is the bridge's negative (not isolated) | Mains-rated speed pot and buttons with insulated actuators and shafts, a closed enclosure (IP54), the control board behind a cover; an isolated control (a 1.5 kV isolated driver and amplifier) as an option | 10 | 2 | 3 | M | review; open action (section 7) |
+| GR-10 | Reversed while turning (240 V) | Current peak, mechanical shock | REV switched at speed | The reversing switch's auxiliary contact opens the run chain in its middle position: the motor coasts down before it can be started the other way; reversing only on the 240 V drive | 6 | 4 | 2 | L | review; FAQ (stop, wait for standstill, switch, START) |
+| GR-11 | Brushes worn | Commutator damage, sparking | Normal wear | Brushes checked yearly (FAQ), replaced below 8 mm | 5 | 6 | 3 | M | maintenance FAQ |
 
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 
@@ -252,6 +263,7 @@ section 5 (the HF type).
 | BM-6 | block machine | Firmware (D24): no outputs after the safety rail returns without a RESET press; K3 in the service plan | M |
 | GC-7 | gate | Firmware (D24): learnt remote codes and a rolling counter; RUN switched off before the relays change | M |
 | IR-4 | irrigation | Firmware (D24): watchdog, each valve's run time capped, CLR only after the registers are loaded | M |
+| GR-9 | grinder 240 V | An isolated control (isolated gate driver and current amplifier, 1.5 kV) for machines where the operator handles the controls with wet hands; until then the enclosure and the mains-rated controls | M |
 | all | all | Layouts (P8): creepage for pollution degree 3, coating keep-outs, power tracks per IPC-2221 | M |
 
 ## 8. How to keep this DFMEA current

@@ -239,7 +239,7 @@ one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE)
 input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
 board gets the 5KP130CA (bidirectional: a unidirectional one would short an array connected the wrong way round) across its PV input (beside RVPV).
 
-### P9 — pump control, irrigation, gate controller, trimmer, block machine (D24, D25; DFMEA section 3d)
+### P9 — pump control, irrigation, gate controller, trimmer, block machine, grinder drive (D24–D26, D46; DFMEA section 3d)
 
 Five of the P9 products, simulated as circuits (the irrigation, gate and block machine sequencing runs on a
 microcontroller board, D24; everything around it is discrete).
@@ -404,6 +404,41 @@ hollow and solid concrete blocks.
   A2, the safety rail's state on A4 (47k/10k from V24S). The 400 V wiring, the contactors and the
   motor-protective breakers are on the panel (`panel.csv`). Every output's gate has 10 kΩ to 0 V:
   all off while the Nano resets, and nothing moves without V24S anyway.
+
+**Grinder drive** (`src/eda/grinder.ts`, `tests/grinder.test.ts`; D26, D46): one 2.5 kW drive
+for every kind of grinding machine (angle and bench grinders, grain and maize mills, meat
+mincers), from 240 V single-phase or from a 24 V battery.
+- Motor: a brushed permanent-magnet DC motor, 2.5 kW at 3000 rpm: 180 V / 15.5 A for the mains
+  drive, 24 V / 120 A for the battery drive. Its torque follows the armature current, so the
+  current limit gives full torque from standstill; the speed follows the armature voltage. No
+  inverter, no encoder. The kind of machine is set by the belt or gearbox and by five trimmers
+  (MAX, MIN, ACCEL, CURRENT LIMIT, IR COMP); the maintenance FAQ has the settings per machine.
+- Power stage: a half-bridge with the motor from the switch node to ground through the shunt
+  (10 mΩ / 0.5 mΩ four-terminal), so the shunt sees the motor current in both the switch and the
+  freewheel paths; 20 kHz.
+  - 240 V: C16 breaker, 14D471K varistor, X2 capacitor, main contactor KM, GBPC3510 bridge, a
+    20 µF film bus (the line current follows the motor's: power factor about 0.9). An IKW50N60T
+    high side, the low IKW50N60T held off (its diode freewheels: the small bus cannot take energy
+    back), a 15 mH armature choke (the motor's ripple current and the brushes' life).
+  - 24 V: 200 A fuse, 250 A DC contactor KM, three IRFP4468 high and three low, synchronous (the
+    energy on deceleration goes back to the battery), 8 × 2200 µF and film.
+- Control (12 V, one board for both; the scaling resistors differ): an IR2184-type driver whose SD
+  is EN AND OK; an NE555 ramp and CD4001 latch PWM; a PI speed loop (LM358, gain 10, integral
+  47 ms) on the armature voltage, divided and filtered 22 ms (on 240 V the switch node carries
+  the rectified mains' 100 Hz ripple: with a 1 ms filter the PI chopped the motor at the mains'
+  peaks and the speed stayed at 2460 rpm, found in simulation); IR compensation from the
+  current; the ramp buffered (LM358 follower) so the IR compensation does not load it.
+- Torque limit: the motor current averaged over 10 ms against CURRENT LIMIT (default 145 %, up
+  to 160 %); an amplifier and diode pull the duty down. The cycle-by-cycle limit at 200 % only
+  protects the switches and the magnets (a peak limit alone held the 240 V motor's mean current
+  far below the limit, because of its ripple: found in simulation).
+- Run chain (24 V coils): E-STOP, STOP, the motor's thermal switch, on 240 V the reversing
+  switch's auxiliary contact, then START with K1's holding contact into K1 and KM, returned
+  through QEN. No restart after a power cut, a stop or a fault without START.
+- Faults latched (LM339/LM393, CD4001): stall (the torque limit acting about 3 s: a PNP timer
+  with a 5.1 V zener so its leakage does not trip it), overload (above 115 % for about 20 s),
+  heatsink above 85 °C (NTC), on 24 V the battery below 21 V.
+- Results (time-weighted means over the switching): see TEST_REPORT section 3q.
 
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
 

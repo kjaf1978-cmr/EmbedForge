@@ -30,7 +30,7 @@
 //   QEN off, which drops K1 and KM; the latch clears when K1 is off, and START is needed.
 // - Speed: the speed pot between the MIN and MAX trimmers' levels, through the ACCEL trimmer into
 //   4.7 µF (0.1 … 5 s ramp; held at zero while K1 is off: every start is a soft start); the
-//   armature voltage (divided, 1 ms filter) is the feedback; a PI amplifier (LM358) sets the duty.
+//   armature voltage (divided, filtered 22 ms against the 100 Hz ripple of the 240 V drive) is the feedback; a PI amplifier (LM358) sets the duty.
 // - Torque: the motor current averaged over 10 ms against the CURRENT LIMIT trimmer (up to 160 %
 //   of the rated current; an amplifier pulls the duty down): full torque at any speed, no overload
 //   at standstill; a cycle-by-cycle limit at 200 % protects the switches and the magnets.
