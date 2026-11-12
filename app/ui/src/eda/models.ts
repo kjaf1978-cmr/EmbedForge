@@ -125,6 +125,12 @@ export const IGBTS: NamedModel<IgbtModel>[] = [
 /** Optocoupler: infrared LED, and a phototransistor whose base current is CTR/BF times the
  *  LED current (current transfer ratio CTR = IC/IF before saturation). */
 export interface OptoModel { vf: number; bf: number }
+/** Isolated amplifier: the input (to GND1) across a reinforced barrier, a differential output
+ *  OUTP − OUTN = gain · IN about a common-mode voltage above GND2; linear up to vin. */
+export interface IsoAmpModel { gain: number; vcm: number; vin: number }
+export const ISOAMPS: NamedModel<IsoAmpModel>[] = [
+  { name: 'AMC1311B', note: 'isolated amplifier, input 0–2 V (clips at 2.516 V), gain 1, output common mode 1.44 V, reinforced isolation (VDE 0884-11, 7071 V peak), SOIC-8 wide (8.5 mm creepage); VDD1 3–5.5 V, VDD2 3–5.5 V', model: { gain: 1, vcm: 1.44, vin: 2 } },
+];
 export const OPTOS: NamedModel<OptoModel>[] = [
   { name: 'PC817', note: 'phototransistor optocoupler (DIP-4): LED 1.2 V at 20 mA, CTR 50–600 % (set below), output 35 V / 50 mA', model: { vf: 1.2, bf: 500 } },
 ];

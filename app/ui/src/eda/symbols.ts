@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, ISOAMPS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -505,6 +505,16 @@ export const SYMBOLS: SymbolDef[] = [
       path('M 10 -9 V 9', 'none', 2), path('M 10 -4 L 22 -10 H 40 M 10 4 L 22 10 H 40'), arrowHead(10, 4, 20.5, 9.2, 5, 2.5)],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(OPTOS.map((m) => m.name)), default: 'PC817' },
     params: [{ key: 'ctr', label: 'Current transfer ratio', kind: 'value', unit: '%', default: '100', help: 'IC/IF before saturation: PC817 rank A 80–160 %, B 130–260 %, C 200–400 %', limits: { gt: 0, le: 1000, text: 'must be above 0 and at most 1000 %' } }],
+  },
+  {
+    id: 'isoamp', name: 'Isolated amplifier', category: 'Integrated circuits', keywords: ['u', 'isolated amplifier', 'isolation amplifier', 'amc1311', 'isolation', 'reinforced'], prefix: 'U',
+    description: 'Isolated amplifier (AMC1311 pin-out: 1 VDD1, 2 IN, 3 SHTDN, 4 GND1 on the input side; 5 GND2, 6 OUTN, 7 OUTP, 8 VDD2 on the output side): OUTP − OUTN = gain · (IN − GND1) about the output common mode, across a reinforced barrier. Tie SHTDN to GND1 to run.',
+    pins: [{ id: '1', name: 'VDD1', x: -40, y: -30, type: 'power_in' }, { id: '2', name: 'IN', x: -40, y: -10, type: 'input' }, { id: '3', name: 'SHTDN', x: -40, y: 10, type: 'input' }, { id: '4', name: 'GND1', x: -40, y: 30, type: 'power_in' },
+      { id: '8', name: 'VDD2', x: 40, y: -30, type: 'power_in' }, { id: '7', name: 'OUTP', x: 40, y: -10, type: 'output' }, { id: '6', name: 'OUTN', x: 40, y: 10, type: 'output' }, { id: '5', name: 'GND2', x: 40, y: 30, type: 'power_in' }],
+    refAt: { x: 0, y: -46 }, valAt: { x: 0, y: 50 }, simulated: true,
+    gfx: () => [path('M -28 -40 H 28 V 40 H -28 Z', 'bg'), path('M -2 -40 V 40 M 2 -40 V 40'), path('M -40 -30 H -28 M -40 -10 H -28 M -40 10 H -28 M -40 30 H -28 M 40 -30 H 28 M 40 -10 H 28 M 40 10 H 28 M 40 30 H 28'),
+      path('M -22 -18 L -8 -10 L -22 -2 Z'), path('M 8 -18 L 22 -10 L 8 -2 Z')],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(ISOAMPS.map((m) => m.name)), default: 'AMC1311B' }, params: [],
   },
   {
     id: 'opamp', name: 'Op-amp', category: 'Integrated circuits', keywords: ['u', 'opamp', 'operational amplifier', 'lm358', 'tl072', 'comparator'], prefix: 'U',

@@ -5,7 +5,7 @@ import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, 
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
+import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, ISOAMPS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
 import { satCurrent } from '../sim/engine';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
@@ -505,6 +505,21 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'R', name: `${ref}_RS`, a: sense, b: pin['2'], r: 1 },
         { kind: 'G', name: `${ref}_G`, p: pin['4'], n: b, cp: sense, cn: pin['2'], gm: ctr / m.bf },
         { kind: 'Q', name: `${ref}_Q`, c: pin['4'], b, e: pin['3'], model: { type: 'npn', is: 1e-14, bf: m.bf, br: 1, nf: 1, nr: 1, vaf: 100 } },
+      );
+      break;
+    }
+    case 'isoamp': {
+      // input 1 GΩ; each side's supply current as a load (about 5 mA at 5 V); the outputs about
+      // the common mode, ±gain/2 · IN each (the barrier itself carries nothing)
+      const m = findModel(ISOAMPS, p.props.value).model, cm = `${ref}#cm`;
+      out.push(
+        { kind: 'R', name: `${ref}_RIN`, a: pin['2'], b: pin['4'], r: 1e9 },
+        { kind: 'R', name: `${ref}_RSD`, a: pin['3'], b: pin['4'], r: 1e6 },
+        { kind: 'R', name: `${ref}_RV1`, a: pin['1'], b: pin['4'], r: 1000 },
+        { kind: 'R', name: `${ref}_RV2`, a: pin['8'], b: pin['5'], r: 1000 },
+        { kind: 'V', name: `${ref}_VCM`, p: cm, n: pin['5'], dc: m.vcm },
+        { kind: 'E', name: `${ref}_EP`, p: pin['7'], n: cm, cp: pin['2'], cn: pin['4'], gain: m.gain / 2 },
+        { kind: 'E', name: `${ref}_EN`, p: pin['6'], n: cm, cp: pin['2'], cn: pin['4'], gain: -m.gain / 2 },
       );
       break;
     }

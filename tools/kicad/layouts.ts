@@ -598,9 +598,11 @@ export const DESIGNS: Record<string, Design> = {
     // motor's 15.5 A)
     post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }] } },
   'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
-    classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }], panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130,
-    // the torque limit's link Freerouting left (link.py, checked through route.py --post-only)
-    post: { tracks: [{ net: 'TLO', layer: 'F.Cu', width: 0.3, pts: [[110.69, 91.5], [110.75, 91.5], [122.5, 79.75], [125.25, 79.75], [125.19, 79.69]] }] } },
+    // the PELV side (run chain, coils, speed pot, the isolated amplifier's input): reinforced from
+    // everything else, 5.5 mm (the clearance for a 4 kV impulse; the creepage needs 5 mm)
+    classes: (sh) => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }, { ...classFor('PELV', [...potentialGroup(sh, ['PE0']), 'ESO', 'STO', 'THO'], 0.4, 0.3), apart: 5.5 }],
+    panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130,
+  },
   'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
     classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 130,
     plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 143, x1: 197, y0: 3, y1: 57 },

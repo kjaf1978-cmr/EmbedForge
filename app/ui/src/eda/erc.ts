@@ -28,7 +28,7 @@ export const DC_PATH: Record<string, string[][]> = {
   ntc: [['1', '2']], fuse: [['1', '2']], tvs: [['1', '2']], bridge: [['1', '2', '3', '4']],
   // IGBT: collector–emitter (the gate is insulated); optocoupler: LED and transistor sides
   // separately; TL431: cathode–anode (REF is an input only)
-  igbt: [['2', '3']], opto: [['1', '2'], ['3', '4']], tl431: [['2', '3']],
+  igbt: [['2', '3']], opto: [['1', '2'], ['3', '4']], isoamp: [['1', '2', '3', '4'], ['5', '6', '7', '8']], tl431: [['2', '3']],
   // breakers (closed), contactor coil, PV, autotransformer, comparator and driver supplies,
   // surge voltage generator; varistors, GDTs and the current generator give no DC path
   breaker1: [['1', '2']], breaker2: [['1', '2'], ['N1', 'N2']], breaker3: [['1', '2'], ['3', '4'], ['5', '6']], breaker4: [['1', '2'], ['3', '4'], ['5', '6'], ['N1', 'N2']],

@@ -191,6 +191,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'vsurge': case 'isurge': return [same('PinHeader_1x2', pins, 'test generator: not a part of the board')];
     case 'optotriac': return [same('DIP-6_NoPin5', pins.filter((x) => x !== '5'), '1 A, 2 K, 4 MT1, 6 MT2 (3 not connected, 5 left out for the creepage)')];
     case 'opto': return [same('DIP-4', pins, '1 A, 2 K, 3 E, 4 C')];
+    case 'isoamp': return [same('SOIC-8W', pins, 'AMC1311BDWV: 1 VDD1, 2 IN, 3 SHTDN, 4 GND1 | 5 GND2, 6 OUTN, 7 OUTP, 8 VDD2 (the barrier between the pad rows)')];
     case 'opamp': return OPAMP[v] ?? OPAMP.generic;
     case 'regulator': return [REG[v] ?? legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT')];
     case 'lm317': return [legs('TO-220_Vertical', ['1', '2', '3'], 'ADJ-OUT-IN')];

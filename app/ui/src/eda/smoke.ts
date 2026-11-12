@@ -37,6 +37,7 @@ const RATINGS: Record<string, Record<string, Partial<Record<Quantity, number>>>>
   igbt: { IKW30N60T: { Vce: 600, Ic: 30, Vge: 20, P: 3.5, Icm: 90 }, IKW50N60T: { Vce: 600, Ic: 50, Vge: 20, P: 3.5, Icm: 150 }, IKW40N120T2: { Vce: 1200, Ic: 40, Vge: 20, P: 3.5 }, 'generic 600 V 20 A': { Vce: 600, Ic: 20, Vge: 20, P: 3.5 } },
   optotriac: { MOC3052: { If: 0.06, Vr: 3, Vdrm: 600, Itsm: 1 }, FOD4218: { If: 0.03, Vr: 6, Vdrm: 800, Itsm: 1 } },
   opto: { PC817: { If: 0.05, Vr: 6, Vce: 35, Ic: 0.05, P: 0.15 } },
+  isoamp: { AMC1311B: { Vin: 2, Vs: 5.5 } },
   tl431: { TL431: { Vka: 37, Ik: 0.1, P: 0.62 }, TLV431: { Vka: 6, Ik: 0.015, P: 0.62 } },
   comparator: { '*': { Vs: 36, Iout: 0.016 } },
   hbdriver: { '*': { Vs: 20, Vb: 600 } },
@@ -193,6 +194,7 @@ export function smoke(sheet: Sheet, conn: Connectivity, r: SimResult, derate = 8
         add('Vge', peak(vAcross('1', '3')), model.Vge); add('P', P(['1', '2', '3']), pRating(model.P));
       } break;
       case 'optotriac': if (model) { add('If', maxOf(iPin('1')), model.If); add('Vr', maxOf(vAcross('2', '1')), model.Vr); add('Vdrm', peak(vAcross('6', '4')), model.Vdrm); add('Itsm', peak(iPin('6')), model.Itsm); } break;
+      case 'isoamp': if (model) { add('Vin', maxOf(vAcross('2', '4')), model.Vin); add('Vs', Math.max(peak(vAcross('1', '4')), peak(vAcross('8', '5'))), model.Vs); } break;
       case 'opto': if (model) {
         add('If', maxOf(iPin('1')), model.If); add('Vr', maxOf(vAcross('2', '1')), model.Vr);
         add('Vce', peak(vAcross('4', '3')), model.Vce); add('Ic', peak(iPin('4')), model.Ic); add('P', P(['4', '3']), model.P);

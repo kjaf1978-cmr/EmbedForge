@@ -76,6 +76,10 @@ export const GRINDER = {
 export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const mains = (o.supply ?? '240') === '240', G = GRINDER[mains ? '240' : '24'], V = 'V12';
+  // 240 V: the operator's side (the run chain, the coils, the speed pot) is PELV, its 0 V PE0
+  // bonded to earth; the control is at the mains' potential (GND the bridge's negative) and meets
+  // it only in transformers, an optocoupler, an isolated amplifier and K1's contacts
+  const P0 = mains ? 'PE0' : 'GND', SR = mains ? 'SREF' : 'VREF', WI = mains ? 'WIPM' : 'WIP';
   const pos = (x: number | undefined, d: number) => String(Math.round(Math.min(100, Math.max(0, (x ?? d) * 100)) * 10) / 10);
   nb.para(`GRINDER DRIVE 2.5 kW (D26), ${mains ? '240 V single-phase, 180 V DC motor' : '24 V battery, 24 V DC motor'}: half-bridge with the motor through a shunt to ground; speed by armature voltage and PI, torque by a cycle-by-cycle current limit; trimmers for maximum and minimum speed, acceleration, current limit and IR compensation; run chain E-STOP, STOP, motor thermal switch, START with a holding contact (no restart without START); latched stall, overload and heatsink faults.`, -1200, -300);
 
@@ -100,7 +104,13 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     nb.part('SPC', 'relay', -950, 0, { value: '24 V 30 A' }, { '1': 'GPC', '2': 'GND', '3': 'LS', '5': 'LB' })
       .part('RLB', 'resistor', -950, 100, { value: '0.05' }, { '1': 'LB', '2': 'L' })
       // the supply's neutral earthed (a DC path for the simulator: N is not the drive's ground)
-      .part('RNE', 'resistor', -1050, 150, { value: '1M' }, { '1': 'N', '2': 'GND' }, 1);
+      .part('RNE', 'resistor', -1050, 150, { value: '1M', scope: 'test' }, { '1': 'N', '2': 'GND' }, 1)
+      // the PELV side's reference for the simulator, 1 Ω to GND (on the product: bonded to earth,
+      // the control at the mains' potential; the barrier's insulation is the parts' rating, not
+      // simulated). It carries nothing: each side's currents return in their own loops (TR1's
+      // secondary floats). With the mains' swing across the ideal barriers, or PE0 on 1 MΩ, the
+      // run did not converge (found in simulation)
+      .part('RPE', 'resistor', 2200, -100, { value: '1', scope: 'test' }, { '1': 'GND', '2': 'PE0' }, 1);
   } else {
     // the battery; the "power cut" is the key switch opened (below)
     nb.part('VB', 'battery', -1150, 0, { value: String(o.vbat ?? 26), rint: '0.008' }, { '1': 'BAT', '2': 'GND' }, 1);
@@ -109,11 +119,11 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   // START (NO): pressed for 0.1 s from `start`; STOP (NC) opens at stopAt; the E-stop (NC) at estop
   const pulse = (at: number | undefined, len: number) => at === undefined ? { value: '0', low: '0', freq: '0.1', duty: '0', delay: '0', edge: '1u' }
     : { value: '34', low: '0', freq: '0.1', duty: String(len * 10), delay: String(at), edge: '1u' };
-  nb.part('VST', 'vpulse', -850, 0, pulse(o.start ?? 0.005, 0.1), { '1': 'GST', '2': 'GND' })
+  nb.part('VST', 'vpulse', -850, 0, pulse(o.start ?? 0.005, 0.1), { '1': 'GST', '2': P0 })
     .part('SST', 'nmos', -750, 0, { value: 'IRLZ44N' }, { '1': 'GST', '2': 'RV', '3': 'CH2' })
-    .part('VSP', 'vpulse', -850, 150, win(o.stopAt, undefined), { '1': 'GSP', '2': 'GND' })
+    .part('VSP', 'vpulse', -850, 150, win(o.stopAt, undefined), { '1': 'GSP', '2': P0 })
     .part('SSP', 'nmos', -750, 150, { value: 'IRLZ44N' }, { '1': 'GSP', '2': 'ESO', '3': 'STO' })
-    .part('VES', 'vpulse', -850, 300, win(o.estop, undefined), { '1': 'GES', '2': 'GND' })
+    .part('VES', 'vpulse', -850, 300, win(o.estop, undefined), { '1': 'GES', '2': P0 })
     .part('SES', 'nmos', -750, 300, { value: 'IRLZ44N' }, { '1': 'GES', '2': 'V24', '3': 'ESO' })
     // the motor's thermal switch (closed) and, on 240 V, the reversing switch's auxiliary contact
     .part('STH', 'switch', -650, 150, { closed: 'true' }, { '1': 'STO', '2': mains ? 'THO' : 'RV' });
@@ -185,8 +195,13 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   if (mains) {
     nb.part('F2', 'fuse', 0, 500, { value: '0.2' }, { '1': 'L', '2': 'LT' })
       .part('TR1', 'transformer', 100, 500, { value: '0.0783', lp: '10', rp: '60', rs: '0.8', k: '0.995' }, { '1': 'LT', '2': 'N', '3': 'TA', '4': 'TB' })
-      .part('BR2', 'bridge', 200, 500, { value: 'KBP206' }, { '1': 'TA', '2': 'TB', '3': 'V24', '4': 'GND' })
-      .part('C24', 'capacitor_pol', 300, 550, { value: '1000u', vmax: '50' }, { '1': 'V24', '2': 'GND' }, 1);
+      .part('BR2', 'bridge', 200, 500, { value: 'KBP206' }, { '1': 'TA', '2': 'TB', '3': 'V24', '4': P0 })
+      .part('C24', 'capacitor_pol', 300, 550, { value: '1000u', vmax: '50' }, { '1': 'V24', '2': P0 }, 1)
+      .part('XPE', 'terminal', 2350, -100, { value: 'PE: the PELV 0 V bonded to protective earth' }, { '1': P0 })
+      // the control's own supply, at the mains' potential: a second transformer (15 V)
+      .part('TR2', 'transformer', 2500, -100, { value: '0.0625', lp: '10', rp: '80', rs: '1.2', k: '0.995' }, { '1': 'LT', '2': 'N', '3': 'TC', '4': 'TD' })
+      .part('BR3', 'bridge', 2650, -100, { value: 'KBP206' }, { '1': 'TC', '2': 'TD', '3': 'V15', '4': 'GND' })
+      .part('C15', 'capacitor_pol', 2800, -100, { value: '470u', vmax: '35' }, { '1': 'V15', '2': 'GND' }, 1);
   } else {
     nb.part('XK1', 'terminal', 0, 500, { value: 'key switch (from battery +)' }, { '1': 'BAT' })
       .part('XK2', 'terminal', 0, 550, { value: 'key switch (to the drive)' }, { '1': 'VK' })
@@ -194,13 +209,16 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
       .part('F2', 'fuse', 100, 500, { value: '3.15' }, { '1': 'VK', '2': 'V24' })
       .part('C24', 'capacitor_pol', 300, 550, { value: '220u', vmax: '50' }, { '1': 'V24', '2': 'GND' }, 1);
   }
-  nb.part('U1', 'regulator', 400, 500, { value: '7812' }, { '1': 'V24', '2': 'GND', '3': V })
+  nb.part('U1', 'regulator', 400, 500, { value: '7812' }, { '1': mains ? 'V15' : 'V24', '2': 'GND', '3': V })
     .part('C12', 'capacitor_pol', 500, 550, { value: '47u', vmax: '25' }, { '1': V, '2': 'GND' }, 1)
     // the reference fed with 20 mA: the trimmers and dividers on it draw about 7 mA (with 2.2k the
     // TL431 starved and every threshold sagged: the current limit at 74 % of its setting, found in
     // simulation)
     .part('RREF', 'resistor', 600, 500, { value: '470', pmax: '0.5' }, { '1': V, '2': 'VREF' })
     .part('UREF', 'tl431', 600, 650, { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' });
+  // 240 V: the speed pot's own reference on the PELV side (about 14 mA from 24 V)
+  if (mains) nb.part('RRFS', 'resistor', 2950, -100, { value: '1.5k', pmax: '0.5' }, { '1': 'V24', '2': SR })
+    .part('UREFS', 'tl431', 2200, 100, { value: 'TL431' }, { '1': SR, '2': P0, '3': SR });
 
   // ---- the run chain: E-STOP, STOP, the motor's thermal switch (and the reversing switch's
   // auxiliary contact), START or K1's holding contact, the coils of K1 and KM through QEN
@@ -217,23 +235,46 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('XSA2', 'terminal', 0, 1250, { value: 'START (NO) return' }, { '1': 'CH2' })
     .part('K1', 'contactor', 200, 900, { value: '9 A, coil 24 V DC' }, { A1: 'CH2', A2: 'CR', '13': 'RV', '14': 'CH2', '1': V, '2': 'EN' })
     .part('DK1', 'diode', 300, 950, { value: '1N4007' }, { '2': 'CR', '1': 'CH2' }, 3)
-    .part('QEN', 'nmos', 300, 1050, { value: 'IRLZ44N' }, { '1': 'OKG', '2': 'CR', '3': 'GND' })
-    .part('ROK', 'resistor', 400, 1000, { value: '1k' }, { '1': 'OK', '2': 'OKG' })
-    .part('ROKD', 'resistor', 400, 1100, { value: '100k' }, { '1': 'OKG', '2': 'GND' }, 1)
+    .part('QEN', 'nmos', 300, 1050, { value: 'IRLZ44N' }, { '1': 'OKG', '2': 'CR', '3': P0 });
+  // 240 V: OK reaches QEN through an optocoupler (2.2 mA in its LED; rank B, CTR at least 130 %,
+  // saturates against 10k + 10k: the gate at 12 V)
+  if (mains) nb.part('ROK', 'resistor', 2200, 700, { value: '4.7k' }, { '1': 'OK', '2': 'OKA' })
+    .part('UOK', 'opto', 2350, 100, { value: 'PC817', ctr: '130' }, { '1': 'OKA', '2': 'GND', '4': 'OKC', '3': 'OKG' })
+    .part('ROKC', 'resistor', 2500, 100, { value: '10k' }, { '1': 'V24', '2': 'OKC' })
+    .part('ROKD', 'resistor', 2350, 700, { value: '10k' }, { '1': 'OKG', '2': P0 }, 1);
+  else nb.part('ROK', 'resistor', 400, 1000, { value: '1k' }, { '1': 'OK', '2': 'OKG' })
+    .part('ROKD', 'resistor', 400, 1100, { value: '100k' }, { '1': 'OKG', '2': 'GND' }, 1);
+  nb
     .part('REN', 'resistor', 300, 850, { value: '10k' }, { '1': 'EN', '2': 'GND' }, 1)
     .part('LRN', 'led', 450, 850, { colour: 'green' }, { '2': 'ENL', '1': 'GND' }, 1)
     .part('RLR', 'resistor', 400, 800, { value: '2.2k' }, { '1': 'EN', '2': 'ENL' });
 
+  // ---- 240 V: the set point across the barrier: the wiper halved (0 … 1.25 V) into an AMC1311B,
+  // its output (OUTP − OUTN = the input) doubled by a difference amplifier on the control's side
+  if (mains) nb.block('isolation')
+    .part('RWD1', 'resistor', 2650, 100, { value: '100k' }, { '1': 'WIP', '2': 'WIPD' })
+    .part('RWD2', 'resistor', 2800, 100, { value: '100k' }, { '1': 'WIPD', '2': P0 }, 1)
+    .part('UV1', 'regulator', 2950, 100, { value: 'L78L05' }, { '1': 'V24', '2': P0, '3': 'VD1' })
+    .part('CV1', 'capacitor', 2200, 300, { value: '100n', vmax: '50' }, { '1': 'VD1', '2': P0 }, 1)
+    .part('UIA', 'isoamp', 2350, 300, { value: 'AMC1311B' }, { '1': 'VD1', '2': 'WIPD', '3': P0, '4': P0, '5': 'GND', '6': 'SPN', '7': 'SPP', '8': 'VD2' })
+    .part('UV2', 'regulator', 2500, 300, { value: 'L78L05' }, { '1': V, '2': 'GND', '3': 'VD2' })
+    .part('CV2', 'capacitor', 2650, 300, { value: '100n', vmax: '50' }, { '1': 'VD2', '2': 'GND' }, 1)
+    .part('RDA1', 'resistor', 2800, 300, { value: '10k' }, { '1': 'SPP', '2': 'SDP' })
+    .part('RDA2', 'resistor', 2950, 300, { value: '20k' }, { '1': 'SDP', '2': 'GND' }, 1)
+    .part('RDA3', 'resistor', 2200, 500, { value: '10k' }, { '1': 'SPN', '2': 'SDM' })
+    .part('RDA4', 'resistor', 2350, 500, { value: '20k' }, { '1': 'SDM', '2': WI })
+    .part('UIS', 'opamp', 2500, 500, { value: 'LM358' }, { '3': 'SDP', '2': 'SDM', '6': WI, '7': V, '4': 'GND' });
+
   // ---- speed: MAX and MIN set the speed pot's ends; ACCEL into 4.7 µF; the ramp held at zero
   // while K1 is off
   nb.block('speed')
-    .part('RVMX', 'potentiometer', 600, 800, { value: '1k', position: pos(o.maxSpeed, 0.8) }, { '1': 'GND', '2': 'SMX', '3': 'VREF' })
-    .part('RVMN', 'potentiometer', 700, 800, { value: '1k', position: pos(o.minSpeed, 0) }, { '1': 'GND', '2': 'SMN', '3': 'VMN' })
-    .part('RMN', 'resistor', 700, 700, { value: '3.9k' }, { '1': 'VREF', '2': 'VMN' }, 1)
+    .part('RVMX', 'potentiometer', 600, 800, { value: '1k', position: pos(o.maxSpeed, 0.8) }, { '1': P0, '2': 'SMX', '3': SR })
+    .part('RVMN', 'potentiometer', 700, 800, { value: '1k', position: pos(o.minSpeed, 0) }, { '1': P0, '2': 'SMN', '3': 'VMN' })
+    .part('RMN', 'resistor', 700, 700, { value: '3.9k' }, { '1': SR, '2': 'VMN' }, 1)
     .part('XS1', 'terminal', 800, 750, { value: 'speed pot top' }, { '1': 'SMX' })
     .part('XS2', 'terminal', 800, 800, { value: 'speed pot wiper' }, { '1': 'WIP' })
     .part('XS3', 'terminal', 800, 850, { value: 'speed pot bottom' }, { '1': 'SMN' })
-    .part('RVAC', 'potentiometer', 900, 800, { value: '1M', position: pos(o.accel, 0.2) }, { '1': 'WIP', '2': 'ACW', '3': 'ACW' })
+    .part('RVAC', 'potentiometer', 900, 800, { value: '1M', position: pos(o.accel, 0.2) }, { '1': WI, '2': 'ACW', '3': 'ACW' })
     .part('RAC', 'resistor', 1000, 800, { value: '22k' }, { '1': 'ACW', '2': 'SPR' })
     .part('CAC', 'capacitor', 1050, 900, { value: o.accelC ?? '4.7u', vmax: '25' }, { '1': 'SPR', '2': 'GND' }, 1)
     // (through 100 Ω: straight on the ramp capacitor the 2N7000 took 5 A, found in simulation)
@@ -361,6 +402,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('LF', 'led', 1600, 1650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC2', 'capacitor', 1150, 1700, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
+  if (mains) nb.v('WIP').v('WIPM').v('PE0');
   nb.v('SPC').v('LAO').v('PIN').v('TLO').v('IAF').v('VREF').v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
     .i('M1', '1').i('RSH', '1');
   if (mains) nb.i('BR1', '1');

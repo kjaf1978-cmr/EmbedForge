@@ -45,6 +45,7 @@ const CLASS: Record<string, PartClass> = {
   pmos: { fit: 3, ea: 0.5, what: 'small-signal MOSFET' },
   igbt: { fit: 40, ea: 0.5, what: 'IGBT' },
   opto: { fit: 15, ea: 0.5, what: 'optocoupler' },
+  isoamp: { fit: 20, ea: 0.5, what: 'isolated amplifier' },
   opamp: { fit: 10, ea: 0.45, what: 'op-amp' },
   comparator: { fit: 10, ea: 0.45, what: 'comparator' },
   tl431: { fit: 5, ea: 0.45, what: 'shunt reference' },

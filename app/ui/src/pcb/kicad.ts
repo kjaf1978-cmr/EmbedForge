@@ -209,6 +209,7 @@ function sides(p: Part): string[][] | null {
     case 'transformer': return [['1', '2'], ['3', '4']];
     case 'transformer3': return [pins.filter((x) => x.startsWith('1')), pins.filter((x) => x.startsWith('2'))];
     case 'opto': return [['1', '2'], ['3', '4']];
+    case 'isoamp': return [['1', '2', '3', '4'], ['5', '6', '7', '8']];
     case 'optotriac': return [['1', '2'], ['4', '6']];
     case 'relay': return [['1', '2'], ['3', '4', '5']];
     case 'contactor': return [['A1', 'A2'], ['1', '2'], ['3', '4'], ['5', '6'], ['7', '8'], ['13', '14'], ['21', '22']];

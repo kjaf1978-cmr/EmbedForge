@@ -146,6 +146,12 @@ add(dip('DIP-8', 'DIP-8', 8));
 add(dip('DIP-16', 'DIP-16', 16));
 add(dip('DIP-14', 'DIP-14', 14));
 add(soic('SOIC-8', 'SOIC-8', 8));
+// SOIC-8 wide body (TI DWV, 7.5 mm body): 8.6 mm between the pad rows for a reinforced barrier
+{ const pads: Pad[] = [];
+  for (let k = 0; k < 4; k++) pads.push(smd(String(k + 1), -5.25, -1.905 + k * 1.27, 1.9, 0.6));
+  for (let k = 0; k < 4; k++) pads.push(smd(String(8 - k), 5.25, -1.905 + k * 1.27, 1.9, 0.6));
+  add(make('SOIC-8W', 'SOIC-8 wide body (isolated amplifier, 8.5 mm creepage)', 'SOIC-8 wide, pitch 1.27 mm, body 7.5 × 5.85 mm', pads,
+    [line(-3.75, -2.93, 3.75, -2.93), line(-3.75, 2.93, 3.75, 2.93), line(-6.6, -2.5, -5.0, -2.5)], { x0: -3.75, y0: -2.93, x1: 3.75, y1: 2.93, h: 2.65 })); }
 // connectors: parts that are off the board are wired to a connector
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
