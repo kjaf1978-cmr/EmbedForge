@@ -684,6 +684,47 @@ bidirectional 5KP130CA (the same clamping); the reversed-array and surge tests p
 failures were the run overlapping edits in progress, or time limits under the load of four
 routers and two long simulations: those tests got limits that hold under load.
 
+## 3q. P9: the grinder drive, 2.5 kW, 240 V or 24 V battery (D26, D46, 11–12 November 2026)
+
+**The drive** (`tests/grinder.test.ts`, LONG=1, each run 0.3 s at 20 kHz: 10–40 minutes; the ramp,
+the stall timer and the overload filter scaled where a test says so). Per supply: ERC; START at
+rated load; the shaft jammed while running; E-STOP while running; a power cut and the power back;
+the heatsink at 95 °C; overload at 130 %; on 24 V the battery at 20.5 V. Results:
+- START: the motor accelerates at the torque limit and settles at its set point (240 V 2615 rpm,
+  24 V 2543 rpm with MAX at 70 %; the armature voltage's feedback within 3 % of the set point,
+  the speed steady within 2 %). Peaks 29.8 A (192 %) and 240 A (200 %); the current averaged over
+  10 ms at most 150 % from 60 ms after K1 (on 240 V the averaged limit's 10 ms filter, needed
+  against the mains' 100 Hz pulses, and its amplifier coming off the rail leave the first 20–30 ms
+  of a hard start to the cycle-by-cycle limit: at most 195 %, within the switches' and the motor's
+  ratings). No part over its ratings.
+- Jam: the torque limit holds the motor at 145 % (240 V 21.4 A, 24 V 178 A) at standstill; the
+  stall trip latches (scaled: 0.2 s), K1 and KM drop, the current ends. No part over its ratings.
+- E-stop, power cut, heatsink, overload, battery: the drive is off and stays off; no restart
+  without START.
+
+Found and fixed:
+- the 240 V speed stayed at 2460–2540 rpm at rated load: the motor's current came in pulses at
+  the mains' peaks. A 15 mH armature choke, the armature feedback filtered 22 ms, and the torque
+  limit on the averaged current (a peak limit at 145 % held the mean to 13 A);
+- the 240 V low-side IGBT, held off as the freewheel diode, was turned on by the switch node's
+  edge through its Miller capacitance (its gate held only by 10k): 167 W in it, the high side's
+  pulses at 152 A. The gate is now held by 1 Ω (DFMEA GR-12);
+- on 24 V the averaged limit filtered 10 ms like the 240 V drive's: the motor started at the peak
+  limit for 20 ms. The battery drive has no mains pulses to average: 1 ms;
+- the cycle-by-cycle limit's delay let the 24 V peaks reach 207 %: its threshold is now 194 %;
+- the ramp's and the integrator's reset MOSFETs (2N7000) took 5 A and 1.7 A pulses straight from
+  their capacitors: 100 Ω in series; the 24 V control fuse 2 A was at its rating: 3.15 A; the
+  armature choke's rating is now 32 A peak; the switches' heatsinks (0.5 K/W) are part of the
+  design data;
+- the test bench's supply switch started high at t = 0 in the power-cut run and the 24 V run
+  stopped at its operating point: two sources in series now switch it on from zero;
+- the jam test's stall timer, scaled to 220 nF, tripped during the start's own time at the torque
+  limit, before the jam: 1 µF.
+
+**Boards** (`hardware/grinder-240-power`, `-240-control`, `-24-power`, `-24-control`): routed again
+after these changes (the control boards gained the two 100 Ω resistors), all four DRC 0 and 0
+unconnected, packaged with their BOM and panel lists.
+
 ## 4. Usability (section 22 step 4)
 
 See usability.md: two scripted scenarios with timings, and the issues they found (all fixed).

@@ -1,5 +1,5 @@
-** Drc report for /tmp/claude-0/-home-user-EmbedForge/b7bd11a3-356f-58b9-b4d0-5e457da9f7d3/scratchpad/kc/g240p3/routed.kicad_pcb **
-** Created on 2026-11-12 02:03:39 **
+** Drc report for /tmp/claude-0/-home-user-EmbedForge/b7bd11a3-356f-58b9-b4d0-5e457da9f7d3/scratchpad/kc/grinder-240-power/routed.kicad_pcb **
+** Created on 2026-11-12 05:52:11 **
 
 ** Found 61 DRC violations **
 [silk_over_copper]: Silkscreen clipped by solder mask
