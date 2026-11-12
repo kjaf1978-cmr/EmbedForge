@@ -501,17 +501,23 @@ const gr24Plan = (): Placed[] => {
     { ref: ref('CBF1'), x: 40, y: 66, rot: 0 }, { ref: ref('CBF2'), x: 100, y: 66, rot: 0 },
     { ref: ref('XBP'), x: 15, y: 75, rot: 0 }, { ref: ref('XBN'), x: 185, y: 115, rot: 0 },
     { ref: ref('XM1'), x: 75, y: 104, rot: 0 }, { ref: ref('XM2'), x: 155, y: 75, rot: 0 },
-    { ref: ref('RSH'), x: 175, y: 75, rot: 0 }, { ref: ref('RTH'), x: 75, y: 122, rot: 0 }];
+    { ref: ref('RSH'), x: 175, y: 75, rot: 0 }, { ref: ref('RTH'), x: 150, y: 120, rot: 0 },
+    // each gate resistor straight above its MOSFET's gate (pads 88 and 98: clear of the bar)
+    ...GR24_ROW.map(([k, x]) => ({ ref: ref(`RG${k.slice(1)}`), x: x - 5.45, y: 93, rot: 90 as const }))];
 };
 const GR24_BARS: PlanTrack[] = [
   ...[20, 40, 60].map((x): PlanTrack => ({ net: 'BUS', layer: 'F.Cu', width: 4, pts: [[x, 115], [x, 88]] })),
-  ...[25.45, 45.45, 65.45, 90, 110, 130].map((x): PlanTrack => ({ net: 'SWN', layer: 'B.Cu', width: 4, pts: [[x, 115], [x, 104]] })),
-  { net: 'SWN', layer: 'B.Cu', width: 6, pts: [[25.45, 104], [130, 104]] },
+  // the high sources on B.Cu (below the ground plane's edge), the low drains on F.Cu (so the
+  // ground plane under the low trio stays whole), both bars joined at the motor's A+ lug
+  ...[25.45, 45.45, 65.45].map((x): PlanTrack => ({ net: 'SWN', layer: 'B.Cu', width: 4, pts: [[x, 115], [x, 104]] })),
+  { net: 'SWN', layer: 'B.Cu', width: 6, pts: [[25.45, 104], [75, 104]] },
+  ...[90, 110, 130].map((x): PlanTrack => ({ net: 'SWN', layer: 'F.Cu', width: 4, pts: [[x, 115], [x, 104]] })),
+  { net: 'SWN', layer: 'F.Cu', width: 6, pts: [[75, 104], [130, 104]] },
 ];
 const GR24_PLANES: PlanZone[] = [
   { net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [140, 3], [140, 92], [3, 92]] },
   { net: 'SHN', layer: 'F.Cu', pts: [[145, 60], [197, 60], [197, 90], [145, 90]] },
-  { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 127], [3, 127]] },
+  { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 127], [84, 127], [84, 98], [3, 98]] },
 ];
 
 export const DESIGNS: Record<string, Design> = {
@@ -593,7 +599,7 @@ export const DESIGNS: Record<string, Design> = {
     post: { tracks: [{ net: 'TLO', layer: 'F.Cu', width: 0.3, pts: [[110.69, 91.5], [110.75, 91.5], [122.5, 79.75], [125.25, 79.75], [125.19, 79.69]] }] } },
   'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
     classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 130,
-    plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 80, x1: 197, y0: 3, y1: 55 } },
+    plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 143, x1: 197, y0: 3, y1: 57 } },
   'grinder-24-control': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [], panel: (p) => grRefs('24').pwr.has(p.ref) || grRefs('24').off.has(p.ref), w: 180, h: 130 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
