@@ -689,7 +689,8 @@ routers and two long simulations: those tests got limits that hold under load.
 **The drive** (`tests/grinder.test.ts`, LONG=1, each run 0.3 s at 20 kHz: 10–40 minutes; the ramp,
 the stall timer and the overload filter scaled where a test says so). Per supply: ERC; START at
 rated load; the shaft jammed while running; E-STOP while running; a power cut and the power back;
-the heatsink at 95 °C; overload at 130 %; on 24 V the battery at 20.5 V. Results:
+the heatsink at 95 °C; overload at 130 %; on 24 V the battery at 20.5 V. All 15 pass on the final
+design (every long run repeated after the last change). Results:
 - START: the motor accelerates at the torque limit and settles at its set point (240 V 2615 rpm,
   24 V 2543 rpm with MAX at 70 %; the armature voltage's feedback within 3 % of the set point,
   the speed steady within 2 %). Peaks 29.8 A (192 %) and 240 A (200 %); the current averaged over
