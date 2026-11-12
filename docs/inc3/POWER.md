@@ -438,6 +438,14 @@ mincers), from 240 V single-phase or from a 24 V battery.
 - Faults latched (LM339/LM393, CD4001): stall (the torque limit acting about 3 s: a PNP timer
   with a 5.1 V zener so its leakage does not trip it), overload (above 115 % for about 20 s),
   heatsink above 85 °C (NTC), on 24 V the battery below 21 V.
+- Boards (`hardware/grinder-*`): per supply a power board and a control board, the contactors,
+  breaker or 200 A fuse, the armature choke and the motor on the panel. 240 V power: the bridge and
+  both IGBTs on the heatsink edge, 3 mm tracks in 4 oz copper, ground poured on both layers, the
+  whole board at mains potential (0.8 mm between nets, 1.5 mm around the mains input, conformal
+  coating). 24 V power: the six MOSFETs on the heatsink edge, the switch node a bar between the row
+  and the edge, bus and ground planes, the motor's return poured to the shunt (the first plans put
+  the bar between the ground plane and the row, which cut the plane into islands, and let the
+  driver's gate line cut the bus plane in two). All four DRC 0, 0 unconnected.
 - Results (time-weighted means over the switching): see TEST_REPORT section 3q.
 
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
