@@ -8,6 +8,7 @@ import { trimmer } from '../../app/ui/src/eda/trimmer';
 import { blockMachine } from '../../app/ui/src/eda/blockMachine';
 import { stabiliserT } from '../../app/ui/src/eda/stabiliserT';
 import { irrigationMain, irrigationModule } from '../../app/ui/src/eda/irrigationBoards';
+import { grinder } from '../../app/ui/src/eda/grinder';
 import type { Part, Sheet } from '../../app/ui/src/eda/schematic';
 import { connectivity } from '../../app/ui/src/eda/connectivity';
 import { potentialGroup, classFor, type NetClass, type Placed, type PlanTrack, type PlanZone } from '../../app/ui/src/pcb/kicad';
@@ -462,6 +463,28 @@ const irrMainPlan = (): Placed[] => {
 };
 const IRR_POWER: NetClass = { name: 'Power', patterns: ['^V24$', '^SRET$', '^VIN$', '^VFU$'], track: 1, clearance: 0.3 };
 
+// P9 (D26, D46): the grinder drive, two boards per supply. The power board: the mains input
+// (varistor, X2, bridge, film bus) or the battery's bus capacitors, the switches along one edge
+// for the heatsink, the shunt, the driver and its bootstrap, the heatsink's NTC. The control
+// board: supplies, run chain, speed and torque loops, PWM and faults, the terminals for the
+// buttons, the speed pot and the thermal switch. On the panel: the contactors (KM, K1), the
+// breaker, the 200 A fuse, the armature choke and the motor
+const GR_POWER: Record<'240' | '24', string[]> = {
+  '240': ['XL', 'XN', 'RV1', 'CX1', 'BR1', 'CB1', 'CB2', 'RBL', 'QH', 'RGH', 'RGHE', 'QL', 'RGLE', 'XLA1', 'XLA2', 'XM1', 'XM2', 'RSH', 'UD', 'DBS', 'CBS', 'CDD', 'RTH'],
+  '24': ['XBP', 'XBN', ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => `CB${k}`), 'CBF1', 'CBF2', ...[1, 2, 3].flatMap((k) => [`QH${k}`, `RGH${k}`, `QL${k}`, `RGL${k}`]), 'RGHE', 'RGLE', 'XM1', 'XM2', 'RSH', 'UD', 'DBS', 'CBS', 'CDD', 'RTH'],
+};
+const GR_OFF: Record<'240' | '24', string[]> = { '240': ['KM', 'LA', 'K1'], '24': ['F1', 'KM', 'K1'] };
+const grCache: Partial<Record<'240' | '24', { pwr: Set<string>; off: Set<string>; ref: (k: string) => string }>> = {};
+const grRefs = (v: '240' | '24') => grCache[v] ??= (() => {
+  const { sheet, nb } = grinder({ supply: v }), ref = (k: string) => nb.refOf(sheet, k);
+  return { pwr: new Set(GR_POWER[v].map(ref)), off: new Set(GR_OFF[v].map(ref)), ref };
+})();
+// 240 V: the bus, the switch node and the gate drive's high side are 340 V from the control's
+// ground; the mains before the bridge too (the control is not isolated: functional insulation,
+// 3.2 mm kept as on the mains boards)
+const GR_HV = ['L', 'N', 'LK', 'NK', 'BUS', 'SWN', 'LAO', 'GH', 'HO', 'VBS', 'LT'];
+const GR24_HEAVY = ['BUS', 'GND', 'SWN', 'SHN'];
+
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
@@ -522,6 +545,17 @@ export const DESIGNS: Record<string, Design> = {
     classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110,
     // the supply link Freerouting left (link.py, checked through route.py --post-only)
     post: { tracks: [{ net: 'V24F', layer: 'B.Cu', width: 2, pts: [[42.65,  13.0],  [42.75,  13.0],  [39.5,  9.75],  [33.5,  9.75],  [28.25,  15.0],  [28.25,  16.5],  [28.23,  16.58]] }] } },
+  // P9 (D26, D46): the grinder drive's boards (see GR_POWER)
+  'grinder-240-power': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: power board (bridge, bus, IGBTs, driver, shunt)', revision: 'A',
+    classes: () => [{ ...classFor('HV', GR_HV, 2.5, 1.5), apart: 3.2 }, { name: 'Power', patterns: ['^GND$', '^SHN$'], track: 2.5, clearance: 0.6 }], copperOz: 2,
+    panel: (p) => !grRefs('240').pwr.has(p.ref), w: 160, h: 110 },
+  'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
+    classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }], panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130 },
+  'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
+    classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 140,
+    zones: [{ net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [197, 3], [197, 137], [3, 137]] }, { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 137], [3, 137]] }] },
+  'grinder-24-control': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
+    classes: () => [], panel: (p) => grRefs('24').pwr.has(p.ref) || grRefs('24').off.has(p.ref), w: 180, h: 130 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
   'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
