@@ -94,9 +94,9 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
       // the supply's neutral earthed (a DC path for the simulator: N is not the drive's ground)
       .part('RNE', 'resistor', -1050, 150, { value: '1M' }, { '1': 'N', '2': 'GND' }, 1);
   } else {
-    nb.part('VB', 'battery', -1150, 0, { value: String(o.vbat ?? 26), rint: '0.008' }, { '1': 'BATS', '2': 'GND' }, 1)
-      .part('VPC', 'vpulse', -1050, 0, win(o.powerOff, o.powerOn, '45'), { '1': 'GPC', '2': 'GND' })
-      .part('SPC', 'nmos', -950, 0, { value: 'IRFP4468' }, { '1': 'GPC', '2': 'BATS', '3': 'BAT' });
+    // the battery; the "power cut" is the key switch opened (below)
+    nb.part('VB', 'battery', -1150, 0, { value: String(o.vbat ?? 26), rint: '0.008' }, { '1': 'BAT', '2': 'GND' }, 1)
+      .part('VPC', 'vpulse', -1050, 0, win(o.powerOff, o.powerOn, '45'), { '1': 'GPC', '2': 'GND' });
   }
   // START (NO): pressed for 0.1 s from `start`; STOP (NC) opens at stopAt; the E-stop (NC) at estop
   const pulse = (at: number | undefined, len: number) => at === undefined ? { value: '0', low: '0', freq: '0.1', duty: '0', delay: '0', edge: '1u' }
@@ -180,7 +180,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   } else {
     nb.part('XK1', 'terminal', 0, 500, { value: 'key switch (from battery +)' }, { '1': 'BAT' })
       .part('XK2', 'terminal', 0, 550, { value: 'key switch (to the drive)' }, { '1': 'VK' })
-      .part('SK', 'switch', -100, 525, { closed: 'true' }, { '1': 'BAT', '2': 'VK' })
+      .part('SK', 'nmos', -100, 525, { value: 'IRLZ44N', scope: 'test' }, { '1': 'GPC', '2': 'BAT', '3': 'VK' })
       .part('F2', 'fuse', 100, 500, { value: '2' }, { '1': 'VK', '2': 'V24' })
       .part('C24', 'capacitor_pol', 300, 550, { value: '220u', vmax: '50' }, { '1': 'V24', '2': 'GND' }, 1);
   }
@@ -228,11 +228,13 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CAC', 'capacitor', 1050, 900, { value: o.accelC ?? '4.7u', vmax: '25' }, { '1': 'SPR', '2': 'GND' }, 1)
     .part('QRC', 'nmos', 1100, 850, { value: '2N7000' }, { '1': 'ENN', '2': 'SPR', '3': 'GND' })
     // feedback: the armature voltage (the switch node; the shunt's few tens of mV aside), 2 V at
-    // the rated 180 V or 24 V, filtered 1 ms
+    // the rated 180 V or 24 V, filtered 22 ms: on 240 V the switch node carries the rectified
+    // mains, and with 1 ms its 100 Hz ripple swung the duty from rail to rail against the mains,
+    // chopping the motor at the mains' peaks (2460 rpm at rated load, found in simulation)
     .part('RFB1', 'resistor', 600, 1000, { value: G.fb[0], pmax: '0.5' }, { '1': 'SWN', '2': mains ? 'FBA' : 'FBD' });
   if (mains) nb.part('RFB2', 'resistor', 650, 1000, { value: G.fb[1], pmax: '0.5' }, { '1': 'FBA', '2': 'FBD' });
   nb.part('RFB3', 'resistor', 700, 1100, { value: G.fb[2] }, { '1': 'FBD', '2': 'GND' }, 1)
-    .part('CFB', 'capacitor', 750, 1100, { value: '100n', vmax: '50' }, { '1': 'FBD', '2': 'GND' }, 1)
+    .part('CFB', 'capacitor', 750, 1100, { value: '2.2u', vmax: '25' }, { '1': 'FBD', '2': 'GND' }, 1)
     // the motor current: 1.5 V at the rated current (×10 or ×25)
     .part('RIS', 'resistor', 600, 1250, { value: '1k' }, { '1': 'SHN', '2': 'ISP' })
     .part('CIS', 'capacitor', 650, 1350, { value: '1n', vmax: '50' }, { '1': 'ISP', '2': 'GND' }, 1)
@@ -247,13 +249,13 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('UC', 'opamp', 950, 900, { value: 'LM358' }, { '3': 'SPR', '2': 'SPB', '6': 'SPB', '7': V, '4': 'GND' })
     .part('RVIR', 'potentiometer', 1000, 1100, { value: '1M', position: pos(o.irComp, 0.5) }, { '1': 'ISA', '2': 'IRW', '3': 'IRW' })
     .part('RIR', 'resistor', 1050, 1150, { value: '100k' }, { '1': 'IRW', '2': 'SPC' })
-    // the speed amplifier: PI (100k; 2.2M + 100 nF: proportional gain 22, integral 0.22 s), its
+    // the speed amplifier: PI (100k; 1M + 47 nF: proportional gain 10, integral 47 ms), its
     // integrator shorted while K1 is off (at a gain of 4.7 the motor lagged its ramp by half)
     .part('RIN', 'resistor', 1100, 1000, { value: '100k' }, { '1': 'FBD', '2': 'PIN' })
     .part('UB', 'opamp', 1200, 1000, { value: 'LM358' }, { '3': 'SPC', '2': 'PIN', '6': 'DUTP', '7': V, '4': 'GND' })
     .part('RDU', 'resistor', 1300, 1000, { value: '2.2k' }, { '1': 'DUTP', '2': 'DUT' })
-    .part('RPI', 'resistor', 1250, 1100, { value: '2.2M' }, { '1': 'DUTP', '2': 'PIX' })
-    .part('CPI', 'capacitor', 1300, 1100, { value: '100n', vmax: '50' }, { '1': 'PIX', '2': 'PIN' })
+    .part('RPI', 'resistor', 1250, 1100, { value: '1M' }, { '1': 'DUTP', '2': 'PIX' })
+    .part('CPI', 'capacitor', 1300, 1100, { value: '47n', vmax: '50' }, { '1': 'PIX', '2': 'PIN' })
     .part('QIR', 'nmos', 1350, 1150, { value: '2N7000' }, { '1': 'ENN', '2': 'PIX', '3': 'PIN' })
     .part('RVCL', 'potentiometer', 1100, 1250, { value: '1k', position: pos(o.currentLimit, 0.9) }, { '1': 'GND', '2': 'VCL', '3': 'VREF' })
     .part('CCL', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': 'VCL', '2': 'GND' }, 1)
