@@ -139,12 +139,14 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
       .part('CB1', 'capacitor', 450, 0, { value: '10u', vmax: '450' }, { '1': 'BUS', '2': 'GND' }, 1)
       .part('CB2', 'capacitor', 500, 0, { value: '10u', vmax: '450' }, { '1': 'BUS', '2': 'GND' }, 1)
       .part('RBL', 'resistor', 550, 0, { value: '220k', pmax: '1' }, { '1': 'BUS', '2': 'GND' }, 1)
-      .part('QH', 'igbt', 650, -50, { value: 'IKW50N60T' }, { '1': 'GH', '2': 'BUS', '3': 'SWN' })
+      .part('QH', 'igbt', 650, -50, { value: 'IKW50N60T', heatsink: '0.5' }, { '1': 'GH', '2': 'BUS', '3': 'SWN' })
       .part('RGH', 'resistor', 600, -100, { value: '10' }, { '1': 'HO', '2': 'GH' })
       .part('RGHE', 'resistor', 700, -100, { value: '10k' }, { '1': 'GH', '2': 'SWN' }, 1)
-      // the low side held off: its diode is the freewheel path
-      .part('QL', 'igbt', 650, 100, { value: 'IKW50N60T' }, { '1': 'GL', '2': 'SWN', '3': 'GND' })
-      .part('RGLE', 'resistor', 600, 150, { value: '10k' }, { '1': 'GL', '2': 'GND' }, 1);
+      // the low side held off: its diode is the freewheel path. Its gate held by 1 Ω: with 10k the
+      // switch node's edge pulled the gate up through its Miller capacitance and the IGBT conducted
+      // with the high side (167 W in it, the high side's pulses at 152 A, found in simulation)
+      .part('QL', 'igbt', 650, 100, { value: 'IKW50N60T', heatsink: '0.5' }, { '1': 'GL', '2': 'SWN', '3': 'GND' })
+      .part('RGLE', 'resistor', 600, 150, { value: '1' }, { '1': 'GL', '2': 'GND' }, 1);
   } else {
     nb.part('XBP', 'terminal', 0, -100, { value: 'battery + (through the 200 A fuse and KM)' }, { '1': 'BUS' })
       .part('XBN', 'terminal', 0, 0, { value: 'battery −' }, { '1': 'GND' })
@@ -154,9 +156,9 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     nb.part('CBF1', 'capacitor', 750, 0, { value: '10u', vmax: '100' }, { '1': 'BUS', '2': 'GND' }, 1)
       .part('CBF2', 'capacitor', 800, 0, { value: '10u', vmax: '100' }, { '1': 'BUS', '2': 'GND' }, 1);
     for (let k = 1; k <= 3; k++) {
-      nb.part(`QH${k}`, 'nmos', 800 + 100 * k, -50, { value: 'IRFP4468' }, { '1': `GH${k}`, '2': 'BUS', '3': 'SWN' })
+      nb.part(`QH${k}`, 'nmos', 800 + 100 * k, -50, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GH${k}`, '2': 'BUS', '3': 'SWN' })
         .part(`RGH${k}`, 'resistor', 850 + 100 * k, -100, { value: '4.7' }, { '1': 'HO', '2': `GH${k}` })
-        .part(`QL${k}`, 'nmos', 800 + 100 * k, 100, { value: 'IRFP4468' }, { '1': `GL${k}`, '2': 'SWN', '3': 'GND' })
+        .part(`QL${k}`, 'nmos', 800 + 100 * k, 100, { value: 'IRFP4468', heatsink: '0.5' }, { '1': `GL${k}`, '2': 'SWN', '3': 'GND' })
         .part(`RGL${k}`, 'resistor', 850 + 100 * k, 150, { value: '4.7' }, { '1': 'LO', '2': `GL${k}` });
     }
     nb.part('RGHE', 'resistor', 1250, -100, { value: '10k' }, { '1': 'HO', '2': 'SWN' }, 1)
@@ -166,7 +168,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   // through the mains' valleys: with the motor's own 8 mH the current came in pulses at the mains'
   // peaks, the armature voltage stayed at its back-EMF and the motor reached 2540 rpm at rated load
   // (found in simulation)
-  if (mains) nb.part('LA', 'inductor', 850, 250, { value: '15m', imax: '20' }, { '1': 'SWN', '2': 'LAO' })
+  if (mains) nb.part('LA', 'inductor', 850, 250, { value: '15m', imax: '32' }, { '1': 'SWN', '2': 'LAO' })
     .part('XLA1', 'terminal', 900, 200, { value: 'armature choke (from the switch node)' }, { '1': 'SWN' })
     .part('XLA2', 'terminal', 900, 250, { value: 'armature choke (to the motor)' }, { '1': 'LAO' });
   nb.part('XM1', 'terminal', 900, 300, { value: mains ? 'motor A+ (through the reversing switch)' : 'motor A+' }, { '1': mains ? 'LAO' : 'SWN' })
@@ -189,7 +191,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     nb.part('XK1', 'terminal', 0, 500, { value: 'key switch (from battery +)' }, { '1': 'BAT' })
       .part('XK2', 'terminal', 0, 550, { value: 'key switch (to the drive)' }, { '1': 'VK' })
       .part('SK', 'nmos', -100, 525, { value: 'IRLZ44N', scope: 'test' }, { '1': 'GPC', '2': 'BAT', '3': 'VK' })
-      .part('F2', 'fuse', 100, 500, { value: '2' }, { '1': 'VK', '2': 'V24' })
+      .part('F2', 'fuse', 100, 500, { value: '3.15' }, { '1': 'VK', '2': 'V24' })
       .part('C24', 'capacitor_pol', 300, 550, { value: '220u', vmax: '50' }, { '1': 'V24', '2': 'GND' }, 1);
   }
   nb.part('U1', 'regulator', 400, 500, { value: '7812' }, { '1': 'V24', '2': 'GND', '3': V })
@@ -234,7 +236,9 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RVAC', 'potentiometer', 900, 800, { value: '1M', position: pos(o.accel, 0.2) }, { '1': 'WIP', '2': 'ACW', '3': 'ACW' })
     .part('RAC', 'resistor', 1000, 800, { value: '22k' }, { '1': 'ACW', '2': 'SPR' })
     .part('CAC', 'capacitor', 1050, 900, { value: o.accelC ?? '4.7u', vmax: '25' }, { '1': 'SPR', '2': 'GND' }, 1)
-    .part('QRC', 'nmos', 1100, 850, { value: '2N7000' }, { '1': 'ENN', '2': 'SPR', '3': 'GND' })
+    // (through 100 Ω: straight on the ramp capacitor the 2N7000 took 5 A, found in simulation)
+    .part('RQR', 'resistor', 1050, 850, { value: '100' }, { '1': 'SPR', '2': 'SPQ' })
+    .part('QRC', 'nmos', 1100, 850, { value: '2N7000' }, { '1': 'ENN', '2': 'SPQ', '3': 'GND' })
     // feedback: the armature voltage (the switch node; the shunt's few tens of mV aside), 2 V at
     // the rated 180 V or 24 V, filtered 22 ms: on 240 V the switch node carries the rectified
     // mains, and with 1 ms its 100 Hz ripple swung the duty from rail to rail against the mains,
@@ -264,7 +268,8 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RDU', 'resistor', 1300, 1000, { value: '2.2k' }, { '1': 'DUTP', '2': 'DUT' })
     .part('RPI', 'resistor', 1250, 1100, { value: '1M' }, { '1': 'DUTP', '2': 'PIX' })
     .part('CPI', 'capacitor', 1300, 1100, { value: '47n', vmax: '50' }, { '1': 'PIX', '2': 'PIN' })
-    .part('QIR', 'nmos', 1350, 1150, { value: '2N7000' }, { '1': 'ENN', '2': 'PIX', '3': 'PIN' })
+    .part('RQI', 'resistor', 1350, 1200, { value: '100' }, { '1': 'PIX', '2': 'PIQ' })
+    .part('QIR', 'nmos', 1350, 1150, { value: '2N7000' }, { '1': 'ENN', '2': 'PIQ', '3': 'PIN' })
     .part('RVCL', 'potentiometer', 1100, 1250, { value: '1k', position: pos(o.currentLimit, 0.9) }, { '1': 'GND', '2': 'VCL', '3': 'VREF' })
     .part('CCL', 'capacitor', 1150, 1350, { value: '100n', vmax: '50' }, { '1': 'VCL', '2': 'GND' }, 1)
     // the torque limit: the motor current averaged over 10 ms (half a mains period) against CURRENT
