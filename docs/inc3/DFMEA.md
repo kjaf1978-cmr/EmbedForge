@@ -164,6 +164,7 @@ cables.
 | GR-9 | Operator touches the live control (240 V) | Electric shock | The control's ground is the bridge's negative (not isolated) | Mains-rated speed pot and buttons with insulated actuators and shafts, a closed enclosure (IP54), the control board behind a cover; an isolated control (a 1.5 kV isolated driver and amplifier) as an option | 10 | 2 | 3 | M | review; open action (section 7) |
 | GR-10 | Reversed while turning (240 V) | Current peak, mechanical shock | REV switched at speed | The reversing switch's auxiliary contact opens the run chain in its middle position: the motor coasts down before it can be started the other way; reversing only on the 240 V drive | 6 | 4 | 2 | L | review; FAQ (stop, wait for standstill, switch, START) |
 | GR-11 | Brushes worn | Commutator damage, sparking | Normal wear | Brushes checked yearly (FAQ), replaced below 8 mm | 5 | 6 | 3 | M | maintenance FAQ |
+| GR-12 | The held-off low-side IGBT turned on by the switch node's edge (240 V) | Shoot-through at every period: the IGBTs overheated, the high side above its pulsed rating | Its gate held only through 10k: the Miller capacitance lifts it above its threshold | Gate held to the emitter by 1 Ω (found in simulation: 167 W in it, 152 A pulses in the high side); the cycle-by-cycle limit and the heatsink fault as the second line | 8 | 2 | 2 | L | grinder.test: start and jam (no part over its ratings) |
 
 ## 4. MPPT solar charger (3.7 kW unit, 48 V LiFePO4)
 

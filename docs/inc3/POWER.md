@@ -419,19 +419,28 @@ mincers), from 240 V single-phase or from a 24 V battery.
   - 240 V: C16 breaker, 14D471K varistor, X2 capacitor, main contactor KM, GBPC3510 bridge, a
     20 µF film bus (the line current follows the motor's: power factor about 0.9). An IKW50N60T
     high side, the low IKW50N60T held off (its diode freewheels: the small bus cannot take energy
-    back), a 15 mH armature choke (the motor's ripple current and the brushes' life).
+    back) with its gate held by 1 Ω (through 10k the switch node's edge turned it on through its
+    Miller capacitance, with the high side: 167 W in it, found in simulation), a 15 mH armature
+    choke rated 20 A continuous and 32 A peak (the motor's ripple current and the brushes' life).
+    Both IGBTs on a heatsink of at most 0.5 K/W each.
   - 24 V: 200 A fuse, 250 A DC contactor KM, three IRFP4468 high and three low, synchronous (the
-    energy on deceleration goes back to the battery), 8 × 2200 µF and film.
+    energy on deceleration goes back to the battery), 8 × 2200 µF and film; the six MOSFETs on a
+    heatsink of at most 0.5 K/W each (a start dissipates about 17 W in each high-side MOSFET).
 - Control (12 V, one board for both; the scaling resistors differ): an IR2184-type driver whose SD
   is EN AND OK; an NE555 ramp and CD4001 latch PWM; a PI speed loop (LM358, gain 10, integral
   47 ms) on the armature voltage, divided and filtered 22 ms (on 240 V the switch node carries
   the rectified mains' 100 Hz ripple: with a 1 ms filter the PI chopped the motor at the mains'
   peaks and the speed stayed at 2460 rpm, found in simulation); IR compensation from the
   current; the ramp buffered (LM358 follower) so the IR compensation does not load it.
-- Torque limit: the motor current averaged over 10 ms against CURRENT LIMIT (default 145 %, up
-  to 160 %); an amplifier and diode pull the duty down. The cycle-by-cycle limit at 200 % only
-  protects the switches and the magnets (a peak limit alone held the 240 V motor's mean current
-  far below the limit, because of its ripple: found in simulation).
+- Torque limit: the motor current averaged (240 V over 10 ms against the mains' 100 Hz pulses,
+  24 V over 1 ms) against CURRENT LIMIT (default 145 %, up to 160 %); an amplifier and diode pull
+  the duty down. The cycle-by-cycle limit (194 % static, about 200 % with its delay) only protects
+  the switches and the magnets (a peak limit alone held the 240 V motor's mean current far below
+  the limit, because of its ripple: found in simulation). On a hard start or a jam the averaged
+  limit takes over 20–30 ms after the current first reaches it; until then the cycle-by-cycle
+  limit carries the current (at most about 195 %, within the switches' and the motor's ratings).
+- The ramp's and the PI integrator's reset MOSFETs (2N7000) through 100 Ω (straight on the
+  capacitors they took 5 A and 1.7 A pulses). The 24 V drive's control supply fuse 3.15 A.
 - Run chain (24 V coils): E-STOP, STOP, the motor's thermal switch, on 240 V the reversing
   switch's auxiliary contact, then START with K1's holding contact into K1 and KM, returned
   through QEN. No restart after a power cut, a stop or a fault without START.

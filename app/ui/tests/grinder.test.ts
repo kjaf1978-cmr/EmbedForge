@@ -42,13 +42,13 @@ for (const supply of ['240', '24'] as const) {
   });
 
   describe.runIf(LONG)(`grinder drive ${supply} V: start, speed, torque and protections`, () => {
-    it('START at rated load: the motor accelerates at the torque limit (its peaks below 205 % throughout; the current averaged over 10 ms at most 150 % of rated once the averaged limit has taken over, within 50 ms of K1), the speed loop reaches its set point (MAX at 70 %: above 2200 rpm) within 3 % and holds it; no fault; no part over its ratings', () => {
+    it('START at rated load: the motor accelerates at the torque limit (its peaks below 205 % throughout; the current averaged over 10 ms at most 150 % of rated once the averaged limit has taken over, within 60 ms of K1), the speed loop reaches its set point (MAX at 70 %: above 2200 rpm) within 3 % and holds it; no fault; no part over its ratings', () => {
       const s = run({ supply, load: supply === '240' ? 8.3 : 8.6, maxSpeed: 0.7 });
       expect(s.peak(s.im)).toBeLessThan(ipk * 1.025);
       // the averaged limit takes over about 20 ms after the current first reaches it (its filter, and
       // its amplifier coming down from the rail); until then the cycle-by-cycle limit holds the
       // current at up to 195 % (found in simulation; within the switches' and the motor's ratings)
-      for (let t = 0.08; t < 0.3; t += 0.01) expect(s.mean(s.im, t - 0.01, t)).toBeLessThan(1.5 * G.irated);
+      for (let t = 0.09; t < 0.3; t += 0.01) expect(s.mean(s.im, t - 0.01, t)).toBeLessThan(1.5 * G.irated);
       expect(s.v('OK', 0.3)).toBeGreaterThan(6);
       expect(s.v('EN', 0.3)).toBeGreaterThan(6);
       // the speed loop at its set point (the armature voltage's feedback on the set point with its
