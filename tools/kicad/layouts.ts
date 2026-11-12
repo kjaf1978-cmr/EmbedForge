@@ -485,39 +485,39 @@ const grRefs = (v: '240' | '24') => grCache[v] ??= (() => {
 const GR_HV = ['L', 'N', 'LK', 'NK', 'BUS', 'SWN', 'LAO', 'GH', 'HO', 'VBS', 'LT'];
 const GR24_HEAVY = ['BUS', 'GND', 'SWN', 'SHN'];
 
-// the 24 V power board (200 × 130 mm): the six MOSFETs in a row along the bottom edge (the
-// heatsink), the high trio left, the low trio right; the bus on F.Cu (a plane over the
-// capacitors, a 4 mm stub from each high drain), the switch node a 6 mm bar on B.Cu from the high
-// sources and the low drains to the motor's A+ lug between the trios, ground a plane on B.Cu (the
-// low sources into it below the bar, the battery's − lug at the bottom right), the motor's A−
-// return a pour on F.Cu from its lug to the shunt; 4 oz copper with the bars' mask open for
-// tinning (120 A)
-const GR24_ROW: [string, number][] = [['QH1', 20], ['QH2', 40], ['QH3', 60], ['QL1', 90], ['QL2', 110], ['QL3', 130]];
+// the 24 V power board (200 × 130 mm): the six MOSFETs in a row near the bottom edge (the
+// heatsink), the high trio left, the low trio right with the driver between them (short gate
+// loops); the switch node a 6 mm bar on F.Cu between the row and the edge, to the motor's A+ lug;
+// the bus on F.Cu (a plane over the capacitors, a 4 mm stub up from each high drain); ground a
+// plane on B.Cu (the low sources and the battery's − lug in it); the motor's A− return a pour on
+// F.Cu from its lug to the shunt; each gate resistor above its MOSFET's gate. 4 oz copper, the
+// bars' mask open for tinning (120 A). (With the switch node on B.Cu between the plane and the
+// row, the plane fell into islands, and the driver in a corner sent its gate line through the
+// bus plane, cutting it in two)
+const GR24_ROW: [string, number][] = [['QH1', 20], ['QH2', 40], ['QH3', 60], ['QL1', 105], ['QL2', 125], ['QL3', 145]];
 const gr24Plan = (): Placed[] => {
   const { ref } = grRefs('24');
-  return [...GR24_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 115, rot: 0 as const })),
+  return [...GR24_ROW.map(([k, x]) => ({ ref: ref(k), x, y: 112, rot: 0 as const })),
     ...[1, 2, 3, 4].map((k) => ({ ref: ref(`CB${k}`), x: 10 + 25 * k, y: 18, rot: 0 as const })),
     ...[5, 6, 7, 8].map((k) => ({ ref: ref(`CB${k}`), x: 10 + 25 * (k - 4), y: 42, rot: 0 as const })),
     { ref: ref('CBF1'), x: 40, y: 66, rot: 0 }, { ref: ref('CBF2'), x: 100, y: 66, rot: 0 },
-    { ref: ref('XBP'), x: 15, y: 75, rot: 0 }, { ref: ref('XBN'), x: 185, y: 115, rot: 0 },
-    { ref: ref('XM1'), x: 75, y: 104, rot: 0 }, { ref: ref('XM2'), x: 155, y: 75, rot: 0 },
-    { ref: ref('RSH'), x: 175, y: 75, rot: 0 }, { ref: ref('RTH'), x: 150, y: 120, rot: 0 },
-    // each gate resistor straight above its MOSFET's gate (pads 88 and 98: clear of the bar)
-    ...GR24_ROW.map(([k, x]) => ({ ref: ref(`RG${k.slice(1)}`), x: x - 5.45, y: 93, rot: 90 as const }))];
+    { ref: ref('XBP'), x: 15, y: 75, rot: 0 }, { ref: ref('XBN'), x: 188, y: 112, rot: 0 },
+    { ref: ref('XM1'), x: 167, y: 117, rot: 0 }, { ref: ref('XM2'), x: 155, y: 75, rot: 0 },
+    { ref: ref('RSH'), x: 175, y: 75, rot: 0 },
+    { ref: ref('UD'), x: 82, y: 98, rot: 0 }, { ref: ref('CBS'), x: 93, y: 94, rot: 0 }, { ref: ref('DBS'), x: 82, y: 87, rot: 0 },
+    { ref: ref('CDD'), x: 82, y: 108, rot: 0 }, { ref: ref('RTH'), x: 91, y: 116, rot: 0 },
+    // each gate resistor above its MOSFET's gate, the gate end down (pads at 85 and 95)
+    ...GR24_ROW.map(([k, x]) => ({ ref: ref(`RG${k.slice(1)}`), x: x - 5.45, y: 90, rot: 270 as const }))];
 };
 const GR24_BARS: PlanTrack[] = [
-  ...[20, 40, 60].map((x): PlanTrack => ({ net: 'BUS', layer: 'F.Cu', width: 4, pts: [[x, 115], [x, 88]] })),
-  // the high sources on B.Cu (below the ground plane's edge), the low drains on F.Cu (so the
-  // ground plane under the low trio stays whole), both bars joined at the motor's A+ lug
-  ...[25.45, 45.45, 65.45].map((x): PlanTrack => ({ net: 'SWN', layer: 'B.Cu', width: 4, pts: [[x, 115], [x, 104]] })),
-  { net: 'SWN', layer: 'B.Cu', width: 6, pts: [[25.45, 104], [75, 104]] },
-  ...[90, 110, 130].map((x): PlanTrack => ({ net: 'SWN', layer: 'F.Cu', width: 4, pts: [[x, 115], [x, 104]] })),
-  { net: 'SWN', layer: 'F.Cu', width: 6, pts: [[75, 104], [130, 104]] },
+  ...[20, 40, 60].map((x): PlanTrack => ({ net: 'BUS', layer: 'F.Cu', width: 4, pts: [[x, 112], [x, 78]] })),
+  ...[25.45, 45.45, 65.45, 105, 125, 145].map((x): PlanTrack => ({ net: 'SWN', layer: 'F.Cu', width: 4, pts: [[x, 112], [x, 121]] })),
+  { net: 'SWN', layer: 'F.Cu', width: 6, pts: [[25.45, 121], [167, 121]] },
 ];
 const GR24_PLANES: PlanZone[] = [
-  { net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [140, 3], [140, 92], [3, 92]] },
+  { net: 'BUS', layer: 'F.Cu', pts: [[3, 3], [140, 3], [140, 80], [3, 80]] },
   { net: 'SHN', layer: 'F.Cu', pts: [[145, 60], [197, 60], [197, 90], [145, 90]] },
-  { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 127], [84, 127], [84, 98], [3, 98]] },
+  { net: 'GND', layer: 'B.Cu', pts: [[3, 3], [197, 3], [197, 127], [3, 127]] },
 ];
 
 export const DESIGNS: Record<string, Design> = {
@@ -592,7 +592,11 @@ export const DESIGNS: Record<string, Design> = {
     panel: (p) => !grRefs('240').pwr.has(p.ref), w: 160, h: 110,
     plan: () => [{ ref: grRefs('240').ref('BR1'), x: 30, y: 102, rot: 0 }, { ref: grRefs('240').ref('QH'), x: 70, y: 102, rot: 0 }, { ref: grRefs('240').ref('QL'), x: 100, y: 102, rot: 0 },
       { ref: grRefs('240').ref('RTH'), x: 85, y: 104, rot: 0 }],
-    region: { x0: 3, x1: 157, y0: 3, y1: 92 } },
+    region: { x0: 3, x1: 157, y0: 3, y1: 92 },
+    // ground poured on both layers after routing: it joins the bridge's negative and the
+    // capacitors, which Freerouting left (one 3 mm link through a single via could not carry the
+    // motor's 15.5 A)
+    post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }] } },
   'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }], panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130,
     // the torque limit's link Freerouting left (link.py, checked through route.py --post-only)
