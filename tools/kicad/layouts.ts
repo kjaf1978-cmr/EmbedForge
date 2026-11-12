@@ -473,11 +473,28 @@ const GR_POWER: Record<'240' | '24', string[]> = {
   '240': ['XL', 'XN', 'RV1', 'CX1', 'BR1', 'CB1', 'CB2', 'RBL', 'QH', 'RGH', 'RGHE', 'QL', 'RGLE', 'XLA1', 'XLA2', 'XM1', 'XM2', 'RSH', 'UD', 'DBS', 'CBS', 'CDD', 'RTH'],
   '24': ['XBP', 'XBN', ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => `CB${k}`), 'CBF1', 'CBF2', ...[1, 2, 3].flatMap((k) => [`QH${k}`, `RGH${k}`, `QL${k}`, `RGL${k}`]), 'RGHE', 'RGLE', 'XM1', 'XM2', 'RSH', 'UD', 'DBS', 'CBS', 'CDD', 'RTH'],
 };
-const GR_OFF: Record<'240' | '24', string[]> = { '240': ['KM', 'LA', 'K1'], '24': ['F1', 'KM', 'K1'] };
-const grCache: Partial<Record<'240' | '24', { pwr: Set<string>; off: Set<string>; ref: (k: string) => string }>> = {};
+// (240 V: the PELV transformer TR1 on the panel: its terminal block's 5.08 mm pitch cannot keep
+// its primary 5.5 mm from its secondary)
+const GR_OFF: Record<'240' | '24', string[]> = { '240': ['KM', 'LA', 'K1', 'TR1'], '24': ['F1', 'KM', 'K1'] };
+// 240 V: the operator interface board: every part wholly on the PELV side (the run chain's
+// terminals, QEN, the speed pot's terminals, MAX and MIN, the PELV reference and rectifier) and the
+// barrier's parts (the AMC1311B with its output side's regulator, the PC817)
+const GR_BARRIER = ['UIA', 'UOK', 'UV2', 'CV2'];
+const GR_PELV_NETS = (sh: Sheet) => new Set([...potentialGroup(sh, ['PE0']), 'ESO', 'STO', 'THO']);
+const grCache: Partial<Record<'240' | '24', { pwr: Set<string>; off: Set<string>; iso: Set<string>; ref: (k: string) => string }>> = {};
 const grRefs = (v: '240' | '24') => grCache[v] ??= (() => {
   const { sheet, nb } = grinder({ supply: v }), ref = (k: string) => nb.refOf(sheet, k);
-  return { pwr: new Set(GR_POWER[v].map(ref)), off: new Set(GR_OFF[v].map(ref)), ref };
+  const pwr = new Set(GR_POWER[v].map(ref)), off = new Set(GR_OFF[v].map(ref)), iso = new Set<string>();
+  if (v === '240') {
+    const c = connectivity(sheet), pelv = GR_PELV_NETS(sheet);
+    for (const p of sheet.parts) {
+      if (p.props.scope === 'test' || pwr.has(p.ref) || off.has(p.ref)) continue;
+      const nets = [...c.pinNet.entries()].filter(([k]) => k.startsWith(`${p.ref}.`)).map(([, n]) => n).filter((n) => !n.startsWith('nc_'));
+      if (nets.length && nets.every((n) => pelv.has(n))) iso.add(p.ref);
+    }
+    for (const k of GR_BARRIER) iso.add(ref(k));
+  }
+  return { pwr, off, iso, ref };
 })();
 // 240 V: the bus, the switch node and the gate drive's high side are 340 V from the control's
 // ground; the mains before the bridge too (the control is not isolated: functional insulation,
@@ -598,11 +615,14 @@ export const DESIGNS: Record<string, Design> = {
     // motor's 15.5 A)
     post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }] } },
   'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
-    // the PELV side (run chain, coils, speed pot, the isolated amplifier's input): reinforced from
-    // everything else, 5.5 mm (the clearance for a 4 kV impulse; the creepage needs 5 mm)
-    classes: (sh) => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }, { ...classFor('PELV', [...potentialGroup(sh, ['PE0']), 'ESO', 'STO', 'THO'], 0.4, 0.3), apart: 5.5 }],
-    panel: (p) => grRefs('240').pwr.has(p.ref) || grRefs('240').off.has(p.ref), w: 180, h: 130,
+    classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }],
+    panel: (p) => { const r = grRefs('240'); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.iso.has(p.ref); }, w: 180, h: 130,
   },
+  // the operator interface: the PELV side and the barrier, the barrier's control side (the
+  // AMC1311B's output and supply, the PC817's LED) kept 5.5 mm from every PELV net (reinforced:
+  // the clearance for a 4 kV impulse; the creepage needs 5 mm)
+  'grinder-240-interface': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: operator interface (PELV run chain, speed pot, isolated set point and fault)', revision: 'A',
+    classes: () => [{ ...classFor('HV', ['GND', 'V12', 'VD2', 'SPP', 'SPN', 'OKA'], 0.4, 0.3), apart: 5.5 }], panel: (p) => !grRefs('240').iso.has(p.ref), w: 120, h: 90 },
   'grinder-24-power': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: power board (bus, MOSFETs, driver, shunt)', revision: 'A',
     classes: () => [POWER(GR24_HEAVY)], copperOz: 4, heavy: GR24_HEAVY, panel: (p) => !grRefs('24').pwr.has(p.ref), w: 200, h: 130,
     plan: gr24Plan, tracks: GR24_BARS, zones: GR24_PLANES, region: { x0: 143, x1: 197, y0: 3, y1: 57 },
