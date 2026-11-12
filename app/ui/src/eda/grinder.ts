@@ -84,19 +84,27 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   const win = (from: number | undefined, to: number | undefined, high = '34') => from === undefined
     ? { value: high, low: '0', freq: '0.1', duty: '100', delay: '0', edge: '1u' }
     : { value: '0', low: high, freq: '0.1', duty: String(Math.max(0.0001, ((to ?? stopT + 1) - from) * 10)), delay: String(from), edge: '1u' };
+  // the supply's switch: on from t = 0; with a power cut, two sources in series (on until powerOff,
+  // on again from powerOn) so that the switch still turns on from zero at the start (a source high at
+  // t = 0 stopped the 24 V run at its operating point, found in simulation)
+  const cut = (high: string) => {
+    if (o.powerOff === undefined) { nb.part('VPC', 'vpulse', -1050, 0, win(undefined, undefined, high), { '1': 'GPC', '2': 'GND' }); return; }
+    nb.part('VPC', 'vpulse', -1050, 0, { value: high, low: '0', freq: '0.1', duty: String(o.powerOff * 10), delay: '0', edge: '1u' }, { '1': 'GPX', '2': 'GND' })
+      .part('VPC2', 'vpulse', -1050, 80, { value: high, low: '0', freq: '0.1', duty: '100', delay: String(o.powerOn ?? stopT + 1), edge: '1u' }, { '1': 'GPC', '2': 'GPX' });
+  };
   nb.block('bench').note('TEST BENCH: the supply, the operator, the motor and its load (not part of the board)', -1200, -150);
   if (mains) {
     // the mains through the breaker; switched off (a power cut) from powerOff to powerOn
-    nb.part('VM', 'vsin', -1150, 0, { value: '339.4', freq: '50' }, { '1': 'LS', '2': 'N' })
-      .part('VPC', 'vpulse', -1050, 0, win(o.powerOff, o.powerOn, '24'), { '1': 'GPC', '2': 'GND' })
-      .part('SPC', 'relay', -950, 0, { value: '24 V 30 A' }, { '1': 'GPC', '2': 'GND', '3': 'LS', '5': 'LB' })
+    nb.part('VM', 'vsin', -1150, 0, { value: '339.4', freq: '50' }, { '1': 'LS', '2': 'N' });
+    cut('24');
+    nb.part('SPC', 'relay', -950, 0, { value: '24 V 30 A' }, { '1': 'GPC', '2': 'GND', '3': 'LS', '5': 'LB' })
       .part('RLB', 'resistor', -950, 100, { value: '0.05' }, { '1': 'LB', '2': 'L' })
       // the supply's neutral earthed (a DC path for the simulator: N is not the drive's ground)
       .part('RNE', 'resistor', -1050, 150, { value: '1M' }, { '1': 'N', '2': 'GND' }, 1);
   } else {
     // the battery; the "power cut" is the key switch opened (below)
-    nb.part('VB', 'battery', -1150, 0, { value: String(o.vbat ?? 26), rint: '0.008' }, { '1': 'BAT', '2': 'GND' }, 1)
-      .part('VPC', 'vpulse', -1050, 0, win(o.powerOff, o.powerOn, '45'), { '1': 'GPC', '2': 'GND' });
+    nb.part('VB', 'battery', -1150, 0, { value: String(o.vbat ?? 26), rint: '0.008' }, { '1': 'BAT', '2': 'GND' }, 1);
+    cut('45');
   }
   // START (NO): pressed for 0.1 s from `start`; STOP (NC) opens at stopAt; the E-stop (NC) at estop
   const pulse = (at: number | undefined, len: number) => at === undefined ? { value: '0', low: '0', freq: '0.1', duty: '0', delay: '0', edge: '1u' }
@@ -265,15 +273,18 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     // and a peak limit at 145 % held the mean to 13 A, the motor below its rated speed at rated load
     // (found in simulation)
     .part('RAF', 'resistor', 1000, 1400, { value: '10k' }, { '1': 'ISA', '2': 'IAF' })
-    .part('CAF', 'capacitor', 1050, 1500, { value: '1u', vmax: '25' }, { '1': 'IAF', '2': 'GND' }, 1)
+    // (24 V: 1 ms, 100 nF; the battery drive has no mains pulses to average, and with 10 ms the motor
+    // started at the 200 % peak limit for 20 ms before the limit acted, found in simulation)
+    .part('CAF', 'capacitor', 1050, 1500, { value: mains ? '1u' : '100n', vmax: '25' }, { '1': 'IAF', '2': 'GND' }, 1)
     .part('RTI', 'resistor', 1100, 1400, { value: '10k' }, { '1': 'IAF', '2': 'TLN' })
     .part('UTL', 'opamp', 1200, 1400, { value: 'LM358' }, { '3': 'VCL', '2': 'TLN', '6': 'TLO', '7': V, '4': 'GND' })
     .part('RTL', 'resistor', 1250, 1500, { value: '47k' }, { '1': 'TLO', '2': 'TLX' })
     .part('CTL', 'capacitor', 1300, 1500, { value: '100n', vmax: '50' }, { '1': 'TLX', '2': 'TLN' })
     .part('DTL', 'diode', 1350, 1400, { value: '1N4148' }, { '2': 'DUT', '1': 'TLO' })
     // the cycle-by-cycle limit, fixed at 200 % of rated (the IGBT's or MOSFETs' and the magnets'
-    // protection): 3.1 V from the 12 V rail
-    .part('RPK1', 'resistor', 1400, 1250, { value: '28.7k' }, { '1': V, '2': 'VPK' }, 1)
+    // protection): 2.99 V from the 12 V rail, 194 % static (the comparator's and the current amplifier's
+    // delay add about 4 %: with 28.7k the 24 V peaks reached 207 %, found in simulation)
+    .part('RPK1', 'resistor', 1400, 1250, { value: '30.1k' }, { '1': V, '2': 'VPK' }, 1)
     .part('RPK2', 'resistor', 1400, 1350, { value: '10k' }, { '1': 'VPK', '2': 'GND' }, 1);
 
   // ---- PWM: NE555 ramp 4 … 8 V at 20 kHz; CD4001 latch set each period, reset by the duty or
