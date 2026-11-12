@@ -301,11 +301,10 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   // ---- protections onto FLTN, latched by a CD4001 (cleared while K1 is off)
   nb.block('protections')
     // stall: the torque limit acting (TLO low switches QJ on) for about 3 s
-    // (two diodes in its base: the LM358's 10.5 V high would still switch on a PNP from 12 V, and
+    // (a 5.1 V zener in its base: the LM358's 10.5 V high would still switch on a PNP from 12 V, and
     // the stall timer ran up at every start, found in simulation)
-    .part('RJB2', 'resistor', 500, 1450, { value: '10k' }, { '1': 'TLO', '2': 'JD2' })
-    .part('DJ2', 'diode', 520, 1500, { value: '1N4148' }, { '2': 'JD1', '1': 'JD2' })
-    .part('DJ1', 'diode', 540, 1450, { value: '1N4148' }, { '2': 'JB', '1': 'JD1' })
+    .part('RJB2', 'resistor', 500, 1450, { value: '10k' }, { '1': 'TLO', '2': 'JD1' })
+    .part('DZJ', 'zener', 540, 1450, { value: 'BZX55C5V1' }, { '1': 'JB', '2': 'JD1' })
     .part('RJU', 'resistor', 560, 1400, { value: '47k' }, { '1': V, '2': 'JB' })
     .part('QJ', 'pnp', 600, 1500, { value: 'BC557B' }, { '1': 'JB', '2': 'CLE', '3': V })
     .part('DJ', 'diode', 650, 1500, { value: '1N4148' }, { '2': 'CLE', '1': 'CLJ' })
@@ -344,7 +343,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
     .part('LF', 'led', 1600, 1650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
     .part('CC2', 'capacitor', 1150, 1700, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  nb.v('TLO').v('IAF').v('VREF').v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
+  nb.v('SPC').v('LAO').v('PIN').v('TLO').v('IAF').v('VREF').v('VBS').v('HO').v('DRV').v('RST').v('SDN').v('SPB').v('SWN').v('SHN').v('BUS').v('ISA').v('DUT').v('SPR').v('FBD').v('EN').v('OK').v('FLT').v('FLTN').v('IAV').v('IOL').v('CH2').v('SPD').v('V24').v('V12').v('VCL')
     .i('M1', '1').i('RSH', '1');
   if (mains) nb.i('BR1', '1');
   const stop = o.stop ?? '0.3';
