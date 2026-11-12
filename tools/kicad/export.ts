@@ -27,7 +27,9 @@ writeFileSync(join(out, 'board.kicad_pcb'), b.pcb);
 writeFileSync(join(out, 'board.kicad_pro'), b.pro);
 writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));
 // the pins of parts with both mains and other pads (relays, transformer connectors): each
-// stage keeps its new tracks off the other side's pins (the pad plus 3.3 mm)
+// stage keeps its new tracks off the other side's pins (the pad plus the insulation distance and
+// 0.1 mm: 3.3 mm on the mains boards, 5.6 mm across a reinforced barrier)
+const gap = Math.max(3.2, ...classes.filter((c) => c.name === 'Mains' || c.name === 'HV').map((c) => c.apart ?? 0)) + 0.1;
 const pinKeep = (want: boolean): [number, number, number, number][] => {
   const r: [number, number, number, number][] = [];
   for (const p of nl.parts) {
@@ -37,7 +39,7 @@ const pinKeep = (want: boolean): [number, number, number, number][] => {
     for (const d of p.footprint.pads) {
       const n = p.pads[d.id];
       if (!n || mains.has(n) !== want) continue;
-      const [x, y] = padAt(pl, d.x, d.y), e = Math.max(d.w, d.h) / 2 + 3.3;
+      const [x, y] = padAt(pl, d.x, d.y), e = Math.max(d.w, d.h) / 2 + gap;
       r.push([x - e, y - e, x + e, y + e]);
     }
   }
