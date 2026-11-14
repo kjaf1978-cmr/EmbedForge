@@ -107,6 +107,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     TL074: e('TL074CN', 'Texas Instruments', 'quad JFET op-amp, DIP-14', 0.6, 0.3, 'estimate', any('DIP-14')),
   },
   gdt: { 'GDT 600 V': e('2036-60-SM (or SL1002A600)', 'Bourns / Littelfuse', 'gas discharge tube 600 V, 10 kA 8/20 µs (N–PE in the SPD modules)', 2.5, 1.6, 'estimate', [{ distributor: 'Mouser' }], 'in an installation: the N–PE module of the SPD (e.g. Phoenix VAL-MS-T1/T2 1+1)') },
+  spdt: { jumper: e('3-pin header 2.54 mm with a shorting jumper', 'various', 'pin header 1 × 3, 2.54 mm, with one 2.54 mm shorting jumper (the link selector of a linked inverter unit)', 0.3, 0.15, 'estimate', any('pin header')) },
   button: { '22 mm, 1 NO': e('22 mm push button, 1 NO (e.g. Schneider XB5AA31)', 'Schneider Electric', 'push button 22 mm, 1 NO, flush, black', 9, 7, 'estimate', [{ distributor: 'RS' }]) },
   tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 1 %, TO-92', 0.3, 0.1, 'estimate', any('TO-92')), TL431B: e('TL431BCLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 0.5 %, TO-92', 0.45, 0.15, 'estimate', any('TO-92')) },
   // logic by family (the footprint's): CD4000 on a rail above 6 V, 74HC on 5 V and 3.3 V
@@ -200,6 +201,9 @@ const TRANSFORMERS: Record<string, CatalogueEntry> = {
   '16.7': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 3 kVA, 50 Hz, 13.75 V / 230 V, leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 340, 230, 'estimate', [{ distributor: 'transformer winder' }]),
   '36.9': e('made to specification', 'transformer winder (toroidal, e.g. Talema or local)', 'toroidal transformer 1.5 kVA, 50 Hz, 6.25 V / 230 V (copper-foil primary for 218 A), leakage inductance for the PWM filter, class F, thermal cut-out in the winding', 230, 160, 'estimate', [{ distributor: 'transformer winder' }]),
   '12': e('made to specification', 'magnetics supplier (ferrite, e.g. 2 × ETD59 or a planar core)', 'high-frequency transformer 5 kW, 20 kHz, 1 : 12 (24 V-equivalent primary of copper foil, 4 kV insulation, reinforced), gapped for 100 µH magnetising, leakage below 0.2 µH', 165, 95, 'estimate', [{ distributor: 'magnetics supplier' }]),
+  '24': e('made to specification', 'magnetics supplier (ferrite, e.g. ETD59 or a planar core)', 'high-frequency transformer 3 kW, 20 kHz, 1 : 24 (the 24 V unit: copper-foil primary, 4 kV insulation, reinforced), gapped for 25 µH magnetising', 120, 70, 'estimate', [{ distributor: 'magnetics supplier' }]),
+  '48': e('made to specification', 'magnetics supplier (ferrite, e.g. ETD49 or a planar core)', 'high-frequency transformer 1.5 kW, 20 kHz, 1 : 48 (the 12 V unit: copper-foil primary, 4 kV insulation, reinforced), gapped for 6.25 µH magnetising', 95, 55, 'estimate', [{ distributor: 'magnetics supplier' }]),
+  '1000': e('current transformer 1 : 1000, 50 Hz (a catalogue type, e.g. of the Talema AC series: check the ratio and the primary current)', 'Talema', 'current transformer 1 : 1000, 50/60 Hz, 30 A primary (the output conductor through the core), PCB mount: the droop sense of a linked inverter unit', 6, 4, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
   '200': e('current-sense transformer 1 : 200 (a catalogue type, e.g. of the Talema AS or Pulse PE-67 series: check the ratio and the primary current)', 'Talema / Pulse', 'current-sense transformer 1 : 200, 20–200 kHz, 20 A RMS primary (the primary as a bus bar through the core), 4 kV insulation', 4.5, 2.8, 'estimate', [{ distributor: 'Mouser / Digi-Key' }]),
   '1': e('made to specification', 'magnetics supplier (ferrite EE25)', 'auxiliary transformer 2 VA, 20 kHz, 1 : 1 (on one bridge leg through a blocking capacitor), 4 kV reinforced insulation: the supply of the high-voltage side', 6, 3.5, 'estimate', [{ distributor: 'magnetics supplier' }]),
   '1.2': e('made to specification', 'magnetics supplier (ferrite EE25)', 'auxiliary transformer 2 VA, 20 kHz, 1 : 1.2 (48 V unit; on one bridge leg through a blocking capacitor), 4 kV reinforced insulation: the supply of the high-voltage side', 6, 3.5, 'estimate', [{ distributor: 'magnetics supplier' }]),
@@ -268,6 +272,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
     case 'button': return BY_VALUE.button['22 mm, 1 NO']; // its value is its state in a test
+    case 'spdt': return BY_VALUE.spdt.jumper; // the designs' changeover switches are jumpers; its value is its position
     case 'dff': case 'cd4020': case 'nor2': case 'and2': case 'nand2': case 'or2': case 'xor2': case 'not': case 'schmitt':
       return BY_VALUE[line.sym][logicFamily(v)]; // its value is the supply rail
     default: return BY_VALUE[line.sym]?.[v] ?? null;
