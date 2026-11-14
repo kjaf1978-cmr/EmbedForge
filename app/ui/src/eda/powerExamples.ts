@@ -12,7 +12,9 @@ import type { Example } from './examples';
 const COLOURS = ['#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e', '#17becf'];
 
 /** Blocks that hold the test bench: their parts are marked scope=test (not in the product's BOM). */
-const TEST_BLOCKS = new Set(['bench', 'load', 'battery']);
+// blocks that are not part of the product: the test bench, and the installation a product sits in
+// (cables, earthing, the neighbouring product P5 protects): simulated, never in its parts list
+const TEST_BLOCKS = new Set(['bench', 'load', 'battery', 'service line', 'feeder', 'final circuit', 'dc cable', 'earthing', 'charger (P6)']);
 
 /** Netlist-style sheet builder: parts at given positions, nets as labels on their pins. */
 export class NB {

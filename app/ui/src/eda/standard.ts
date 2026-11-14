@@ -20,6 +20,9 @@ export const RES_W = [0.063, 0.1, 0.125, 0.25, 0.4, 0.5, 0.6, 0.75, 1, 2, 3, 5, 
 /** Capacitor voltage ratings in V. */
 export const CAP_V = [2.5, 4, 6.3, 10, 16, 25, 35, 50, 63, 80, 100, 160, 200, 250, 315, 350, 400, 450, 500, 630, 800, 1000, 1200, 1600, 2000, 3000];
 
+/** Current-sense shunt resistance steps below 1 Ω (metal-strip and manganin shunts). */
+const SHUNT = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+
 export const SERIES: Record<string, number[]> = { E6, E12, E24, E96, POT };
 
 /** Mantissa of v in [1, 10). */
@@ -76,6 +79,8 @@ export function unbuyable(p: Part): Unbuyable[] {
     if (v === null || !(v > 0)) continue;
     if (r.kind === 'series') {
       if (r.series.some((s) => inSeries(v, SERIES[s]))) continue;
+      // current-sense shunts below 1 Ω are sold in their own steps (0.5, 1, 2, 2.5, 3, 4, 5 … mΩ)
+      if (p.sym === 'resistor' && r.key === 'value' && v < 1 && inSeries(v, SHUNT)) continue;
       const opts = [...new Set(r.series.map((s) => shortValue(nearestIn(v, SERIES[s]))))];
       const names = r.series.map((s) => (s === 'POT' ? 'potentiometer steps' : s)).join(' or ');
       out.push({ key: r.key, value: v, options: opts, message: `${p.ref}: ${shortValue(v)} is not a standard value (${names}); nearest: ${opts.join(', ')}` });

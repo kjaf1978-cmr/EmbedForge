@@ -29,10 +29,10 @@ export const DC_PATH: Record<string, string[][]> = {
   // IGBT: collector–emitter (the gate is insulated); optocoupler: LED and transistor sides
   // separately; TL431: cathode–anode (REF is an input only)
   igbt: [['2', '3']], opto: [['1', '2'], ['3', '4']], isoamp: [['1', '2', '3', '4'], ['5', '6', '7', '8']], tl431: [['2', '3']],
-  // breakers (closed), contactor coil, PV, autotransformer, comparator and driver supplies,
+  // breakers (closed), contactor coil and its NC auxiliary contact (closed at rest), PV, autotransformer, comparator and driver supplies,
   // surge voltage generator; varistors, GDTs and the current generator give no DC path
   breaker1: [['1', '2']], breaker2: [['1', '2'], ['N1', 'N2']], breaker3: [['1', '2'], ['3', '4'], ['5', '6']], breaker4: [['1', '2'], ['3', '4'], ['5', '6'], ['N1', 'N2']],
-  contactor: [['A1', 'A2']], pv: [['1', '2']], autotransformer: [['N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']],
+  contactor: [['A1', 'A2'], ['21', '22']], pv: [['1', '2']], autotransformer: [['N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']],
   comparator: [['8', '4']], hbdriver: [['8', '3', '4'], ['7', '6', '5']], vsurge: [['1', '2']], mov: [], gdt: [], isurge: [], terminal: [],
   vdc: [['1', '2']], battery: [['1', '2']], vsin: [['1', '2']], vpulse: [['1', '2']],
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
@@ -101,6 +101,8 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
       if (s.id === 'dcmotor') { const n = conn.pinNet.get(`${p.ref}.3`); if (n) union(n, GND_NET); }
       // logic parts: inputs have a resistance to ground and outputs drive the rail or ground
       if (s.logic) for (const pp of s.pins) { const n = conn.pinNet.get(`${p.ref}.${pp.id}`); if (n) union(n, GND_NET); }
+      // board-only ICs (no simulation model): their outputs drive the rail or ground
+      if (!s.simulated && !s.power) for (const pp of s.pins.filter((d) => d.type === 'output')) { const n = conn.pinNet.get(`${p.ref}.${pp.id}`); if (n) union(n, GND_NET); }
       if (s.id === 'switch' && p.props.closed === 'true') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.2`); if (a && b) union(a, b); }
       if (s.id === 'button' && p.props.pressed === 'true') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.2`); if (a && b) union(a, b); }
       if (s.id === 'spdt') { const a = conn.pinNet.get(`${p.ref}.1`), b = conn.pinNet.get(`${p.ref}.${p.props.position === 'B' ? 3 : 2}`); if (a && b) union(a, b); }
@@ -108,8 +110,34 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
     // rails with a voltage in their name are tied to ground by their implicit supply
     for (const n of conn.nets) if (n.power.length && railVoltage(n.name) !== null) union(n.name, GND_NET);
     const g = find(GND_NET);
+    // a net that reaches ground once the switching contacts close (a contactor's main poles and
+    // auxiliary contacts) or through the board at the other end of a ribbon header is defined in
+    // operation: reported as information, not as a fault
+    const closed = new Map(parent);
+    const findC = (a: string): string => { while (closed.has(a) && closed.get(a) !== a) a = closed.get(a)!; return a; };
+    const unionC = (a: string, b: string) => { const ra = findC(a), rb = findC(b); if (ra !== rb) closed.set(ra, rb); };
+    const via = new Map<string, string>();
+    for (const p of sheet.parts) {
+      const groups = p.sym === 'contactor' ? [['1', '2'], ['3', '4'], ['5', '6'], ['7', '8'], ['13', '14']] : p.sym === 'idc20' ? [Array.from({ length: 20 }, (_, i) => String(i + 1))] : [];
+      for (const gp of groups) {
+        const nets = gp.map((pin) => conn.pinNet.get(`${p.ref}.${pin}`)).filter(Boolean) as string[];
+        for (const n of nets) via.set(n, via.get(n) ?? p.ref);
+        if (p.sym === 'idc20') for (const n of nets) unionC(n, GND_NET);
+        else for (let i = 1; i < nets.length; i++) unionC(nets[0], nets[i]);
+      }
+    }
+    for (const [a] of parent) unionC(a, find(a));
+    const gc = findC(GND_NET);
     for (const n of conn.nets) {
       if (n.name === GND_NET || find(n.name) === g || n.pins.length === 0) continue;
+      // an unused output marked no-connect (nc_…) is left open on purpose
+      if (n.name.startsWith('nc_') && n.pins.length === 1) continue;
+      if (findC(n.name) === gc) {
+        const k = [...via.entries()].find(([m]) => findC(m) === findC(n.name))?.[1] ?? '';
+        const hdr = sheet.parts.find((q) => q.ref === k)?.sym === 'idc20';
+        add({ severity: 'info', rule: 'ED-09.c', message: hdr ? `Net ${n.name} leaves the board on ${k}: its voltage is set by the board at the other end of the ribbon cable.` : `Net ${n.name} floats only while the contacts of ${k} are open (no load): defined once they close.`, at: pinAt.get(n.pins[0]) ?? null, refs: n.pins.map((x) => x.split('.')[0]) });
+        continue;
+      }
       add({ severity: 'warning', rule: 'ED-09.c', message: `Net ${n.name} has no DC path to ground: its DC voltage is undefined (it floats). Add a resistor to ground or connect it.`, at: pinAt.get(n.pins[0]) ?? null, refs: n.pins.map((x) => x.split('.')[0]) });
     }
   }
@@ -136,14 +164,34 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
     const switched = sheet.parts.some((q) => ((q.sym === 'npn' || q.sym === 'pnp') && ends.includes(conn.pinNet.get(`${q.ref}.2`) ?? '')) ||
       ((q.sym === 'nmos' || q.sym === 'pmos') && ends.includes(conn.pinNet.get(`${q.ref}.2`) ?? '')));
     if (!switched) continue;
-    const flyback = sheet.parts.some((d) => ['diode', 'zener'].includes(d.sym) &&
-      new Set([conn.pinNet.get(`${d.ref}.1`), conn.pinNet.get(`${d.ref}.2`)]).size === 2 &&
-      [a, b].includes(conn.pinNet.get(`${d.ref}.1`) ?? '') && [a, b].includes(conn.pinNet.get(`${d.ref}.2`) ?? ''));
+    // the load's ends, extended through a series resistance (a coil modelled as R + L: the
+    // diode sits across the whole coil)
+    const net = (r: string, pin: string) => conn.pinNet.get(`${r}.${pin}`) ?? '';
+    const span = new Set([a, b]);
+    for (const e of [a, b]) {
+      const members = conn.nets.find((n) => n.name === e);
+      if (!members || members.pins.length !== 2 || members.power.length) continue;
+      const other = members.pins.find((x) => !x.startsWith(`${l.ref}.`));
+      const q = other && sheet.parts.find((x) => x.ref === other.split('.')[0]);
+      if (q?.sym === 'resistor') span.add(net(q.ref, other!.split('.')[1] === '1' ? '2' : '1'));
+    }
+    const across = (x: string, y: string) => x !== y && span.has(x) && span.has(y);
+    // a diode across the load, or a MOSFET across it whose body diode freewheels the current
+    // (the other switch of a half bridge)
+    const flyback = sheet.parts.some((d) => (['diode', 'zener'].includes(d.sym) && across(net(d.ref, '1'), net(d.ref, '2'))) ||
+      (['nmos', 'pmos'].includes(d.sym) && across(net(d.ref, '2'), net(d.ref, '3'))) ||
+      // the high-side switch of a half bridge: its body diode returns the load current to the bus
+      (['nmos', 'igbt'].includes(d.sym) && ends.includes(net(d.ref, '3')) && net(d.ref, '2') !== net(d.ref, '3') &&
+        sheet.parts.some((q) => q.ref !== d.ref && ['nmos', 'igbt'].includes(q.sym) && net(q.ref, '2') === net(d.ref, '3'))) ||
+      // a TVS clamping the switch's drain to its source (energy absorbed in the TVS: faster release)
+      (d.sym === 'tvs' && sheet.parts.some((q) => q.sym === 'nmos' && ends.includes(net(q.ref, '2')) &&
+        new Set([net(d.ref, '1'), net(d.ref, '2')]).has(net(q.ref, '2')) && new Set([net(d.ref, '1'), net(d.ref, '2')]).has(net(q.ref, '3')))));
     if (!flyback) add({ severity: 'warning', rule: 'ED-03.f', message: `${l.sym === 'relay' ? 'Relay coil' : l.sym === 'dcmotor' ? 'Motor' : 'Inductive load'} ${l.ref} is switched by a transistor without a flyback diode across it: switching off causes a high voltage spike.`, at: { x: l.x, y: l.y }, refs: [l.ref] });
   }
 
   // VER-13: values and ratings that can be bought (E series, catalogue rating steps)
-  for (const p of sheet.parts) for (const u of unbuyable(p)) add({ severity: 'warning', rule: 'VER-13', message: `${u.message}.`, at: { x: p.x, y: p.y }, refs: [p.ref] });
+  // parts of the test bench are simulated, not bought
+  for (const p of sheet.parts.filter((q) => q.props.scope !== 'test')) for (const u of unbuyable(p)) add({ severity: 'warning', rule: 'VER-13', message: `${u.message}.`, at: { x: p.x, y: p.y }, refs: [p.ref] });
 
   // multi-unit ICs: no more units than the package has, all of one type
   const pk = new Map<string, typeof sheet.parts>();
