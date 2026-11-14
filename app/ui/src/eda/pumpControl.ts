@@ -31,7 +31,7 @@ export interface PumpOptions {
 }
 
 export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['+12V']);
   const V = '+12V';
   nb.para('PUMP CONTROL (borehole or transfer pump, 230 V, up to 1.5 kW): start below LOW, stop at HIGH; OVERFLOW stops and latches FAULT; DRY (source empty) stops and holds off 10 min; more than 2 h of running latches FAULT; 10 s delay after a power cut. AC-excited stainless electrodes (200 Hz, no electrolysis). Reset: button RESET.', -1300, -300);
 
@@ -181,7 +181,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
   // ---- output: RUN and PERMIT (a NOR of their inverses: DR3/DR4 into the driver's base
   // divider) drive the pilot relay; its contact feeds the contactor's coil from the mains
   nb.block('output')
-    .part('RB1', 'resistor', 1100, 1650, { value: '22k' }, { '1': 'RUNQ', '2': 'BQ' })
+    .part('RB1', 'resistor', 1150, 1700, { value: '22k' }, { '1': 'RUNQ', '2': 'BQ' })
     .part('DB2', 'diode', 1100, 1750, { value: '1N4148' }, { '2': 'BQ', '1': 'PERMIT' })
     .part('RB2', 'resistor', 1180, 1750, { value: '47k' }, { '1': 'BQ', '2': 'GND' }, 1)
     .part('Q1', 'npn', 1250, 1650, { value: 'BC547B' }, { '1': 'BQ', '2': 'KP', '3': 'GND' })

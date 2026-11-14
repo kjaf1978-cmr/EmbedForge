@@ -40,7 +40,7 @@ export interface BlockOptions {
 const pulse = (at: number | undefined, to: number) => at === undefined ? { value: '0', low: '0', freq: '0.01', duty: '0', delay: '0', edge: '1u' } : { value: '5', low: '0', freq: '0.01', duty: String(Math.max(0, to - at)), delay: String(at), edge: '1u' };
 
 export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V24', 'V24F', 'V24S', 'V5'], 3);
   nb.para('BLOCK MOULDING MACHINE, safety circuit and 24 V outputs: two-channel emergency stop, safety contactors K1 and K2 with mirror contacts in series to the safety rail V24S (every contactor coil and valve of the machine); reset by a capacitor pulse (reset relay K3) through the mirror contacts of K1, K2 and the pump contactor (no restart by a held button, none with a welded contact); pump contactor and solenoid valve from the microcontroller (IRLZ44N, valve clamped at 38 V for a fast release); proximity sensor through a PC817.', -1200, -300);
 
   // ---- test bench: the 24 V supply, the operator's buttons, the microcontroller's outputs

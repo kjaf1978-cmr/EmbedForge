@@ -38,7 +38,7 @@ const cmd = (at: number | undefined, to: number) => at === undefined ? { value: 
 const opens = (at: number | undefined) => ({ value: '34', low: '0', freq: '0.01', duty: at === undefined ? '100' : String(at * 1), delay: '0', edge: '1u' });
 
 export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V24', 'V24F', 'V5']);
   const stopAt = o.stopAt ?? 10;
   nb.para('GATE CONTROLLER, motor drive and protections: 24 V DC gear motor (2.6 A running, 12 A stalled). Direction by two SPDT relays (released: motor shorted, braking); IRLZ44N on/off with freewheel diode; limit switches and photo-beam in the relay coils (hardware stops); latching cut-off for short circuit (25 A) and obstacle (7 A for 0.1 s after a 0.5 s start blanking), tripped at power-up until the microcontroller clears it. IR receiver TSOP38238 and decoding on the microcontroller board.', -1200, -300);
 

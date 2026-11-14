@@ -40,11 +40,14 @@ export const IRR_BUS: Record<string, string> = {
 
 /** One 8-zone channel module. */
 export function irrigationModule(): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V24', 'V33', 'V33S'], 3);
   nb.para('IRRIGATION CONTROLLER, 8-zone channel module (one of up to eight on the ribbon bus): valve drivers, sensor inputs, shift registers, multiplexer.', -200, -300);
   nb.block('bus')
-    .part('J_IN', 'idc20', -150, 0, { value: 'IDC 2×10' }, { ...IRR_BUS })
-    .part('J_OUT', 'idc20', 1750, 0, { value: 'IDC 2×10' }, { ...IRR_BUS, '9': 'SO' })
+    .part('J_IN', 'idc20', -150, 0, { value: 'IDC 2×10' }, { ...IRR_BUS });
+  // the bus on to the next module: named at its header (its lines run to the incoming header)
+  nb.block('bus out')
+    .part('J_OUT', 'idc20', 1750, 0, { value: 'IDC 2×10' }, { ...IRR_BUS, '9': 'SO' });
+  nb.block('bus')
     .part('CV24', 'capacitor_pol', -50, 200, { value: '47u', vmax: '50' }, { '1': 'V24', '2': 'GND' }, 1)
     .part('CV33', 'capacitor_pol', 30, 200, { value: '10u', vmax: '16' }, { '1': 'V33', '2': 'GND' }, 1);
   nb.block('registers')
@@ -57,7 +60,7 @@ export function irrigationModule(): { sheet: Sheet; nb: NB } {
     .part('ROEU', 'resistor', 300, -100, { value: '1M' }, { '1': 'V33', '2': 'OE' }, 1)
     .part('CD1', 'capacitor', 150, -150, { value: '100n', vmax: '50' }, { '1': 'V33', '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 450, -150, { value: '100n', vmax: '50' }, { '1': 'V33', '2': 'GND' }, 1)
-    .part('U3', 'hc4051', 800, 0, { value: '74HC4051' }, { '13': 'MX1', '14': 'MX2', '15': 'MX3', '12': 'MX4', '1': 'MX5', '5': 'MX6', '2': 'MX7', '4': 'MX8', '11': 'A0', '10': 'A1', '9': 'A2', '6': 'MXEN', '3': 'ANA', '16': 'V33', '8': 'GND', '7': 'GND' })
+    .part('U3', 'hc4051', 800, 0, { value: '74HC4051' }, { '13': 'MX1', '14': 'MX2', '15': 'MX3', '12': 'MX4', '1': 'MX5', '5': 'MX6', '2': 'MX7', '4': 'MX8', '11': 'A0', '10': 'A1', '9': 'A2', '6': 'MXEN', '3': 'ANA', '16': 'V33', '8': 'GND', '7': 'GND' }, 0, true)
     .part('CD3', 'capacitor', 800, -150, { value: '100n', vmax: '50' }, { '1': 'V33', '2': 'GND' }, 1);
   nb.block('valves');
   for (let k = 1; k <= 8; k++) {
@@ -73,7 +76,8 @@ export function irrigationModule(): { sheet: Sheet; nb: NB } {
   }
   nb.block('sensors');
   for (let k = 1; k <= 8; k++) {
-    const x = 150 * (k - 1);
+    // a wider pitch than the valves: room for the terminal texts beside the filter capacitor
+    const x = 180 * (k - 1);
     nb.part(`XS${k}`, 'terminal', x, 700, { value: `sensor ${k} out` }, { '1': `SEN${k}` })
       .part(`XSP${k}`, 'terminal', x, 650, { value: `sensor ${k} +3.3 V` }, { '1': 'V33S' })
       .part(`XSG${k}`, 'terminal', x, 750, { value: `sensor ${k} 0 V` }, { '1': 'GND' })
@@ -88,7 +92,7 @@ export function irrigationModule(): { sheet: Sheet; nb: NB } {
 
 /** The main board: supplies, the microcontroller module, the overcurrent cut-off, the bus. */
 export function irrigationMain(): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V24', 'V33', 'V33S', 'V5'], 3);
   nb.para('IRRIGATION CONTROLLER, main board: 24 V in, 5 V and 3.3 V, the ESP32 module, the overcurrent cut-off of every valve, the sensors\' supply, the bus to the channel modules.', -200, -300);
   nb.block('supply')
     .part('X24P', 'terminal', -150, 0, { value: '24 V DC in +' }, { '1': 'VIN' })
@@ -119,16 +123,19 @@ export function irrigationMain(): { sheet: Sheet; nb: NB } {
     .part('ROI', 'resistor', 200, 350, { value: '1k' }, { '1': 'OE', '2': 'OEI' })
     // the fault lamp: on while the cut-off holds every valve off
     .part('RLF', 'resistor', 600, 600, { value: '1k' }, { '1': 'OE', '2': 'LFA' })
-    .part('LF', 'led', 650, 650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1)
-    .part('J_BUS', 'idc20', 800, 400, { value: 'IDC 2×10' }, { ...IRR_BUS })
-    // the bus lines held low while the module boots (its GPIO float until the firmware runs)
+    .part('LF', 'led', 720, 650, { colour: 'red' }, { '2': 'LFA', '1': 'GND' }, 1);
+  // the ribbon bus to the channel modules: its own block (each line named at the header)
+  nb.block('bus')
+    .part('J_BUS', 'idc20', 800, 400, { value: 'IDC 2×10' }, { ...IRR_BUS });
+  // the bus lines held low while the module boots (its GPIO float until the firmware runs)
+  nb.block('bus pull-downs')
     .part('RPS1', 'resistor', 950, 250, { value: '10k' }, { '1': 'SER', '2': 'GND' }, 1)
-    .part('RPS2', 'resistor', 1000, 250, { value: '10k' }, { '1': 'SRCLK', '2': 'GND' }, 1)
-    .part('RPS3', 'resistor', 1050, 250, { value: '10k' }, { '1': 'RCLK', '2': 'GND' }, 1)
-    .part('RPA0', 'resistor', 1100, 250, { value: '100k' }, { '1': 'A0', '2': 'GND' }, 1)
-    .part('RPA1', 'resistor', 1150, 250, { value: '100k' }, { '1': 'A1', '2': 'GND' }, 1)
-    .part('RPA2', 'resistor', 1200, 250, { value: '100k' }, { '1': 'A2', '2': 'GND' }, 1)
-    .part('RANP', 'resistor', 1250, 250, { value: '1M' }, { '1': 'ANA', '2': 'GND' }, 1);
+    .part('RPS2', 'resistor', 1030, 250, { value: '10k' }, { '1': 'SRCLK', '2': 'GND' }, 1)
+    .part('RPS3', 'resistor', 1110, 250, { value: '10k' }, { '1': 'RCLK', '2': 'GND' }, 1)
+    .part('RPA0', 'resistor', 1190, 250, { value: '100k' }, { '1': 'A0', '2': 'GND' }, 1)
+    .part('RPA1', 'resistor', 1270, 250, { value: '100k' }, { '1': 'A1', '2': 'GND' }, 1)
+    .part('RPA2', 'resistor', 1350, 250, { value: '100k' }, { '1': 'A2', '2': 'GND' }, 1)
+    .part('RANP', 'resistor', 1430, 250, { value: '1M' }, { '1': 'ANA', '2': 'GND' }, 1);
   // ---- the overcurrent cut-off (irrigation.ts, simulated there): SRET → 0.1 Ω → ground; above
   // 2 A the latch takes OE high (every register output off) and pulls every gate down (GCL), at
   // power-up too, until the firmware's CLR

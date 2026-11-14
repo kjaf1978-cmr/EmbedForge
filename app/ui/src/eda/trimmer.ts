@@ -30,7 +30,7 @@ export interface TrimmerOptions {
 }
 
 export function trimmer(o: TrimmerOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V12']);
   const V = 'V12', trig = o.trigger ?? 1;
   nb.para('TRIMMER DRIVE (cordless, 36 V Li-ion, brushed motor about 500 W): trigger switch (main contact, speed pot, brake contact); IRFP4110 at 20 kHz with STTH6003 freewheel; NE555 ramp and CD4001 latch set each period, reset by the set point (soft start 0.5 s) or by 40 A (cycle-by-cycle limit); latched stops for a jam (the current limit acting for 1 s), battery below 27.5 V and above 85 °C at the heatsink or the motor; released trigger resets.', -1200, -300);
 

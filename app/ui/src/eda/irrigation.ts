@@ -32,7 +32,7 @@ export interface IrrigationOptions {
 }
 
 export function irrigationFront(o: IrrigationOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V24', 'V33', 'V5']);
   nb.para('IRRIGATION CONTROLLER, field interface (two of the 64 valve channels, the overcurrent cut-off, one of the 64 sensor inputs). Valves 24 V DC (0.45 A inrush, 0.3 A hold); sensors 0–3 V.', -1200, -300);
   // ---- test bench: the 24 V supply, the 5 V logic rail, the microcontroller's outputs
   nb.block('bench').note('TEST BENCH: supplies, the microcontroller, the field (not part of the board)', -1200, -150)

@@ -74,7 +74,7 @@ export const GRINDER = {
 };
 
 export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB();
+  const nb = new NB().wireUp(['V12', 'V15', 'V24']);
   const mains = (o.supply ?? '240') === '240', G = GRINDER[mains ? '240' : '24'], V = 'V12';
   // 240 V: the operator's side (the run chain, the coils, the speed pot) is PELV, its 0 V PE0
   // bonded to earth; the control is at the mains' potential (GND the bridge's negative) and meets
@@ -180,7 +180,7 @@ export function grinder(o: GrinderOptions = {}): { sheet: Sheet; nb: NB } {
   // (found in simulation)
   if (mains) nb.part('LA', 'inductor', 850, 250, { value: '15m', imax: '32' }, { '1': 'SWN', '2': 'LAO' })
     .part('XLA1', 'terminal', 900, 200, { value: 'armature choke (from the switch node)' }, { '1': 'SWN' })
-    .part('XLA2', 'terminal', 900, 250, { value: 'armature choke (to the motor)' }, { '1': 'LAO' });
+    .part('XLA2', 'terminal', 1000, 250, { value: 'armature choke (to the motor)' }, { '1': 'LAO' });
   nb.part('XM1', 'terminal', 900, 300, { value: mains ? 'motor A+ (through the reversing switch)' : 'motor A+' }, { '1': mains ? 'LAO' : 'SWN' })
     .part('XM2', 'terminal', 900, 350, { value: mains ? 'motor A− (through the reversing switch)' : 'motor A−' }, { '1': 'SHN' })
     .part('RSH', 'resistor', 1000, 400, { value: G.rsh, pmax: mains ? '5' : '10' }, { '1': 'SHN', '2': 'GND' }, 1)

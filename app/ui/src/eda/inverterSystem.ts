@@ -41,7 +41,7 @@ export function inverterSystem(o: SystemOptions): { sheet: Sheet; suffix: string
     refs.push((key) => un.refOf(s, key));
     suffix.push(k === 0 ? '' : `_${k}`);
   });
-  const nb = new NB();
+  const nb = new NB().wireUp(['VK'], 1);
   // the box on the first unit's battery (after its fuse); a high-frequency bench has none, so
   // the box gets its own 52 V
   if (o.arch === 'hf') nb.block('battery').part('VKB', 'battery', 3800, 2450, { value: '52', rint: '0.05' }, { '1': 'SYS_VB', '2': 'GND' }, 1);

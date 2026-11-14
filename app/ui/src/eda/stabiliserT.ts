@@ -45,7 +45,7 @@ export const STABT_VARIANTS = {
 
 export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   const kva = o.kva ?? 5, vr = STABT_VARIANTS[kva], vin = o.vin ?? 230;
-  const nb = new NB();
+  const nb = new NB().wireUp(['+12V']);
   const V = '+12V';
   nb.para(`MAINS VOLTAGE STABILISER ${kva} kVA, thyristor-switched taps (D41). The input is connected to one tap of a ${kva} kVA autotransformer (150 … 280 V) by one of seven anti-parallel thyristor pairs; the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in.`, -1250, -380)
     .para('A tap change is a break-before-make at the current zero: all gates off, every pair blocking (a voltage across each, seen by its own optocoupler) for 0.15 ms, then the latch takes the new tap and its pair fires (opto-triac). A shorted pair never blocks, so no second tap ever closes onto it; the stuck-change protection then opens the output contactor. LM339 comparators against a TL431 ladder choose the tap (160 / 180 / 200 / 220 / 240 / 265 V); the output contactor closes after about 8 s; an independent protection opens it outside 190 … 255 V, on a stuck change and above 85 °C at the heatsink.', -50, -380);

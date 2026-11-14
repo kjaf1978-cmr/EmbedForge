@@ -172,7 +172,7 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
       const members = conn.nets.find((n) => n.name === e);
       if (!members || members.pins.length !== 2 || members.power.length) continue;
       const other = members.pins.find((x) => !x.startsWith(`${l.ref}.`));
-      const q = other && sheet.parts.find((x) => x.ref === other.split('.')[0]);
+      const q = other ? sheet.parts.find((x) => x.ref === other.split('.')[0]) : undefined;
       if (q?.sym === 'resistor') span.add(net(q.ref, other!.split('.')[1] === '1' ? '2' : '1'));
     }
     const across = (x: string, y: string) => x !== y && span.has(x) && span.has(y);

@@ -20,7 +20,7 @@ export type MainsSurge = 'lightning' | 'induced' | 'socket';
  *  1.2/50 µs at the socket between L and N. `stages`: which SPDs are fitted. */
 export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boolean; t3?: boolean } = {}): { sheet: Sheet; nb: NB } {
   const s = { t1: true, t2: true, t3: true, ...stages };
-  const nb = new NB();
+  const nb = new NB().wireUp([]);
   // the mains start at their positive peak (phase 90°) and the surge comes 0.1 ms later
   const at = 0.1e-3;
   nb.para('SURGE PROTECTION, mains house (TN-C-S): type 1+2 SPD at the main board, type 2 SPD in the sub-board, type 3 at the socket of sensitive appliances, coordinated by the cables between them (10 m and 15 m). Main earthing terminal on a 10 Ω earth electrode; PEN split to N and PE at the main board.', -1200, -300);
@@ -76,7 +76,7 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
  *  array end (DC+ to the frame). `tvs`: fit the charger's input TVS. */
 export function pvHouse(o: { tvs?: boolean; spdArray?: boolean; spdCharger?: boolean } = {}): { sheet: Sheet; nb: NB } {
   const s = { tvs: true, spdArray: true, spdCharger: true, ...o };
-  const nb = new NB();
+  const nb = new NB().wireUp([]);
   const at = 1e-3;
   nb.para('SURGE PROTECTION, PV house (DC side): type 2 DC SPDs (two varistors in Y, 170 V DC) at the array junction box and at the charger, a 5 kW TVS across the charger input; array frame, junction box and charger earthed with a 6 mm² conductor beside the DC cable.', -1200, -300);
   nb.block('bench').note('TEST BENCH: the array (three 280 Wp in series) and an induced surge', -1200, -150)

@@ -11,6 +11,17 @@ import { symbolOf } from '../src/eda/symbols';
 import { connectivity } from '../src/eda/connectivity';
 import { deck } from './deck';
 import type { Sheet } from '../src/eda/schematic';
+import { stabiliserT } from '../src/eda/stabiliserT';
+import { mainsHouse, pvHouse } from '../src/eda/surge';
+import { pumpControl } from '../src/eda/pumpControl';
+import { irrigationMain, irrigationModule } from '../src/eda/irrigationBoards';
+import { irrigationFront } from '../src/eda/irrigation';
+import { gateController } from '../src/eda/gate';
+import { trimmer } from '../src/eda/trimmer';
+import { blockMachine } from '../src/eda/blockMachine';
+import { grinder } from '../src/eda/grinder';
+import type { NB } from '../src/eda/powerExamples';
+import { inverterSystem } from '../src/eda/inverterSystem';
 
 const overlaps = (s: Sheet) => {
   const b = s.parts.filter((p) => !symbolOf(p.sym).power).map((p) => ({ p, b: partBounds(p) }));
@@ -80,6 +91,35 @@ describe('every power design is a real circuit diagram (D28)', () => {
     expect(sheet.parts.filter((p) => p.sym === 'vdc').map((p) => p.ref)).toEqual([]);
     expect(sheet.parts.filter((p) => p.sym === 'terminal').length).toBeGreaterThanOrEqual(4);
   });
+});
+
+describe('every worked product is a real circuit diagram (D28, owner review of 14 November)', () => {
+  // the designs entered with net labels on their pins are drawn with wires: the placement spread,
+  // every connection wired, the nets that run between blocks named by a label in each block
+  const designs: [string, () => { sheet: Sheet; nb: NB }, number][] = [
+    ['stabiliser 10 kVA (thyristor taps)', () => stabiliserT({ kva: 10 }), 4], ['surge protection, house on the mains', () => mainsHouse('lightning'), 0],
+    ['surge protection, PV array and charger', () => pvHouse(), 0], ['pump controller', pumpControl, 4], ['irrigation main board', irrigationMain, 2],
+    ['irrigation 8-zone module', irrigationModule, 4], ['irrigation field interface', irrigationFront, 2], ['gate controller', gateController, 4],
+    ['trimmer drive', trimmer, 4], ['block machine', blockMachine, 4], ['grinder 240 V', () => grinder({ supply: '240' }), 4], ['grinder 24 V', () => grinder({ supply: '24' }), 4],
+  ];
+  for (const [name, build, terminals] of designs) it(`${name}: wired, every connection drawn, no label on a pin, no overlapping parts, ERC clean`, () => {
+    const { sheet, nb } = build();
+    expect(nb.unrouted).toEqual([]);
+    expect(sheet.wires.length).toBeGreaterThan(40);
+    const pins = new Set(sheet.parts.filter((p) => !symbolOf(p.sym).power).flatMap((p) => pinPositions(p).map((q) => `${q.at.x},${q.at.y}`)));
+    expect(sheet.labels.filter((l) => !l.note && pins.has(`${l.x},${l.y}`)).map((l) => l.name)).toEqual([]);
+    expect(overlaps(sheet)).toEqual([]);
+    expect(erc(sheet).filter((i) => i.severity !== 'info' && i.rule !== 'SIM-05').map((i) => i.message)).toEqual([]);
+    expect(sheet.parts.filter((p) => p.sym === 'vdc' && p.props.scope !== 'test').map((p) => p.ref)).toEqual([]);
+    expect(sheet.parts.filter((p) => p.sym === 'terminal').length).toBeGreaterThanOrEqual(terminals);
+  }, 120_000);
+  it('inverter system (two units in parallel with the link box): no label on a pin, no overlapping parts, ERC clean', () => {
+    const { sheet } = inverterSystem({ arch: 'lf', phases: [0, 0], load: [5.3] });
+    const pins = new Set(sheet.parts.filter((p) => !symbolOf(p.sym).power).flatMap((p) => pinPositions(p).map((q) => `${q.at.x},${q.at.y}`)));
+    expect(sheet.labels.filter((l) => !l.note && pins.has(`${l.x},${l.y}`)).map((l) => l.name)).toEqual([]);
+    expect(overlaps(sheet)).toEqual([]);
+    expect(erc(sheet).filter((i) => i.severity !== 'info' && i.rule !== 'SIM-05').map((i) => i.message)).toEqual([]);
+  }, 300_000);
 });
 
 describe('no wasted parts (owner, 16 October: D31): no unused units beyond what the packages force', () => {

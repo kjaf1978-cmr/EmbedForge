@@ -20,6 +20,9 @@ export interface AutowireOptions {
   block?: (p: Part) => string;
   /** Nets that keep no name label when they are wired in one piece. */
   unnamed?: (net: string) => boolean;
+  /** Name a lone pin (a labelled net's piece of one pin, a test point) as its net is reached,
+   *  before the later wires fill the space beside it (dense IC pin rows). */
+  namesFirst?: boolean;
   /** Return a drawing that differs from the netlist instead of failing (for diagnosis). */
   noCheck?: boolean;
 }
@@ -420,13 +423,13 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
   for (const [net, list] of order) {
     if (list.length < 2 && !labelled.has(net)) {
       // a single pin on a named net (a test point, an open contact): its label
-      if (!/^N\(/.test(net)) later.push(() => placeName(net, [list[0].at]));
+      if (!/^N\(/.test(net)) { if (o.namesFirst) placeName(net, [list[0].at]); else later.push(() => placeName(net, [list[0].at])); }
       continue;
     }
     if (labelled.has(net)) {
       const byBlock = new Map<string, { part: Part; at: Pt }[]>();
       for (const q of list) { const b = blockOf(q.part); byBlock.set(b, [...(byBlock.get(b) ?? []), q]); }
-      for (const group of byBlock.values()) for (const piece of wireGroup(net, group)) later.push(() => placeName(net, piece));
+      for (const group of byBlock.values()) for (const piece of wireGroup(net, group)) { if (o.namesFirst && piece.length === 1) placeName(net, piece); else later.push(() => placeName(net, piece)); }
       continue;
     }
     const pieces = wireGroup(net, list);
@@ -452,4 +455,32 @@ export function autowire(sheet: Sheet, o: AutowireOptions = {}): { sheet: Sheet;
     throw new Error(`autowire changed the circuit: ${diff.join(' | ')}`);
   }
   return { sheet: result, failed };
+}
+
+/** The placement of a label-entered sheet spread out by `k` (part positions scaled about the
+ *  origin, snapped to the grid): room between the parts for the wires and their texts. Labels,
+ *  power symbols and probes on a pin move with their part; notes scale with the sheet. */
+export function spreadSheet(s: Sheet, k: number): Sheet {
+  if (k === 1) return s;
+  const snap = (v: number) => Math.round(v / GRID) * GRID;
+  const real = s.parts.filter((p) => !symbolOf(p.sym).power);
+  const pinAt = new Map<string, Part>();
+  for (const p of real) for (const q of pinPositions(p)) pinAt.set(key(q.at), p);
+  const d = new Map(real.map((p) => [p.id, { dx: snap(p.x * k) - p.x, dy: snap(p.y * k) - p.y }]));
+  // no two parts' pins on one point after the move (that would join their nets): a part whose
+  // pin would land on another's moves on along x by a grid step at a time
+  const taken = new Set<string>();
+  for (const p of real) {
+    const m = d.get(p.id)!;
+    const at = () => pinPositions(p).map((q) => key({ x: q.at.x + m.dx, y: q.at.y + m.dy }));
+    while (at().some((x) => taken.has(x))) m.dx += GRID;
+    for (const x of at()) taken.add(x);
+  }
+  const mv = (pt: Pt): Pt => { const p = pinAt.get(key(pt)); const m = p ? d.get(p.id)! : { dx: snap(pt.x * k) - pt.x, dy: snap(pt.y * k) - pt.y }; return { x: pt.x + m.dx, y: pt.y + m.dy }; };
+  return {
+    ...s,
+    parts: s.parts.map((p) => (symbolOf(p.sym).power ? { ...p, ...mv(p) } : { ...p, x: p.x + d.get(p.id)!.dx, y: p.y + d.get(p.id)!.dy })),
+    labels: s.labels.map((l) => (l.note ? { ...l, x: snap(l.x * k), y: snap(l.y * k) } : { ...l, ...mv(l) })),
+    probes: s.probes.map((pr) => ('at' in pr && pr.at ? { ...pr, at: mv(pr.at) } : pr)),
+  };
 }

@@ -5,7 +5,8 @@
 
 import { inverterHF, inverterLF } from './inverters';
 import { addLabel, placePart } from './editor';
-import { autowire, type AutowireOptions } from './autowire';
+import { autowire, pinPartition, spreadSheet, type AutowireOptions } from './autowire';
+import { connectivity } from './connectivity';
 import { annotate, emptySheet, newId, pinPositions, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from './schematic';
 import type { Example } from './examples';
 
@@ -26,12 +27,19 @@ export class NB {
   private blocks = new Map<string, string>();
   /** When set, `done()` draws the circuit with wires (autowire) instead of labels on every pin. */
   wired: AutowireOptions | null = null;
+  /** Placement spread applied before wiring (room for the wires of a densely entered sheet). */
+  spread = 1;
+  /** Label every net that runs between blocks (set by `wireUp`). */
+  private labelBetweenBlocks = false;
   /** Connections the drawing could not wire (they are joined by labels instead). */
   unrouted: string[] = [];
   /** Offset added to the positions of the parts placed next (a shared section drawn elsewhere). */
   ox = 0;
   oy = 0;
   block(name: string): this { this.cur = name; return this; }
+  /** Draw with wires (D28): `rails` as power symbols, every net that runs between blocks wired
+   *  inside each block and named by a label there; the placement spread by `spread` first. */
+  wireUp(rails: string[], spread = 2): this { this.wired = { rails, namesFirst: true }; this.labelBetweenBlocks = true; this.spread = spread; return this; }
   /** Places a part; `key` names it for probes and sweeps (its reference comes from annotation). */
   part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0, mirror = false): this {
     // parts of the test bench (sources, loads, the array, the battery) are not part of the product
@@ -83,7 +91,19 @@ export class NB {
   /** The annotated sheet, with an optional parameter sweep of a part property (by key). */
   done(step?: { key: string; param?: string; list: string }): Sheet {
     let s = annotate(this.s);
-    if (this.wired) { const w = autowire(s, { ...this.wired, block: (p) => this.blocks.get(p.id) ?? '' }); s = w.sheet; this.unrouted = w.failed; }
+    if (this.wired) {
+      const before = pinPartition(s);
+      s = spreadSheet(s, this.spread);
+      if (JSON.stringify(pinPartition(s)) !== JSON.stringify(before)) throw new Error('spreading the placement changed the netlist');
+      let labelled = this.wired.labelled;
+      if (this.labelBetweenBlocks) {
+        const where = new Map<string, Set<string>>();
+        const byRef = new Map(s.parts.map((p) => [p.ref, p.id]));
+        for (const [pin, net] of connectivity(s).pinNet) { const id = byRef.get(pin.split('.')[0]); if (id) where.set(net, (where.get(net) ?? new Set()).add(this.blocks.get(id) ?? '')); }
+        const rails = new Set([...(this.wired.rails ?? []), 'GND']);
+        labelled = [...where].filter(([n, b]) => b.size > 1 && !rails.has(n)).map(([n]) => n);
+      }
+      const w = autowire(s, { ...this.wired, labelled, block: (p) => this.blocks.get(p.id) ?? '' }); s = w.sheet; this.unrouted = w.failed; }
     if (step) {
       const ref = s.parts.find((p) => p.id === this.ids.get(step.key))!.ref;
       const sw: StepSweep = { on: true, ref, param: step.param ?? 'value', mode: 'list', list: step.list, start: '', stop: '', step: '' };
