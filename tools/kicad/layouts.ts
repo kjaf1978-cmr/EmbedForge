@@ -614,8 +614,12 @@ export const DESIGNS: Record<string, Design> = {
     region: { x0: 3, x1: 157, y0: 3, y1: 92 },
     // ground poured on both layers after routing: it joins the bridge's negative and the
     // capacitors, which Freerouting left (one 3 mm link through a single via could not carry the
-    // motor's 15.5 A)
-    post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }] } },
+    // motor's 15.5 A); the bus bleeder's pad joined by tools/kicad/autolink.py (14 November)
+    post: { zones: [{ net: 'GND', layer: 'B.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }, { net: 'GND', layer: 'F.Cu', pts: [[2, 2], [158, 2], [158, 108], [2, 108]], clearance: 0.8, solid: true }],
+      tracks: [{ net: 'BUS', layer: 'F.Cu', width: 1.0, pts: [[44.88, 67.75], [45.0, 67.75], [50.25, 62.5], [50.25, 55.5], [62.5, 43.25], [71.5, 43.25]] },
+        { net: 'BUS', layer: 'B.Cu', width: 1.0, pts: [[44.88, 67.75], [45.0, 67.75], [39.75, 73.0], [39.75, 82.25]] }, { net: 'BUS', layer: 'F.Cu', width: 1.0, pts: [[39.75, 82.25], [47.75, 90.25]] },
+        { net: 'BUS', layer: 'B.Cu', width: 1.0, pts: [[47.75, 90.25], [62.5, 105.0], [67.0, 105.0], [70.0, 102.0]] }],
+      vias: [{ net: 'BUS', at: [39.75, 82.25] }, { net: 'BUS', at: [47.75, 90.25] }] } },
   'grinder-240-control': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [{ ...classFor('HV', GR_HV, 0.5, 1.5), apart: 3.2 }],
     panel: (p) => { const r = grRefs('240'); return r.pwr.has(p.ref) || r.off.has(p.ref) || r.iso.has(p.ref); }, w: 180, h: 130,

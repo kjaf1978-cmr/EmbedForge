@@ -1,22 +1,19 @@
-** Drc report for /tmp/claude-0/-home-user-EmbedForge/b7bd11a3-356f-58b9-b4d0-5e457da9f7d3/scratchpad/kc/grinder-240-power/routed.kicad_pcb **
-** Created on 2026-11-12 05:52:11 **
+** Drc report for /tmp/claude-0/-home-user-EmbedForge/bdc76733-6f7b-5532-947a-cf3b3f21688d/scratchpad/rt-grinder-240-power/routed.kicad_pcb **
+** Created on 2026-11-14 19:44:04 **
 
-** Found 61 DRC violations **
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(30.0000 mm, 98.8500 mm): Reference 'BR1'
+** Found 57 DRC violations **
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
     @(20.0000 mm, 100.0000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(70.0000 mm, 97.4500 mm): Reference 'Q1'
+    @(40.0000 mm, 100.0000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
     @(61.8250 mm, 98.7000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(61.8250 mm, 104.1000 mm): Line on F.Silkscreen
+    @(108.1750 mm, 98.7000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
     @(108.1750 mm, 104.1000 mm): Line on F.Silkscreen
@@ -28,37 +25,52 @@
     @(88.6000 mm, 105.6000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(78.7500 mm, 76.2500 mm): Line on F.Silkscreen
+    @(72.2500 mm, 69.4200 mm): Reference 'U4'
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(78.7500 mm, 70.2500 mm): Line on F.Silkscreen
+    @(74.7900 mm, 80.8300 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(65.7500 mm, 70.2500 mm): Line on F.Silkscreen
+    @(59.7500 mm, 46.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(97.6500 mm, 88.5000 mm): Line on F.Silkscreen
+    @(46.7500 mm, 46.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(91.3500 mm, 88.5000 mm): Line on F.Silkscreen
+    @(46.7500 mm, 40.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(91.3500 mm, 87.2500 mm): Line on F.Silkscreen
+    @(91.3500 mm, 83.5000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(91.3500 mm, 86.0000 mm): Line on F.Silkscreen
+    @(78.0000 mm, 92.2500 mm): Reference 'R11'
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(73.1500 mm, 84.1000 mm): Line on F.Silkscreen
+    @(81.1500 mm, 91.0000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(73.1500 mm, 80.9000 mm): Line on F.Silkscreen
+    @(74.8500 mm, 89.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(64.9800 mm, 51.5000 mm): Line on F.Silkscreen
+    @(74.8500 mm, 88.5000 mm): Line on F.Silkscreen
+[silk_over_copper]: Silkscreen clipped by solder mask
+    Local override; Severity: warning
+    @(73.2500 mm, 67.0000 mm): Reference 'C7'
+[silk_over_copper]: Silkscreen clipped by solder mask
+    Local override; Severity: warning
+    @(34.5000 mm, 50.2500 mm): Reference 'J_MAINS'
+[silk_over_copper]: Silkscreen clipped by solder mask
+    Local override; Severity: warning
+    @(4.0200 mm, 51.5000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
     @(64.9800 mm, 61.5000 mm): Line on F.Silkscreen
+[silk_over_copper]: Silkscreen clipped by solder mask
+    Local override; Severity: warning
+    @(75.5000 mm, 31.2500 mm): Line on F.Silkscreen
+[silk_over_copper]: Silkscreen clipped by solder mask
+    Local override; Severity: warning
+    @(130.0000 mm, 91.0000 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
     @(16.2500 mm, 27.7500 mm): Line on F.Silkscreen
@@ -76,43 +88,19 @@
     @(34.1900 mm, 45.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(88.7500 mm, 69.5000 mm): Reference 'X3'
+    @(81.9400 mm, 67.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(84.9400 mm, 70.7500 mm): Line on F.Silkscreen
+    @(81.9400 mm, 77.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(84.9400 mm, 80.7500 mm): Line on F.Silkscreen
+    @(89.5600 mm, 67.7500 mm): Line on F.Silkscreen
 [silk_over_copper]: Silkscreen clipped by solder mask
     Local override; Severity: warning
-    @(92.5600 mm, 70.7500 mm): Line on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(32.5000 mm, 64.7500 mm): Reference 'X5'
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(28.6900 mm, 66.0000 mm): Line on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(28.6900 mm, 76.0000 mm): Line on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(101.0000 mm, 66.2500 mm): Reference 'X6'
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(97.1900 mm, 67.5000 mm): Line on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(97.1900 mm, 77.5000 mm): Line on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(104.8100 mm, 67.5000 mm): Line on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(104.8100 mm, 77.5000 mm): Line on F.Silkscreen
+    @(94.1900 mm, 77.0000 mm): Line on F.Silkscreen
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(30.0000 mm, 102.0000 mm): Footprint BR1
+    @(30.0000 mm, 102.0000 mm): Footprint BR2
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
     @(70.0000 mm, 102.0000 mm): Footprint Q1
@@ -124,37 +112,37 @@
     @(85.0000 mm, 104.0000 mm): Footprint RT1
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(62.5000 mm, 86.0000 mm): Footprint U1
+    @(72.2500 mm, 75.7500 mm): Footprint U4
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(72.2500 mm, 73.2500 mm): Footprint C5
+    @(53.2500 mm, 43.7500 mm): Footprint C8
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(94.5000 mm, 87.2500 mm): Footprint R2
+    @(94.5000 mm, 83.5000 mm): Footprint R2
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(78.0000 mm, 89.7500 mm): Footprint R6
+    @(78.0000 mm, 89.7500 mm): Footprint R11
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(76.7500 mm, 82.5000 mm): Footprint C4
+    @(73.2500 mm, 64.2500 mm): Footprint C7
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
     @(34.5000 mm, 56.5000 mm): Footprint J_MAINS
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(59.7500 mm, 23.7500 mm): Footprint C2
+    @(59.7500 mm, 23.7500 mm): Footprint C3
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(85.2500 mm, 43.2500 mm): Footprint C3
+    @(85.2500 mm, 43.2500 mm): Footprint C4
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(117.5000 mm, 85.0000 mm): Footprint R9
+    @(117.5000 mm, 85.0000 mm): Footprint R16
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
     @(14.0000 mm, 77.2500 mm): Footprint J_PANEL
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(25.2500 mm, 23.7500 mm): Footprint C1
+    @(25.2500 mm, 23.7500 mm): Footprint C2
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
     @(21.5000 mm, 37.7500 mm): Footprint RV2
@@ -163,28 +151,28 @@
     @(7.7500 mm, 25.0000 mm): Footprint X1
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(38.0000 mm, 40.7500 mm): Footprint X2
+    @(38.0000 mm, 40.7500 mm): Footprint X3
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(88.7500 mm, 75.7500 mm): Footprint X3
+    @(85.7500 mm, 72.7500 mm): Footprint X4
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(32.7500 mm, 85.5000 mm): Footprint X4
+    @(33.2500 mm, 85.7500 mm): Footprint X5
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(32.5000 mm, 71.0000 mm): Footprint X5
+    @(32.7500 mm, 71.2500 mm): Footprint X6
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(101.0000 mm, 72.5000 mm): Footprint X6
+    @(98.0000 mm, 72.0000 mm): Footprint X7
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(52.5000 mm, 67.7500 mm): Footprint R3
+    @(52.5000 mm, 67.7500 mm): Footprint R5
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(47.2500 mm, 82.2500 mm): Footprint D1
+    @(57.0000 mm, 75.2500 mm): Footprint D1
 [lib_footprint_issues]: The current configuration does not include the library 'NETApps'.
     Local override; Severity: warning
-    @(75.7500 mm, 64.2500 mm): Footprint R1
+    @(61.5000 mm, 88.7500 mm): Footprint R1
 
 ** Found 0 unconnected pads **
 

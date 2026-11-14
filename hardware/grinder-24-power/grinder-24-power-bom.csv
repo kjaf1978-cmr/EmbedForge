@@ -59,7 +59,7 @@
 "no","1","RV5","Potentiometer","","power rating 500 mW","","3386P-1-105LF","Bourns","Mouser; LCSC","0.90","0.90","estimate"
 "no","1","RV6","Potentiometer","","power rating 500 mW; wiper position 90%","","3386P-1-102LF","Bourns","Mouser; LCSC","0.90","0.90","estimate"
 "no","2","U2 U11","NOR gate (4 in one package)","V12","","","CD4001BE","Texas Instruments","any distributor (DIP-14)","0.45","0.90","estimate"
-"no","1","U3","Voltage regulator","7812","","","","","","","",""
+"no","1","U3","Voltage regulator","7812","","","L7812CV","STMicroelectronics","LCSC; Mouser","0.40","0.40","estimate"
 "no","1","U4","555 timer","NE555","","","NE555P","Texas Instruments","any distributor (DIP-8)","0.35","0.35","estimate"
 "no","1","U5","Shunt reference","TL431","","","TL431ACLP","Texas Instruments","any distributor (TO-92)","0.30","0.30","estimate"
 "no","1","U6","Comparator (4 in one package)","LM339","","","LM339N","Texas Instruments","any distributor (DIP-14)","0.45","0.45","estimate"

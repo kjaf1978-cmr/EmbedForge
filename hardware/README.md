@@ -115,5 +115,12 @@ cd app/ui && npx vite-node ../../tools/kicad/export.ts stabiliser /tmp/stab
 cd ../.. && python3 tools/kicad/route.py /tmp/stab --passes 40
 ```
 
+Check every board against its schematic as the app builds it now (the same parts, every pad on
+the same net, the parts list current; `--fix-bom` rewrites stale parts lists):
+
+```
+cd app/ui && npx vite-node ../../tools/kicad/check.ts
+```
+
 Needs KiCad 7 (pcbnew Python module and kicad-cli), Freerouting 1.9 at
 /opt/freerouting/freerouting.jar (or `FREEROUTING=`), Java 17+ and xvfb-run.
