@@ -40,7 +40,7 @@ export const IRR_BUS: Record<string, string> = {
 
 /** One 8-zone channel module. */
 export function irrigationModule(): { sheet: Sheet; nb: NB } {
-  const nb = new NB().wireUp(['V24', 'V33', 'V33S'], 3);
+  const nb = new NB().wireUp(['V24', 'V33', 'V33S'], 3, true);
   nb.para('IRRIGATION CONTROLLER, 8-zone channel module (one of up to eight on the ribbon bus): valve drivers, sensor inputs, shift registers, multiplexer.', -200, -300);
   nb.block('bus')
     .part('J_IN', 'idc20', -150, 0, { value: 'IDC 2×10' }, { ...IRR_BUS });
@@ -92,7 +92,7 @@ export function irrigationModule(): { sheet: Sheet; nb: NB } {
 
 /** The main board: supplies, the microcontroller module, the overcurrent cut-off, the bus. */
 export function irrigationMain(): { sheet: Sheet; nb: NB } {
-  const nb = new NB().wireUp(['V24', 'V33', 'V33S', 'V5'], 3);
+  const nb = new NB().wireUp(['V24', 'V33', 'V33S', 'V5']);
   nb.para('IRRIGATION CONTROLLER, main board: 24 V in, 5 V and 3.3 V, the ESP32 module, the overcurrent cut-off of every valve, the sensors\' supply, the bus to the channel modules.', -200, -300);
   nb.block('supply')
     .part('X24P', 'terminal', -150, 0, { value: '24 V DC in +' }, { '1': 'VIN' })

@@ -37,9 +37,10 @@ export class NB {
   ox = 0;
   oy = 0;
   block(name: string): this { this.cur = name; return this; }
-  /** Draw with wires (D28): `rails` as power symbols, every net that runs between blocks wired
-   *  inside each block and named by a label there; the placement spread by `spread` first. */
-  wireUp(rails: string[], spread = 2): this { this.wired = { rails, namesFirst: true }; this.labelBetweenBlocks = true; this.spread = spread; return this; }
+  /** Draw with wires (D28): `rails` as power symbols, every other net drawn as one wire (or, with
+   *  `between`, wired inside each block and named by a label there: for a sheet too dense to
+   *  wire in one piece); the placement spread by `spread` first. */
+  wireUp(rails: string[], spread = 2, between = false): this { this.wired = { rails, namesFirst: true }; this.labelBetweenBlocks = between; this.spread = spread; return this; }
   /** Places a part; `key` names it for probes and sweeps (its reference comes from annotation). */
   part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0, mirror = false): this {
     // parts of the test bench (sources, loads, the array, the battery) are not part of the product
