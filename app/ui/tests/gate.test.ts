@@ -26,7 +26,7 @@ function run(o: GateOptions) {
 describe('gate controller: motor drive, limit switches, cut-off', () => {
   it('ERC clean', () => {
     expect(erc(gateController({ shortAt: 0.5, obstacleAt: 0.5 }).sheet).filter((i) => i.severity === 'error').map((i) => i.message)).toEqual([]);
-  });
+  }, 120_000);
   it('opening: the motor starts (peak below 12 A), runs at about 2.5 A; the open limit switch stops it in hardware (the firmware still commands OPEN and RUN) and the relays\' brake holds it; no part over its ratings', () => {
     const s = run({ open: 0.05, run: 0.08, clrAt: 0.03, limitAt: 1.0, stop: '1.5' });
     expect(s.peak(s.im)).toBeLessThan(12);

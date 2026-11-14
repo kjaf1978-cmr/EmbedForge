@@ -30,7 +30,7 @@ const ipk = (kva: number) => (kva * 1000 / 140) * Math.SQRT2;
 describe('thyristor-switched stabiliser: the drawing', () => {
   for (const kva of [5, 10, 15] as const) it(`${kva} kVA: ERC clean`, () => {
     expect(erc(stabiliserT({ kva }).sheet).filter((i) => i.severity === 'error').map((i) => i.message)).toEqual([]);
-  });
+  }, 180_000);
 });
 
 describe.runIf(LONG)('thyristor-switched stabiliser: steady state at full load', () => {

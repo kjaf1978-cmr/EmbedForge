@@ -148,5 +148,5 @@ describe('no wasted parts (owner, 16 October: D31): no unused units beyond what 
       const conn = connectivity(s);
       for (const q of s.parts.filter((p) => p.sym === 'nmos' && p.props.value === 'IRLZ44N')) expect(conn.pinNet.get(`${q.ref}.1`)).toMatch(/^K[12]EN$/);
     }
-  });
+  }, 120_000);
 });

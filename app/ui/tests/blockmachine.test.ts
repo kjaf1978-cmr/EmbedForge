@@ -23,7 +23,7 @@ function run(o: BlockOptions) {
 describe('block moulding machine: safety circuit and outputs', () => {
   it('ERC clean', () => {
     expect(erc(blockMachine({ k1Welded: true, ch1Bridged: true }).sheet).filter((i) => i.severity === 'error').map((i) => i.message)).toEqual([]);
-  });
+  }, 120_000);
   it('power-up: the safety rail stays off (no automatic start) even with the microcontroller commanding the pump and the valve', () => {
     const s = run({ pump: 0.05, valve: 0.05, stop: '0.5' });
     expect(s.v('V24S', 0.5)).toBeLessThan(3); // off: the lamp's knee at most

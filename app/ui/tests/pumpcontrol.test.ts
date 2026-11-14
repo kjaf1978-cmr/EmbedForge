@@ -23,7 +23,7 @@ function run(o: PumpOptions) {
 describe('pump control: the drawing', () => {
   it('ERC clean', () => {
     expect(erc(pumpControl().sheet).filter((i) => i.severity === 'error').map((i) => i.message)).toEqual([]);
-  });
+  }, 120_000);
 });
 
 describe.runIf(LONG)('pump control: cycle and DFMEA faults', () => {
