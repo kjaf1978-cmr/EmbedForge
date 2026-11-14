@@ -16,7 +16,7 @@ import { grinder } from '../src/eda/grinder';
 
 const PRODUCTS: [string, () => { sheet: Sheet }][] = [
   ['changeover-1p', changeover1], ['changeover-3p', changeover3], ['stabiliser-1kva', stabiliser], ['mppt-charger', mpptCharger],
-  ...[5, 10, 15].map((kva) => [`stabiliser-t-${kva}kva`, () => stabiliserT({ kva })] as [string, () => { sheet: Sheet }]),
+  ...([5, 10, 15] as const).map((kva) => [`stabiliser-t-${kva}kva`, () => stabiliserT({ kva })] as [string, () => { sheet: Sheet }]),
   ['surge-mains-house', () => mainsHouse('lightning')], ['surge-pv-house', () => pvHouse()], ['pump-control', pumpControl],
   ['irrigation-main', irrigationMain], ['irrigation-module', irrigationModule], ['irrigation-field-interface', irrigationFront],
   ['gate-controller', gateController], ['trimmer-drive', trimmer], ['block-machine', blockMachine],
