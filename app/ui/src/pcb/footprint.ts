@@ -208,6 +208,15 @@ add(make('SW_Tactile_6mm', 'Push-button, tactile 6 × 6 mm', 'pads 1a/1b are one
   { x0: -3, y0: -3, x1: 3, y1: 3, h: 5 }));
 add(make('Relay_SPDT_SRD', 'Relay SPDT, SRD style (12 mm rows)', 'coil A1/A2, contacts COM, NC, NO', [tht('1', 2, -6, 2.5, 1.3), tht('2', 2, 6, 2.5, 1.3), tht('3', 0, 0, 2.5, 1.3, 'rect'), tht('4', 14.2, -6, 2.5, 1.3), tht('5', 14.2, 6, 2.5, 1.3)],
   box(-1.6, -8, 17.4, 8), { x0: -1.5, y0: -7.9, x1: 17.3, y1: 7.9, h: 15.5 }));
+// Song Chuan 832A-1C (30 A, one common terminal), from the maker's PC board layout (bottom view,
+// mirrored to the top view and turned so the coil faces +x): the two fixed contacts 7.6 mm apart
+// (Ø 2.1 holes), the common 17.8 mm from them and 10.14 mm below (2.54 below the second), the
+// coil's two Ø 1.1 holes 22.8 mm along at 3.8 and 14.0 mm. Body 32.2 × 27.5 mm (sealed, -S).
+// The drawing does not name which fixed contact is NC: check by continuity on a sample (the one
+// joined to COM with the coil off is NC) before the first board is ordered.
+add(make('Relay_SPDT_832A', 'Relay SPDT 30 A, Song Chuan 832A-1C', 'coil 1/2, contacts COM 3, NC 4, NO 5 (832A-1C pin pattern)',
+  [tht('4', 0, 0, 3.5, 2.1), tht('5', 7.6, 0, 3.5, 2.1), tht('3', 10.14, 17.8, 3.5, 2.1, 'rect'), tht('1', 22.8, 3.8, 2.0, 1.1), tht('2', 22.8, 14.0, 2.0, 1.1)],
+  box(-2.7, -5.0, 29.9, 22.9), { x0: -2.5, y0: -4.8, x1: 29.7, y1: 22.7, h: 20.4 }));
 // protection parts
 const movDisc = (id: string, name: string, pitch: number, D: number, t: number) =>
   add(make(id, name, `varistor disc Ø ${D} mm, pitch ${pitch} mm`, [tht('1', -pitch / 2, 0, 2.0, 1.0, 'rect'), tht('2', pitch / 2, 0, 2.0, 1.0)],
@@ -225,7 +234,11 @@ movDisc('MOV_Disc_20', 'Varistor disc Ø 20 mm, 10 mm', 10, 22, 6.5);
 add(make('IRM-15', 'AC-DC module Mean Well IRM-15 (case 219A)', 'Mean Well IRM-15, 52.4 × 27.2 × 24 mm, pins Ø 1.0 mm (data sheet, case 219A)',
   [tht('L', 22.8, 10.4, 2.2, 1.3, 'rect'), tht('N', 22.8, -10.4, 2.2, 1.3), tht('-V', -22.2, -10.4, 2.2, 1.3), tht('+V', -22.2, -2.4, 2.2, 1.3)],
   box(-26.2, -13.6, 26.2, 13.6), { x0: -26.2, y0: -13.6, x1: 26.2, y1: 13.6, h: 24 }));
-movDisc('TMOV_14', 'Thermally protected varistor 14 mm (TMOV14RP), 7.5 mm', 7.5, 21, 11);
+// Littelfuse TMOV14RP (datasheet): disc Ø 17.0 mm max, 11.0 mm thick max (300 … 460 V), leads 7.5 mm
+// apart (± 1.0), up to 5.5 mm off the disc's mid-plane (bulk pack): the outline takes the offset
+// the body on the +y side of the leads (fit it that way: the outline is the side marked on the silkscreen)
+add(make('TMOV_14', 'Thermally protected varistor 14 mm (TMOV14RP), 7.5 mm, body on the marked side', 'varistor disc Ø 17 mm max, pitch 7.5 mm, body up to 11 mm to one side of the leads',
+  [tht('1', -3.75, 0, 2.0, 1.0, 'rect'), tht('2', 3.75, 0, 2.0, 1.0)], box(-8.95, -1.4, 8.95, 11.2), { x0: -8.75, y0: -1.2, x1: 8.75, y1: 11.0, h: 20 }));
 // P9 irrigation: the 74HC595 and 74HC4051 also in SOIC-16; the ribbon-cable bus; the ESP32 module
 add(soic('SOIC-16', 'SOIC-16', 16));
 add(dip('Arduino_Nano', 'Arduino Nano on two 1 × 15 sockets (DIP-30, 15.24 mm rows)', 30, 15.24));

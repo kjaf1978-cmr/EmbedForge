@@ -204,7 +204,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     // a jumper (props.jumper): a 3-pin header and a shunt, the common in the middle
     case 'spdt': if (p.props.jumper === 'true') return [map('PinHeader_1x3', { 2: '1', 1: '2', 3: '3' }, { note: 'jumper: A, C (common), B; shunt on C–B for a linked unit' })];
       return [map('Switch_Slide_3', { 2: '1', 1: '2', 3: '3' }, { note: 'A, C (common), B' })];
-    case 'relay': return [same('Relay_SPDT_SRD', pins, 'A1, A2 (coil), COM, NC, NO')];
+    case 'relay': return /30 A/.test(v) ? [same('Relay_SPDT_832A', pins, 'coil 1/2, COM, NC, NO (Song Chuan 832A-1C)')] : [same('Relay_SPDT_SRD', pins, 'A1, A2 (coil), COM, NC, NO')];
     case 'dcmotor': return [map('TerminalBlock_1x2', { 1: '1', 2: '2' }, { note: 'motor wires; the speed output is simulation only' })];
     case 'motor1': return [same('TerminalBlock_1x2', pins, 'motor wires L, N')];
     case 'motor3': return [same('TerminalBlock_1x4', pins, 'motor wires U, V, W, N')];

@@ -546,7 +546,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
       // 30 A relays for a 4.5 A load: contact wear, the main field failure of stabilisers, falls
       // with about the square of the margin (more than 1 million operations here)
       // a weak tropical grid: 200 tap changes a day; 4.4 million operations at a 4.5 A load
-      .part(`K${n}`, 'relay', x + 250, 330, { value: '12 V 30 A', opsday: '200', life: '4400000' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
+      .part(`K${n}`, 'relay', x + 250, 330, { value: '12 V 30 A', opsday: '200', life: '10000000' }, { '1': V, '2': `K${n}`, '3': chain[k], '5': tap, '4': next })
       // diagnostics: an LED beside each coil shows which relay is energised
       .part(`LK${n}`, 'led', x + 120, 250, { colour: 'yellow' }, { '2': V, '1': `LKA${n}` }, 1)
       .part(`RLK${n}`, 'resistor', x + 120, 340, { value: '2.2k', labels: 'left' }, { '1': `LKA${n}`, '2': `K${n}` }, 1)
@@ -576,7 +576,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RBD', 'resistor', 2970, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3000, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
     .part('DD', 'diode', 3050, 410, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
-    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': 'VTC', '2': 'KD', '3': 'T5', '5': 'OUTK' })
+    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '100000' }, { '1': 'VTC', '2': 'KD', '3': 'T5', '5': 'OUTK' })
     // the autotransformer's thermal cut-out (115 °C, NC, in its winding) in series with the
     // output relay's coil: an overheated transformer drops the load until it has cooled (DFMEA S-7)
     .part('XT1', 'terminal', 3240, 60, { value: 'thermal cut-out of T (NC)' }, { '1': V })
@@ -627,7 +627,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     // the input relay: the tap chain fed through its NO contact. Its coil is fed through the
     // thermal cut-out (VTC), as the output relay's: a hot transformer is switched off, not only
     // its load
-    .part('KI', 'relay', 2850, 900, { value: '12 V 30 A', life: '4400000' }, { '1': 'VTC', '2': 'KIC', '3': 'VIN', '5': 'VCH' })
+    .part('KI', 'relay', 2850, 900, { value: '12 V 30 A', opsday: '200', life: '200000' }, { '1': 'VTC', '2': 'KIC', '3': 'VIN', '5': 'VCH' })
     // its contact snubber, as the tap relays': opening it interrupts the autotransformer's
     // magnetising current, which would otherwise ring up to a spike (found in simulation)
     .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VIN', '2': 'SNKI' }, 1)
@@ -687,7 +687,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('CD4', 'capacitor', 1120, 1580, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('QP', 'npn', 1220, 1290, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
     .part('DP', 'diode', 1300, 1200, { value: '1N4148' }, { '2': 'KPC', '1': V }, 3)
-    .part('KP', 'relay', 1400, 1200, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KPC', '3': 'OUTK', '5': 'OUT' })
+    .part('KP', 'relay', 1400, 1200, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KPC', '3': 'OUTK', '5': 'OUT' })
     .part('CD3', 'capacitor', 650, 1660, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.v('VIN').v('OUT').v('SF').v('SF2').i('RLOAD', '1');
   nb.sim({ type: 'tran', stop, step: '200u', start: 'zero' });
