@@ -217,12 +217,14 @@ movDisc('MOV_Disc_14', 'Varistor disc Ø 14 mm, 7.5 mm', 7.5, 16, 6);
 movDisc('MOV_Disc_20', 'Varistor disc Ø 20 mm, 10 mm', 10, 22, 6.5);
 // the thermally protected 14 mm varistor (TMOV14RP…): 7.5 mm pitch; its outline kept generous (21 × 11 mm,
 // above the series' size) until checked against the maker's dimensional drawing
-// Mean Well IRM-15 AC-DC module: PROVISIONAL pin positions (AC/L, AC/N on the left, +V, −V on
-// the right, 45.72 mm apart, the pairs 10.16 mm apart) and a 53 × 28 mm body: to be replaced by
-// the maker's drawing before a board with it is ordered (open item of P4)
-add(make('IRM-15', 'AC-DC module Mean Well IRM-15 (PROVISIONAL pin positions)', 'Mean Well IRM-15 module, 53 × 28 mm; PROVISIONAL: check the pin positions against the maker\'s drawing',
-  [tht('L', -22.86, -5.08, 2.2, 1.1, 'rect'), tht('N', -22.86, 5.08, 2.2, 1.1), tht('+V', 22.86, -5.08, 2.2, 1.1), tht('-V', 22.86, 5.08, 2.2, 1.1)],
-  box(-26.5, -14, 26.5, 14), { x0: -26.5, y0: -14, x1: 26.5, y1: 14, h: 24 }));
+// Mean Well IRM-15 AC-DC module, from its data sheet (IRM-15-SPEC 2025-11-21, page 3, Mechanical
+// Specification, case 219A, bottom view, ±0.5 mm): body 52.4 × 27.2 × 24 mm; AC/N and AC/L 3.4 mm
+// from one end, 20.8 mm apart (3.2 mm from the long sides); −V 45 mm from them, level with AC/N;
+// +V 8 mm from −V; pins Ø 1.0 mm. Drawn from the top (the bottom view mirrored), origin at the
+// body's centre; holes 1.3 mm
+add(make('IRM-15', 'AC-DC module Mean Well IRM-15 (case 219A)', 'Mean Well IRM-15, 52.4 × 27.2 × 24 mm, pins Ø 1.0 mm (data sheet, case 219A)',
+  [tht('L', 22.8, 10.4, 2.2, 1.3, 'rect'), tht('N', 22.8, -10.4, 2.2, 1.3), tht('-V', -22.2, -10.4, 2.2, 1.3), tht('+V', -22.2, -2.4, 2.2, 1.3)],
+  box(-26.2, -13.6, 26.2, 13.6), { x0: -26.2, y0: -13.6, x1: 26.2, y1: 13.6, h: 24 }));
 movDisc('TMOV_14', 'Thermally protected varistor 14 mm (TMOV14RP), 7.5 mm', 7.5, 21, 11);
 // P9 irrigation: the 74HC595 and 74HC4051 also in SOIC-16; the ribbon-cable bus; the ESP32 module
 add(soic('SOIC-16', 'SOIC-16', 16));

@@ -229,7 +229,7 @@ export const varistorAlpha = (m: VaristorModel) => Math.log(m.ic / 1e-3) / Math.
 /** AC-DC power modules (encapsulated, PCB mount): output voltage and current, input range. */
 export interface AcDcModel { vout: number; imax: number; vacMin: number; vacMax: number; pout: number }
 export const ACDC_MODULES: NamedModel<AcDcModel>[] = [
-  { name: 'IRM-15-12', note: 'Mean Well IRM-15-12: 12 V 1.25 A (15 W), wide-range AC input (85 … 305 V AC to be confirmed on its data sheet), reinforced isolation, encapsulated, PCB mount', model: { vout: 12, imax: 1.25, vacMin: 85, vacMax: 305, pout: 15 } },
+  { name: 'IRM-15-12', note: 'Mean Well IRM-15-12: 12 V 1.25 A (15 W), 85 … 305 V AC (120 … 430 V DC), I/P–O/P 4.2 kV AC, inrush 40 A at 230 V cold start, 52.4 × 27.2 × 24 mm (data sheet IRM-15-SPEC 2025-11-21)', model: { vout: 12, imax: 1.25, vacMin: 85, vacMax: 305, pout: 15 } },
 ];
 
 export const VARISTORS: NamedModel<VaristorModel>[] = [
