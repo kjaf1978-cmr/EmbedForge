@@ -82,10 +82,15 @@ describe('relay-switched mains voltage stabiliser', () => {
     // the tap 4 flip-flop takes the new state after the change (230 → 215 V: K4 on)
     const i = r.v['QF4'].findIndex((v, k) => r.x[k] > 1.3 && v > 6);
     expect(i).toBeGreaterThan(0);
-    // the input relay's coil is off (KIC high) when the flip-flop changes, and stays off 20 ms more
-    expect(r.v['KIC'][i]).toBeGreaterThan(8);
-    const j = r.x.findIndex((x) => x > r.x[i] + 0.02);
-    expect(r.v['KIC'][j]).toBeGreaterThan(8);
+    // the input contactor's pole is open (the input's voltage across it within the last 5 ms)
+    // when the flip-flop changes, and 15 ms later (the tap relays' operate time)
+    const open = (k: number) => { let m = 0; for (let j = k; j > 0 && r.x[j] > r.x[k] - 0.005; j--) m = Math.max(m, Math.abs(r.v['VIN'][j] - r.v['VCH'][j])); return m > 50; };
+    expect(open(i)).toBe(true);
+    expect(open(r.x.findIndex((x) => x > r.x[i] + 0.015))).toBe(true);
+    // the load's gap (the pole open) is under 100 ms
+    const t0 = r.x.findIndex((x, k) => x > 1.3 && Math.abs(r.v['VIN'][k] - r.v['VCH'][k]) > 50);
+    const t1 = r.x.findIndex((x, k) => k > t0 && x > r.x[t0] + 0.02 && !open(k));
+    expect(r.x[t1] - r.x[t0]).toBeLessThan(0.1);
   }, 180_000);
   it('a sag from 230 to 195 V while running: it steps down a tap and the output recovers', async () => {
     const { sheet } = stabiliser(230, { to: [195], at: 1.3 }, '2', undefined, T);

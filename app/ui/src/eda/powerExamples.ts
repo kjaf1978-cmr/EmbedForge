@@ -615,7 +615,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('USQ1', 'comparator', 2150, 640, { value: 'LM339', pkg: 'SEQ' }, { '3': 'VEH', '2': 'E', '1': 'TRG', '8': V, '4': 'GND' })
     .part('USQ2', 'comparator', 2150, 800, { value: 'LM339', pkg: 'SEQ' }, { '3': 'E', '2': 'VEL', '1': 'TRG', '8': V, '4': 'GND' })
     .part('RTRG', 'resistor', 2280, 720, { value: '1k' }, { '1': 'MT', '2': 'TRG' })
-    .part('RMT', 'resistor', 2380, 620, { value: '86.6k' }, { '1': V, '2': 'MT' }, 1)
+    .part('RMT', 'resistor', 2380, 620, { value: '61.9k' }, { '1': V, '2': 'MT' }, 1)
     .part('CMT', 'capacitor', 2380, 820, { value: '1u', vmax: '50' }, { '1': 'MT', '2': 'GND' }, 1)
     .part('USQ3', 'comparator', 2500, 640, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEL', '1': 'CLK', '8': V, '4': 'GND' })
     .part('RCLK', 'resistor', 2600, 580, { value: '10k' }, { '1': V, '2': 'CLK' }, 1)
