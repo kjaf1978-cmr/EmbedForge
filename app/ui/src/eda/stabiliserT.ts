@@ -209,6 +209,10 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('UOH', 'comparator', 3360, 420, { value: 'LM393', pkg: 'PROT3' }, { '3': 'VOH', '2': 'ESE', '1': 'OOH', '8': V, '4': 'GND' })
     .part('DLS', 'diode', 3460, 420, { value: '1N4148' }, { '2': 'LAT', '1': 'OOH' })
     .part('RLAT', 'resistor', 3560, 300, { value: '10k' }, { '1': V, '2': 'LAT' }, 1)
+    // a trip of a fraction of a microsecond empties CLAT at once; it recovers through 10k (1 ms),
+    // long enough for the latch to set (without it the check fired and released again within one
+    // step, and the enable hunted at its threshold: found in simulation)
+    .part('CLAT', 'capacitor', 3760, 560, { value: '100n', vmax: '50' }, { '1': 'LAT', '2': 'GND' }, 1)
     // the latch's threshold rises slower than LAT at power-up (10k, 10k, 1 µF): it never sets then
     .part('RLTA', 'resistor', 3660, 300, { value: '10k' }, { '1': 'VREF', '2': 'LTH' }, 1)
     .part('RLTB', 'resistor', 3660, 420, { value: '10k' }, { '1': 'LTH', '2': 'GND' }, 1)

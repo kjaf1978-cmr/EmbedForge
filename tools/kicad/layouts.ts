@@ -63,70 +63,47 @@ const twoSources = (a: string[], b: string[], load: string[], track = 1.6) => (s
   { ...classFor('Backup', potentialGroup(s, b, new Set(load)), track, 1.5), apart: 3.2 }];
 const mains = (seeds: string[], track = 1.6) => (s: Sheet): NetClass[] => [{ ...classFor('Mains', potentialGroup(s, seeds), track, 1.5), apart: 3.2 }];
 
-// The stabiliser's power section (D44): the relay ladder K1 … K6 in a column at x 95, 20 mm apart,
-// contacts to the left (rotated 180°: COM at x 95, NC and NO 14.2 mm left, the coil's pads 2 mm
-// left of COM, reached from the control side above and below COM); each relay's two snubbers
-// (COM–NO above, COM–NC below) in two rows to its left, with an 8.8 mm channel between relays for
-// the tap tracks; the tap block on the left edge (N at the top, then T1 … T7 in the relays'
-// order); input terminals, breaker, MOV and fuse at the top left; the three transformer
-// connectors at the top of the boundary, primaries left, secondaries right; the output relay K7
-// and the output terminals at the bottom. The control circuits fill x 100 … 210.
-// The relay's pin-out puts COM 2 mm from its coil pins (6 mm above and below it): the plan draws
-// the coil pins' stubs straight out to the control zone (x 100), 4.6 mm from COM, and each link of
-// the ladder (NC of one relay to COM of the next) down the middle of the 9.5 mm between the next
-// relay's coil pins (3.95 mm from them); the control routing then stays right of x 99
-// Since the review (D51, B2, D52) the ladder starts 20 mm lower (STAB_DY): the input relay K8 takes
-// K1's old place (the input's VIN arrives at its COM), the supply module PS1 sits above it across
-// the boundary (mains pads left, its 12 V outputs right of the edge), and the protection's relay K9
-// sits below the output relay K7
-const STAB_DY = 20, STAB_KO = 192 + STAB_DY, STAB_KP = STAB_KO + 22;
+// The stabiliser's power section (D44), for the Song Chuan 832A relays (D57: the pin pattern from
+// the maker's drawing; footprint Relay_SPDT_832A, rot 0: NC at (0, 0), NO at (7.6, 0), COM at
+// (10.14, 17.8), the coil at x 22.8). The relays stand in a column, 30 mm apart, their contacts at
+// x 80 … 90 in the mains zone and their coils at x 102.8 right of the edge (12.7 mm from COM): K1
+// … K6, then the output relay K7 and the protection's relay K9. The input contactor K8 (D57) sits
+// on the DIN rail; its landing block is placed with the boundary parts. Fixed copper: the ladder
+// links (each relay's NC down x 75.5 to the next relay's COM, top layer), the taps (each NO up
+// 6 mm and left on the bottom layer to its own vertical, x 22 … 32.5, then to the tap block on
+// the left edge), T7, T5 to K7's COM, and K7's NO to K9's COM. The rest is routed with the
+// insulation rules. Each relay's two snubbers (COM–NO, COM–NC) lie in two rows to its left.
+// Input terminals, breaker, MOV and fuse at the top left; the two sense transformers at the top of
+// the boundary; the supply module PS1 across the boundary (mains pads left, 12 V outputs right).
+const STAB_Y1 = 68, STAB_P = 30;
+const stabY = (k: number) => STAB_Y1 + STAB_P * (k - 1);
+const STAB_KO = stabY(7), STAB_KP = stabY(8), STAB_TAPC = 160;
 const STAB_TRACKS: PlanTrack[] = (() => {
   const t: PlanTrack[] = [];
-  // each relay's coil pins (x 93, COM ∓ 6) drawn out to the control zone: pin 2 (the driver) above
-  // COM, pin 1 (the supply: +12V, or VTC through the thermal cut-out) below
-  const coils: [number, string, string][] = [
-    ...[0, 1, 2, 3, 4, 5].map((k): [number, string, string] => [70 + STAB_DY + 20 * k, `K${k + 1}`, '+12V']),
-    [50 + STAB_DY, 'KIC', 'VTC'], [STAB_KO, 'KD', 'VTC'], [STAB_KP, 'KPC', '+12V']];
-  for (const [y, drv, sup] of coils) {
-    t.push({ net: sup, layer: 'B.Cu', width: 0.5, pts: [[93, y + 6], [sup === '+12V' ? 102 : 100.5, y + 6]] });
-    t.push({ net: drv, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
+  const tapY = (k: number) => STAB_TAPC - 19.05 + 7.62 * (k - 1);
+  // the ladder: K1's COM is VCH (from the input contactor, routed); NC of relay k to COM of k + 1.
+  // Each link overlaps the next in height, so they alternate: odd links down the left (x 75.5, top
+  // layer), even links across under their relay's contacts and down the right (x 95, bottom layer:
+  // 6 mm from the coil pins, clear of the taps, which leave to the left)
+  for (let k = 1; k <= 5; k++) {
+    const y = stabY(k), c = stabY(k + 1) + 17.8;
+    if (k % 2) t.push({ net: `C${k + 1}N`, layer: 'F.Cu', width: 1.6, pts: [[80, y], [75.5, y + 4.5], [75.5, c - 4.5], [80, c], [90.14, c]] });
+    else t.push({ net: `C${k + 1}N`, layer: 'B.Cu', width: 1.6, pts: [[80, y], [77, y + 3], [77, y + 8], [95, y + 8], [95, c], [90.14, c]] });
   }
-  // the tap relays' +12V as one rail on the bottom layer (x 102, 5.5 mm from the COM pins); the
-  // coil drives cross it on the top layer
-  t.push({ net: '+12V', layer: 'B.Cu', width: 0.8, pts: [[102, 76 + STAB_DY], [102, 176 + STAB_DY]] });
-  // the taps: relay k's NO (80.8, Y − 6) through the channel between relays (Y − 10) to its own
-  // vertical (x 22 … 32.5, 3.5 mm apart, inner to outer in the order the taps are reached, so no two
-  // cross) and along to its pad on the tap block (x 14, T1 at 100.95 mm, 7.62 mm apart); on the
-  // bottom layer, the ladder links on the top. T7 (K6's NC) below the last relay. T5 also feeds the
-  // output relay K7 (into its COM between NO and NC, 3.95 mm from its coil pins) and the output
-  // sense transformer T4 (top layer, x 40)
-  const tapY = (k: number) => 100.95 + STAB_DY + 7.62 * (k - 1);
-  const vx = [22, 25.5, 29, 32.5, 25.5, 22];
+  // the taps: NO of relay k (87.6, Y) up 6 mm, left to its vertical, to the tap block (x 14); taps 1
+  // … 4 come down to the block, 5 and 6 up to it, T7 (K6's NC) from below: verticals ordered so
+  // that no two cross
+  const vx: Record<number, number> = { 1: 22, 2: 25.5, 3: 29, 4: 32.5, 5: 29, 6: 25.5, 7: 22 };
   for (let k = 1; k <= 6; k++) {
-    const y = 70 + STAB_DY + 20 * (k - 1), ch = y - 10;
-    t.push({ net: `T${k}`, layer: 'B.Cu', width: 1.6, pts: [[80.8, y - 6], [76.8, ch], [vx[k - 1], ch], [vx[k - 1], tapY(k)], [14, tapY(k)]] });
+    const y = stabY(k);
+    t.push({ net: `T${k}`, layer: 'B.Cu', width: 1.6, pts: [[87.6, y], [87.6, y - 6], [vx[k], y - 6], [vx[k], tapY(k)], [14, tapY(k)]] });
   }
-  t.push({ net: 'T7', layer: 'B.Cu', width: 1.6, pts: [[80.8, 176 + STAB_DY], [76.8, 180 + STAB_DY], [18.5, 180 + STAB_DY], [18.5, tapY(7)], [14, tapY(7)]] });
-  t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[14, tapY(5)], [8, tapY(5) + 6], [8, 176 + STAB_DY], [40, 184 + STAB_DY], [40, STAB_KO], [95, STAB_KO]] });
-  // each relay's COM net (VIN for K1, the ladder links after it) from its two snubber resistors'
-  // pins (1 W, 15.24 mm: 71.62, Y ∓ 4) into COM along Y, between NO and NC (3.95 mm from them and the coil pins)
-  // VIN from the control's sense transformer's primary (pin 1 at (77.76, 12)) down to the input
-  // relay K8's COM on the bottom layer: between the protection transformer's primary pins (2.5 mm
-  // from each), under the supply module, 4.7 mm from K8's coil pins
-  t.push({ net: 'VIN', layer: 'B.Cu', width: 1.6, pts: [[77.76, 12], [81.57, 15.81], [81.57, 31], [89, 38.43], [89, 58], [87, 62], [87, 70], [95, 70]] });
-  // K1's COM is fed through the input relay K8 (VCH, from K8's NO at (80.8, 64) down the channel
-  // between K8's NC and coil pins, 4.75 mm from each)
-  t.push({ net: 'VCH', layer: 'F.Cu', width: 1.6, pts: [[80.8, 44 + STAB_DY], [87, 50 + STAB_DY], [87, 70 + STAB_DY]] });
-  // the output relay's NO to the protection relay's COM (OUTK), on the bottom layer under the T5
-  // track: left of K7's open NC (4.25 mm, the insulation distance holds to an open pad too), into
-  // K9's COM between its NO and NC
-  t.push({ net: 'OUTK', layer: 'B.Cu', width: 1.6, pts: [[80.8, STAB_KO - 6], [74.5, STAB_KO + 0.3], [74.5, STAB_KP - 4.3], [78.8, STAB_KP], [95, STAB_KP]] });
-  const com = ['VCH', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
-  com.forEach((n, k) => {
-    const y = 70 + STAB_DY + 20 * k;
-    t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[71.62, y - 4], [75.62, y], [95, y]] }, { net: n, layer: 'F.Cu', width: 1.6, pts: [[71.62, y + 4], [75.62, y]] });
-    if (k > 0) t.push({ net: n, layer: 'F.Cu', width: 1.6, pts: [[80.8, y - 14], [87, y - 8], [87, y]] });
-  });
+  t.push({ net: 'T7', layer: 'B.Cu', width: 1.6, pts: [[80, stabY(6)], [vx[7], stabY(6)], [vx[7], tapY(7)], [14, tapY(7)]] });
+  // T5 to the output relay's COM (top layer, down the left edge, along K7's COM row)
+  t.push({ net: 'T5', layer: 'F.Cu', width: 1.6, pts: [[14, tapY(5)], [8, tapY(5) + 6], [8, STAB_KO + 17.8], [90.14, STAB_KO + 17.8]] });
+  // K7's NO to K9's COM (bottom layer, left of both open NC pads: 6 mm, the insulation distance
+  // holds to an open pad too)
+  t.push({ net: 'OUTK', layer: 'B.Cu', width: 1.6, pts: [[87.6, STAB_KO], [87.6, STAB_KO - 6], [74, STAB_KO - 6], [74, STAB_KP + 13.3], [78.5, STAB_KP + 17.8], [90.14, STAB_KP + 17.8]] });
   return t;
 })();
 
@@ -136,28 +113,26 @@ const STAB_PLAN = (): Placed[] => (() => {
   // every part by its key in the design: references move when parts are added
   const r = stabRef;
   const p: Placed[] = [];
-  for (let k = 0; k < 6; k++) {
-    const y = 70 + STAB_DY + 20 * k, n = k + 1;
-    p.push({ ref: r(`K${n}`), x: 95, y, rot: 180 },
-      // turned 180°: each resistor's COM pin (1) towards the relay at x 71.62 (1 W, 15.24 mm), the
-      // snubber's mid node on the two inner pads (51.75, 56.38), the capacitor's NO / NC pin
-      // outside at 44.25 (100 nF 630 V film, 7.5 mm)
-      { ref: r(`CSA${n}`), x: 48, y: y - 4, rot: 180 }, { ref: r(`RSA${n}`), x: 64, y: y - 4, rot: 180 },
-      { ref: r(`CSC${n}`), x: 48, y: y + 4, rot: 180 }, { ref: r(`RSC${n}`), x: 64, y: y + 4, rot: 180 });
+  for (let k = 1; k <= 6; k++) {
+    const y = stabY(k);
+    // the snubbers turned 180°: each resistor's COM pin (1) at x 65.62 (1 W, 15.24 mm), the
+    // mid node on the inner pads, the capacitor's NO / NC pin outside at 38.25: 5.4 mm left of the
+    // ladder links at x 71 … 75.5
+    p.push({ ref: r(`K${k}`), x: 80, y, rot: 0 },
+      { ref: r(`CSA${k}`), x: 42, y: y + 7, rot: 180 }, { ref: r(`RSA${k}`), x: 58, y: y + 7, rot: 180 },
+      { ref: r(`CSC${k}`), x: 42, y: y + 13, rot: 180 }, { ref: r(`RSC${k}`), x: 58, y: y + 13, rot: 180 });
   }
-  p.push({ ref: r('KO'), x: 95, y: STAB_KO, rot: 180 },
-    // the protection's own relay below the output relay; the input relay (D51) above the tap
-    // relays, its snubber in the snubbers' column
-    { ref: r('KP'), x: 95, y: STAB_KP, rot: 180 },
-    { ref: r('KI'), x: 95, y: 50 + STAB_DY, rot: 180 }, { ref: r('CSKI'), x: 48, y: 46 + STAB_DY, rot: 180 }, { ref: r('RSKI'), x: 64, y: 46 + STAB_DY, rot: 180 },
+  p.push({ ref: r('KO'), x: 80, y: STAB_KO, rot: 0 }, { ref: r('KP'), x: 80, y: STAB_KP, rot: 0 },
+    // the input contactor's snubber (across its pole, VIN–VCH) below the varistor
+    { ref: r('CSKI'), x: 24, y: 56, rot: 180 }, { ref: r('RSKI'), x: 40, y: 56, rot: 180 },
     // the autotransformer's tap block
-    { ref: r('T1'), x: 14, y: 120 + STAB_DY, rot: 270 },
+    { ref: r('T1'), x: 14, y: STAB_TAPC, rot: 270 },
     { ref: r('X1'), x: 10, y: 12, rot: 0 }, { ref: r('X2'), x: 10, y: 26, rot: 0 }, { ref: r('QF1'), x: 30, y: 12, rot: 0 },
     { ref: r('RV1'), x: 18, y: 40, rot: 0 }, { ref: r('F1'), x: 50, y: 12, rot: 0 },
     // the supply module (D52), turned: L and N at x 57.2 in the mains zone, +V and −V at x 102.2
     // right of the edge; and the two sense transformers
     { ref: r('PS1'), x: 80, y: 47, rot: 180 }, { ref: r('TR1'), x: 93, y: 12, rot: 0 }, { ref: r('TR2'), x: 93, y: 27, rot: 0 },
-    { ref: r('X4'), x: 10, y: STAB_KO, rot: 0 }, { ref: r('X5'), x: 10, y: STAB_KO + 12, rot: 0 });
+    { ref: r('X4'), x: 10, y: STAB_KP, rot: 0 }, { ref: r('X5'), x: 10, y: STAB_KP + 12, rot: 0 });
   return p;
 })();
 
@@ -578,10 +553,7 @@ const GR24_PLANES: PlanZone[] = [
 
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), panel: (p) => !!p.props.wire, wire: (net) => (net === 'GND' ? '4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board\'s PE terminal' : ''), w: 230, h: 246, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
-    keep1: [50, 70, 90, 110, 130, 150, 170, 192, 214].map((y0): [number, number, number, number] => { const y = y0 + STAB_DY; return [88, y - 9, 99, y + 9]; }),
-    // the link Freerouting left on the +12V rail, drawn by tools/kicad/autolink.py
-    post: { tracks: [{ net: '+12V', layer: 'B.Cu', width: 0.3, pts: [[133.96, 22.25], [134, 22.25], [134, 17.5], [138.75, 12.75], [146.5, 12.75], [151.5, 17.75], [151.5, 23]] }, { net: '+12V', layer: 'F.Cu', width: 0.3, pts: [[151.5, 23], [149.5, 25], [149.5664, 24.9119]] }], vias: [{ net: '+12V', at: [151.5, 23] }] } },
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), panel: (p) => !!p.props.wire, wire: (net) => (net === 'GND' ? '4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board\'s PE terminal' : ''), w: 230, h: 306, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99 },
 
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
