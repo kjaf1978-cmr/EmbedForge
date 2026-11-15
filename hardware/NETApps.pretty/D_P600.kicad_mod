@@ -1,5 +1,5 @@
 (footprint "D_P600" (version 20221018) (generator "netapps") (layer "F.Cu")
-    (descr "axial, pitch 15.24 mm, body 9.1 × 9.1 mm")
+    (descr "axial, pitch 15.24 mm, body 9.1 x 9.1 mm")
     (fp_text reference "REF**" (at 0 -5.8) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-0000000000a1) (effects (font (size 1 1) (thickness 0.15))))
     (fp_text value "D_P600" (at 0 5.8) (layer "F.Fab") (tstamp 00000000-0000-4000-8000-0000000000a2) (effects (font (size 1 1) (thickness 0.15))))
     (fp_line (start -4.55 -4.55) (end 4.55 -4.55) (stroke (width 0.12) (type solid)) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-0000000000a3))

@@ -1,5 +1,5 @@
 (footprint "D_DO-201AD" (version 20221018) (generator "netapps") (layer "F.Cu")
-    (descr "axial, pitch 15.24 mm, body 9.5 × 5.3 mm")
+    (descr "axial, pitch 15.24 mm, body 9.5 x 5.3 mm")
     (fp_text reference "REF**" (at 0 -3.9) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-000000000093) (effects (font (size 1 1) (thickness 0.15))))
     (fp_text value "D_DO-201AD" (at 0 3.9) (layer "F.Fab") (tstamp 00000000-0000-4000-8000-000000000094) (effects (font (size 1 1) (thickness 0.15))))
     (fp_line (start -4.75 -2.65) (end 4.75 -2.65) (stroke (width 0.12) (type solid)) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-000000000095))

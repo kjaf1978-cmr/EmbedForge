@@ -1,5 +1,5 @@
 (footprint "C_Disc_5.08" (version 20221018) (generator "netapps") (layer "F.Cu")
-    (descr "radial, pitch 5.08 mm, body 6 × 3 mm")
+    (descr "radial, pitch 5.08 mm, body 6 x 3 mm")
     (fp_text reference "REF**" (at 0 -2.75) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-000000000025) (effects (font (size 1 1) (thickness 0.15))))
     (fp_text value "C_Disc_5.08" (at 0 2.75) (layer "F.Fab") (tstamp 00000000-0000-4000-8000-000000000026) (effects (font (size 1 1) (thickness 0.15))))
     (fp_line (start -3.6 -1.6) (end 3.6 -1.6) (stroke (width 0.12) (type solid)) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-000000000027))

@@ -1,5 +1,5 @@
 (footprint "CP_Radial_D6.3" (version 20221018) (generator "netapps") (layer "F.Cu")
-    (descr "radial, pitch 2.5 mm, Ø 6.3 mm")
+    (descr "radial, pitch 2.5 mm, ? 6.3 mm")
     (fp_text reference "REF**" (at 0 -4.4) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-000000000030) (effects (font (size 1 1) (thickness 0.15))))
     (fp_text value "CP_Radial_D6.3" (at 0 4.4) (layer "F.Fab") (tstamp 00000000-0000-4000-8000-000000000031) (effects (font (size 1 1) (thickness 0.15))))
     (fp_circle (center 0 0) (end 3.27 0) (stroke (width 0.12) (type solid)) (fill none) (layer "F.SilkS") (tstamp 00000000-0000-4000-8000-000000000032))

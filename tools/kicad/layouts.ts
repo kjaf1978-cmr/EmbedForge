@@ -642,7 +642,9 @@ export const DESIGNS: Record<string, Design> = {
   'grinder-24-control': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [], panel: (p) => grRefs('24').pwr.has(p.ref) || grRefs('24').off.has(p.ref), w: 180, h: 130 },
   'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
-  'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 },
+  'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 ,
+    // one ground link Freerouting left, drawn by tools/kicad/autolink.py (15 November)
+    post: { tracks: [{ net: 'GND', layer: 'F.Cu', width: 0.5, pts: [[137.08, 18.25], [153.75, 18.25], [158.5, 23.0], [158.4019, 22.9019]] }] } },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
     heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 280, h: 160,
     plan: mpptPlan, tracks: MPPT_BARS, region: { x0: 0, x1: 280 } },

@@ -39,10 +39,15 @@ for (const [name, d] of Object.entries(DESIGNS)) {
     if (!got) continue;
     for (const [pad, net] of Object.entries(pads)) if (net && (got[pad] ?? '') !== net) diffs.push(`${r}.${pad}: board ${got[pad] ?? '(none)'}, schematic ${net}`);
   }
+  // the panel wiring list (link.csv where it joins two boards)
+  const panelRows = ['net;panel terminals;board connector;wire', ...nl.panel.map((w) => `${w.net};${w.ends.join(' ')};${w.board ?? ''};${d.wire?.(w.net, !!w.board, mains.has(w.net)) ?? ''}`)].join('\n') + '\n';
+  const panelFile = [join(HW, name, 'panel.csv'), join(HW, name, 'link.csv')].find((f) => existsSync(f));
+  const panelSame = panelFile ? readFileSync(panelFile, 'utf8') === panelRows : nl.panel.length === 0;
+  if (!panelSame && fixBom && panelFile) writeFileSync(panelFile, panelRows);
   const bomFile = join(HW, name, `${name}-bom.csv`), bom = bomCsv(sheet, nl);
   const bomSame = existsSync(bomFile) && readFileSync(bomFile, 'utf8') === bom;
   if (!bomSame && fixBom) writeFileSync(bomFile, bom);
   if (diffs.length) bad++;
-  console.log(`${name}: ${nl.parts.length} parts, ${diffs.length ? `${diffs.length} DIFFERENCES: ${diffs.slice(0, 8).join('; ')}` : 'parts and nets match'}; parts list ${bomSame ? 'current' : fixBom ? 'rewritten' : 'OUT OF DATE'}`);
+  console.log(`${name}: ${nl.parts.length} parts, ${diffs.length ? `${diffs.length} DIFFERENCES: ${diffs.slice(0, 8).join('; ')}` : 'parts and nets match'}; parts list ${bomSame ? 'current' : fixBom ? 'rewritten' : 'OUT OF DATE'}; wiring list ${panelSame ? (panelFile ? 'current' : 'none') : fixBom && panelFile ? 'rewritten' : 'OUT OF DATE'}`);
 }
 process.exit(bad ? 1 : 0);

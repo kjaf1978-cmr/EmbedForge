@@ -32,7 +32,7 @@
 "yes","1","R38","Resistor","4.22 kΩ","power rating 250 mW","R_Axial_0207","metal film 4.22kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "yes","1","R39","Resistor","12.1 kΩ","power rating 250 mW","R_Axial_0207","metal film 12.1kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "yes","1","R40","Resistor","100 kΩ","power rating 250 mW","R_Axial_0207","metal film 100kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
-"yes","2","RV1 RV2","Varistor (MOV)","14D471K","","MOV_Disc_14","S14K300 (B72214S0301K101)","TDK","LCSC C125541; Digi-Key","0.30","0.60","live"
+"yes","2","RV1 RV2","Varistor (MOV)","TMOV14RP300E","","TMOV_14","TMOV14RP300E","Littelfuse","Digi-Key; Mouser","1.60","3.20","estimate"
 "yes","2","T1 T2","Transformer","0.13","primary inductance 20 H; coupling 0.995; primary resistance 140 Ω; secondary resistance 1.5 Ω","Transformer_Wires_P7.62","FL 24/24 (or Hahn BV EI 482 series)","Block / Hahn","Bürklin / Reichelt","22.00","44.00","estimate"
 "yes","1","T3","Transformer","0.052","primary inductance 100 H; coupling 0.99; primary resistance 2 kΩ; secondary resistance 20 Ω","Transformer_Wires_P7.62","VB 1,0/1/12","Block","RS 074-8411","7.20","7.20","live"
 "yes","1","U1","Adjustable regulator","LM317HV","heatsink (case to air) 8 K/W","TO-220_Vertical","LM317HVT/NOPB","Texas Instruments","Mouser 926-LM317HVT/NOPB; RS 197-7244","2.20","2.20","live"
@@ -42,4 +42,4 @@
 "no","2","Q1 Q2","Circuit breaker 1-pole + N","C32 A","","","S201-C32NA","ABB","electrical wholesale","35.00","70.00","estimate"
 "no","8","X1 X2 X3 X4 X5 X6 X7 X8","Screw terminal","5.08 mm, 1 pole","functions: L mains, N mains, L back-up, N back-up, PE, L load, N load, PE","","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","3.20","estimate"
 
-"Parts on this board: EUR 72.58 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
+"Parts on this board: EUR 75.18 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
