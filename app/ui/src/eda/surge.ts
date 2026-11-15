@@ -36,7 +36,7 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
   if (surge !== 'socket') nb.block('bench').part('IS', 'isurge', -900, -100, { value: surge === 'lightning' ? '12.5k' : '20k', wave: surge === 'lightning' ? '10/350' : '8/20', delay: String(at) }, { '1': 'L1', '2': 'GND' });
   // ---- main board: PEN split at the main earthing terminal (MET), earth electrode 10 Ω
   nb.block('main board').note('MAIN BOARD', -750, -100)
-    .part('XPEN', 'terminal', -750, 100, { value: 'PEN' }, { '1': 'PEN1' });
+    .part('XPEN', 'terminal', -750, 100, { value: 'PEN', wire: '16' }, { '1': 'PEN1' });
   nb.block('earthing').part('RPEN', 'resistor', -650, 160, { value: '0.5m', pmax: '1G' }, { '1': 'PEN1', '2': 'PE1' }, 1)
     .part('REL', 'resistor', -550, 200, { value: '10', pmax: '1G' }, { '1': 'PE1', '2': 'GND' }, 1);
   // type 1+2 (varistor based: no follow current, Up 1.5 kV; a spark gap's 4 kV would need a
