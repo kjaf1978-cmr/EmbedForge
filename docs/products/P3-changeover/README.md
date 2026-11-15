@@ -16,7 +16,7 @@ safety note, and the type tests.
 | 5 | Costed parts list | 1P about €504, 3P+N about €867 (`4-parts-list/`). Every part has a manufacturer part number and a price. Prices marked "estimate" are catalogue estimates. |
 | 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, design notes, DFMEA, and the design document (PDF and Word) of each variant. |
 | 7 | Independent review | Done 15 November 2026: 3 blockers and 7 major findings, all resolved (`8-review/P3-REVIEW.md`). |
-| 8 | Package and sign-off | This package; **awaiting your sign-off**. |
+| 8 | Package and sign-off | Package c6ddfd3; **signed off by the owner on 15 November 2026**. |
 
 Open, for the prototype stage:
 

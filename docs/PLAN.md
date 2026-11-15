@@ -22,7 +22,7 @@ current product's own long runs. One session works on the branch.
 
 | # | Product | Estimate | Note |
 |---|---|---|---|
-| 1 | P3 change-over (1P, 3P+N) | 2–3 days | |
+| 1 | P3 change-over (1P, 3P+N) | 2–3 days | **signed off 15 November 2026** (package c6ddfd3; open for the prototype: interlock kit fit, TMOV body, type tests) |
 | 2 | P4 stabiliser 1 kVA | 1–2 days | |
 | 3 | P4b stabilisers 5/10/15 kVA | 2 days | |
 | 4 | P5 surge protection | 1 day | D49: certified PV SPD modules |
@@ -41,3 +41,25 @@ About 7–8 weeks. Then the offline app (about 6 months): A in-app PCB (Incremen
 and flashing (4), C catalogue and design (6), D natural language and offline model (5),
 E emulation (7), F documentation generator (8), G Increments 9–10 and Increment 1's
 leftovers, H release.
+
+## Checklist from P3 (applied to every following product)
+
+Each of these was found in P3, and each is checked in every product from P4 on:
+
+- Every terminal tagged IN, OUT, CTRL, PE or EXT. A terminal that carries power names its wire
+  size (`wire`), so it is bought as a DIN-rail block, not as a PCB terminal.
+- Wire sizes in `panel.csv` per net. A tap to the board from a power circuit is fused for its
+  wire.
+- Separate net classes for separate sources, and insulation distances between them. DRC 0 with
+  those rules.
+- The board check (`tools/kicad/check.ts`): parts, footprints, nets, parts list and wiring list
+  current.
+- Thermally protected varistors on the mains (TMOV), and fuses specified by characteristic and
+  breaking capacity.
+- Sense circuits calibrated where a part's tolerance (a small transformer's no-load voltage) moves
+  a threshold.
+- Contactor and relay ratings stated by utilisation category (AC-1 or AC-3), and interlocks by
+  mirror contacts plus a mechanical interlock where two sources meet.
+- Documents: user manual, installation (earthing, RCD, short-circuit rating, upstream
+  protection), assembly, commissioning with expected values and a record sheet, type tests.
+- An independent review before sign-off; every finding resolved or listed as open.
