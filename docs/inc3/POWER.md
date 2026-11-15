@@ -147,7 +147,7 @@ The review found three blockers and nine major issues (docs/products/P4-stabilis
 The circuit now:
 
 - **Power-up (B1):** a power-good comparator (1 MΩ, 470 nF) holds the sequencer's timer low
-  until the sense has settled (about 0.76 s); the input relay K8 stays open until then, so the
+  until the sense has settled (about 0.76 s); the input relay K8 (a contactor since D57) stays open until then, so the
   lowest tap is never connected at full input.
 - **Tap changes without current (D51, major 1):** the six comparators' outputs are latched in
   CD4013 flip-flops. A change of their sum (a 100 nF differentiator into a window comparator)
@@ -173,6 +173,19 @@ Verified (tests/stabiliser.test.ts): every step and 140 / 300 V; the two-fault c
 on and K7's driver shorted: K9 keeps the load off); power-up with the product's timing (K8
 never closed with the lowest tap); a tap changes only while K8 is open; the sag from 230 to
 195 V.
+
+### P4 — the input contactor and the 832A board (D57, 15 November 2026)
+
+The 832A datasheet the owner supplied showed two things. Its pin pattern differs from the
+footprint drawn before, so the board was re-laid out for it (230 × 321 mm; the relays 30 mm
+apart, their coils right of the boundary). And K8, which makes and breaks the load at every tap
+change, would last about 200 000 operations as a 30 A relay: it is now a DIN-rail contactor
+rated AC-1 25 A (LC1D09JL, 12 V DC coil, 2.4 W) with a diode and a 24 V Zener across its coil
+so it opens in about 20 ms. Simulation of a 230 → 215 V change: the contactor open within about
+25 ms; the tap is clocked at about 40 ms (timer 61.9k, 1 µF; with 86.6k it came at 75 ms and
+the gap was 125 ms); it recloses from the window's upper level and closes about 55 ms later: the
+load's gap is under 100 ms (test). The test now checks the contactor's pole itself (the input's
+voltage across it), not its coil drive.
 
 ### The other power designs redrawn (D28) and the design document (D29)
 

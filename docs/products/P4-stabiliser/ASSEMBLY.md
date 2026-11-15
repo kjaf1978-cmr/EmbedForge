@@ -2,10 +2,11 @@
 
 The unit is made of:
 
-- **The control board** (2 layers, 2 oz): sense, logic, the nine 30 A relays (six taps, input,
-  delay and protection), the contact snubbers and the 12 V supply module.
+- **The control board** (2 layers, 2 oz): sense, logic, the eight 30 A relays (six taps, delay and
+  protection), the contact snubbers and the 12 V supply module.
 - **The autotransformer T2,** with its built-in thermal cut-out.
-- **The breaker Q1** (1P+N) and the PE terminals X5 and X8 on a short DIN rail.
+- **The breaker Q1** (1P+N), the input contactor K8 (D57: Schneider LC1D09JL, AC-1 25 A, 12 V DC
+  coil) and the PE terminals X5 and X8 on a short DIN rail.
 - **The enclosure,** with its PE stud.
 
 Read USER_MANUAL.md first (safety). The whole board is at mains potential.
@@ -49,13 +50,15 @@ The autotransformer is made to specification. Order it with:
    - the sense transformers T1 and T3 (400 V / 24 V);
    - the AC-DC module PS1 (IRM-15-12);
    - the varistor RV1 (TMOV14RP300E);
-   - the relays K1 … K9;
+   - the relays K1 … K7 and K9 (Song Chuan 832A-1C);
    - the 7.62 mm terminal blocks.
 
    Each part's place and orientation is in `stabiliser-assembly.pdf`.
 2. **Check the varistor and the relays against their drawings.** The varistor's board outline is
-   drawn larger than the part. The relay footprint is provisional until it has been checked
-   against the Song Chuan 832A drawing. Check both before soldering.
+   drawn with the body to one side of the leads (Littelfuse's dimensions): fit it on the side the
+   outline shows. The relay footprint follows the 832A drawing; the drawing does not say which
+   fixed contact is NC, so check the first relay by continuity before soldering (the contact joined
+   to COM with the coil off is NC; it belongs on pad 4, the outer fixed-contact pad: see the assembly drawing).
 3. **Clean and check:**
    - Clean off the flux.
    - Check that there are no solder bridges, above all around the relays and the tap terminals.
@@ -77,6 +80,8 @@ the silkscreen.
 | Board X9 (control ground) | the PE stud | 1.5 mm² green-yellow |
 | Board tap block (N, T1 … T7) | autotransformer T2: N and the seven taps, in order | 1.5 mm² H07V-K, ferrules; mark each tap |
 | Board X1, X3 | T2's thermal cut-out leads | 0.75 mm², double-insulated |
+| K8 landing block on the board: poles 3, 4 (VIN, VCH) | K8 main pole 1, 2 (L1, T1) | 1.5 mm² H07V-K |
+| K8 landing block: poles 1, 2 (coil) | K8 A1, A2 | 0.75 mm² |
 | Board L out, N out | the output terminal or socket | 1.5 mm² |
 | Output PE | X8 | 4 mm² green-yellow |
 | PE stud | the enclosure, door and transformer core | green-yellow, 4 mm² |

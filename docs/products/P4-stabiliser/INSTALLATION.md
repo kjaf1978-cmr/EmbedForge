@@ -71,7 +71,7 @@ On the enclosure:
 - **Restart delay.** The stabiliser's restart delay (about 8.5 s) protects against a restart
   storm, but not enough for a refrigeration compressor. A fridge or freezer without its own
   restart protection needs a 3-minute restart-delay relay at its socket.
-- **Tap-change gap.** At each tap change the load sees a gap of about 60 ms. A running motor
+- **Tap-change gap.** At each tap change the load sees a gap of about 90 ms. A running motor
   reaccelerates after it; check that a motor's own protection does not trip on it.
 - **Starting current.** The motor's starting current must stay within the stabiliser's rating:
   count about three times the running power.

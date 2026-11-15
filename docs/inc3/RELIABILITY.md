@@ -60,7 +60,7 @@ ripple current is to be checked against the datasheet rating with the layout (P8
 | all | varistors (14D471K, 14D201K) | surges | 40 years at 50 surges a year | look at the varistor indicator / measure the leakage at each yearly inspection; replace after a nearby lightning strike or when the indicator shows |
 | change-over | contactors K1, K2 | contact wear | 137 years at 20 transfers a day | inspect the contacts every 5 years (burn marks, resistance) |
 | stabiliser | tap relays K1 … K6 (Song Chuan 832A, 30 A) | mechanical wear (since D51 they switch without current) | 137 years at 200 changes a day (10 million operations, datasheet) | none planned; a stuck relay is shown by its LED and cut off by the output protection |
-| stabiliser | input relay K8 (832A) | contact wear: it makes and breaks up to 7.1 A at every tap change (D51) | about 2.7 years at 200 changes a day, 27 years at 20 (about 200 000 operations at 7 A, the datasheet's life curve for 1C NO) | **a wear part**: replace with the tap relays' inspection, or as decided (see STATUS, the K8 life finding) |
+| stabiliser | input contactor K8 (D57: AC-1 25 A, 12 V DC coil) | contact wear: it makes and breaks up to 7.1 A at every tap change (D51) | about 20 years at 200 changes a day (1.5 million operations at AC-1; an 832A relay here would last about 2.7 years) | inspect at the yearly service; replace if its contacts are pitted |
 | stabiliser | output relays K7, K9 (832A) | contact wear | > 100 years (they switch at power-up and on a fault only; 100 000 operations rated) | none planned |
 | all | electrolytic capacitors (sense filters, auxiliary supply) | electrolyte loss | 52 years at 45 °C | none in the product life |
 

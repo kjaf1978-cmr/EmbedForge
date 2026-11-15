@@ -63,7 +63,7 @@ Each sense is set as a ratio to its own reference, so the references' tolerance 
 ## 4. The steps (variac, no load)
 
 Raise the input slowly through each step, and check the yellow LEDs and the output voltage
-(X6–X7). At each step the output blinks off for about 60 ms (the input relay opens while the
+(X6–X7). At each step the output blinks off for about 90 ms (the input contactor opens while the
 tap changes). The expected output is U_in · 230 / tap ± 2 %. Then lower the input through each
 step: it changes about 5 V lower (hysteresis).
 
@@ -91,7 +91,7 @@ Each step should change at its threshold, 160 / 180 / 200 / 220 / 240 / 265 V ±
 | 5.4 | Turn RV3 back until SF2 is the value noted in 5.3; check the ratio of step 3.2 again | FAULT off; OUTPUT on after the delay |
 | 5.5 | **The window's limits.** Measure VOV (R91–R93 junction) and VUV (R93–R95 junction) against VREF2 | VOV / VREF2 = 0.882 ± 0.01; VUV / VREF2 = 0.646 ± 0.01 |
 | 5.6 | Switch Q1 off and on | OUTPUT on about 8.5 s after power returns |
-| 5.7 | **Thermal cut-out.** Safe isolation (see above). Remove the cut-out lead from X3, insulate its end and close the terminal. Restore the supply, Q1 on | yellow LEDs as normal; FAULT on; OUTPUT off; the tap block T5–N reads 0 V (the input relay stays open: the transformer is off) |
+| 5.7 | **Thermal cut-out.** Safe isolation (see above). Remove the cut-out lead from X3, insulate its end and close the terminal. Restore the supply, Q1 on | yellow LEDs as normal; FAULT on; OUTPUT off; the tap block T5–N reads 0 V (the input contactor stays open: the transformer is off) |
 | 5.8 | Safe isolation. Reconnect the lead to X3. Restore the supply, Q1 on | OUTPUT on after about 8.5 s |
 
 ## 6. Varistor

@@ -12,7 +12,7 @@ safety note, and the type tests.
 | 1 | Schematic | Final. Wired circuit diagram; inputs (IN) and load-side outputs (OUT) labelled. ERC clean. The board matches it part by part and pad by pad (`8-review/BOARD-CHECK-P4.txt`). |
 | 2 | DFMEA verified by simulation | The product's simulation tests pass on this commit (`7-simulation-tests/`): every step and 140 / 300 V; the restart delay; a stuck tap relay; two faults (a stuck tap relay and the output relay's driver shorted); power-up with the product's timing; tap changes only while the input relay is open; a sag from 230 to 195 V. The DFMEA is closed by design. What only a prototype can verify (temperature rise and the thermal cut-out, relay life, inrush, the tap-change gap, surge, damp heat, electrical safety) is assigned to the type tests. |
 | 3 | Firmware | None: the product has no microcontroller. |
-| 4 | Board | One board, 230 × 246 mm, 2 layers, 2 oz. DRC 0 errors and 0 unconnected; mains nets 3.2 mm from the control. Fabrication files, assembly drawing, parts list and wiring list. |
+| 4 | Board | One board, 230 × 321 mm, 2 layers, 2 oz. DRC 0 errors and 0 unconnected; mains nets 3.2 mm from the control. Fabrication files, assembly drawing, parts list and wiring list. |
 | 5 | Costed parts list | About €311 (`4-parts-list/`), of which €185 is the autotransformer made to specification. Every part has a manufacturer part number or a specification, and a price. Prices marked "estimate" are catalogue estimates. |
 | 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, design notes, DFMEA, and the design document (PDF and Word). |
 | 7 | Independent review | Done 15 November 2026: 3 blockers, 9 major and 8 minor findings. Your decisions D51–D53 settled four of them; all are resolved, except the relay footprint (below) (`8-review/REVIEW.md`). |
@@ -20,9 +20,7 @@ safety note, and the type tests.
 
 Open, for the prototype stage:
 
-- Check the relay footprint against the Song Chuan 832A drawing, and the TMOV14RP300E body
-  against Littelfuse's drawing. Both are provisional: the makers' sites refuse automated
-  downloads, so the datasheets are needed from you.
+- Check the first 832A relay by continuity (which fixed contact is NC: ASSEMBLY.md section 2).
 - Order the autotransformer to the specification in ASSEMBLY.md section 1.
 - Run the type tests.
 
