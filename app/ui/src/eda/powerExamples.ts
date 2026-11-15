@@ -477,9 +477,9 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .para('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input, with about 5 V hysteresis. A tap changes only while the input relay is open (about 60 ms, D51). The output relay connects the load after a restart delay of about 8 s; an independent protection (own sense transformer, reference, LM393 and its own output relay) opens the output outside 190 … 255 V. The thermal cut-out opens the input and output relays. LEDs: one per tap relay, OUTPUT, FAULT. The control is treated as live (no PELV claim, D53); its 0 V is bonded to PE at the PE stud.', -50, -300);
   // ---- test bench: the supply (earthed neutral, TN system) — not part of the product
   nb.block('bench').note('TEST BENCH (not part of the product): mains supply with its neutral earthed at the transformer', -1250, -60);
-  nb.part('VIN', 'vsin', -1150, 100, { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': step ? 'L_STEP' : 'N' });
-  if (step) nb.part('VS', 'vsin', -1150, 220, { value: String(Number(((step.to[0] - vin) * Math.SQRT2).toPrecision(6))), freq: '50', delay: String(step.at) }, { '1': 'L_STEP', '2': 'N' });
-  nb.part('RE', 'resistor', -1050, 300, { value: '0.1' }, { '1': 'N', '2': 'GND' }, 1);
+  nb.part('VIN', 'vsin', -1150, 100, { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': step ? 'L_STEP' : 'N_IN' });
+  if (step) nb.part('VS', 'vsin', -1150, 220, { value: String(Number(((step.to[0] - vin) * Math.SQRT2).toPrecision(6))), freq: '50', delay: String(step.at) }, { '1': 'L_STEP', '2': 'N_IN' });
+  nb.part('RE', 'resistor', -1050, 300, { value: '0.1' }, { '1': 'N_IN', '2': 'GND' }, 1);
 
   // ---- input: terminals, breaker, surge arrester
   nb.block('in')
