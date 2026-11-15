@@ -35,6 +35,8 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     if (p.sym === 'terminal') { value = terminalKind(p.props); terminals.set(value, [...(terminals.get(value) ?? []), `${p.ref} ${raw}`]); }
     // a panel fuse (`din`): a gG cartridge in a DIN-rail holder, not a PCB fuse
     if (p.sym === 'fuse' && p.props.din) value = `gG ${raw} A, 10×38, DIN-rail holder`;
+    if (p.sym === 'fuse' && p.props.fusetype === 'aR') value = `aR ${raw} A, square body, fuse base`;
+    if (p.sym === 'fuse' && p.props.fusetype === 'H') value = `T ${raw} A H, 5×20 ceramic`;
     // a breaker's rating and curve are what is bought (its state is an operating state)
     if (p.sym.startsWith('breaker')) value = `${p.props.curve ?? 'C'}${p.props.value ?? ''} A`;
     const card = p.props.spice?.trim() ? importModel(p.sym, p.props.spice) : null;
