@@ -79,11 +79,13 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   const t: PlanTrack[] = [];
   for (let k = 0; k < 7; k++) {
     const y = k < 6 ? 70 + 20 * k : 192, coil = k < 6 ? `K${k + 1}` : 'KD';
-    t.push({ net: '+12V', layer: 'B.Cu', width: 0.5, pts: [[93, y + 6], [102, y + 6]] }, { net: coil, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
+    // the output relay's coil is fed through the autotransformer's thermal cut-out (VTC, routed)
+    if (k < 6) t.push({ net: '+12V', layer: 'B.Cu', width: 0.5, pts: [[93, y + 6], [102, y + 6]] });
+    t.push({ net: coil, layer: 'F.Cu', width: 0.3, pts: [[93, y - 6], [100.5, y - 6]] });
   }
-  // the coils' +12V as one rail on the bottom layer (x 102, 5.5 mm from the COM pins); the coil
-  // drives cross it on the top layer
-  t.push({ net: '+12V', layer: 'B.Cu', width: 0.8, pts: [[102, 76], [102, 198]] });
+  // the tap relays' +12V as one rail on the bottom layer (x 102, 5.5 mm from the COM pins); the
+  // coil drives cross it on the top layer
+  t.push({ net: '+12V', layer: 'B.Cu', width: 0.8, pts: [[102, 76], [102, 176]] });
   // the taps: relay k's NO (80.8, Y − 6) through the channel between relays (Y − 10) to its own
   // vertical (x 22 … 32.5, 3.5 mm apart, inner to outer in the order the taps are reached, so no two
   // cross) and along to its pad on the tap block (x 14, T1 at 100.95 mm, 7.62 mm apart); on the
@@ -113,7 +115,9 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   return t;
 })();
 
-const STAB_PLAN: Placed[] = (() => {
+let stabCache: ((k: string) => string) | undefined;
+const stabRef = (k: string) => (stabCache ??= (() => { const { sheet, nb } = stabiliser(); return (key: string) => nb.refOf(sheet, key); })())(k);
+const STAB_PLAN = (): Placed[] => (() => {
   const p: Placed[] = [];
   for (let k = 0; k < 6; k++) {
     const y = 70 + 20 * k;
@@ -126,10 +130,11 @@ const STAB_PLAN: Placed[] = (() => {
   }
   p.push({ ref: 'K7', x: 95, y: 192, rot: 180 },
     { ref: 'T2', x: 14, y: 120, rot: 270 },
-    { ref: 'X1', x: 10, y: 12, rot: 0 }, { ref: 'X2', x: 10, y: 26, rot: 0 }, { ref: 'Q1', x: 30, y: 12, rot: 0 },
+    // the terminals by their keys in the design (L in, N in; L out, N out): references move
+    { ref: stabRef('X1'), x: 10, y: 12, rot: 0 }, { ref: stabRef('X2'), x: 10, y: 26, rot: 0 }, { ref: 'Q1', x: 30, y: 12, rot: 0 },
     { ref: 'RV1', x: 34, y: 34, rot: 0 }, { ref: 'F1', x: 55, y: 12, rot: 0 },
     { ref: 'T1', x: 93, y: 12, rot: 0 }, { ref: 'T3', x: 93, y: 27, rot: 0 }, { ref: 'T4', x: 93, y: 42, rot: 0 },
-    { ref: 'X4', x: 10, y: 192, rot: 0 }, { ref: 'X5', x: 10, y: 204, rot: 0 });
+    { ref: stabRef('X4'), x: 10, y: 192, rot: 0 }, { ref: stabRef('X5'), x: 10, y: 204, rot: 0 });
   return p;
 })();
 
@@ -551,7 +556,10 @@ const GR24_PLANES: PlanZone[] = [
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
-    keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }) },
+    keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }),
+    // the output relay's coil to the thermal cut-out terminal (VTC), drawn by tools/kicad/autolink.py
+    post: { tracks: [{ net: 'VTC', layer: 'B.Cu', width: 0.5, pts: [[93, 198], [96.75, 198], [108.75, 186], [108.75, 170.3919]] }] } },
+
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
   // connectors, the MOVs (after the breakers) and the control, its mains and its control nets on
