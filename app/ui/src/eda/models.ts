@@ -229,6 +229,7 @@ export const varistorAlpha = (m: VaristorModel) => Math.log(m.ic / 1e-3) / Math.
 export const VARISTORS: NamedModel<VaristorModel>[] = [
   { name: '10D471K', note: 'Ø 10 mm disc, 300 V AC (470 V at 1 mA), clamps 775 V at 25 A, 3.5 kA, 70 J', model: { vn: 470, vc: 775, ic: 25, imax: 3500, energy: 70, vac: 300 } },
   { name: '14D471K', note: 'Ø 14 mm disc, 300 V AC, clamps 775 V at 50 A, 6 kA, 140 J', model: { vn: 470, vc: 775, ic: 50, imax: 6000, energy: 140, vac: 300 } },
+  { name: 'TMOV14RP300E', note: 'thermally protected Ø 14 mm varistor, 300 V AC (Littelfuse TMOV): as the 14D471K, with an internal thermal fuse that disconnects it when it overheats (a lasting overvoltage such as a lost neutral, or its end of life)', model: { vn: 470, vc: 775, ic: 50, imax: 6000, energy: 140, vac: 300 } },
   { name: '20D471K', note: 'Ø 20 mm disc, 300 V AC, clamps 775 V at 100 A, 10 kA, 270 J', model: { vn: 470, vc: 775, ic: 100, imax: 10000, energy: 270, vac: 300 } },
   { name: '14D431K', note: 'Ø 14 mm disc, 275 V AC (430 V at 1 mA), clamps 710 V at 50 A, 6 kA, 125 J', model: { vn: 430, vc: 710, ic: 50, imax: 6000, energy: 125, vac: 275 } },
   { name: '14D681K', note: 'Ø 14 mm disc, 420 V AC, for 400 V line voltage: clamps 1120 V at 50 A, 6 kA, 190 J', model: { vn: 680, vc: 1120, ic: 50, imax: 6000, energy: 190, vac: 420 } },

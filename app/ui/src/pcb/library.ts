@@ -170,7 +170,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     // thyristors: TO-247AC (1 K, 2 A and tab, 3 G); the SKKT modules sit on the heatsink, wired
     case 'scr': return v.startsWith('SKKT') ? [same('TerminalBlock_1x3', pins, 'thyristor module on its heatsink: A, K, G wired to the board')] : [legs('TO-247_Vertical', ['2', '1', '3'], 'K-A-G')];
     case 'igbt': return v.startsWith('Module') ? [same('TerminalBlock_1x3', pins, 'module on its heatsink: G, C, E wired to the board')] : [legs('TO-247_Vertical', ['1', '2', '3'], 'G-C-E')];
-    case 'mov': return v.startsWith('SPD') ? [same('TerminalBlock_1x2', pins, 'DIN-rail surge protective device, wired')] : [same(v.startsWith('20D') ? 'MOV_Disc_20' : v.startsWith('10D') ? 'MOV_Disc_10' : 'MOV_Disc_14', pins)];
+    case 'mov': return v.startsWith('SPD') ? [same('TerminalBlock_1x2', pins, 'DIN-rail surge protective device, wired')] : [same(v.startsWith('TMOV14') ? 'TMOV_14' : v.startsWith('20D') ? 'MOV_Disc_20' : v.startsWith('10D') ? 'MOV_Disc_10' : 'MOV_Disc_14', pins)];
     case 'gdt': return v.startsWith('Spark') ? [same('TerminalBlock_1x2', pins, 'DIN-rail type 1 arrester, wired')] : [same('GDT_Axial_8x6', pins)];
     case 'breaker1': return [same('TerminalBlock_1x2', pins, 'DIN-rail device: its terminals on the board')];
     case 'breaker2': return [map('TerminalBlock_1x4', { 1: '1', 2: '2', N1: '3', N2: '4' }, { note: 'DIN-rail device: L in, L out, N in, N out' })];

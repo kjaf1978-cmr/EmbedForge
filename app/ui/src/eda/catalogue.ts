@@ -60,6 +60,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     'SPD-T1+2 275': e('VAL-MS-T1/T2 335/12.5/1+1 (or equivalent)', 'Phoenix Contact', 'surge protective device type 1+2, varistor based, Iimp 12.5 kA, Up ≤ 1.5 kV, with status window and remote contact', 190, 160, 'estimate', [{ distributor: 'electrical wholesale' }], 'alternatives: Dehn DEHNshield, OBO V50'),
     'SPD-T2 275': e('VAL-MS 230 ST (or equivalent)', 'Phoenix Contact', 'surge protective device type 2, In 20 kA, Imax 40 kA, Uc 275 V, plug-in module with status window', 55, 45, 'estimate', [{ distributor: 'electrical wholesale' }], 'alternatives: Dehn DEHNguard, OBO V20'),
     '14D471K': e('S14K300 (B72214S0301K101)', 'TDK', 'varistor 14 mm, 300 V AC (14D471K)', 0.3, 0.09, 'live', [{ distributor: 'LCSC', sku: 'C125541' }, { distributor: 'Digi-Key' }]),
+    'TMOV14RP300E': e('TMOV14RP300E', 'Littelfuse', 'thermally protected varistor 14 mm, 300 V AC (UL 1449): disconnects itself on overheating', 1.6, 0.95, 'estimate', [{ distributor: 'Digi-Key' }, { distributor: 'Mouser' }], 'check the body size against the maker\'s drawing before the board is ordered (footprint TMOV_14 is generous)'),
     '14D201K': e('S14K130 (B72214S0131K101)', 'TDK', 'varistor 14 mm, 130 V AC (14D201K)', 0.35, 0.1, 'estimate', [{ distributor: 'Bürklin', sku: '82E2229' }]),
   },
   nmos: {

@@ -225,9 +225,9 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
     .part('X4', 'terminal', -1100, 630, { value: 'N back-up' }, { '1': 'NB' })
     .part('X5', 'terminal', -1100, 780, { value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker2', -950, 150, { value: '32', curve: 'C' }, { '1': 'LM_IN', '2': 'L1', N1: 'NM', N2: 'N1' }, 3)
-    .part('RV1', 'mov', -820, 150, { value: '14D471K' }, { '1': 'L1', '2': 'N1' }, 1)
+    .part('RV1', 'mov', -820, 150, { value: 'TMOV14RP300E' }, { '1': 'L1', '2': 'N1' }, 1)
     .part('QF2', 'breaker2', -950, 600, { value: '32', curve: 'C' }, { '1': 'LB_IN', '2': 'L2', N1: 'NB', N2: 'N2' }, 3)
-    .part('RV2', 'mov', -820, 600, { value: '14D471K' }, { '1': 'L2', '2': 'N2' }, 1);
+    .part('RV2', 'mov', -820, 600, { value: 'TMOV14RP300E' }, { '1': 'L2', '2': 'N2' }, 1);
 
   // ---- 24 V control supply from either source: a transformer and bridge on each, the bridges'
   // outputs in parallel (each blocks the other), LM317HV to 24.3 V (`t.v24` sets another value)
@@ -342,8 +342,8 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
     .part('QF1', 'breaker4', -1050, 150, { value: '32', curve: 'C' }, { '1': 'LM1', '2': 'L1', '3': 'LM2', '4': 'L2', '5': 'LM3', '6': 'L3', N1: 'NM', N2: 'NMQ' })
     .part('QF2', 'breaker4', -1050, 760, { value: '32', curve: 'C' }, { '1': 'LB1', '2': 'B1', '3': 'LB2', '4': 'B2', '5': 'LB3', '6': 'B3', N1: 'NB', N2: 'NBQ' });
   // the breakers switch N too: downstream of them the neutrals are NMQ and NBQ
-  L.forEach((ph, k) => nb.part(`RVM${ph}`, 'mov', -880 + 80 * k, 300, { value: '14D471K' }, { '1': `L${ph}`, '2': 'NMQ' }, 1)
-    .part(`RVB${ph}`, 'mov', -880 + 80 * k, 910, { value: '14D471K' }, { '1': `B${ph}`, '2': 'NBQ' }, 1));
+  L.forEach((ph, k) => nb.part(`RVM${ph}`, 'mov', -880 + 80 * k, 300, { value: 'TMOV14RP300E' }, { '1': `L${ph}`, '2': 'NMQ' }, 1)
+    .part(`RVB${ph}`, 'mov', -880 + 80 * k, 910, { value: 'TMOV14RP300E' }, { '1': `B${ph}`, '2': 'NBQ' }, 1));
 
   // ---- 24 V control supply from either source (as the single-phase design)
   const v24 = t.v24 ?? 24.27;

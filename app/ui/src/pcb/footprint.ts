@@ -215,6 +215,9 @@ const movDisc = (id: string, name: string, pitch: number, D: number, t: number) 
 movDisc('MOV_Disc_10', 'Varistor disc Ø 10 mm, 7.5 mm', 7.5, 12, 5);
 movDisc('MOV_Disc_14', 'Varistor disc Ø 14 mm, 7.5 mm', 7.5, 16, 6);
 movDisc('MOV_Disc_20', 'Varistor disc Ø 20 mm, 10 mm', 10, 22, 6.5);
+// the thermally protected 14 mm varistor (TMOV14RP…): 7.5 mm pitch; its outline kept generous (21 × 11 mm,
+// above the series' size) until checked against the maker's dimensional drawing
+movDisc('TMOV_14', 'Thermally protected varistor 14 mm (TMOV14RP), 7.5 mm', 7.5, 21, 11);
 // P9 irrigation: the 74HC595 and 74HC4051 also in SOIC-16; the ribbon-cable bus; the ESP32 module
 add(soic('SOIC-16', 'SOIC-16', 16));
 add(dip('Arduino_Nano', 'Arduino Nano on two 1 × 15 sockets (DIP-30, 15.24 mm rows)', 30, 15.24));
