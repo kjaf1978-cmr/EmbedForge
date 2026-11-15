@@ -9,6 +9,8 @@ import { connectivity } from '../src/eda/connectivity';
 import type { Sheet } from '../src/eda/schematic';
 import { buildBom } from '../src/eda/bom';
 import { costedBom } from '../src/eda/catalogue';
+import { pinPositions } from '../src/eda/schematic';
+import { textCollisions } from './drawing.helpers';
 
 function run(sheet: Sheet) {
   const r = simulate(sheet) as SimResult;
@@ -59,4 +61,31 @@ describe('PV house (D49): certified type 2 PV SPDs (DEHNguard M YPV SCI 150, Y c
     const lines = costedBom(buildBom(pvHouse().sheet)).lines.filter((l) => l.sym === 'mov' && /YPV/.test(l.value));
     expect(lines.map((l) => [l.value, l.qty, l.cat?.mpn])).toEqual([['DG M YPV SCI 150 FM', 1, '952518 (DG M YPV SCI 150 FM)'], ['DG M YPV SCI 150', 1, '952513 (DG M YPV SCI 150)']]);
   });
+});
+
+/** Wires of different nets closer than two grid steps side by side, and wires across a pin of
+ *  another net: both make a drawing hard to read (the checks of D28 do not catch them). */
+function crowded(s: Sheet) {
+  const c = connectivity(s), out: string[] = [];
+  const W = s.wires.map((w) => ({ w, n: c.wireNet.get(w.id) ?? '?', h: w.a.y === w.b.y }));
+  for (let i = 0; i < W.length; i++) for (let j = i + 1; j < W.length; j++) {
+    const A = W[i], B = W[j]; if (A.n === B.n || A.h !== B.h) continue;
+    const [p, q] = A.h ? ['y', 'x'] as const : ['x', 'y'] as const;
+    const d = Math.abs(A.w.a[p] - B.w.a[p]);
+    const lo = Math.max(Math.min(A.w.a[q], A.w.b[q]), Math.min(B.w.a[q], B.w.b[q])), hi = Math.min(Math.max(A.w.a[q], A.w.b[q]), Math.max(B.w.a[q], B.w.b[q]));
+    if (d < 20 && hi - lo > 0) out.push(`${A.n}/${B.n} ${A.h ? 'h' : 'v'} d=${d} @${p}=${A.w.a[p]} ${lo}..${hi}`);
+  }
+  // a wire passing over a pin of another net
+  const pins = s.parts.flatMap((pt) => pinPositions(pt).map((q) => ({ at: q.at, net: c.pinNet.get(`${pt.ref}.${q.pin}`), ref: `${pt.ref}.${q.pin}` })));
+  for (const { w, n } of W) for (const pn of pins) { if (pn.net === n) continue; const { x, y } = pn.at; if ((w.a.x === w.b.x && x === w.a.x && y > Math.min(w.a.y, w.b.y) && y < Math.max(w.a.y, w.b.y)) || (w.a.y === w.b.y && y === w.a.y && x > Math.min(w.a.x, w.b.x) && x < Math.max(w.a.x, w.b.x))) out.push(`wire ${n} over pin ${pn.ref} (${pn.net})`); }
+  return out;
+}
+
+describe('drawings of P5 readable', () => {
+  for (const [name, sheet] of [['mains house', () => mainsHouse('lightning').sheet], ['PV house', () => pvHouse().sheet]] as const)
+    it(`${name}: no text on a part, text or wire; no wires of different nets side by side or across another net's pin`, () => {
+      const sh = sheet();
+      expect(textCollisions(sh)).toEqual([]);
+      expect(crowded(sh)).toEqual([]);
+    });
 });

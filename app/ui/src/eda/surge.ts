@@ -44,7 +44,7 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
   // ---- main board: PEN split at the main earthing terminal (MET), earth electrode 10 Ω
   nb.block('main board').note('MAIN BOARD', -750, -100)
     .part('XPEN', 'terminal', -750, 100, { value: 'PEN', wire: '16' }, { '1': 'PEN1' });
-  nb.block('earthing').part('RPEN', 'resistor', -650, 160, { value: '0.5m', pmax: '1G' }, { '1': 'PEN1', '2': 'PE1' }, 1)
+  nb.block('earthing').part('RPEN', 'resistor', -720, 180, { value: '0.5m', pmax: '1G' }, { '1': 'PEN1', '2': 'PE1' }, 1)
     .part('REL', 'resistor', -550, 200, { value: '10', pmax: '1G' }, { '1': 'PE1', '2': 'GND' }, 1);
   // type 1+2: spark gaps with follow-current limitation, Up 1.5 kV (energy-coordinated by DEHN
   // with a type 3 within 10 m); its N–PE gap lies across the PEN split here
@@ -52,24 +52,24 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
   // all, about 0.5 µH; the type 3 is V-wired (the circuit runs through its terminals, 25 A)
   const leads = (k: string, a: string, x: number, y: number) => { nb.block('SPD leads').part(`LL${k}`, 'inductor', x, y, { value: '0.5u', imax: '30k' }, { '1': a, '2': `${k}L` }); };
   if (s.t1) leads('T1', 'L1', -700, 0);
-  if (s.t2) leads('T2', 'L2', -300, 0);
+  if (s.t2) leads('T2', 'L2', -200, -40);
   nb.block('main board');
   if (s.t1) nb.part('FT1A', 'gdt', -650, 40, { value: 'DSH TN 255 FM', pkg: 'FT1' }, { '1': 'T1L', '2': 'PE1' }, 1)
     .part('FT1B', 'gdt', -600, 160, { value: 'DSH TN 255 FM', pkg: 'FT1' }, { '1': 'PEN1', '2': 'PE1' }, 1);
   // ---- 10 m to the sub-board (10 mm²)
   nb.block('feeder');
   cable('FL', 'L1', 'L2', 10, 18, -450, 0); cable('FN', 'PEN1', 'N2', 10, 18, -450, 100); cable('FP', 'PE1', 'PE2', 10, 18, -450, 200);
-  ccab('FL', 'L2', 'PE2', 1, -300, 60); ccab('FN', 'N2', 'PE2', 1, -300, 160);
+  ccab('FL', 'L2', 'PE2', 1, -300, 60); ccab('FN', 'N2', 'PE2', 1, -330, 180);
   nb.block('sub-board').note('SUB-BOARD', -250, -100);
   // type 2 for TN: L–PE varistor behind its series spark gap (ACI), N–PE spark gap
   const T2 = 'DG MP TN ACI 275 FM';
-  if (s.t2) nb.part('FT2A', 'mov', -250, 60, { value: T2, pkg: 'FT2' }, { '1': 'T2L', '2': 'FT2M' }, 1)
-    .part('FT2B', 'gdt', -250, 160, { value: T2, pkg: 'FT2' }, { '1': 'FT2M', '2': 'PE2' }, 1)
-    .part('FT2C', 'gdt', -150, 160, { value: T2, pkg: 'FT2' }, { '1': 'N2', '2': 'PE2' }, 1);
+  if (s.t2) nb.part('FT2A', 'mov', -150, 60, { value: T2, pkg: 'FT2' }, { '1': 'T2L', '2': 'FT2M' }, 1)
+    .part('FT2B', 'gdt', -150, 160, { value: T2, pkg: 'FT2' }, { '1': 'FT2M', '2': 'PE2' }, 1)
+    .part('FT2C', 'gdt', -250, 180, { value: T2, pkg: 'FT2' }, { '1': 'N2', '2': 'PE2' }, 1);
   // ---- 15 m to the socket (2.5 mm²)
   nb.block('final circuit');
   cable('XL', 'L2', 'L3', 15, 110, 0, 0); cable('XN', 'N2', 'N3', 15, 110, 0, 100); cable('XP', 'PE2', 'PE3', 15, 110, 0, 200);
-  ccab('XL', 'L3', 'PE3', 1.5, 150, 60); ccab('XN', 'N3', 'PE3', 1.5, 150, 160);
+  ccab('XL', 'L3', 'PE3', 1.5, 150, 60); ccab('XN', 'N3', 'PE3', 1.5, 120, 180);
   nb.block('socket').note('SOCKET CIRCUIT OF SENSITIVE EQUIPMENT: type 3 SPD (DIN rail, at the outlets)', 200, -100);
   if (s.t3) nb.part('FT3A', 'mov', 220, 60, { value: 'DR M 2P 255', pkg: 'FT3' }, { '1': 'L3', '2': 'N3' }, 1)
     .part('FT3B', 'gdt', 420, 160, { value: 'DR M 2P 255', pkg: 'FT3' }, { '1': 'N3', '2': 'PE3' }, 1);
@@ -108,24 +108,24 @@ export function pvHouse(o: { tvs?: boolean; spdArray?: boolean; spdCharger?: boo
   // one SPD module, its three varistors (units A, B, C of FA1): DC+ – star, DC− – star, star – PE
   const yspd = (ref: string, value: string, p: string, n: string, pe: string, x: number) =>
     nb.part(`${ref}A`, 'mov', x, 60, { value, pkg: ref }, { '1': p, '2': `${ref}Y` }, 1)
-      .part(`${ref}B`, 'mov', x + 100, 60, { value, pkg: ref }, { '1': n, '2': `${ref}Y` }, 1)
-      .part(`${ref}C`, 'mov', x + 50, 160, { value, pkg: ref }, { '1': `${ref}Y`, '2': pe }, 1);
-  if (s.spdArray) yspd('FA1', 'DG M YPV SCI 150 FM', 'PVA', 'NVA', 'PEA', -900);
+      .part(`${ref}B`, 'mov', x + 160, 90, { value, pkg: ref }, { '1': n, '2': `${ref}Y` }, 3)
+      .part(`${ref}C`, 'mov', x + 80, 220, { value, pkg: ref }, { '1': `${ref}Y`, '2': pe }, 1);
+  if (s.spdArray) yspd('FA1', 'DG M YPV SCI 150 FM', 'PVA', 'NVA', 'PEA', -980);
   nb.block('dc cable');
   const cable = (k: string, a: string, b: string, x: number, y: number) =>
     nb.part(`LC${k}`, 'inductor', x, y, { value: '25u', imax: '10k' }, { '1': a, '2': `${k}M` }).part(`RC${k}`, 'resistor', x + 80, y, { value: '28m', pmax: '1G' }, { '1': `${k}M`, '2': b });
   cable('P', 'PVA', 'PVC', -650, 0); cable('N', 'NVA', 'NVC', -650, 100); cable('E', 'PEA', 'PEC', -650, 200);
   nb.block('earthing').part('REC', 'resistor', -350, 300, { value: '10', pmax: '1G' }, { '1': 'PEC', '2': 'GND' }, 1);
   nb.block('charger input').note('CHARGER (P6) INPUT', -400, -100);
-  if (s.spdCharger) yspd('FC1', 'DG M YPV SCI 150', 'PVC', 'NVC', 'PEC', -450);
+  if (s.spdCharger) yspd('FC1', 'DG M YPV SCI 150', 'PVC', 'NVC', 'PEC', -500);
   // the charger's own input (part of P6, not of this protection): its varistor and TVS
-  nb.block('charger (P6)').part('RVPV', 'mov', -200, 60, { value: '14D201K' }, { '1': 'PVC', '2': 'NVC' }, 1);
-  if (s.tvs) nb.part('DTVS', 'tvs', -100, 60, { value: '5KP130CA' }, { '1': 'PVC', '2': 'NVC' }, 1);
+  nb.block('charger (P6)').part('RVPV', 'mov', -220, 60, { value: '14D201K' }, { '1': 'PVC', '2': 'NVC' }, 1);
+  if (s.tvs) nb.part('DTVS', 'tvs', -80, 60, { value: '5KP130CA' }, { '1': 'PVC', '2': 'NVC' }, 3);
   nb.block('load').note('OUTPUT (load side): the charger (test load: its input capacitors and its MPP current)', 0, -100)
-    .part('CIN', 'capacitor', 0, 60, { value: '188u', vmax: '250' }, { '1': 'PVC', '2': 'NVC' }, 1)
-    .part('RLD', 'resistor', 100, 60, { value: '2.4', pmax: '5k' }, { '1': 'PVC', '2': 'NVC' }, 1)
+    .part('CIN', 'capacitor', 60, 60, { value: '188u', vmax: '250' }, { '1': 'PVC', '2': 'NVC' }, 1)
+    .part('RLD', 'resistor', 200, 60, { value: '2.4', pmax: '5k' }, { '1': 'PVC', '2': 'NVC' }, 1)
     // the charger's PV− reaches its battery negative through QPV (on), and that is bonded to PE
-    .part('RBOND', 'resistor', 200, 160, { value: '0.02', pmax: '100k' }, { '1': 'NVC', '2': 'PEC' }, 1);
+    .part('RBOND', 'resistor', 340, 220, { value: '0.02', pmax: '100k' }, { '1': 'NVC', '2': 'PEC' }, 1);
   nb.v('PVC').v('NVC').v('PEC');
   nb.sim({ type: 'tran', stop: String(at + 0.1e-3), step: '0.05u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
