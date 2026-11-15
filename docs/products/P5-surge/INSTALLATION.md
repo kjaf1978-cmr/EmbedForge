@@ -26,19 +26,23 @@ are stricter.
 
 ## 2. Mains house (TN-C-S, single phase)
 
-| Where | SPD | Connection |
+| Where | SPD (DEHN) | Connection |
 |---|---|---|
-| Main board, at the PEN split | Type 1+2, 255–275 V AC, Iimp 12.5 kA (10/350 µs), Up ≤ 1.5 kV, with status window and remote contact (product: open, see README) | L to PE (MET); backup fuse as the maker specifies |
-| Sub-board, 10 m on (10 mm² feeder) | Type 2 "1+1": L–N varistor, N–PE spark gap; Uc 275 V, In 20 kA, Up ≤ 1.5 kV | L to PE, N to PE through the spark gap |
-| Socket of sensitive equipment, 15 m further (2.5 mm²) | Type 3: Uc 255 V, Uoc 6 kV, L–N and L–PE varistors, N–PE spark gap | at the outlet or as a DIN-rail module in the final circuit |
+| Main board, at the PEN split | **DEHNshield TN 255 FM, 941205**: type 1+2, spark gaps L–PE and N–PE; Uc 255 V, Iimp 12.5 kA (10/350 µs) per pole, Up ≤ 1.5 kV, follow-current limitation (a 32 A gG fuse does not trip), status window, remote contact; 2 DIN modules | L and N to the SPD, its PE terminal to the MET with 16 mm²; backup fuse only if the upstream fuse is above 160 A gG |
+| Sub-board, 10 m on (10 mm² feeder) | **DEHNguard MP TN ACI 275 FM, 942220**: type 2 for TN systems, L–PE varistor with series spark gap (ACI: no leakage current), N–PE spark gap; Uc 275 V, In 20 kA, Up ≤ 1.5 kV, remote contact; 2 DIN modules | L and N to the SPD, its PE terminal to the board's PE bar with ≥ 6 mm²; no backup fuse needed (ISCCR 25 kA); terminals take ≤ 10 mm². (In a TT installation the 1+1 version 942121 instead.) |
+| Final circuit of sensitive equipment, 15 m further (2.5 mm²) | **DEHNrail M 2P 255, 953200**: type 3, L–N varistor, N–PE spark gap; Uc 255 V, In 3 kA, Uoc 6 kV, Up ≤ 1.25 kV L–N, ≤ 1.5 kV L/N–PE, 25 A; 1 DIN module | **V-wired**: L and N of the final circuit into the SPD's input terminals and out of its output terminals to the outlets (25 A at most), in a small DIN-rail enclosure at the outlets; PE to the PE bar; backup 25 A gG or a B 25 breaker; terminals take ≤ 4 mm² solid / 2.5 mm² flexible |
+
+The remote contacts of 941205 and 942220 (changeover, 250 V / 0.5 A AC) can drive a lamp or an
+input of a building controller; wire them so the signal is on while the SPD is healthy.
 
 1. **Earth electrode:** ≤ 10 Ω (measured, COMMISSIONING.md 1.3). The incoming PEN lands on a
    16 mm² DIN-rail terminal, then on the MET; from there N and PE stay separate.
 2. **Type 1+2 at the main board:** directly at the PEN split, line and PE leads ≤ 0.5 m in total.
+   Upstream fuse above 160 A gG: a 160 A gG backup fuse in the SPD's branch.
 3. **Type 2 in the sub-board,** at the board's incoming terminals. The ≥ 10 m of cable between
    the main board and the sub-board is part of the coordination: if the sub-board is closer,
    ask for the coordination to be checked again.
-4. **Type 3** only at sockets of sensitive equipment, at least 5 m of cable after the type 2.
+4. **Type 3** only in the final circuit of sensitive equipment, at least 5 m of cable after the type 2.
    The simulation shows why: without it the 6 kV socket surge reaches the appliance at 5.75 kV.
 
 ## 3. PV side (D49)

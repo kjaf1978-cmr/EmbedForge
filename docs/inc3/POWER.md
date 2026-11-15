@@ -281,16 +281,47 @@ Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).
 simulation (`tests/surge.test.ts`, TEST_REPORT.md section 3n). The cables are their inductance
 (about 1 µH per metre of conductor) and resistance; the SPDs coordinate through them.
 
-Mains house (TN-C-S, single phase): main board: a varistor-based type 1+2 SPD L–PE (275 V,
-Iimp 12.5 kA 10/350 µs, Up ≤ 1.5 kV) at the PEN split (main earthing terminal on an earth
-electrode of ≤ 10 Ω); 10 m (10 mm²) to the sub-board: a type 2 SPD L–PE (275 V, In 20 kA) and a
-600 V gas discharge tube N–PE; 15 m (2.5 mm²) to the socket of sensitive appliances: a type 3
-outlet (14D431K L–N and L–PE, GDT N–PE). Results: the appliance sees at most about 850 V L–N and
-800 V L–PE for 12.5 kA 10/350 µs and 20 kA 8/20 µs into the service line and for a 6 kV / 3 kA
-combination wave at the socket (overvoltage category I: 1.5 kV); every SPD within its ratings.
-Without the type 3 outlet the socket surge reaches the appliance at 5.75 kV, and the induced
-surge at 1.86 kV L–PE: sensitive appliances need it. (A spark-gap type 1 SPD, Up 4 kV, would need
-a second type 2 within a few metres.)
+Mains house (TN-C-S, single phase), with DEHN SPDs (owner, 15 November 2026; data from DEHN's
+online catalogue, list prices in EUR):
+
+| Where | SPD | Data | Price |
+|---|---|---|---|
+| Main board, at the PEN split (earth electrode ≤ 10 Ω) | DEHNshield TN 255 FM (941205), type 1+2 | spark gaps L–PE and N–PE; Uc 255 V; Iimp 12.5 kA (10/350 µs) per pole, Itotal 25 kA; In 12.5 kA; Up ≤ 1.5 kV; Ifi 25 kA rms with follow-current limitation (a 32 A gG fuse does not trip); backup ≤ 160 A gG; TOV 440 V / 120 min withstand; energy-coordinated with a type 3 within 10 m; status window, remote contact; 2 modules | 473.90 |
+| Sub-board, 10 m on (10 mm²) | DEHNguard MP TN ACI 275 FM (942220), type 2 | L–PE varistor with a series spark gap (ACI: no leakage current), N–PE spark gap; Uc 275 V L–PE, 255 V N–PE; In 20 kA; Up ≤ 1.5 kV L–PE and N–PE (also at 5 kA); ISCCR 25 kA, no backup fuse; V-connection to 40 A; status window, remote contact; 2 modules | 260.10 |
+| Final circuit of the sensitive equipment, 15 m further (2.5 mm²) | DEHNrail M 2P 255 (953200), type 3 | L–N varistor, N–PE spark gap; Uc 255 V; In 3 kA, Itotal 5 kA; Uoc 6 kV; Up ≤ 1.25 kV L–N, ≤ 1.5 kV L/N–PE; 25 A load current (V-wired); backup 25 A gG or B 25; status window; 1 module | 138.30 |
+
+With the PEN's 16 mm² DIN-rail terminal (€6.50) the mains side costs €878.80. The type 2 is the
+TN version: the 1+1 version for TT systems (DG MP TT 2P ACI 275 FM, 942121, first proposed) has
+only L–N and N–PE elements, so in a TN-S sub-board its L–PE protection is two elements in series
+(up to 3 kV); in the simulation it hardly conducted and the appliance saw 1.67 kV L–PE.
+
+The model: each product a package of its units (one part in the parts list): the spark gaps
+fire at the product's Up (1.5 kV; the type 3's N–PE gap at 1 kV, derived: its L–PE path is the
+L–N varistor and that gap, and both Up values hold only so, to be confirmed against DEHN's
+circuit diagram); the varistors at their Up at In. The DEHNshield's follow-current limitation
+is an arc voltage above the mains peak (400 V, an assumption): the mains cannot keep it burning.
+Spark gaps go out below 10 mA. Two parts of the installation are now simulated that a spark gap
+needs: the cables' capacitance (100 pF per metre at the receiving end), without which an ideal
+surge source drove the gap's voltage to megavolts in one step, and the type 1+2's and type 2's
+connecting leads at the installation's limit (0.5 m, 0.5 µH), without which the board's
+capacitance discharged through the arc in picoseconds. The type 3 is V-wired (no leads in the
+appliance's path).
+
+Results (`tests/surge.test.ts`): at the appliance
+
+| Surge | L–N | L–PE | N–PE | Main board L–PE (with its leads) |
+|---|---|---|---|---|
+| 12.5 kA 10/350 µs into the service line | 799 V | 1030 V | 247 V | 3.7 kV |
+| 20 kA 8/20 µs into the service line | 883 V | 1152 V | 332 V | 2.6 kV |
+| 6 kV / 3 kA 1.2/50 µs at the socket, L–N | 1232 V | 1141 V | 436 V | — |
+
+all below 1.5 kV (overvoltage category I); every SPD within its ratings: the DEHNshield carries
+6.8 kA (lightning) and 11.1 kA (induced) of its 12.5 kA, the rest returning through the service
+line to the substation's earth; the DEHNrail takes the socket surge (2.5 kA, 96 of the 100 J
+the model gives it). Without the type 3 the socket surge reaches the appliance at 5.7 kV L–N:
+sensitive equipment needs it. The main board's busbar sees Up plus its leads (2.6–3.7 kV):
+equipment at the main board itself is not protected to category I; the sub-board's type 2 and
+the type 3 are.
 
 PV house (D49, 15 November 2026): the 48 V MPPT charger's own array (9 × 410 Wp, 3 in series,
 3 strings: 112 V open circuit, 127 V at −10 °C, 42 A short circuit), 25 m of DC cable (2 × 16 mm²,

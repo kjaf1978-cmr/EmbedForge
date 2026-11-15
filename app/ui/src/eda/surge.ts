@@ -11,11 +11,13 @@ import type { Sheet } from './schematic';
 
 export type MainsSurge = 'lightning' | 'induced' | 'socket';
 
-/** The mains house (TN-C-S, single phase): the service line (20 m), the main board with a type 1
- *  SPD (L–PE, varistor based, Iimp 12.5 kA) and the PEN split to N and PE at the main earthing terminal (earth electrode
- *  10 Ω), 10 m to the sub-board with a type 2 SPD (L–PE) and a gas discharge tube N–PE ("1+1"),
- *  15 m to the socket with a type 3 SPD (varistors L–N and L–PE, GDT N–PE) and an appliance
- *  (50 Ω, its Y capacitors). `surge`: 25 kA 10/350 µs from the service line to earth (lightning
+/** The mains house (TN-C-S, single phase), with DEHN SPDs: the service line (20 m), the main
+ *  board with a type 1+2 DEHNshield TN 255 FM (941205: spark gaps L–PE and N–PE, Iimp 12.5 kA,
+ *  Up ≤ 1.5 kV) at the PEN split to N and PE at the main earthing terminal (earth electrode
+ *  10 Ω), 10 m to the sub-board with a type 2 DEHNguard MP TN ACI 275 FM (942220: L–PE varistor
+ *  with a series spark gap, N–PE spark gap, In 20 kA, Up ≤ 1.5 kV), 15 m to the sensitive
+ *  equipment's socket with a type 3 DEHNrail M 2P 255 (953200: L–N varistor, N–PE spark gap) and
+ *  an appliance (50 Ω, its Y capacitors). Each product is a package: its units one part. `surge`: 25 kA 10/350 µs from the service line to earth (lightning
  *  on the overhead line or the building's LPS), 20 kA 8/20 µs there (induced), or 6 kV / 3 kA
  *  1.2/50 µs at the socket between L and N. `stages`: which SPDs are fitted. */
 export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boolean; t3?: boolean } = {}): { sheet: Sheet; nb: NB } {
@@ -23,7 +25,7 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
   const nb = new NB().wireUp([]).io({ PEN: 'pe' });
   // the mains start at their positive peak (phase 90°) and the surge comes 0.1 ms later
   const at = 0.1e-3;
-  nb.para('SURGE PROTECTION, mains house (TN-C-S): type 1+2 SPD at the main board, type 2 SPD in the sub-board, type 3 at the socket of sensitive appliances, coordinated by the cables between them (10 m and 15 m). Main earthing terminal on a 10 Ω earth electrode; PEN split to N and PE at the main board.', -1200, -300);
+  nb.para('SURGE PROTECTION, mains house (TN-C-S), DEHN SPDs: type 1+2 DEHNshield TN 255 FM at the main board (PEN split), type 2 DEHNguard MP TN ACI 275 FM in the sub-board, type 3 DEHNrail M 2P 255 for the sensitive equipment, coordinated by the cables between them (10 m and 15 m). Main earthing terminal on a 10 Ω earth electrode; PEN split to N and PE at the main board.', -1200, -300);
   // ---- the supply (test bench): transformer 230 V, its PEN earthed at the substation (1 Ω)
   nb.block('bench').note('INPUT: the supply from the grid (service line) and the surge (TEST BENCH)', -1200, -150)
     .part('VS', 'vsin', -1150, 0, { value: '325', freq: '50', phase: '90' }, { '1': 'LS', '2': 'PENS' })
@@ -33,29 +35,44 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
     nb.part(`LC${k}`, 'inductor', x, y, { value: `${uh}u`, imax: '30k' }, { '1': a, '2': `${k}M` }).part(`RC${k}`, 'resistor', x + 80, y, { value: `${mohm}m`, pmax: '1G' }, { '1': `${k}M`, '2': b });
   nb.block('service line');
   cable('SL', 'LS', 'L1', 20, 30, -950, 0); cable('SN', 'PENS', 'PEN1', 20, 30, -950, 100);
+  // the cables' capacitance between conductors (about 100 pF per metre), at their receiving end:
+  // it gives a spark gap's voltage a finite rise (without it an ideal surge source drives the
+  // node to L·di/dt within one time step)
+  const ccab = (k: string, a: string, b: string, nf: number, x: number, y: number) => nb.part(`CC${k}`, 'capacitor', x, y, { value: `${nf}n`, vmax: '100k' }, { '1': a, '2': b }, 1);
+  ccab('SL', 'L1', 'PEN1', 2, -800, 60);
   if (surge !== 'socket') nb.block('bench').part('IS', 'isurge', -900, -100, { value: surge === 'lightning' ? '12.5k' : '20k', wave: surge === 'lightning' ? '10/350' : '8/20', delay: String(at) }, { '1': 'L1', '2': 'GND' });
   // ---- main board: PEN split at the main earthing terminal (MET), earth electrode 10 Ω
   nb.block('main board').note('MAIN BOARD', -750, -100)
     .part('XPEN', 'terminal', -750, 100, { value: 'PEN', wire: '16' }, { '1': 'PEN1' });
   nb.block('earthing').part('RPEN', 'resistor', -650, 160, { value: '0.5m', pmax: '1G' }, { '1': 'PEN1', '2': 'PE1' }, 1)
     .part('REL', 'resistor', -550, 200, { value: '10', pmax: '1G' }, { '1': 'PE1', '2': 'GND' }, 1);
-  // type 1+2 (varistor based: no follow current, Up 1.5 kV; a spark gap's 4 kV would need a
-  // second stage close by)
+  // type 1+2: spark gaps with follow-current limitation, Up 1.5 kV (energy-coordinated by DEHN
+  // with a type 3 within 10 m); its N–PE gap lies across the PEN split here
+  // the connecting leads of the type 1+2 and type 2 SPDs at the installation's limit: 0.5 m in
+  // all, about 0.5 µH; the type 3 is V-wired (the circuit runs through its terminals, 25 A)
+  const leads = (k: string, a: string, x: number, y: number) => { nb.block('SPD leads').part(`LL${k}`, 'inductor', x, y, { value: '0.5u', imax: '30k' }, { '1': a, '2': `${k}L` }); };
+  if (s.t1) leads('T1', 'L1', -700, 0);
+  if (s.t2) leads('T2', 'L2', -300, 0);
   nb.block('main board');
-  if (s.t1) nb.part('FT1', 'mov', -650, 40, { value: 'SPD-T1+2 275' }, { '1': 'L1', '2': 'PE1' }, 1);
+  if (s.t1) nb.part('FT1A', 'gdt', -650, 40, { value: 'DSH TN 255 FM', pkg: 'FT1' }, { '1': 'T1L', '2': 'PE1' }, 1)
+    .part('FT1B', 'gdt', -600, 160, { value: 'DSH TN 255 FM', pkg: 'FT1' }, { '1': 'PEN1', '2': 'PE1' }, 1);
   // ---- 10 m to the sub-board (10 mm²)
   nb.block('feeder');
   cable('FL', 'L1', 'L2', 10, 18, -450, 0); cable('FN', 'PEN1', 'N2', 10, 18, -450, 100); cable('FP', 'PE1', 'PE2', 10, 18, -450, 200);
+  ccab('FL', 'L2', 'PE2', 1, -300, 60); ccab('FN', 'N2', 'PE2', 1, -300, 160);
   nb.block('sub-board').note('SUB-BOARD', -250, -100);
-  if (s.t2) nb.part('FT2', 'mov', -250, 60, { value: 'SPD-T2 275' }, { '1': 'L2', '2': 'PE2' }, 1)
-    .part('FT2N', 'gdt', -150, 160, { value: 'GDT 600 V' }, { '1': 'N2', '2': 'PE2' }, 1);
+  // type 2 for TN: L–PE varistor behind its series spark gap (ACI), N–PE spark gap
+  const T2 = 'DG MP TN ACI 275 FM';
+  if (s.t2) nb.part('FT2A', 'mov', -250, 60, { value: T2, pkg: 'FT2' }, { '1': 'T2L', '2': 'FT2M' }, 1)
+    .part('FT2B', 'gdt', -250, 160, { value: T2, pkg: 'FT2' }, { '1': 'FT2M', '2': 'PE2' }, 1)
+    .part('FT2C', 'gdt', -150, 160, { value: T2, pkg: 'FT2' }, { '1': 'N2', '2': 'PE2' }, 1);
   // ---- 15 m to the socket (2.5 mm²)
   nb.block('final circuit');
   cable('XL', 'L2', 'L3', 15, 110, 0, 0); cable('XN', 'N2', 'N3', 15, 110, 0, 100); cable('XP', 'PE2', 'PE3', 15, 110, 0, 200);
-  nb.block('socket').note('SOCKET: type 3 SPD (surge-protected outlet)', 200, -100);
-  if (s.t3) nb.part('FT3', 'mov', 220, 60, { value: '14D431K' }, { '1': 'L3', '2': 'N3' }, 1)
-    .part('FT3E', 'mov', 320, 60, { value: '14D431K' }, { '1': 'L3', '2': 'PE3' }, 1)
-    .part('FT3N', 'gdt', 420, 160, { value: 'GDT 600 V' }, { '1': 'N3', '2': 'PE3' }, 1);
+  ccab('XL', 'L3', 'PE3', 1.5, 150, 60); ccab('XN', 'N3', 'PE3', 1.5, 150, 160);
+  nb.block('socket').note('SOCKET CIRCUIT OF SENSITIVE EQUIPMENT: type 3 SPD (DIN rail, at the outlets)', 200, -100);
+  if (s.t3) nb.part('FT3A', 'mov', 220, 60, { value: 'DR M 2P 255', pkg: 'FT3' }, { '1': 'L3', '2': 'N3' }, 1)
+    .part('FT3B', 'gdt', 420, 160, { value: 'DR M 2P 255', pkg: 'FT3' }, { '1': 'N3', '2': 'PE3' }, 1);
   // ---- the appliance (test load): 50 Ω (1 kW), its Y capacitors to PE
   nb.block('load').note('OUTPUT (load side): the appliance (test load)', 550, -100)
     .part('RAP', 'resistor', 550, 60, { value: '50', pmax: '1M' }, { '1': 'L3', '2': 'N3' }, 1)

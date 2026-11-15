@@ -17,7 +17,7 @@ const COLOURS = ['#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e', '#17becf
 // blocks that are not part of the product: the test bench, and the installation a product sits in
 // (cables, earthing, the neighbouring product P5 protects), and parts bought inside another part
 // (the autotransformer's thermal cut-out): simulated, never in its parts list
-const TEST_BLOCKS = new Set(['bench', 'load', 'battery', 'service line', 'feeder', 'final circuit', 'dc cable', 'earthing', 'charger (P6)', 'in the autotransformer', 'on the heatsink']);
+const TEST_BLOCKS = new Set(['bench', 'load', 'battery', 'service line', 'feeder', 'final circuit', 'dc cable', 'earthing', 'charger (P6)', 'in the autotransformer', 'on the heatsink', 'SPD leads']);
 
 /** Netlist-style sheet builder: parts at given positions, nets as labels on their pins. */
 export class NB {

@@ -23,9 +23,10 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
   for (const p of sheet.parts) {
     const s = symbolOf(p.sym);
     if (s.power || (!withTest && isTestPart(p))) continue;
-    // the units of a multi-unit IC are one part
-    if (p.props.pkg) { const k = packageRef(p); if (seenPkg.has(k)) continue; seenPkg.add(k); }
     const raw = p.props[s.value.key] ?? s.value.default;
+    // the units of a multi-unit part are one part: identified by their package and type, so a
+    // product whose units are of different symbols (an SPD's varistor and spark gaps) is one too
+    if (p.props.pkg) { const k = `${p.props.pkg}|${raw}`; if (seenPkg.has(k)) continue; seenPkg.add(k); }
     // switches' states and positions are operating states, not part values
     const num = s.value.unit ? parseValue(raw) : null;
     let value = s.value.kind === 'bool' || s.interactive ? '' : num !== null && !raw.endsWith(s.value.unit!) ? formatValue(num, s.value.unit) : raw;

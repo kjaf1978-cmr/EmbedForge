@@ -584,6 +584,19 @@ array's SPD: 26 kV at the modules, 303 V at the charger's input, the TVS at 17.6
 at DEHN's list price. ERC: a varistor now gives a DC path (like a TVS), so the Y's star point is
 not reported as floating.
 
+### 3n.2 P5: DEHN SPDs on the mains side (15 November 2026)
+
+`tests/surge.test.ts`, all 11 passed. The mains house now has DEHNshield TN 255 FM (941205,
+type 1+2, spark gaps), DEHNguard MP TN ACI 275 FM (942220, type 2) and DEHNrail M 2P 255
+(953200, type 3, V-wired), each a package of its varistor and spark gaps (one part each in the
+parts list: €878.80 with the PEN terminal). The model gained the cables' capacitance (100 pF/m)
+and the type 1+2's and type 2's leads (0.5 µH); spark gaps go out below 10 mA (at 1 A the type 1's
+gap chattered and never fired: its current starts near zero while the cable's inductance still
+carries the surge). At the appliance: 12.5 kA 10/350 µs: 799 V L–N, 1030 V L–PE, 247 V N–PE;
+20 kA 8/20 µs: 883 / 1152 / 332 V; 6 kV / 3 kA at the socket: 1232 / 1141 / 436 V; every SPD
+within its ratings. Without the type 3: 5.7 kV L–N at the socket surge. The TT version of the
+type 2 (942121) left the appliance at 1.67 kV L–PE under lightning, hence the TN version.
+
 ## 3o. P9: pump control, irrigation, gate controller, trimmer, block machine (10 November 2026)
 
 **Library check (new, `tests/modellookup.test.ts`):** every design's part values must name a

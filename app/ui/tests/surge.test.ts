@@ -21,7 +21,7 @@ function run(sheet: Sheet) {
   return { r, pk, over };
 }
 
-describe('mains house (TN-C-S): type 1+2, type 2 and type 3 SPDs coordinated by the cables', () => {
+describe('mains house (TN-C-S): DEHN type 1+2, type 2 and type 3 SPDs coordinated by the cables', () => {
   for (const [s, what] of [['lightning', '12.5 kA 10/350 µs into the service line'], ['induced', '20 kA 8/20 µs into the service line'], ['socket', '6 kV / 3 kA 1.2/50 µs at the socket, L to N']] as [MainsSurge, string][])
     it(`${what}: the appliance sees below 1.5 kV (overvoltage category I) L–N, L–PE and N–PE; every SPD within its ratings`, () => {
       const s0 = run(mainsHouse(s).sheet);
@@ -31,6 +31,12 @@ describe('mains house (TN-C-S): type 1+2, type 2 and type 3 SPDs coordinated by 
   it('without the type 3 SPD the socket surge reaches the appliance at over 1.5 kV (why sensitive appliances get it)', () => {
     expect(run(mainsHouse('socket', { t3: false }).sheet).pk('L3', 'N3')).toBeGreaterThan(1500);
   }, 600_000);
+  it('parts list: the three DEHN SPDs, each one part (its varistor and spark gaps are units of one product), and the PEN on a 16 mm² DIN-rail terminal', () => {
+    const c = costedBom(buildBom(mainsHouse('lightning').sheet));
+    expect(c.missing).toBe(0);
+    expect(c.lines.filter((l) => l.sym === 'mov' || l.sym === 'gdt').map((l) => [l.qty, l.cat?.mpn])).toEqual([[1, '941205 (DSH TN 255 FM)'], [1, '942220 (DG MP TN ACI 275 FM)'], [1, '953200 (DR M 2P 255)']]);
+    expect(c.lines.find((l) => l.sym === 'terminal')?.value).toBe('DIN rail, 16 mm², PE');
+  });
 });
 
 describe('PV house (D49): certified type 2 PV SPDs (DEHNguard M YPV SCI 150, Y circuit) at the array and at the 48 V charger, the charger\'s input TVS', () => {
