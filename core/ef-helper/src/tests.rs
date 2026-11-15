@@ -73,6 +73,7 @@ fn fx() -> Fx {
             },
         ],
         install_root: root.clone(),
+        install_manifest: None,
     };
     Fx {
         log: root.join("state/helper.jsonl"),
@@ -209,4 +210,118 @@ fn only_the_signed_app_may_call_and_every_request_is_logged() {
     let log = fs::read_to_string(&f.log).unwrap();
     assert_eq!(log.lines().count(), 2);
     assert!(log.lines().all(|l| l.contains("\"refused\"")));
+}
+
+/// Installation with app files and a component, their copies in the recovery store, and the
+/// manifest the helper verified at start.
+fn with_installation(f: &mut Fx) -> PathBuf {
+    let root = f.policy.install_root.clone();
+    fs::create_dir_all(root.join("components/avr-gcc/bin")).unwrap();
+    fs::write(root.join("components/avr-gcc/bin/avr-gcc.exe"), b"gcc 7.3").unwrap();
+    fs::write(root.join("LICENSE.txt"), b"GPL").unwrap();
+    let store = ef_cm::ObjectStore::open(root.join("recovery")).unwrap();
+    let mut m = ef_integrity::build_manifest(&root, "0.1.0").unwrap();
+    // the component is listed through its pack manifest in reality; here directly
+    let rel = "components/avr-gcc/bin/avr-gcc.exe";
+    let (sha256, size) = sha256_file(&root.join(rel)).unwrap();
+    m.files.push(ef_integrity::ManifestEntry {
+        path: rel.into(),
+        size,
+        sha256,
+        tier: ef_integrity::Tier::Startup,
+    });
+    for e in &m.files {
+        store.put(&root.join(&e.path)).unwrap();
+    }
+    f.policy.install_manifest = Some(m);
+    root
+}
+
+#[test]
+fn restore_only_signed_paths_that_really_fail_ss05d() {
+    let mut f = fx();
+    let root = with_installation(&mut f);
+    let req = |v: &[&str]| Request::RestoreFiles {
+        paths: v.iter().map(|s| s.to_string()).collect(),
+    };
+    // nothing is damaged: refused (the caller's claim is not trusted)
+    refused(
+        &f.policy.check(&f.caller, &req(&["LICENSE.txt"])),
+        "fails the integrity check",
+    );
+    // outside the signed manifests: refused, whatever it is
+    refused(
+        &f.policy.check(&f.caller, &req(&["../../etc/shadow"])),
+        "not listed",
+    );
+    refused(
+        &f.policy.check(&f.caller, &req(&["state/helper.jsonl"])),
+        "not listed",
+    );
+    refused(&f.policy.check(&f.caller, &req(&[])), "no files requested");
+    // damaged: planned, only the failing file
+    fs::write(root.join("components/avr-gcc/bin/avr-gcc.exe"), b"GCC 7.3").unwrap();
+    match f.policy.check(
+        &f.caller,
+        &req(&["LICENSE.txt", "components/avr-gcc/bin/avr-gcc.exe"]),
+    ) {
+        Decision::Planned { operation } => {
+            assert_eq!(operation, ["restore", "components/avr-gcc/bin/avr-gcc.exe"])
+        }
+        x => panic!("{x:?}"),
+    }
+    // without verified manifests nothing can be restored
+    f.policy.install_manifest = None;
+    refused(
+        &f.policy.check(&f.caller, &req(&["LICENSE.txt"])),
+        "could not be verified",
+    );
+}
+
+#[test]
+fn restore_executes_from_the_local_store_and_logs_ss05d() {
+    let mut f = fx();
+    let root = with_installation(&mut f);
+    let paths = vec![
+        "LICENSE.txt".to_string(),
+        "components/avr-gcc/bin/avr-gcc.exe".to_string(),
+    ];
+    fs::write(root.join("LICENSE.txt"), b"XXX").unwrap();
+    fs::remove_file(root.join("components/avr-gcc/bin/avr-gcc.exe")).unwrap();
+    let out = execute_restore(&f.policy, &f.caller, &paths, &f.log, "t")
+        .unwrap()
+        .unwrap();
+    assert_eq!(out.restored.len(), 2);
+    assert_eq!(fs::read(root.join("LICENSE.txt")).unwrap(), b"GPL");
+    assert_eq!(
+        fs::read(root.join("components/avr-gcc/bin/avr-gcc.exe")).unwrap(),
+        b"gcc 7.3"
+    );
+    let log = fs::read_to_string(&f.log).unwrap();
+    assert!(
+        log.contains("\"restore_files\"") && log.matches("\"restored\"").count() == 2,
+        "{log}"
+    );
+
+    // a corrupted recovery object is never put in place
+    let sha = sha256_file(&root.join("LICENSE.txt")).unwrap().0;
+    let obj = ef_cm::ObjectStore::open(root.join("recovery"))
+        .unwrap()
+        .path_of(&sha);
+    fs::write(&obj, b"BAD").unwrap();
+    fs::write(root.join("LICENSE.txt"), b"YYY").unwrap();
+    let out = execute_restore(&f.policy, &f.caller, &paths[..1], &f.log, "t2")
+        .unwrap()
+        .unwrap();
+    assert_eq!(out.unrecoverable, ["LICENSE.txt"]);
+    assert_eq!(fs::read(root.join("LICENSE.txt")).unwrap(), b"YYY");
+
+    // another caller is refused before anything is touched
+    let other = Caller {
+        exe_path: root.join("deps/libfoo_1.0_arm64.deb"),
+    };
+    let r = execute_restore(&f.policy, &other, &paths[..1], &f.log, "t3").unwrap();
+    assert!(r
+        .unwrap_err()
+        .contains("not the installed EmbedForge executable"));
 }

@@ -1,6 +1,6 @@
 # Increment 1 · WP 1.3 — Packaging, signing, installers, helper skeleton: test report (TEST-03 format)
 
-- Baseline: prompt v3.7
+- Baseline: prompt v3.7; D16 applied afterwards → v3.8 (section 7)
 - Date: 15 November 2026
 - Code:
   - `core/ef-pack` (packs, media, bootstrap);
@@ -130,7 +130,7 @@ Status key as in WP 1.1: B = built and verified here, P = partly, U = user-execu
 
 ## 6. For your decision (D16)
 
-- **D16-a — repair on a per-machine installation.**
+- **D16-a — repair on a per-machine installation.** *Decided 2026-11-15: option (ii), see section 7.*
   - **Conflict:**
     - SS-08 wants damaged files restored at start-up.
     - SS-05 forbids admin rights in normal operation.
@@ -148,7 +148,52 @@ Status key as in WP 1.1: B = built and verified here, P = partly, U = user-execu
     and only from the local store.
 - **D16-b:** the reading of "signed cached checksum" (decision 4 above).
 
-## 7. Remaining for Increment 1
+## 7. Decision D16 applied (15 November 2026)
+
+You chose option (ii) for D16-a. Prompt **v3.8** (`tools/apply_d16.py`, section 33):
+- **SS-05(d):** the privileged helper may restore files that fail the SS-08 check.
+  - Only paths listed in the signed manifests of the running installation.
+  - Only from the local recovery store.
+  - Each object is verified against its manifest hash before it is put in place.
+- **SS-08:** on an installation the user cannot write, the restore is done by the helper,
+  with no administrator prompt.
+
+### Implemented
+
+- **`ef-helper`:** new request type `RestoreFiles`.
+  - The helper re-checks every requested path itself and does not trust the caller's claim.
+    It refuses:
+    - paths outside the signed manifests;
+    - requests in which no file actually fails;
+    - requests when the manifests could not be verified.
+  - `execute_restore` performs the restore. It reuses the tested SS-08 repair, logs every
+    file, and never puts a corrupted recovery object in place.
+  - Tests: `restore_only_signed_paths_that_really_fail_ss05d`,
+    `restore_executes_from_the_local_store_and_logs_ss05d`.
+- **App start-up check:** on a non-writable installation, damaged files are sent to the
+  helper (`run_with_helper`), and the helper's result is what the status bar shows.
+  - Test: `read_only_install_is_restored_through_the_helper`, run as an unprivileged user.
+
+### Consequence for Increment 1
+
+The helper is installed with its transport (named pipe / Unix socket with peer credentials)
+in Increment 2 (decision 3 in section 5). Until then:
+- on a per-machine install, the app reports "the EmbedForge helper is not installed yet" and
+  names the offline `ef-bootstrap --repair`;
+- a per-user install repairs by itself, as before.
+
+If you want the helper installed in Increment 1 for this function alone, that is a scope
+change to WP 1.4.
+
+### Tests after D16
+
+- 50 core tests;
+- 8 shell tests;
+- clippy 0 warnings.
+
+D16-b remains open.
+
+## 8. Remaining for Increment 1
 
 - **WP 1.4:**
   - the Increment 1 test report;

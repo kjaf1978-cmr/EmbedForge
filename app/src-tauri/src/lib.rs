@@ -31,13 +31,19 @@ pub struct DiagResult {
 /// executable at the top of the app's own directory (`/opt/embedforge`,
 /// `%ProgramFiles%\EmbedForge` or the per-user equivalent), next to `manifest.json`.
 fn install_root() -> PathBuf {
-    let exe = std::env::current_exe().ok().and_then(|p| std::fs::canonicalize(p).ok());
-    exe.and_then(|p| p.parent().map(Path::to_path_buf)).unwrap_or_else(|| PathBuf::from("."))
+    let exe = std::env::current_exe()
+        .ok()
+        .and_then(|p| std::fs::canonicalize(p).ok());
+    exe.and_then(|p| p.parent().map(Path::to_path_buf))
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 pub fn host_check_impl(facts: ef_host::HostFacts) -> HostResult {
     let (p, findings) = ef_host::evaluate(&facts);
-    HostResult { profile: if p == ef_host::Profile::B { "B" } else { "A" }, findings }
+    HostResult {
+        profile: if p == ef_host::Profile::B { "B" } else { "A" },
+        findings,
+    }
 }
 
 pub fn diagnose_impl(root: &Path, keys: &[&str], full: bool) -> DiagResult {
@@ -55,7 +61,10 @@ pub fn diagnose_impl(root: &Path, keys: &[&str], full: bool) -> DiagResult {
     let r = ef_diag::run(&ctx);
     let v = serde_json::to_value(&r).unwrap_or_default();
     DiagResult {
-        overall: serde_json::to_value(r.overall()).ok().and_then(|x| x.as_str().map(String::from)).unwrap_or_default(),
+        overall: serde_json::to_value(r.overall())
+            .ok()
+            .and_then(|x| x.as_str().map(String::from))
+            .unwrap_or_default(),
         sections: v["sections"].as_array().cloned().unwrap_or_default(),
     }
 }
@@ -101,7 +110,11 @@ fn settings_load(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
 #[tauri::command]
 fn settings_save(app: tauri::AppHandle, settings: serde_json::Value) -> Result<(), String> {
     let p = settings_path(&app)?;
-    std::fs::write(&p, serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
+    std::fs::write(
+        &p,
+        serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())
 }
 
 pub fn run() {
@@ -112,11 +125,20 @@ pub fn run() {
             use tauri::Manager;
             // per-user: a per-machine installation is read-only in normal operation (SS-05)
             let state_dir = app.path().app_local_data_dir()?.join("integrity");
-            std::thread::spawn(move || startup::run(&install_root(), &state_dir, &trusted_keys(), &bg));
+            std::thread::spawn(move || {
+                startup::run(&install_root(), &state_dir, &trusted_keys(), &bg)
+            });
             Ok(())
         })
         .manage(Integrity(status))
-        .invoke_handler(tauri::generate_handler![app_version, host_check, diagnose, integrity_status, settings_load, settings_save])
+        .invoke_handler(tauri::generate_handler![
+            app_version,
+            host_check,
+            diagnose,
+            integrity_status,
+            settings_load,
+            settings_save
+        ])
         .run(tauri::generate_context!())
         .expect("error while running EmbedForge");
 }
@@ -131,13 +153,19 @@ mod tests {
         let r = diagnose_impl(d.path(), &trusted_keys(), false);
         assert_eq!(r.overall, "fail");
         assert_eq!(r.sections[0]["status"], "fail");
-        assert!(r.sections[0]["details"][0].as_str().unwrap().contains("unsigned"));
+        assert!(r.sections[0]["details"][0]
+            .as_str()
+            .unwrap()
+            .contains("unsigned"));
         assert_eq!(r.sections.len(), 6);
     }
 
     #[test]
     fn host_check_reports_profile() {
-        let r = host_check_impl(ef_host::HostFacts { display: Some((1366, 768)), ..Default::default() });
+        let r = host_check_impl(ef_host::HostFacts {
+            display: Some((1366, 768)),
+            ..Default::default()
+        });
         assert_eq!(r.profile, "A");
         assert!(r.findings.iter().any(|f| f.check == "display"));
     }

@@ -94,3 +94,9 @@
 - Raised: D16-a (repair on read-only per-machine installs) and D16-b ("signed cached
   checksum").
 - Not run yet: CI `package.yml` (Windows, arm64), real hosts (VAPP, user-executed).
+- D16 (your answer to D16-a): option (ii) → v3.8 via tools/apply_d16.py (5 replacements,
+  section 33).
+  - Implemented: helper function SS-05(d) `RestoreFiles` with its own re-check;
+    `execute_restore`; the app sends restores on read-only installs to the helper.
+  - Tests: 50 core, 8 shell (read-only cases run unprivileged).
+  - The helper itself is still installed from Increment 2.

@@ -1,6 +1,6 @@
 # Increment 1 — scope (step 1 of the increment process, section 22)
 
-- Baseline: prompt v3.7
+- Baseline: prompt v3.7; v3.8 from 15 November 2026 (D16: helper function SS-05(d))
 - Started: 5 October 2026
 - **Phase 0 gate:** treated as approved with the gate report's conditions. You replied "Please
   continue from here" to the approval request. If you did not mean approval, say so and work

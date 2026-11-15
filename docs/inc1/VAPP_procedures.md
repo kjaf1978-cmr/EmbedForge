@@ -125,8 +125,9 @@ Do this with the medium **unplugged** and networking off.
    - the status bar reports **"N file(s) restored offline"**;
    - Self-diagnosis (a) is pass afterwards.
 4. **Per-machine installation (Windows "all users", Linux, Pi):** start EmbedForge.
-   1. The status bar must report that restoring needs administrator rights. This is open
-      decision **D16-a** in the WP 1.3 report.
+   1. Under D16 (v3.8), the privileged helper restores the files with no prompt. The helper
+      is installed from Increment 2. Until then, the status bar must report that the
+      helper is not installed yet and name the repair command below.
    2. Then run the repair:
       - Windows (as administrator):
 

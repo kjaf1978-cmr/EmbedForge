@@ -122,6 +122,7 @@ name = "ef-helper"
 version = "0.1.0"
 dependencies = [
  "ef-cm",
+ "ef-integrity",
  "serde",
  "serde_json",
  "tempfile",

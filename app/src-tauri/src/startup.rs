@@ -70,19 +70,42 @@ pub fn root_writable(root: &Path) -> bool {
     ok
 }
 
+/// SS-05(d) (decision D16): on an installation the user cannot write, damaged files are
+/// restored by the privileged helper, which re-checks them against the signed manifests
+/// itself. The helper and its transport are installed from Increment 2 (WP 1.3 report,
+/// decision 3); until then this reports that it is not available.
+pub fn helper_not_installed(_paths: &[String]) -> Result<ef_integrity::RepairOutcome, String> {
+    Err("the EmbedForge helper is not installed yet (Increment 2)".into())
+}
+
 /// The whole SS-08 sequence. `state_dir` is per-user (checksum cache and event log); `st` is
 /// updated after each phase.
 pub fn run(root: &Path, state_dir: &Path, keys: &[&str], st: &Mutex<IntegrityStatus>) {
+    run_with_helper(root, state_dir, keys, st, &helper_not_installed)
+}
+
+pub fn run_with_helper(
+    root: &Path,
+    state_dir: &Path,
+    keys: &[&str],
+    st: &Mutex<IntegrityStatus>,
+    helper: &dyn Fn(&[String]) -> Result<ef_integrity::RepairOutcome, String>,
+) {
     if keys.is_empty() {
         set(st, |s| {
             s.state = State::Untrusted;
-            s.detail = "development build: no release key, integrity not verified (see Self-diagnosis)".into();
+            s.detail =
+                "development build: no release key, integrity not verified (see Self-diagnosis)"
+                    .into();
         });
         return;
     }
     let log = state_dir.join("integrity-events.jsonl");
     let fail = |d: String| {
-        let _ = ef_integrity::log_event(&log, &serde_json::json!({"at": now(), "event": "startup_check_failed", "error": d}));
+        let _ = ef_integrity::log_event(
+            &log,
+            &serde_json::json!({"at": now(), "event": "startup_check_failed", "error": d}),
+        );
         set(st, |s| {
             s.state = State::Failed;
             s.detail = d;
@@ -102,18 +125,33 @@ pub fn run(root: &Path, state_dir: &Path, keys: &[&str], st: &Mutex<IntegritySta
     };
     let mut restored = vec![];
     let mut unrecoverable = vec![];
+    let mut helper_error = None;
+    let writable = root_writable(root);
     let mut fix = |findings: &[ef_integrity::Finding]| {
         if findings.is_empty() {
             return true;
         }
-        match ef_integrity::repair(root, &m, findings, store.objects(), &log, &now()) {
+        let result = if writable {
+            ef_integrity::repair(root, &m, findings, store.objects(), &log, &now())
+                .map_err(|e| e.to_string())
+        } else {
+            let paths: Vec<String> = findings.iter().map(|f| f.path.clone()).collect();
+            helper(&paths)
+                .inspect_err(|e| helper_error = Some(e.clone()))
+                .map_err(|_| String::new())
+        };
+        match result {
             Ok(o) => {
                 restored.extend(o.restored);
                 unrecoverable.extend(o.unrecoverable.iter().cloned());
                 o.unrecoverable.is_empty()
             }
             Err(e) => {
-                unrecoverable.push(e.to_string());
+                if e.is_empty() {
+                    unrecoverable.extend(findings.iter().map(|f| f.path.clone()));
+                } else {
+                    unrecoverable.push(e);
+                }
                 false
             }
         }
@@ -124,7 +162,11 @@ pub fn run(root: &Path, state_dir: &Path, keys: &[&str], st: &Mutex<IntegritySta
         s.checked_full = r.checked_full;
         s.checked_quick = r.checked_quick;
         s.pending = r.background_queue.len();
-        s.detail = format!("{} files hashed, {} queued for background verification", r.checked_full, r.background_queue.len());
+        s.detail = format!(
+            "{} files hashed, {} queued for background verification",
+            r.checked_full,
+            r.background_queue.len()
+        );
     });
     let bg = ef_integrity::check_full_in(root, &m, &r.background_queue, state_dir);
     match bg {
@@ -137,12 +179,24 @@ pub fn run(root: &Path, state_dir: &Path, keys: &[&str], st: &Mutex<IntegritySta
         s.pending = 0;
         s.restored = restored.clone();
         s.unrecoverable = unrecoverable.clone();
-        (s.state, s.detail) = if !unrecoverable.is_empty() && !root_writable(root) {
-            (State::Failed, format!("{} damaged file(s): restoring them needs administrator rights; run Repair from the installer (offline)", unrecoverable.len()))
+        (s.state, s.detail) = if let Some(he) = &helper_error {
+            (State::Failed, format!("{} damaged file(s) not restored: {he}. Until then, run Repair as administrator (offline): ef-bootstrap --root <install dir> --repair", unrecoverable.len()))
         } else if !unrecoverable.is_empty() {
-            (State::Failed, format!("{} file(s) could not be restored; run Self-diagnosis", unrecoverable.len()))
+            (
+                State::Failed,
+                format!(
+                    "{} file(s) could not be restored; run Self-diagnosis",
+                    unrecoverable.len()
+                ),
+            )
         } else if !restored.is_empty() {
-            (State::Repaired, format!("{} file(s) restored from the recovery store", restored.len()))
+            (
+                State::Repaired,
+                format!(
+                    "{} file(s) restored from the recovery store",
+                    restored.len()
+                ),
+            )
         } else {
             (State::Ok, format!("{} files verified", m.files.len()))
         };
@@ -155,7 +209,14 @@ mod tests {
     use std::fs;
 
     fn sign(kp: &minisign::KeyPair, f: &Path) {
-        let sig = minisign::sign(Some(&kp.pk), &kp.sk, std::io::Cursor::new(fs::read(f).unwrap()), Some("t"), None).unwrap();
+        let sig = minisign::sign(
+            Some(&kp.pk),
+            &kp.sk,
+            std::io::Cursor::new(fs::read(f).unwrap()),
+            Some("t"),
+            None,
+        )
+        .unwrap();
         fs::write(ef_pack::sig_path(f), sig.to_string()).unwrap();
     }
 
@@ -166,7 +227,11 @@ mod tests {
         fs::write(root.join("lib/core.dll"), b"core").unwrap();
         fs::write(root.join("lib/strings.txt"), b"hello").unwrap();
         let m = ef_integrity::build_manifest(&root, "0.1.0").unwrap();
-        fs::write(root.join("manifest.json"), serde_json::to_string(&m).unwrap()).unwrap();
+        fs::write(
+            root.join("manifest.json"),
+            serde_json::to_string(&m).unwrap(),
+        )
+        .unwrap();
         sign(kp, &root.join("manifest.json"));
         let src = d.join("src");
         fs::create_dir_all(&src).unwrap();
@@ -175,7 +240,11 @@ mod tests {
         let spec = ef_pack::PackSpec {
             ci: "docs".into(),
             kind: ef_cm::CiKind::CodeLibrary,
-            changelog: vec![ef_cm::ChangelogEntry { version: v.clone(), date: "2026-11-15".into(), text: "x".into() }],
+            changelog: vec![ef_cm::ChangelogEntry {
+                version: v.clone(),
+                date: "2026-11-15".into(),
+                text: "x".into(),
+            }],
             version: v,
             depends: Default::default(),
             license: "CC-BY-SA-4.0".into(),
@@ -193,7 +262,12 @@ mod tests {
     fn run_with(root: &Path, kp: &minisign::KeyPair) -> IntegrityStatus {
         let st = Mutex::new(IntegrityStatus::default());
         let k = kp.pk.to_base64();
-        run(root, &root.parent().unwrap().join("user-state"), &[k.as_str()], &st);
+        run(
+            root,
+            &root.parent().unwrap().join("user-state"),
+            &[k.as_str()],
+            &st,
+        );
         st.into_inner().unwrap()
     }
 
@@ -203,7 +277,10 @@ mod tests {
         let st = Mutex::new(IntegrityStatus::default());
         run(d.path(), &d.path().join("u"), &[], &st);
         assert_eq!(st.lock().unwrap().state, State::Untrusted);
-        assert!(!d.path().join("recovery").exists(), "a dev build must not create a store");
+        assert!(
+            !d.path().join("recovery").exists(),
+            "a dev build must not create a store"
+        );
     }
 
     #[test]
@@ -240,7 +317,9 @@ mod tests {
         let root = installed(&kp, d.path());
         // a recovery object is gone and the file is damaged: reported, not hidden
         let store = ef_cm::RecoveryStore::open(root.join("recovery")).unwrap();
-        let sha = ef_cm::objects::sha256_file(&root.join("lib/core.dll")).unwrap().0;
+        let sha = ef_cm::objects::sha256_file(&root.join("lib/core.dll"))
+            .unwrap()
+            .0;
         fs::remove_file(store.objects().path_of(&sha)).unwrap();
         fs::write(root.join("lib/core.dll"), b"CORE").unwrap();
         let s = run_with(&root, &kp);
@@ -275,7 +354,51 @@ mod tests {
         ro(&root, 0o755);
         ro(&root.join("lib"), 0o755);
         assert_eq!(s.state, State::Failed);
-        assert!(s.detail.contains("administrator rights"), "{}", s.detail);
+        assert!(
+            s.detail.contains("helper is not installed") && s.detail.contains("--repair"),
+            "{}",
+            s.detail
+        );
+        assert_eq!(s.unrecoverable, ["lib/core.dll"]);
+    }
+
+    /// D16 / SS-05(d): on a read-only installation the restore goes to the helper, and its
+    /// result is what the user sees.
+    #[test]
+    fn read_only_install_is_restored_through_the_helper() {
+        let kp = minisign::KeyPair::generate_unencrypted_keypair().unwrap();
+        let d = tempfile::tempdir().unwrap();
+        let root = installed(&kp, d.path());
+        fs::write(root.join("lib/core.dll"), b"CORE").unwrap();
+        let asked = Mutex::new(Vec::<String>::new());
+        let helper = |paths: &[String]| {
+            asked.lock().unwrap().extend(paths.iter().cloned());
+            Ok(ef_integrity::RepairOutcome {
+                restored: paths.to_vec(),
+                unrecoverable: vec![],
+            })
+        };
+        let st = Mutex::new(IntegrityStatus::default());
+        let k = kp.pk.to_base64();
+        // simulate a non-writable root by asking run_with_helper through a read-only probe
+        let ro = |m| {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                fs::set_permissions(&root, fs::Permissions::from_mode(m)).unwrap();
+            }
+        };
+        ro(0o555);
+        let writable = root_writable(&root);
+        run_with_helper(&root, &d.path().join("u"), &[k.as_str()], &st, &helper);
+        ro(0o755);
+        if writable {
+            eprintln!("skipped: running as root, the root stays writable");
+            return;
+        }
+        let s = st.into_inner().unwrap();
+        assert_eq!(*asked.lock().unwrap(), ["lib/core.dll"]);
+        assert_eq!(s.state, State::Repaired, "{}", s.detail);
     }
 
     #[cfg(unix)]

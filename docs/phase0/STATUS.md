@@ -39,6 +39,7 @@ Actions for you:
 | D10 | 2026-09-26 | Accept C3-11, F3-06, R-11 spike → v3.2 (section 27). |
 | D11 | 2026-09-26 | Accept F0-01..F0-11 → v3.3 (section 28). |
 | D15 | 2026-10-05 | Q-01 answered: keep GPL-3.0-or-later for non-commercial use, unless the licence limits implementation of the specification (then reported at the next gate) → v3.7 (section 32). |
+| D16 | 2026-11-15 | WP 1.3 D16-a: option (ii). The privileged helper gets a fourth function, SS-05(d): restore files failing SS-08, only paths in the signed manifests and only from the local recovery store; on a read-only installation SS-08 restores through the helper → v3.8 (section 33). D16-b ("signed cached checksum") still open. |
 | D14 | 2026-10-05 | Accept F0-21, F0-22, F0-24; F0-23 modified by you to 100 parts → v3.6 (section 31). |
 | D13 | 2026-10-05 | Accept F0-12..F0-20 → v3.5 (section 30). |
 | D12 | 2026-10-05 | Exclude discontinued kit parts with no successor (no active equivalent of the same function and interface) → v3.4 (section 29). Today: MPR121. You confirmed this reading on 2026-10-05 and declined the stricter "manufacturer-named successor" rule. |

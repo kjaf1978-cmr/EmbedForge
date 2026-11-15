@@ -12,7 +12,7 @@ Licence: GPL-3.0-or-later (LICENSE file added with the first code, Increment 1).
 WP 1.1 (Rust core), WP 1.2 (application shell and UI) and WP 1.3 (packaging, signing,
 installers, privileged-helper skeleton) are done; reports in docs/inc1/.
 
-- Requirements baseline: `docs/requirements/EmbedForge_prompt_v3.7.md`
+- Requirements baseline: `docs/requirements/EmbedForge_prompt_v3.8.md`
 - v3 review findings (D9): `docs/requirements/v3_review_findings.md`
 - Phase 0 tracker and decisions: `docs/phase0/STATUS.md`
 - Session log: `docs/SESSION_LOG.md`
