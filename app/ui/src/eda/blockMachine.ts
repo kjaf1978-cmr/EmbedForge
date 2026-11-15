@@ -148,11 +148,11 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`RGD${k}`, 'resistor', x, 1750, { value: '10k' }, { '1': `G${k}`, '2': 'GND' }, 1)
       .part(`Q${k}`, 'nmos', x + 100, 1650, { value: 'IRLZ44N' }, { '1': `G${k}`, '2': `${k}D`, '3': 'GND' })
       .part(`X${k}U`, 'terminal', x, 1850, { value: `${what}: U` }, { '1': `${k}U` })
-      .part(`X${k}V`, 'terminal', x + 50, 1850, { value: `${what}: V` }, { '1': `${k}V` })
-      .part(`X${k}W`, 'terminal', x + 100, 1850, { value: `${what}: W` }, { '1': `${k}W` })
-      .part(`R${k}U`, 'resistor', x, 1950, { value: '1M', scope: 'test' }, { '1': `${k}U`, '2': 'GND' }, 1)
-      .part(`R${k}V`, 'resistor', x + 50, 1950, { value: '1M', scope: 'test' }, { '1': `${k}V`, '2': 'GND' }, 1)
-      .part(`R${k}W`, 'resistor', x + 100, 1950, { value: '1M', scope: 'test' }, { '1': `${k}W`, '2': 'GND' }, 1);
+      .part(`X${k}V`, 'terminal', x, 1900, { value: `${what}: V` }, { '1': `${k}V` })
+      .part(`X${k}W`, 'terminal', x, 1950, { value: `${what}: W` }, { '1': `${k}W` })
+      .part(`R${k}U`, 'resistor', x + 80, 2050, { value: '1M', scope: 'test' }, { '1': `${k}U`, '2': 'GND' }, 1)
+      .part(`R${k}V`, 'resistor', x + 120, 2050, { value: '1M', scope: 'test' }, { '1': `${k}V`, '2': 'GND' }, 1)
+      .part(`R${k}W`, 'resistor', x + 160, 2050, { value: '1M', scope: 'test' }, { '1': `${k}W`, '2': 'GND' }, 1);
   });
   nb.block('outputs')
     // the motor terminals of the power circuit (400 V: not simulated)

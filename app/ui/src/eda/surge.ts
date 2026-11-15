@@ -20,12 +20,12 @@ export type MainsSurge = 'lightning' | 'induced' | 'socket';
  *  1.2/50 µs at the socket between L and N. `stages`: which SPDs are fitted. */
 export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boolean; t3?: boolean } = {}): { sheet: Sheet; nb: NB } {
   const s = { t1: true, t2: true, t3: true, ...stages };
-  const nb = new NB().wireUp([]);
+  const nb = new NB().wireUp([]).io({ PEN: 'pe' });
   // the mains start at their positive peak (phase 90°) and the surge comes 0.1 ms later
   const at = 0.1e-3;
   nb.para('SURGE PROTECTION, mains house (TN-C-S): type 1+2 SPD at the main board, type 2 SPD in the sub-board, type 3 at the socket of sensitive appliances, coordinated by the cables between them (10 m and 15 m). Main earthing terminal on a 10 Ω earth electrode; PEN split to N and PE at the main board.', -1200, -300);
   // ---- the supply (test bench): transformer 230 V, its PEN earthed at the substation (1 Ω)
-  nb.block('bench').note('TEST BENCH: the supply and the surge', -1200, -150)
+  nb.block('bench').note('INPUT: the supply from the grid (service line) and the surge (TEST BENCH)', -1200, -150)
     .part('VS', 'vsin', -1150, 0, { value: '325', freq: '50', phase: '90' }, { '1': 'LS', '2': 'PENS' })
     .part('RES', 'resistor', -1050, 120, { value: '1', pmax: '1G' }, { '1': 'PENS', '2': 'GND' }, 1);
   // service line 20 m (overhead or buried): 20 µH and 30 mΩ per conductor
@@ -57,7 +57,7 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
     .part('FT3E', 'mov', 320, 60, { value: '14D431K' }, { '1': 'L3', '2': 'PE3' }, 1)
     .part('FT3N', 'gdt', 420, 160, { value: 'GDT 600 V' }, { '1': 'N3', '2': 'PE3' }, 1);
   // ---- the appliance (test load): 50 Ω (1 kW), its Y capacitors to PE
-  nb.block('load').note('APPLIANCE (test load)', 550, -100)
+  nb.block('load').note('OUTPUT (load side): the appliance (test load)', 550, -100)
     .part('RAP', 'resistor', 550, 60, { value: '50', pmax: '1M' }, { '1': 'L3', '2': 'N3' }, 1)
     .part('CY1', 'capacitor', 650, 60, { value: '2.2n', vmax: '4000' }, { '1': 'L3', '2': 'PE3' }, 1)
     .part('CY2', 'capacitor', 750, 160, { value: '2.2n', vmax: '4000' }, { '1': 'N3', '2': 'PE3' }, 1);
@@ -79,7 +79,7 @@ export function pvHouse(o: { tvs?: boolean; spdArray?: boolean; spdCharger?: boo
   const nb = new NB().wireUp([]);
   const at = 1e-3;
   nb.para('SURGE PROTECTION, PV house (DC side): type 2 DC SPDs (two varistors in Y, 170 V DC) at the array junction box and at the charger, a 5 kW TVS across the charger input; array frame, junction box and charger earthed with a 6 mm² conductor beside the DC cable.', -1200, -300);
-  nb.block('bench').note('TEST BENCH: the array (three 280 Wp in series) and an induced surge', -1200, -150)
+  nb.block('bench').note('INPUT: the PV array (three 280 Wp in series) and an induced surge (TEST BENCH)', -1200, -150)
     .part('PV1', 'pv', -1150, 0, { value: '280 Wp, 60 cells poly', n: '3', g: '1000' }, { '1': 'PVA', '2': 'NVA' })
     .part('RFR', 'resistor', -1050, 200, { value: '10', pmax: '1G' }, { '1': 'PEA', '2': 'GND' }, 1)
     .part('IS', 'isurge', -950, -100, { value: '5k', wave: '8/20', delay: String(at) }, { '1': 'PVA', '2': 'PEA' });
@@ -96,7 +96,7 @@ export function pvHouse(o: { tvs?: boolean; spdArray?: boolean; spdCharger?: boo
   // the charger's own input (part of P6, not of this protection): its varistor and TVS
   nb.block('charger (P6)').part('RVPV', 'mov', -200, 60, { value: '14D201K' }, { '1': 'PVC', '2': 'NVC' }, 1);
   if (s.tvs) nb.part('DTVS', 'tvs', -100, 60, { value: '5KP130CA' }, { '1': 'PVC', '2': 'NVC' }, 1);
-  nb.block('load').note('THE CHARGER (test load: its input capacitors and its MPP current)', 0, -100)
+  nb.block('load').note('OUTPUT (load side): the charger (test load: its input capacitors and its MPP current)', 0, -100)
     .part('CIN', 'capacitor', 0, 60, { value: '20u', vmax: '200' }, { '1': 'PVC', '2': 'NVC' }, 1)
     .part('RLD', 'resistor', 100, 60, { value: '11.5', pmax: '2k' }, { '1': 'PVC', '2': 'NVC' }, 1)
     // the charger's PV− reaches its battery negative through QPV (on), and that is bonded to PE

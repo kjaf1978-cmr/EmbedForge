@@ -6,6 +6,7 @@
 import { inverterHF, inverterLF } from './inverters';
 import { addLabel, placePart } from './editor';
 import { autowire, pinPartition, spreadSheet, type AutowireOptions } from './autowire';
+import { terminalIo, type TerminalIo } from './terminalIo';
 import { connectivity } from './connectivity';
 import { annotate, emptySheet, newId, pinPositions, type Probe, type Rot, type Sheet, type SimSettings, type StepSweep } from './schematic';
 import type { Example } from './examples';
@@ -37,6 +38,9 @@ export class NB {
   ox = 0;
   oy = 0;
   block(name: string): this { this.cur = name; return this; }
+  /** Directions of terminals that their function text does not tell (by function text). */
+  ioOverride: Record<string, TerminalIo> = {};
+  io(map: Record<string, TerminalIo>): this { Object.assign(this.ioOverride, map); return this; }
   /** Draw with wires (D28): `rails` as power symbols, every other net drawn as one wire (or, with
    *  `between`, wired inside each block and named by a label there: for a sheet too dense to
    *  wire in one piece); the placement spread by `spread` first. */
@@ -92,6 +96,8 @@ export class NB {
   /** The annotated sheet, with an optional parameter sweep of a part property (by key). */
   done(step?: { key: string; param?: string; list: string }): Sheet {
     let s = annotate(this.s);
+    // every product terminal tagged with its direction (IN, OUT, CTRL, PE, EXT) for the drawing
+    s = { ...s, parts: s.parts.map((q) => (q.sym === 'terminal' && !q.props.io && q.props.scope !== 'test' ? { ...q, props: { ...q.props, io: this.ioOverride[q.props.value] ?? terminalIo(q.props.value ?? '') } } : q)) };
     if (this.wired) {
       const before = pinPartition(s);
       s = spreadSheet(s, this.spread);
@@ -342,8 +348,8 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
     .part('QF1', 'breaker4', -1050, 150, { value: '32', curve: 'C' }, { '1': 'LM1', '2': 'L1', '3': 'LM2', '4': 'L2', '5': 'LM3', '6': 'L3', N1: 'NM', N2: 'NMQ' })
     .part('QF2', 'breaker4', -1050, 760, { value: '32', curve: 'C' }, { '1': 'LB1', '2': 'B1', '3': 'LB2', '4': 'B2', '5': 'LB3', '6': 'B3', N1: 'NB', N2: 'NBQ' });
   // the breakers switch N too: downstream of them the neutrals are NMQ and NBQ
-  L.forEach((ph, k) => nb.part(`RVM${ph}`, 'mov', -880 + 80 * k, 300, { value: 'TMOV14RP300E' }, { '1': `L${ph}`, '2': 'NMQ' }, 1)
-    .part(`RVB${ph}`, 'mov', -880 + 80 * k, 910, { value: 'TMOV14RP300E' }, { '1': `B${ph}`, '2': 'NBQ' }, 1));
+  L.forEach((ph, k) => nb.part(`RVM${ph}`, 'mov', -900 + 110 * k, 300, { value: 'TMOV14RP300E' }, { '1': `L${ph}`, '2': 'NMQ' }, 1)
+    .part(`RVB${ph}`, 'mov', -900 + 110 * k, 910, { value: 'TMOV14RP300E' }, { '1': `B${ph}`, '2': 'NBQ' }, 1));
 
   // ---- 24 V control supply from either source (as the single-phase design)
   const v24 = t.v24 ?? 24.27;
@@ -615,7 +621,8 @@ export function mpptCharger(o: ChargerOptions = {}): { sheet: Sheet; nb: NB } {
   // each power semiconductor on its own heatsink area: 0.5 K/W pad + 1.0 K/W share of the
   // heatsink (one extruded profile of 0.33 K/W for all of them, natural convection)
   const HS = '1.5';
-  const nb = new NB();
+  // the battery is the charger's output (its load side)
+  const nb = new NB().io({ 'BAT+': 'out', 'BAT−': 'out' });
   // V12: the 12 V control supply (from the PV input); VREF, VREF2: control and protection references
   nb.wired = { rails: ['V12'], labelled: ['PVP', 'VREF', 'VREF2', 'VO', 'BN', 'BF', 'BDN', 'FLT', 'FLT2', 'LFA2', 'GPV', 'SPV', 'ISA', 'ISF', 'IREF', 'VPS', 'VBS', 'VSET', 'RUN', 'PWM', 'SW', 'G1', 'VCMD', 'GD', 'GB', 'GB2', 'NBT', 'LFB', 'BATP'] };
   nb.para('MPPT SOLAR CHARGER, one 3.7 kW unit: 9 × 410 Wp (3 in series, 3 strings) into a 48 V LiFePO4 battery through a 20 kHz buck converter (IRFP4668, STTH6003, 56 µH, film capacitors), a 100 A battery fuse and an ideal diode in the battery\'s negative lead. The control is supplied from the PV input (it works whenever there is sun to convert).', -1600, -300)

@@ -1,6 +1,7 @@
 // Schematic document (UI-08): parts, wires, labels and probes with their geometry. The
 // connectivity derived from it is the netlist (INV-08); see connectivity.ts.
 
+import { IO_TAG, type TerminalIo } from './terminalIo';
 import { symbolOf, type Pt, type SymbolDef } from './symbols';
 import { parseValue } from './units';
 import type { Board } from '../pcb/board';
@@ -204,6 +205,8 @@ export function valueText(p: Part): string {
   const v = p.props[s.value.key] ?? '';
   if (s.value.kind === 'bool' || s.interactive === 'throw') return '';
   if (s.id === 'led') return `LED ${v}`;
+  // a product's terminal: its direction before its function (IN, OUT, CTRL, EXT; PE as it is)
+  if (s.id === 'terminal' && p.props.io && p.props.io !== 'pe') return `${IO_TAG[p.props.io as TerminalIo] ?? p.props.io.toUpperCase()}: ${v}`;
   if (s.id === 'vsin') return `${v} V ${p.props.freq ?? ''}Hz`;
   if (s.id === 'vpulse') return `${p.props.low ?? 0}/${v} V ${p.props.freq ?? ''}Hz`;
   if (s.value.unit && parseValue(v) !== null && !v.endsWith(s.value.unit)) return `${v}${s.value.unit}`;

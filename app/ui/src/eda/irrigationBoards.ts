@@ -64,15 +64,16 @@ export function irrigationModule(): { sheet: Sheet; nb: NB } {
     .part('CD3', 'capacitor', 800, -150, { value: '100n', vmax: '50' }, { '1': 'V33', '2': 'GND' }, 1);
   nb.block('valves');
   for (let k = 1; k <= 8; k++) {
-    const x = 150 * (k - 1);
+    // 180 apart: room for each valve terminal's name beside the flyback diode
+    const x = 180 * (k - 1);
     nb.part(`RG${k}`, 'resistor', x, 400, { value: '1k' }, { '1': `Q${k}`, '2': `G${k}` })
       .part(`RGS${k}`, 'resistor', x + 50, 480, { value: '10k' }, { '1': `G${k}`, '2': 'SRET' }, 1)
       .part(`DGC${k}`, 'diode', x + 50, 330, { value: 'BAT54' }, { '2': `G${k}`, '1': 'GCL' })
       .part(`QV${k}`, 'nmos', x + 100, 400, { value: 'IRLML0060' }, { '1': `G${k}`, '2': `OUT${k}`, '3': 'SRET' })
       .part(`DF${k}`, 'diode', x + 100, 300, { value: 'SS34' }, { '2': `OUT${k}`, '1': 'V24' }, 3)
       .part(`DT${k}`, 'tvs', x + 130, 480, { value: 'SMAJ33A' }, { '1': `OUT${k}`, '2': 'GND' }, 1)
-      .part(`XV${k}`, 'terminal', x + 130, 300, { value: `valve ${k}` }, { '1': `OUT${k}` })
-      .part(`XVC${k}`, 'terminal', x + 130, 250, { value: `valve ${k} +24 V` }, { '1': 'V24' });
+      .part(`XV${k}`, 'terminal', x + 150, 300, { value: `valve ${k}` }, { '1': `OUT${k}` })
+      .part(`XVC${k}`, 'terminal', x + 150, 250, { value: `valve ${k} +24 V` }, { '1': 'V24' });
   }
   nb.block('sensors');
   for (let k = 1; k <= 8; k++) {
