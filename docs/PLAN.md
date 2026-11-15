@@ -23,7 +23,7 @@ current product's own long runs. One session works on the branch.
 | # | Product | Estimate | Note |
 |---|---|---|---|
 | 1 | P3 change-over (1P, 3P+N) | 2–3 days | **signed off 15 November 2026** (package c6ddfd3; open for the prototype: interlock kit fit, TMOV body, type tests) |
-| 2 | P4 stabiliser 1 kVA | 1–2 days | |
+| 2 | P4 stabiliser 1 kVA | 1–2 days | **signed off 15 November 2026** (package 6df257f; open for the prototype: relay footprint and TMOV body against the datasheets, autotransformer to specification, type tests) |
 | 3 | P4b stabilisers 5/10/15 kVA | 2 days | |
 | 4 | P5 surge protection | 1 day | D49: certified PV SPD modules |
 | 5 | P9 pump controller | 1 day | |

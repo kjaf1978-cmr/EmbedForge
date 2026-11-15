@@ -16,7 +16,7 @@ safety note, and the type tests.
 | 5 | Costed parts list | About €311 (`4-parts-list/`), of which €185 is the autotransformer made to specification. Every part has a manufacturer part number or a specification, and a price. Prices marked "estimate" are catalogue estimates. |
 | 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, design notes, DFMEA, and the design document (PDF and Word). |
 | 7 | Independent review | Done 15 November 2026: 3 blockers, 9 major and 8 minor findings. Your decisions D51–D53 settled four of them; all are resolved, except the relay footprint (below) (`8-review/REVIEW.md`). |
-| 8 | Package and sign-off | This package; **awaiting your sign-off**. |
+| 8 | Package and sign-off | Package 6df257f; **signed off by the owner on 15 November 2026** (D54). |
 
 Open, for the prototype stage:
 
