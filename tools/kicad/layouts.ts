@@ -55,6 +55,12 @@ export interface Design {
 // 230 V, which 1.5 mm in pollution degree 2 carries; IEC 62368-1 needs only that a short there
 // is safe, and the breaker and fuse cover it); the 3.2 mm hold between the mains and every other
 // net (the rule in board.kicad_dru for KiCad's check, a class-to-class rule for the router)
+// two sources on one board (the change-overs): the mains' and the back-up's nets in classes of
+// their own, each 3.2 mm from everything else, so from each other too (up to 460 V between two
+// unsynchronised sources); the load side, behind the contactors, is not on the board
+const twoSources = (a: string[], b: string[], load: string[], track = 1.6) => (s: Sheet): NetClass[] => [
+  { ...classFor('Mains', potentialGroup(s, a, new Set(load)), track, 1.5), apart: 3.2 },
+  { ...classFor('Backup', potentialGroup(s, b, new Set(load)), track, 1.5), apart: 3.2 }];
 const mains = (seeds: string[], track = 1.6) => (s: Sheet): NetClass[] => [{ ...classFor('Mains', potentialGroup(s, seeds), track, 1.5), apart: 3.2 }];
 
 // The stabiliser's power section (D44): the relay ladder K1 … K6 in a column at x 95, 20 mm apart,
@@ -132,8 +138,11 @@ const PANEL = new Set(['contactor', 'breaker1', 'breaker2', 'breaker3', 'breaker
 // the change-overs' panel wiring: the 32 A circuits in 6 mm² (IEC 60364-5-52, method B2, 30 °C,
 // two loaded conductors: 36 A; derate in a hot enclosure), the board's mains feeds (behind the
 // breakers, its fuses at 0.2 A) in 1.5 mm², the control in 0.75 mm²; PE green-yellow
+// a 32 A net that also feeds the board: 6 mm² between the panel's devices, the board's tap
+// behind its 10 A gG fuse (the fused side is a net of its own, 1.5 mm²); PE to the board 1.5 mm²
+// (its connector takes up to 2.5 mm²)
 const coWire = (net: string, toBoard: boolean, isMains: boolean) =>
-  net === 'GND' ? '6 mm² H07V-K green-yellow (PE)' : isMains ? (toBoard ? '1.5 mm² H07V-K' : '6 mm² H07V-K, ferrules') : '0.75 mm² H05V-K';
+  /^(LOAD|NLOAD|T[123N])$/.test(net) ? '6 mm² H07V-K, ferrules (load side)' : net === 'GND' ? '6 mm² H07V-K green-yellow (PE) between the PE blocks; 1.5 mm² green-yellow to the board connector' : isMains ? (/F$|B$/.test(net) && toBoard ? '1.5 mm² H07V-K (behind its 10 A gG fuse)' : toBoard ? '6 mm² H07V-K, ferrules, between the panel devices; 1.5 mm² H07V-K tap to the board connector (N: unfused, as the breaker\'s N)' : '6 mm² H07V-K, ferrules') : '0.75 mm² H05V-K';
 
 // The MPPT charger (D45): a power board (4 oz copper) and a control board. The power board
 // carries the PV input protection, the buck stage, the battery switch, the shunt, the gate
@@ -641,10 +650,10 @@ export const DESIGNS: Record<string, Design> = {
     post: { tracks: [{ net: 'SHN', layer: 'B.Cu', width: 0.5, pts: [[170.6593, 61.0537], [170.75, 61.0], [165.0, 66.75], [165.0, 75.0]] }] } },
   'grinder-24-control': { sheet: () => grinder({ supply: '24' }).sheet, title: 'Grinder drive 2.5 kW, 24 V battery: control board (supplies, run chain, speed and torque loops, faults)', revision: 'A',
     classes: () => [], panel: (p) => grRefs('24').pwr.has(p.ref) || grRefs('24').off.has(p.ref), w: 180, h: 130 },
-  'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: mains(['LM_IN', 'NM', 'LB_IN', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire },
-  'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: mains(['LM1', 'LM2', 'LM3', 'NM', 'LB1', 'LB2', 'LB3', 'NB']), panel: (p) => PANEL.has(p.sym), wire: coWire, fill: 3.0 ,
-    // one ground link Freerouting left, drawn by tools/kicad/autolink.py (15 November)
-    post: { tracks: [{ net: 'GND', layer: 'F.Cu', width: 0.5, pts: [[137.08, 18.25], [153.75, 18.25], [158.5, 23.0], [158.4019, 22.9019]] }] } },
+  'changeover-1p': { sheet: () => changeover1().sheet, title: 'Mains change-over 1P (control board)', revision: 'A', classes: twoSources(['LM_IN', 'NM'], ['LB_IN', 'NB'], ['LOAD', 'NLOAD']), panel: (p) => PANEL.has(p.sym) || !!p.props.din, wire: coWire,
+    // the links the router left with the two sources 3.2 mm apart, drawn by tools/kicad/autolink.py
+    post: { tracks: [{ net: 'L1B', layer: 'F.Cu', width: 1.0, pts: [[5.82, 88.75], [5.75, 88.75], [14.25, 97.25], [14.25, 103.25], [14.26, 103.25]] }, { net: 'L1B', layer: 'F.Cu', width: 1.0, pts: [[11.71, 69.25], [11.75, 69.25], [5.75, 75.25], [5.75, 88.75], [5.82, 88.75]] }, { net: 'L1B', layer: 'F.Cu', width: 1.0, pts: [[29.75, 22.5], [10.25, 42.0], [10.25, 67.75], [11.75, 69.25], [11.71, 69.25]] }, { net: 'LF3', layer: 'B.Cu', width: 1.0, pts: [[15.51, 7.5], [15.5, 7.5], [10.25, 12.75], [10.25, 62.75], [16.75, 69.25], [16.79, 69.25]] }, { net: 'LF4', layer: 'B.Cu', width: 1.0, pts: [[15.51, 55.5], [15.5, 55.5], [23.5, 63.5], [28.0, 63.5], [34.0, 69.5], [34.0, 72.5], [43.75, 82.25], [43.75, 84.75], [43.79, 84.75]] }, { net: 'N1', layer: 'F.Cu', width: 1.0, pts: [[21.06, 88.75], [21.0, 88.75], [22.0, 89.75], [22.0, 103.25], [21.88, 103.25]] }, { net: 'N1', layer: 'F.Cu', width: 1.0, pts: [[37.25, 22.5], [23.25, 8.5], [23.25, 7.5], [23.13, 7.5]] }, { net: 'N1', layer: 'F.Cu', width: 1.0, pts: [[21.06, 88.75], [21.0, 88.75], [21.0, 65.0], [37.25, 48.75], [37.25, 22.5]] }, { net: 'N2', layer: 'B.Cu', width: 1.0, pts: [[37.25, 70.5], [37.25, 68.75], [24.0, 55.5], [23.25, 55.5], [23.13, 55.5]] }], vias: [] } },
+  'changeover-3p': { sheet: () => changeover3().sheet, title: 'Mains change-over 3P+N (control board)', revision: 'A', classes: twoSources(['LM1', 'LM2', 'LM3', 'NM'], ['LB1', 'LB2', 'LB3', 'NB'], ['T1', 'T2', 'T3', 'TN']), panel: (p) => PANEL.has(p.sym) || !!p.props.din, wire: coWire, fill: 3.0  },
   'mppt-power': { sheet: () => mppt().sheet, title: 'MPPT solar charger 48 V, 80 A: power board', revision: 'A', classes: () => [POWER(MPPT_HEAVY)], copperOz: 4,
     heavy: MPPT_HEAVY, panel: (p) => !mpptRefs().pwr.has(p.ref), bolted: (p) => mpptRefs().off.has(p.ref), w: 280, h: 160,
     plan: mpptPlan, tracks: MPPT_BARS, region: { x0: 0, x1: 280 } },

@@ -11,7 +11,8 @@ You need:
 - a true-RMS multimeter;
 - a stopwatch;
 - for the threshold tests, a variable transformer (variac) 0 … 260 V, 2 A, connected to the
-  mains input in place of the mains (3P+N: one phase at a time);
+  mains input in place of the mains (3P+N: a three-phase variac for the undervoltage step, or
+  three single-phase ones);
 - for the varistor check, a varistor tester or a current-limited (1 mA) DC supply to 600 V.
 
 ## 1. Before any voltage
@@ -40,26 +41,42 @@ You need:
 | 2.5 | K2 | closes about 0.5 s after power-up; ON BACK-UP (yellow) on |
 | 2.6 | Load terminals | 230 V from the back-up source (3P+N: 400 V between the phases, 230 V phase to N); phase rotation as the mains (3P+N) |
 
+## 2a. Calibration of the sense (every unit)
+
+The small sense transformers' output varies from unit to unit (their no-load voltage is above
+the rated 12 V), so each sense divider has a 25-turn trimmer: RV3 in 1P; RV7, RV8 and RV9 (phases L1, L2 and L3) in 3P+N, one
+per phase.
+
+1. Q1 on, the mains present.
+2. Measure the mains voltage at X1–X2 (3P+N: each phase to N) with the true-RMS meter: U.
+3. Turn the phase's trimmer until SENSE reads 2.000 V × U / 230 V. SENSE is at the top of R21 in
+   1P; in 3P+N it is each phase's divider (R14, R21, R31) to ground. For example, at U = 236 V,
+   SENSE = 2.052 V.
+4. Seal the trimmers with a drop of lacquer.
+
 ## 3. Transfer to the mains and back
 
 | Step | Action | Expected |
 |---|---|---|
 | 3.1 | Q1 on, mains healthy (about 230 V) | UNDERVOLTAGE goes off at once |
 | 3.2 | Time from Q1 on to ON MAINS (green) | 10.5 s ± 1.5 s (return delay), plus 0.47 s; yellow goes off about 0.5 s before green comes on |
-| 3.3 | Measure SENSE at the top of R21 (3P+N: each phase's divider) to ground | about 2.0 V at 230 V mains (0.0087 V per volt of mains) |
+| 3.3 | Measure SENSE again | 2.000 V × U / 230 V ± 5 mV (as calibrated) |
 | 3.4 | Q1 off | yellow on within about 0.5 s; green off first |
 | 3.5 | Repeat 3.1 … 3.4 ten times | green and yellow never on together |
 
 ## 4. Thresholds (variac on the mains input)
 
-Start at 230 V with the load on the mains (green). In 3P+N, after a trip, raise the phase back to 230 V and wait for the return before the next step.
+Disconnect the load from the unit's load terminals for these steps (the variac carries only the
+board). Start at 230 V with the unit on the mains (green). After each trip, return to 230 V and
+wait for the return before the next step. The limits allow for the 1 % resistors of the
+reference divider (worst case ± 4 V; typically ± 2 V).
 
 | Step | Action | Expected |
 |---|---|---|
-| 4.1 | Lower slowly (about 1 V/s) | trip to back-up at 195 V ± 2 V: UNDERVOLTAGE on, green off, yellow on |
+| 4.1 | Lower slowly (about 1 V/s); 3P+N: all three phases together, with a three-phase variac | trip to back-up at 195 V ± 4 V: UNDERVOLTAGE on, green off, yellow on |
 | 4.2 (1P) | Raise to 200 V | stays on back-up (hysteresis) |
 | 4.3 (1P) | Raise to 210 V | returns to the mains after 10.5 s |
-| 4.4 | Raise slowly from 230 V | trip at 253 V ± 2 V: OVERVOLTAGE on, transfer to back-up |
+| 4.4 | Raise slowly from 230 V (3P+N: one phase at a time) | trip at 253 V ± 4 V: OVERVOLTAGE on, transfer to back-up |
 | 4.5 (1P) | Lower to 250 V | stays on back-up (hysteresis) |
 | 4.6 (1P) | Lower to 240 V | returns to the mains after 10.5 s |
 | 4.7 (3P+N) | One phase alone to 12 % below the others (about 202 V with 230 V on the other two) | trip (asymmetry) |
@@ -68,7 +85,7 @@ Start at 230 V with the load on the mains (green). In 3P+N, after a trip, raise 
 
 ## 5. Varistors
 
-With the board unplugged and both breakers off: measure each varistor RV at 1 mA DC.
+With the board unplugged and both breakers off: measure each varistor at 1 mA DC: RV1 and RV2 in 1P, RV1 … RV6 in 3P+N (not the trimmers).
 
 - 423 … 517 V: good.
 - No conduction up to 600 V: its thermal disconnect has opened. Replace it with the same type
@@ -94,8 +111,9 @@ This step is repeated after a known lightning event, or every 5 years.
 | Return delay | 10.5 ± 1.5 s | | |
 | Dead time (yellow off to green on) | about 0.5 s | | |
 | SENSE at 230 V | about 2.0 V | | |
-| Undervoltage trip | 195 ± 2 V | | |
-| Overvoltage trip | 253 ± 2 V | | |
+| Calibration (SENSE at U) | 2.000 V × U / 230 V | | |
+| Undervoltage trip | 195 ± 4 V | | |
+| Overvoltage trip | 253 ± 4 V | | |
 | 1P: hysteresis (200 V stays, 210 V returns; 250 V stays, 240 V returns) | as stated | | |
 | 3P+N: asymmetry 12 % trips, 7 % holds, lost phase trips | as stated | | |
 | Varistors at 1 mA | 423 … 517 V each | | |

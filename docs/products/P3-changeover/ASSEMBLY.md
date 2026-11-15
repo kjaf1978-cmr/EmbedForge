@@ -39,7 +39,8 @@ Tools:
    - electrolytic capacitors (watch the polarity: the + mark on the drawing);
    - MOSFETs IRLZ44N;
    - LM317HV with its heatsink;
-   - fuse holders with 200 mA slow fuses;
+   - the trimmers (5 kΩ, 25 turns; RV3 in 1P, RV7 … RV9 in 3P+N): leave them as they are, they are set at commissioning;
+   - fuse holders with 200 mA time-lag (T) 5 × 20 mm fuses;
    - the transformers;
    - the varistors RV (TMOV14RP300E);
    - the board connectors J_MAINS and J_PANEL.
@@ -61,22 +62,34 @@ Tools:
 1. **Mount on the DIN rail, left to right:**
    - the terminal blocks of the inputs: L/N mains, L/N back-up, PE (3P+N: L1 L2 L3 N);
    - breaker Q1 (mains), breaker Q2 (back-up);
+   - next to each breaker, the fuse holders of the board feeds: 10 A gG 10 × 38 cartridges (1P:
+     one per source; 3P+N: three per source). Their references (F…) are in `panel.csv` and
+     the parts list (`gG 10 A, 10×38, DIN-rail holder`);
    - contactor K1 (mains) with its auxiliary block LADN01, contactor K2 (back-up) with its
-     LADN01;
+     LADN01, side by side with the maker's mechanical interlock between them. For Schneider
+     TeSys D the interlock is the LAD9V2 kit; confirm with Schneider that it fits the 4-pole
+     LC1DT32 frame, or use their factory reversing pair for 4-pole contactors;
    - the terminal blocks of the load: L, N, PE (3P+N: L1 L2 L3 N, PE).
 
    PE blocks are green-yellow and clip onto the rail (they earth it).
 2. **Wire exactly as `panel.csv` lists:**
    - Power circuits: 6 mm² H07V-K with ferrules (32 A, IEC 60364-5-52 method B2 at 30 °C;
-     derate in a hot enclosure).
-   - The board's mains feeds: 1.5 mm², taken behind the breakers.
+     derate in a hot enclosure). This includes the load side.
+   - The board's mains feeds: 1.5 mm² from the output of each 10 A board-feed fuse. N is taken
+     behind the breaker, unfused, as the breaker switches it.
    - The coils and interlock: 0.75 mm² H05V-K.
-   - PE: 6 mm² green-yellow.
+   - PE: 6 mm² green-yellow between the PE blocks, 1.5 mm² green-yellow to the board connector
+     (J_PANEL takes at most 2.5 mm²).
 
    Tighten every screw terminal to the torque printed on the part, and mark it.
 3. **Check the interlock wiring.** It is the safety function:
-   - K1's coil (A1) is fed through K2's NC auxiliary contact (21–22).
+   - K1's coil (A1) is fed through K2's NC auxiliary contact.
    - K2's coil (A1) is fed through K1's NC auxiliary contact.
+
+   The schematic and `panel.csv` call this contact 21–22 (the symbol's numbering). On the LADN01
+   block, use its NC contact, marked x1–x2 on the block (the first digit gives its position). It
+   must be a mirror contact (IEC 60947-4-1 Annex F); TeSys D auxiliary blocks are, but confirm
+   this in Schneider's data for the block you buy.
 
    With the board disconnected, measure that K1 A1 has continuity to the +24 V wire only while K2
    is released, and the same for K2.

@@ -210,10 +210,10 @@ function transferLogic(nb: NB, X: (k: number) => number, Y: (k: number) => numbe
 export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t: TransferTiming = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const V = '+24V';
-  nb.wired = { rails: [V], labelled: ['L1', 'N1', 'L2', 'N2', 'VREF', 'SENSE', 'OK', 'OVN', 'UVN', 'K1A', 'K2A', 'K1C', 'K2C', 'K1EN', 'K2EN'] };
+  nb.wired = { rails: [V], labelled: ['L1', 'N1', 'L2', 'N2', 'L1B', 'L2B', 'VREF', 'SENSE', 'OK', 'OVN', 'UVN', 'K1A', 'K2A', 'K1C', 'K2C', 'K1EN', 'K2EN'] };
   const X = (k: number) => 120 * k, Y = (k: number) => 900 + 130 * (k - 9);
   nb.para('MAINS / BACK-UP CHANGE-OVER, single-phase, 32 A. The load runs from the mains while it is within 195 … 253 V (−15 % / +10 %), otherwise from the back-up source (generator or inverter). L and N are switched by two 2-pole contactors (24 V DC coils), each fed through the other one\'s NC auxiliary contact: never both closed.', -1350, -300)
-    .para('Sense: 230/12 V transformer with snubber, bridge, 4.7 µF, 68k/10k: 2.0 V at 230 V. Window comparator (LM393) against a TL431 reference split by 2.1k/4.22k/12.1k (E96), with hysteresis after a trip. Transfer logic (LM339): return delay 10.5 s, dead time 0.47 s, coil-supply lockout below 20 V. The 24 V control supply is fed from both sources. Control ground bonded to PE.', 0, -300);
+    .para('Sense: 230/12 V transformer with snubber, bridge, 4.7 µF, 68k/10k: 2.0 V at 230 V. Window comparator (LM339) against a TL431 reference split by 2.1k/4.22k/12.1k (E96), with hysteresis after a trip. Transfer logic (LM339): return delay 10.5 s, dead time 0.47 s, coil-supply lockout below 20 V. The 24 V control supply is fed from both sources. Control ground bonded to PE.', 0, -300);
 
   // ---- test bench: mains and back-up, each with its neutral earthed (TN-S) — not part of the product
   nb.block('bench').note('TEST BENCH (not part of the product): mains and back-up source, neutrals earthed', -1450, -80);
@@ -231,15 +231,19 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
     .part('X4', 'terminal', -1100, 630, { wire: '6', value: 'N back-up' }, { '1': 'NB' })
     .part('X5', 'terminal', -1100, 780, { wire: '6', value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker2', -950, 150, { value: '32', curve: 'C' }, { '1': 'LM_IN', '2': 'L1', N1: 'NM', N2: 'N1' }, 3)
-    .part('RV1', 'mov', -820, 150, { value: 'TMOV14RP300E' }, { '1': 'L1', '2': 'N1' }, 1)
+    // the board's feeds tapped behind each breaker through a 10 A gG fuse on the DIN rail: the
+    // 1.5 mm² taps and the board protected (the board's own 0.2 A fuses break only 35 A)
+    .part('FM', 'fuse', -880, 60, { value: '10', din: 'yes' }, { '1': 'L1', '2': 'L1B' })
+    .part('RV1', 'mov', -820, 150, { value: 'TMOV14RP300E' }, { '1': 'L1B', '2': 'N1' }, 1)
     .part('QF2', 'breaker2', -950, 600, { value: '32', curve: 'C' }, { '1': 'LB_IN', '2': 'L2', N1: 'NB', N2: 'N2' }, 3)
-    .part('RV2', 'mov', -820, 600, { value: 'TMOV14RP300E' }, { '1': 'L2', '2': 'N2' }, 1);
+    .part('FB', 'fuse', -880, 510, { value: '10', din: 'yes' }, { '1': 'L2', '2': 'L2B' })
+    .part('RV2', 'mov', -820, 600, { value: 'TMOV14RP300E' }, { '1': 'L2B', '2': 'N2' }, 1);
 
   // ---- 24 V control supply from either source: a transformer and bridge on each, the bridges'
   // outputs in parallel (each blocks the other), LM317HV to 24.3 V (`t.v24` sets another value)
   const v24 = t.v24 ?? 24.27;
   nb.block('aux');
-  for (const [k, L, N, y] of [[3, 'L1', 'N1', 120], [4, 'L2', 'N2', 520]] as const) {
+  for (const [k, L, N, y] of [[3, 'L1B', 'N1', 120], [4, 'L2B', 'N2', 520]] as const) {
     nb.part(`F${k}`, 'fuse', -680, y, { value: '0.2', r: '2' }, { '1': L, '2': `LF${k}` })
       .part(`TR${k}`, 'transformer', -540, y + 20, { value: '0.13', lp: '20', rp: '140', rs: '1.5', k: '0.995' }, { '1': `LF${k}`, '2': N, '3': `A${k}A`, '4': `A${k}B` })
       .part(`RS${k}`, 'resistor', -450, y + 110, { value: '47', pmax: '0.5' }, { '1': `A${k}A`, '2': `SN${k}` }, 1)
@@ -254,13 +258,16 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
 
   // ---- mains sense and window comparator
   nb.block('sense')
-    .part('TR1', 'transformer', -1300, 950, SENSE_TR, { '1': 'L1', '2': 'N1', '3': 'SA', '4': 'SB' })
+    .part('TR1', 'transformer', -1300, 950, SENSE_TR, { '1': 'L1B', '2': 'N1', '3': 'SA', '4': 'SB' })
     .part('RS1', 'resistor', -1190, 1030, { value: '220' }, { '1': 'SA', '2': 'SN' }, 1)
     .part('CS1', 'capacitor', -1190, 1120, { value: '100n', vmax: '63' }, { '1': 'SN', '2': 'SB' }, 1)
     .part('BR1', 'bridge', -1080, 970, { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VSR', '4': 'GND' })
-    .part('C1', 'capacitor_pol', -980, 970, { value: '4.7u', vmax: '35' }, { '1': 'VSR', '2': 'GND' }, 1)
+    .part('C1', 'capacitor_pol', -980, 970, { value: '4.7u', vmax: '50' }, { '1': 'VSR', '2': 'GND' }, 1)
     .part('R1', 'resistor', -900, 900, { value: '68k' }, { '1': 'VSR', '2': 'SENSE' })
-    .part('R2', 'resistor', -830, 970, { value: '10k' }, { '1': 'SENSE', '2': 'GND' }, 1)
+    // 6.8k and a 5k trimmer (set at commissioning: SENSE 2.000 V at 230.0 V; the small sense
+    // transformer's no-load voltage varies from unit to unit); an open wiper raises SENSE: a trip
+    .part('R2', 'resistor', -830, 970, { value: '6.8k' }, { '1': 'SENSE', '2': 'STR' }, 1)
+    .part('RT1', 'potentiometer', -770, 1060, { value: '5k', position: '64' }, { '1': 'STR', '2': 'GND', '3': 'GND' })
     // reference and thresholds against the sense ripple: an overvoltage trip when its peaks
     // pass 2.21 V (253 V), an undervoltage trip when its minima fall below 1.64 V (195 V)
     .part('R3', 'resistor', -1300, 1250, { value: '3.3k' }, { '1': V, '2': 'VREF' })
@@ -321,7 +328,7 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
 export function changeover3(phases: [number, number, number] = [230, 230, 230], step?: MainsStep, stop = '12', t: TransferTiming = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
   const V = '+24V';
-  nb.wired = { rails: [V], labelled: ['L1', 'L2', 'L3', 'NMQ', 'B1', 'B2', 'B3', 'NBQ', 'VREF', 'VHI', 'VLO', 'VAS', 'S1', 'S2', 'S3', 'OK', 'OVN', 'UVN', 'K1A', 'K2A', 'K1C', 'K2C', 'K1EN', 'K2EN'] };
+  nb.wired = { rails: [V], labelled: ['L1', 'L2', 'L3', 'NMQ', 'B1', 'B2', 'B3', 'NBQ', 'L1F', 'L2F', 'L3F', 'B1F', 'B2F', 'B3F', 'VREF', 'VHI', 'VLO', 'VAS', 'S1', 'S2', 'S3', 'OK', 'OVN', 'UVN', 'K1A', 'K2A', 'K1C', 'K2C', 'K1EN', 'K2EN'] };
   const X = (k: number) => 120 * k, Y = (k: number) => 1700 + 130 * (k - 9);
   nb.para('MAINS / BACK-UP CHANGE-OVER, three-phase 3P+N, 32 A. The load runs from the mains while every phase is within 195 … 253 V and no phase is more than about 10 % below the highest; a lost phase, an over- or undervoltage or an asymmetry switches it to the back-up source. Four-pole contactors switch L1, L2, L3 and N, interlocked through their NC auxiliary contacts.', -1500, -300)
     .para('Each phase: 230/12 V sense transformer with snubber, bridge, 4.7 µF and 68k/10k; the highest phase (diode OR) scaled by 768k/100k sets the asymmetry threshold. Nine comparators: the overvoltage outputs share OVN, the undervoltage and asymmetry outputs share UVN (open collector). Return delay 10.5 s, dead time 0.47 s, coil-supply lockout below 20 V. Control ground bonded to PE.', 0, -300);
@@ -347,14 +354,17 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
     .part('XPE', 'terminal', -1250, 960, { wire: '6', value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker4', -1050, 150, { value: '32', curve: 'C' }, { '1': 'LM1', '2': 'L1', '3': 'LM2', '4': 'L2', '5': 'LM3', '6': 'L3', N1: 'NM', N2: 'NMQ' })
     .part('QF2', 'breaker4', -1050, 760, { value: '32', curve: 'C' }, { '1': 'LB1', '2': 'B1', '3': 'LB2', '4': 'B2', '5': 'LB3', '6': 'B3', N1: 'NB', N2: 'NBQ' });
+  // the board's feeds tapped behind the breakers through 10 A gG fuses on the DIN rail
+  L.forEach((ph, k) => nb.part(`FM${ph}`, 'fuse', -960, 40 + 50 * k, { value: '10', din: 'yes' }, { '1': `L${ph}`, '2': `L${ph}F` })
+    .part(`FB${ph}`, 'fuse', -960, 650 + 50 * k, { value: '10', din: 'yes' }, { '1': `B${ph}`, '2': `B${ph}F` }));
   // the breakers switch N too: downstream of them the neutrals are NMQ and NBQ
-  L.forEach((ph, k) => nb.part(`RVM${ph}`, 'mov', -900 + 110 * k, 300, { value: 'TMOV14RP300E' }, { '1': `L${ph}`, '2': 'NMQ' }, 1)
-    .part(`RVB${ph}`, 'mov', -900 + 110 * k, 910, { value: 'TMOV14RP300E' }, { '1': `B${ph}`, '2': 'NBQ' }, 1));
+  L.forEach((ph, k) => nb.part(`RVM${ph}`, 'mov', -900 + 110 * k, 300, { value: 'TMOV14RP300E' }, { '1': `L${ph}F`, '2': 'NMQ' }, 1)
+    .part(`RVB${ph}`, 'mov', -900 + 110 * k, 910, { value: 'TMOV14RP300E' }, { '1': `B${ph}F`, '2': 'NBQ' }, 1));
 
   // ---- 24 V control supply from either source (as the single-phase design)
   const v24 = t.v24 ?? 24.27;
   nb.block('aux');
-  for (const [k, Lx, N, y] of [[4, 'L1', 'NMQ', 100], [5, 'B1', 'NBQ', 560]] as const) {
+  for (const [k, Lx, N, y] of [[4, 'L1F', 'NMQ', 100], [5, 'B1F', 'NBQ', 560]] as const) {
     nb.part(`F${k}`, 'fuse', -600, y, { value: '0.2', r: '2' }, { '1': Lx, '2': `LF${k}` })
       .part(`TRA${k}`, 'transformer', -460, y + 20, { value: '0.13', lp: '20', rp: '140', rs: '1.5', k: '0.995' }, { '1': `LF${k}`, '2': N, '3': `A${k}A`, '4': `A${k}B` })
       .part(`RSA${k}`, 'resistor', -370, y + 110, { value: '47', pmax: '0.5' }, { '1': `A${k}A`, '2': `SA${k}X` }, 1)
@@ -371,13 +381,15 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
   nb.block('sense');
   L.forEach((ph, k) => {
     const y = 1150 + 230 * k;
-    nb.part(`TR${ph}`, 'transformer', -1450, y, SENSE_TR, { '1': `L${ph}`, '2': 'NMQ', '3': `SA${ph}`, '4': `SB${ph}` })
+    nb.part(`TR${ph}`, 'transformer', -1450, y, SENSE_TR, { '1': `L${ph}F`, '2': 'NMQ', '3': `SA${ph}`, '4': `SB${ph}` })
       .part(`RS${ph}`, 'resistor', -1340, y + 80, { value: '220' }, { '1': `SA${ph}`, '2': `SN${ph}` }, 1)
       .part(`CS${ph}`, 'capacitor', -1270, y + 80, { value: '100n', vmax: '63' }, { '1': `SN${ph}`, '2': `SB${ph}` }, 1)
       .part(`BR${ph}`, 'bridge', -1150, y + 20, { value: 'DB107' }, { '1': `SA${ph}`, '2': `SB${ph}`, '3': `VSR${ph}`, '4': 'GND' })
-      .part(`C${ph}`, 'capacitor_pol', -1050, y + 20, { value: '4.7u', vmax: '35' }, { '1': `VSR${ph}`, '2': 'GND' }, 1)
+      .part(`C${ph}`, 'capacitor_pol', -1050, y + 20, { value: '4.7u', vmax: '50' }, { '1': `VSR${ph}`, '2': 'GND' }, 1)
       .part(`RA${ph}`, 'resistor', -970, y - 50, { value: '68k' }, { '1': `VSR${ph}`, '2': `S${ph}` })
-      .part(`RB${ph}`, 'resistor', -900, y + 20, { value: '10k' }, { '1': `S${ph}`, '2': 'GND' }, 1)
+      // 6.8k and a 5k trimmer per phase (set at commissioning: 2.000 V at 230.0 V on that phase)
+      .part(`RB${ph}`, 'resistor', -900, y + 20, { value: '6.8k' }, { '1': `S${ph}`, '2': `ST${ph}` }, 1)
+      .part(`RT${ph}`, 'potentiometer', -870, y + 100, { value: '5k', position: '64' }, { '1': `ST${ph}`, '2': 'GND', '3': 'GND' })
       .part(`DM${ph}`, 'diode', -970, y + 110, { value: '1N4148' }, { '2': `VSR${ph}`, '1': 'VMAX' });
   });
   nb.part('RM1', 'resistor', -800, 1450, { value: '768k' }, { '1': 'VMAX', '2': 'VAS' }, 1)

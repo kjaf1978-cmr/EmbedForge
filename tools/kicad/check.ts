@@ -16,7 +16,7 @@ for (const [name, d] of Object.entries(DESIGNS)) {
   const pcbFile = join(HW, name, `${name}.kicad_pcb`);
   if (!existsSync(pcbFile)) { console.log(`${name}: no board in hardware/`); continue; }
   const sheet = d.sheet(), classes = d.classes(sheet);
-  const mains = new Set(classes.filter((c) => c.name === 'Mains' || c.name === 'HV').flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
+  const mains = new Set(classes.filter((c) => ['Mains', 'Backup', 'HV'].includes(c.name)).flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
   const nl = boardNetlist(sheet, { mains, panel: d.panel, heavy: new Set(d.heavy ?? []), bolted: d.bolted, block: d.block, bondSpare: d.bondSpare });
   // the board: each footprint's reference and its pads' nets
   const pcb = readFileSync(pcbFile, 'utf8');

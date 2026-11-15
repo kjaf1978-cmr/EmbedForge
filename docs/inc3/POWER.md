@@ -44,8 +44,8 @@ thermal design (heatsinks) is given as calculations, not simulated.
 
 Two examples, `changeover-1p` and `changeover-3p` (app/ui/src/eda/powerExamples.ts), built from
 catalogue parts only: per phase a 1 VA 230/12 V sense transformer with a 220 Ω + 100 nF
-snubber, DB107 bridge, 4.7 µF, 68k/10k divider; a TL431 reference split by 2.1k/4.22k/12.1k
-(E96) into the two thresholds; LM393/LM339 comparators; 10k/4.7 µF delay; IRLZ44N coil drivers
+snubber, DB107 bridge, 4.7 µF, 68k / (6.8k + 5k trimmer) divider (calibrated at commissioning); a TL431 reference split by 2.1k/4.22k/12.1k
+(E96) into the two thresholds; LM339 comparators (3P+N: three LM339 and one LM393); return delay 2 × 750k / 10 µF film (10.5 s), dead time 1M / 680 nF film (0.47 s); IRLZ44N coil drivers
 with 12 V Zener gate clamps; 24 V DC contactors (32 A, 2- or 4-pole) interlocked through their
 NC auxiliary contacts; C32 breakers. The 3P+N design adds a diode-OR of the three rectified
 phases scaled by 768k/100k as the asymmetry threshold.

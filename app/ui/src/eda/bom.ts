@@ -32,7 +32,9 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     // a terminal's value is its function (L in, PV+…): the terminals of one kind are one part,
     // their functions listed. The kind: a PCB terminal, or (`wire`: the conductor in mm²) a
     // DIN-rail terminal block for that conductor, green-yellow for PE
-    if (p.sym === 'terminal') { value = terminalKind(p.props); terminals.set(value, [...(terminals.get(value) ?? []), raw]); }
+    if (p.sym === 'terminal') { value = terminalKind(p.props); terminals.set(value, [...(terminals.get(value) ?? []), `${p.ref} ${raw}`]); }
+    // a panel fuse (`din`): a gG cartridge in a DIN-rail holder, not a PCB fuse
+    if (p.sym === 'fuse' && p.props.din) value = `gG ${raw} A, 10×38, DIN-rail holder`;
     // a breaker's rating and curve are what is bought (its state is an operating state)
     if (p.sym.startsWith('breaker')) value = `${p.props.curve ?? 'C'}${p.props.value ?? ''} A`;
     const card = p.props.spice?.trim() ? importModel(p.sym, p.props.spice) : null;
@@ -51,7 +53,8 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     if (l) { l.qty++; l.refs.push(ref); } else lines.set(key, { qty: 1, refs: [ref], part, value, details, standard: false, sym: p.sym, raw });
   }
   const out = [...lines.values()];
-  for (const t of out.filter((l) => l.part === symbolOf('terminal').name)) t.details = `functions: ${(terminals.get(t.value) ?? []).join(', ')}`;
+  // each terminal's function next to its reference, in reference order
+  for (const t of out.filter((l) => l.part === symbolOf('terminal').name)) t.details = `functions: ${(terminals.get(t.value) ?? []).sort((a, b) => pinOrder(a.split(' ')[0], b.split(' ')[0])).join(', ')}`;
   for (const l of out) l.refs.sort(pinOrder);
   return out.sort((a, b) => pinOrder(a.refs[0], b.refs[0]));
 }

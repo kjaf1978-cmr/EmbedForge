@@ -17,7 +17,7 @@ if (!d || !out) {
 }
 mkdirSync(out, { recursive: true });
 const sheet = d.sheet(), classes = d.classes(sheet);
-const mains = new Set(classes.filter((c) => c.name === 'Mains' || c.name === 'HV').flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
+const mains = new Set(classes.filter((c) => ['Mains', 'Backup', 'HV'].includes(c.name)).flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
 const nl = boardNetlist(sheet, { mains, panel: d.panel, heavy: new Set(d.heavy ?? []), bolted: d.bolted, block: d.block, bondSpare: d.bondSpare });
 // a placement saved from an earlier run (placed.json, from the board after its placement) is kept
 const pf = join(out, 'placed.json');
@@ -29,7 +29,7 @@ writeFileSync(join(out, 'board.kicad_dru'), kicadRules(classes));
 // the pins of parts with both mains and other pads (relays, transformer connectors): each
 // stage keeps its new tracks off the other side's pins (the pad plus the insulation distance and
 // 0.1 mm: 3.3 mm on the mains boards, 5.6 mm across a reinforced barrier)
-const gap = Math.max(3.2, ...classes.filter((c) => c.name === 'Mains' || c.name === 'HV').map((c) => c.apart ?? 0)) + 0.1;
+const gap = Math.max(3.2, ...classes.filter((c) => ['Mains', 'Backup', 'HV'].includes(c.name)).map((c) => c.apart ?? 0)) + 0.1;
 const pinKeep = (want: boolean): [number, number, number, number][] => {
   const r: [number, number, number, number][] = [];
   for (const p of nl.parts) {

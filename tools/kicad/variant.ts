@@ -17,7 +17,7 @@ if (!DESIGNS[base] || !DESIGNS[variant] || !suffix) {
 }
 const netlist = (name: string) => {
   const d = DESIGNS[name], sheet = d.sheet(), classes = d.classes(sheet);
-  const mains = new Set(classes.filter((c) => c.name === 'Mains' || c.name === 'HV').flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
+  const mains = new Set(classes.filter((c) => ['Mains', 'Backup', 'HV'].includes(c.name)).flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
   return { sheet, nl: boardNetlist(sheet, { mains, panel: d.panel, heavy: new Set(d.heavy ?? []), bolted: d.bolted, block: d.block }) };
 };
 const a = netlist(base), b = netlist(variant);

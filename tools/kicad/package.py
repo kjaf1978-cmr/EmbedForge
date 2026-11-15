@@ -46,7 +46,9 @@ for a, b in pairs:
     if os.path.exists(os.path.join(src, a)):
         shutil.copy(os.path.join(src, a), os.path.join(dst, b))
 pro = os.path.join(dst, f'{name}.kicad_pro')
-open(pro, 'w').write(open(pro).read().replace('"board.kicad_pro"', f'"{name}.kicad_pro"'))
+# read first, then write (opening for writing first emptied the file: every project was 0 bytes)
+text = open(pro).read().replace('"board.kicad_pro"', f'"{name}.kicad_pro"')
+open(pro, 'w').write(text)
 shutil.copy(os.path.join(dst, '..', 'fp-lib-table'), os.path.join(dst, 'fp-lib-table'))
 pcb = os.path.join(dst, f'{name}.kicad_pcb')
 subprocess.run(['kicad-cli', 'pcb', 'export', 'pdf', '-o', os.path.join(dst, f'{name}-copper.pdf'), '--layers', 'F.Cu,B.Cu,F.SilkS,Edge.Cuts', '--exclude-value', pcb], check=True, capture_output=True)

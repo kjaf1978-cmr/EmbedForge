@@ -147,6 +147,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     red: e('5 mm red LED, 20 mA', 'Kingbright (e.g. L-53ID)', 'LED 5 mm red, diffused', 0.12, 0.04, 'estimate', any('5 mm LED')),
   },
   potentiometer: {
+    '5k': e('3296W-1-502LF', 'Bourns', 'trimmer 5 kΩ, 25-turn, top adjust, cermet 0.5 W (calibration on the board)', 1.9, 1.2, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
     '1k': e('3386P-1-102LF', 'Bourns', 'trimmer 1 kΩ, 9.5 mm, top adjust', 0.9, 0.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'LCSC' }]),
     '10k': e('P160KN-0QD15B10K (or Alpha RV16)', 'TT Electronics', 'panel potentiometer 10 kΩ linear, 16 mm, insulated plastic shaft (speed control)', 2.6, 1.6, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Farnell' }]),
     '1M': e('3386P-1-105LF', 'Bourns', 'trimmer 1 MΩ, 9.5 mm, top adjust', 0.9, 0.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'LCSC' }]),
@@ -242,6 +243,8 @@ function capacitor(value: string, vmax: number, pol: boolean): CatalogueEntry {
     ? e('DC-link film capacitor 47 µF 450 V (KEMET C4AE / Vishay MKP1848 series)', 'KEMET / Vishay', '47 µF film, ≥ 250 V DC (a 450 V part, larger)', 12, 7, 'estimate', any('film DC-link'))
     : e('DC-link film capacitor 47 µF 100 V (e.g. KEMET C4AQ / WIMA DC-LINK MKP4)', 'KEMET / WIMA', '47 µF film 100 V DC', 6, 3.5, 'estimate', any('film DC-link'));
   if (c >= 1e-6) return e(`MKT film ${value}F ${vmax} V (e.g. WIMA MKS4, TDK B32529)`, 'WIMA / TDK', `${value}F ${vmax} V polyester film`, c >= 4e-6 ? 0.8 : 0.35, c >= 4e-6 ? 0.4 : 0.18, 'estimate', any('film'));
+  // above 100 nF up to 1 µF: timing and filter values, film (X7R ceramic loses capacitance with DC bias)
+  if (c > 150e-9) return e(`MKT film ${value}F ${vmax} V, 5.08 mm (e.g. WIMA MKS2, TDK B32529)`, 'WIMA / TDK', `${value}F ${vmax} V polyester film (timing, filter)`, 0.25, 0.12, 'estimate', any('film'));
   if (c >= 100e-9) return e(`ceramic X7R or MKT ${value}F ${vmax} V, 5.08 mm`, 'KEMET / Vishay', `${value}F ${vmax} V (X7R ceramic for decoupling, film for timing)`, 0.12, 0.04, 'estimate', any('5.08 mm'));
   return e(`C0G ceramic ${value}F ${vmax} V, 5.08 mm`, 'KEMET / Vishay', `${value}F ${vmax} V C0G ceramic`, 0.1, 0.03, 'estimate', any('5.08 mm'));
 }
@@ -259,10 +262,13 @@ function resistor(value: string, pmax: number, tol = 1): CatalogueEntry {
   return e(`metal film ${value}Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)`, 'Vishay / Yageo', `resistor ${value}Ω, 0207, 1 %`, 0.08, 0.02, 'estimate', any('0207 1 %'));
 }
 
-function fuse(value: string): CatalogueEntry {
+function fuse(value: string, kind = ''): CatalogueEntry {
   const a = parseValue(value) ?? 0;
+  // a panel fuse: gG cartridge 10 × 38 in a DIN-rail fuse holder (100 kA breaking capacity)
+  if (kind.startsWith('gG')) return e(`gG ${value} A 10×38 cartridge + DIN-rail fuse holder 1-pole 32 A (e.g. ABB E 91/32)`, 'ABB / Mersen', `fuse gG ${value} A 10 × 38 mm, 500 V AC, 100 kA, in a DIN-rail holder`, 6, 4.5, 'estimate', [{ distributor: 'electrical wholesale' }]);
   if (a >= 50) return e(`JJN-${value} + holder`, 'Eaton Bussmann', `Class T fuse ${value} A, 160 V DC, with holder (battery: a 32 V automotive MEGA/MIDI fuse is not rated for a 58 V battery)`, 30, 20, 'estimate', [{ distributor: 'electrical wholesale' }]);
-  return e('0034.3109 + 0031.8201', 'Schurter', `fuse 5 × 20 mm T ${value} A with PCB holder`, 1.2, 0.8, 'estimate', [{ distributor: 'Bürklin (holder)', sku: '46G6020' }]);
+  // time-lag (T) 5 × 20 mm glass fuse, low breaking capacity (35 A at 250 V): behind a panel fuse or breaker
+  return e(`FST 5×20 T ${value} A (Schurter 0034.31xx series) + PCB holder 0031.8201`, 'Schurter', `fuse 5 × 20 mm, time-lag T ${value} A, 250 V, breaking capacity 35 A, with PCB holder`, 1.2, 0.8, 'estimate', [{ distributor: 'Bürklin (holder)', sku: '46G6020' }]);
 }
 
 const num = (details: string, label: string): number => {
@@ -278,7 +284,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'resistor': return resistor(v, num(line.details, 'power rating') || 0.25, num(line.details, 'tolerance') || 1);
     case 'capacitor': return capacitor(v, num(line.details, 'voltage rating') || 50, false);
     case 'capacitor_pol': return capacitor(v, num(line.details, 'voltage rating') || 25, true);
-    case 'fuse': return fuse(v);
+    case 'fuse': return fuse(v, line.value);
     case 'transformer': return TRANSFORMERS[v] ?? null;
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];

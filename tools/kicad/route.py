@@ -217,17 +217,19 @@ def main():
         # stage 1: the mains nets alone, kept out of the control zone (every other pad without
         # its net, so the router leaves it), so the mains wiring stays on its side
         a = pcbnew.LoadBoard(pcb)
-        # the mains zone's classes, as export.ts sorts them (Mains and HV): only Mains here left
+        # the mains zone's classes, as export.ts sorts them (Mains, Backup and HV): only Mains here left
         # the high-voltage nets to no stage at all (300 connections unrouted on the HF control)
         for pad in a.GetPads():
-            if pad.GetNetClassName() not in ('Mains', 'HV'):
+            if pad.GetNetClassName() not in ('Mains', 'Backup', 'HV'):
                 pad.SetNetCode(0)
         keepout(a, split + 1, 0, zones['w'], zones['h'])
         for x0, y0, x1, y1 in zones.get('keep1', []):
             keepout(a, x0, y0, x1, y1)
         a.Save(os.path.join(d, 'stage1.kicad_pcb'))
         a = pcbnew.LoadBoard(os.path.join(d, 'stage1.kicad_pcb'))
-        ses1 = freeroute(a, d, 'stage1', passes, apart=False)
+        # with the insulation distances between the mains zone's own classes (two sources on one
+        # board: the change-overs' mains and back-up nets 3.2 mm apart); few nets here, so fast
+        ses1 = freeroute(a, d, 'stage1', passes, apart=True)
         # stage 2: the whole board with the mains tracks locked; the other nets kept out of the
         # mains zone but for the boundary column (relays, transformer connectors), where KiCad's
         # check holds them 3.2 mm from the mains (a class-to-class rule made Freerouting run for

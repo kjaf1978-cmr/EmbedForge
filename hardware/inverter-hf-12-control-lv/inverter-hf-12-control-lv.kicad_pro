@@ -1,0 +1,514 @@
+{
+  "board": {
+    "design_settings": {
+      "defaults": {
+        "board_outline_line_width": 0.1,
+        "copper_line_width": 0.2,
+        "silk_line_width": 0.12
+      },
+      "rules": {
+        "min_clearance": 0.2,
+        "min_track_width": 0.2,
+        "min_via_diameter": 0.6,
+        "min_through_hole_diameter": 0.3,
+        "min_hole_clearance": 0.25,
+        "min_copper_edge_clearance": 0.5
+      },
+      "track_widths": [
+        0,
+        0.3,
+        0.5
+      ],
+      "via_dimensions": []
+    }
+  },
+  "meta": {
+    "filename": "inverter-hf-12-control-lv.kicad_pro",
+    "version": 1
+  },
+  "net_settings": {
+    "classes": [
+      {
+        "name": "Default",
+        "clearance": 0.25,
+        "track_width": 0.3,
+        "via_diameter": 0.8,
+        "via_drill": 0.4,
+        "diff_pair_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "wire_width": 6,
+        "bus_width": 12,
+        "line_style": 0,
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)"
+      },
+      {
+        "name": "HV",
+        "clearance": 0.5,
+        "track_width": 0.3,
+        "via_diameter": 0.8,
+        "via_drill": 0.4,
+        "diff_pair_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "wire_width": 6,
+        "bus_width": 12,
+        "line_style": 0,
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)"
+      },
+      {
+        "name": "Mains",
+        "clearance": 1.5,
+        "track_width": 0.5,
+        "via_diameter": 0.8,
+        "via_drill": 0.4,
+        "diff_pair_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "wire_width": 6,
+        "bus_width": 12,
+        "line_style": 0,
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)"
+      }
+    ],
+    "meta": {
+      "version": 3
+    },
+    "netclass_patterns": [
+      {
+        "netclass": "HV",
+        "pattern": "^HBUS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^UVM$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BUV$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^V15H$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FLT$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^LFA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^HVG$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BFL$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^EN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^ULS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VREF$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VSS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VAO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^ENN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FEA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^NEA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PLA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VRO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VSO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SAO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SNO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SBO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VLC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OVC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OCS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OLC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OLO$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OLS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^LAT$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VREF2$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VSP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SAP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SNP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SBP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OCH$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SRS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OCL$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OCN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OCP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SRC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^STOP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SD$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BSS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VME$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^NDC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PDC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VMID$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BHY$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^INB$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BIB$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^INBN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VLV$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VLN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VLD$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VLR$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^TRI$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^REF$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^INA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SUMN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SUMP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SINE$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^F2B$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^F2A$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^F1O$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^F1B$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^F1A$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SQ$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^Q50H$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^L$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^LN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^H$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^HN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^HP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SEL$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SELV$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SELP$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PST$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SQT$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^NTI$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PKD$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PKN$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PKV$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PKR$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VMR$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^PDA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^NDA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^SWA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BQEH$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VLOH$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BOR$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OVK$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^OVA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BOS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^BOM$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FBK$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FBC$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FBS$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FBM$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^FBA$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^ADJH$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^VXH$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^XA1$"
+      },
+      {
+        "netclass": "HV",
+        "pattern": "^XA2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^OUTL$"
+      }
+    ]
+  }
+}

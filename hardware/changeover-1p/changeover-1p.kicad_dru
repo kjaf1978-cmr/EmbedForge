@@ -2,3 +2,6 @@
 (rule "Mains insulation"
   (constraint clearance (min 3.2mm))
   (condition "A.NetClass == 'Mains' && B.NetClass != 'Mains'"))
+(rule "Backup insulation"
+  (constraint clearance (min 3.2mm))
+  (condition "A.NetClass == 'Backup' && B.NetClass != 'Backup'"))
