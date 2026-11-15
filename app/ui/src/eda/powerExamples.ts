@@ -615,19 +615,24 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('USQ1', 'comparator', 2150, 640, { value: 'LM339', pkg: 'SEQ' }, { '3': 'VEH', '2': 'E', '1': 'TRG', '8': V, '4': 'GND' })
     .part('USQ2', 'comparator', 2150, 800, { value: 'LM339', pkg: 'SEQ' }, { '3': 'E', '2': 'VEL', '1': 'TRG', '8': V, '4': 'GND' })
     .part('RTRG', 'resistor', 2280, 720, { value: '1k' }, { '1': 'MT', '2': 'TRG' })
-    .part('RMT', 'resistor', 2380, 620, { value: '39k' }, { '1': V, '2': 'MT' }, 1)
+    .part('RMT', 'resistor', 2380, 620, { value: '86.6k' }, { '1': V, '2': 'MT' }, 1)
     .part('CMT', 'capacitor', 2380, 820, { value: '1u', vmax: '50' }, { '1': 'MT', '2': 'GND' }, 1)
     .part('USQ3', 'comparator', 2500, 640, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEL', '1': 'CLK', '8': V, '4': 'GND' })
     .part('RCLK', 'resistor', 2600, 580, { value: '10k' }, { '1': V, '2': 'CLK' }, 1)
-    .part('USQ4', 'comparator', 2500, 820, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'DTH', '1': 'OI', '8': V, '4': 'GND' })
+    .part('USQ4', 'comparator', 2500, 820, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEH', '1': 'OI', '8': V, '4': 'GND' })
     .part('RPI', 'resistor', 2600, 760, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
     .part('RBI', 'resistor', 2650, 880, { value: '2.2k' }, { '1': 'OI', '2': 'BI' }, 1)
     .part('QI', 'npn', 2700, 980, { value: 'BD139' }, { '1': 'BI', '2': 'KIC', '3': 'GND' })
-    .part('DI', 'diode', 2760, 900, { value: '1N4148' }, { '2': 'KIC', '1': 'VTC' }, 3)
-    // the input relay: the tap chain fed through its NO contact. Its coil is fed through the
+    // its coil's suppressor: a diode and a 24 V Zener, so the coil current falls in a few ms and
+    // the contactor opens quickly (a bare diode would hold it in for tens of ms)
+    .part('DI', 'diode', 2760, 900, { value: '1N4148' }, { '2': 'KIC', '1': 'DIZ' }, 3)
+    .part('DZI', 'zener', 2760, 1000, { value: 'BZX85C24' }, { '1': 'DIZ', '2': 'VTC' }, 3)
+    // the input contactor (D57; D51): the tap chain fed through its main pole. It makes and
+    // breaks up to 7.1 A at every tap change, so it is a contactor rated AC-1 25 A (1 to 2
+    // million operations), not a relay (the 832A: about 200 000). Its coil is fed through the
     // thermal cut-out (VTC), as the output relay's: a hot transformer is switched off, not only
     // its load
-    .part('KI', 'relay', 2850, 900, { value: '12 V 30 A', opsday: '200', life: '200000' }, { '1': 'VTC', '2': 'KIC', '3': 'VIN', '5': 'VCH' })
+    .part('KI', 'contactor', 2850, 900, { value: '9 A, coil 12 V DC', opsday: '200', life: '1500000' }, { A1: 'VTC', A2: 'KIC', '1': 'VIN', '2': 'VCH' })
     // its contact snubber, as the tap relays': opening it interrupts the autotransformer's
     // magnetising current, which would otherwise ring up to a spike (found in simulation)
     .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VIN', '2': 'SNKI' }, 1)

@@ -48,7 +48,7 @@ export function tvsJunction(m: TvsModel, vbr = m.vbr): DiodeModel {
   return { is: 1e-12, n: 1, rs: (m.vc - m.vbr) / m.ipp, bv: vbr, ibv: 10e-3 };
 }
 
-export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13], ['1N4734A', 5.6, 1], ['1N4743A', 13, 1], ['1N5359B', 24, 5]] as [string, number, number?][])
+export const ZENERS: NamedModel<DiodeModel>[] = ([['BZX55C3V3', 3.3], ['BZX55C4V7', 4.7], ['BZX55C5V1', 5.1], ['BZX55C9V1', 9.1], ['BZX55C12', 12], ['BZX55C13', 13], ['1N4734A', 5.6, 1], ['1N4743A', 13, 1], ['1N5359B', 24, 5], ['BZX85C24', 24, 1.3]] as [string, number, number?][])
   .map(([name, v, w]) => ({ name, note: `Zener diode ${v} V, ${w ? `${w} W` : '500 mW'}`, model: { is: 1e-14, n: 1, rs: w ? 0.5 : 2, bv: v, ibv: 5e-3 } }));
 
 /** LED model from its forward voltage at 20 mA (N = 1.9, RS = 5 Ω). The junction voltage of
@@ -278,7 +278,8 @@ export const CONTACTORS: NamedModel<ContactorModel>[] = [
   { name: '65 A, coil 200–277 V AC/DC', note: '3 poles AC-3 65 A, 1 NO + 1 NC auxiliary; wide-range coil 200–277 V AC/DC (electronic), pulls in from 170 V', model: { ac3: 65, coil: 'ac', vcoil: 200, rcoil: 130, lcoil: 5.2 } },
   { name: '95 A, coil 200–277 V AC/DC', note: '3 poles AC-3 95 A, 1 NO + 1 NC auxiliary; wide-range coil 200–277 V AC/DC (electronic), pulls in from 170 V', model: { ac3: 95, coil: 'ac', vcoil: 200, rcoil: 87, lcoil: 3.5 } },
   ctr(9, 'ac', 230, 600, 20), ctr(18, 'ac', 230, 450, 16), ctr(32, 'ac', 230, 300, 12), ctr(65, 'ac', 230, 150, 6), ctr(95, 'ac', 230, 100, 4),
-  ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
+  // a 12 V DC low-consumption coil (2.4 W, 60 Ω); 1.5 H: it closes in about 55 ms, as the maker's 53 … 72 ms
+  ctr(9, 'dc', 12, 60, 1.5), ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
   // DC power contactor for battery circuits (pole 1–2 only; rated current on DC, not AC-3)
   { name: '150 A DC, coil 48 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation of 48 V inverters); coil 48 V DC, 190 Ω (12 W), fed from the battery itself', model: { ac3: 150, coil: 'dc', vcoil: 48, rcoil: 190, lcoil: 0.8 } },
   { name: '150 A DC, coil 24 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation of 24 V inverters); coil 24 V DC, 48 Ω (12 W), fed from the battery itself', model: { ac3: 150, coil: 'dc', vcoil: 24, rcoil: 48, lcoil: 0.2 } },

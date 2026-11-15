@@ -35,6 +35,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '65 A, coil 200–277 V AC/DC': e('3RT2037-1NP30', 'Siemens', 'contactor 3 poles AC-3 65 A (30 kW), wide-range coil 200–277 V AC/DC, 1 NO + 1 NC', 260, 210, 'estimate', [{ distributor: 'RS' }, { distributor: 'Automation24' }], 'alternative Schneider LC1D65A with a wide-range coil (LC1D65AKUE)'),
     '95 A, coil 200–277 V AC/DC': e('3RT2046-1NP30', 'Siemens', 'contactor 3 poles AC-3 95 A (45 kW), wide-range coil 200–277 V AC/DC, 1 NO + 1 NC', 420, 340, 'estimate', [{ distributor: 'RS' }, { distributor: 'Automation24' }], 'alternative Schneider LC1D95 with a wide-range coil'),
     '9 A, coil 230 V AC': e('3RT2016-1AP01', 'Siemens', 'contactor 3 poles AC-3 9 A (4 kW), coil 230 V AC, 1 NO auxiliary', 35, 28, 'estimate', [{ distributor: 'RS' }, { distributor: 'Automation24' }], 'alternative Schneider LC1D09P7'),
+    '9 A, coil 12 V DC': e('LC1D09JL', 'Schneider Electric', 'contactor 3 poles AC-3 9 A, AC-1 25 A, coil 12 V DC low consumption (2.4 W), 1 NO + 1 NC; AC-1 electrical life about 1 to 2 million operations; with a diode + Zener coil suppressor', 55, 42, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }], 'alternative Siemens 3RT2016-1JB41 (12 V DC coil)'),
     '9 A, coil 24 V DC': e('3RT2016-1BB42 + 3RH2911-1HA11', 'Siemens', 'contactor 3 poles AC-3 9 A, coil 24 V DC, with mirror contacts (IEC 60947-4-1 Annex F): as a safety contactor', 55, 45, 'estimate', [{ distributor: 'RS' }, { distributor: 'Automation24' }], 'alternative Schneider LC1D09BD (mirror contact NC built in)'),
     '18 A, coil 24 V DC': e('3RT2026-1BB40', 'Siemens', 'contactor 3 poles AC-3 18 A (7.5 kW), coil 24 V DC, 1 NO + 1 NC (mirror contact)', 75, 60, 'estimate', [{ distributor: 'RS' }, { distributor: 'Automation24' }], 'alternative Schneider LC1D18BD'),
     '32 A, coil 24 V DC': e('LC1DT32BD + LADN01', 'Schneider Electric', 'contactor 4 NO, 32 A AC-1 (resistive and mixed loads), coil 24 V DC, with 1 NC auxiliary block; for motor loads above 7.5 kW use a 40 A AC-3 frame', 165, undefined, 'live',
@@ -87,6 +88,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '1N4148': e('1N4148', 'various', 'signal diode 100 V 200 mA, DO-35', 0.06, 0.015, 'estimate', any('DO-35')),
   },
   zener: {
+    BZX85C24: e('BZX85C24', 'Vishay', 'Zener diode 24 V 1.3 W, DO-41', 0.08, 0.03, 'estimate', [{ distributor: 'Mouser' }]),
     BZX55C5V1: e('BZX55C5V1', 'Vishay', 'Zener diode 5.1 V 0.5 W, DO-35', 0.05, 0.02, 'estimate', [{ distributor: 'Mouser' }]),
     BZX55C3V3: e('BZX55C3V3', 'Vishay', 'Zener diode 3.3 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
     BZX55C12: e('BZX55C12', 'Vishay', 'Zener diode 12 V 0.5 W, DO-35', 0.08, 0.02, 'estimate', any('DO-35')),
