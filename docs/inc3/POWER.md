@@ -127,6 +127,19 @@ discharged the delay capacitor (16 mA allowed): a 2.2k in the discharge path and
 FAULT LED bring it to 13 mA. The simulation engine now solves with a sparse LU (lists of the
 non-zeros per row and column), about twice as fast for the power designs.
 
+### P4 — completed as a product (D47, 15 November 2026)
+
+Taken through the plan's definition of done, with the checklist from P3:
+
+- **Varistor:** the input varistor is the thermally protected TMOV14RP300E.
+- **Calibration:** both sense dividers (the control's and the independent protection's) are
+  6.8k plus a 5k 25-turn trimmer, set at commissioning. Their 4.7 µF capacitors are 50 V parts.
+- **Thermal cut-out:** the autotransformer's thermal cut-out (115 °C, NC, bought with it) is wired
+  through two board terminals in series with the output relay's coil. This closes DFMEA S-7.
+- **Board:** re-routed; its placement plan now finds the terminals by key.
+- **Documents:** user manual, installation guide, assembly guide, commissioning procedure with
+  record sheet, and type tests, in docs/products/P4-stabiliser/.
+
 ### The other power designs redrawn (D28) and the design document (D29)
 
 The change-overs (1P and 3P+N) and the MPPT charger are drawn the same way as the stabiliser:

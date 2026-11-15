@@ -74,11 +74,12 @@ range.
 | S-4 | Tap hunting | Flicker, relay wear (FF-12) | No hysteresis | 1 MΩ feedback: about 3 V hysteresis per step | 5 | 2 | 2 | L | stabiliser.test: ± 6 V around each step |
 | S-5 | Load connected during start-up | 346 V on the load for 0.2 s (found in simulation) | Sense filter empty: all relays on, lowest tap | Output relay after a restart delay (about 8 s: 1 MΩ, 4.7 µF film, against 80 % of the rail), and only while the 230 V tap is in range | 9 | 2 | 2 | L | stabiliser.test: "connected only after the power-on delay, never above 253 V" |
 | S-6 | Restart storm after an outage | Compressors stall (FF-09) | Immediate restart | Restart delay about 8 s, restarted by every cut-off and by every supply interruption (DDIS empties the delay capacitor); refrigeration compressors without their own restart protection need a 3-minute delay relay of their own (in the installation guide) | 6 | 2 | 3 | L | as S-5 |
-| S-7 | Transformer overheating | Burn-out, fire (FF-14) | Overload at maximum boost, hot ambient | 10 A C breaker at the input (1 kVA at 140 V draws 7 A); **open:** thermal cut-out in the winding (115 °C, in series with the relay supply) | 8 | 3 | 5 | M | stress check at 140 V |
+| S-7 | Transformer overheating | Burn-out, fire (FF-14) | Overload at maximum boost, hot ambient | 10 A C breaker at the input (1 kVA at 140 V draws 7 A); the autotransformer's thermal cut-out (115 °C, NC, in the winding) in series with the output relay's coil: the load is cut off until the transformer has cooled | 8 | 2 | 3 | L | stress check at 140 V; ERC; type tests TT-1 (temperature rise) and TT-2 (cut-out) |
 | S-8 | Relay drive failure | Relay half on, contacts burn (FF-15) | Missing flyback diode, weak drive | 1N4148 on every coil; BD139 drivers at 5 % of rating with 2.6 mA base drive | 7 | 2 | 3 | L | ERC (flyback rule), stress check |
-| S-9 | Surge damage | Unit dead | Lightning, switching | 300 V AC varistor at the input | 7 | 4 | 4 | M | review |
+| S-9 | Surge damage | Unit dead | Lightning, switching | Thermally protected 300 V AC varistor L–N at the input (TMOV14RP300E: disconnects itself on overheating, e.g. a lost neutral); L–PE by the installation's type 2 SPD | 7 | 3 | 4 | L | stress check; type test TT-7; varistor check at commissioning and every 5 years |
 | S-10 | Undervoltage passed to the load | Motors stall | Input below 140 V, a relay stuck off | Output cut-off below 190 V (S-1 circuit) | 8 | 2 | 2 | L | stabiliser.test (140 V gives 215 V; the cut-off window) |
 | S-11 | Diagnosis | — | — | An LED beside each relay coil (which tap), OUTPUT and FAULT LEDs | 4 | 3 | 3 | L | review |
+| S-12 | Steps or protection window shifted | Output outside 230 V ± 10 % at some inputs, or nuisance cut-offs | The small sense transformers' no-load voltage varies from unit to unit | A 6.8k + 5k 25-turn trimmer in each sense divider (control and protection), set at commissioning (SENSE 2.000 V at 230 V); an open wiper gives a safe error (lower taps; an overvoltage cut-off) | 7 | 2 | 3 | L | commissioning steps 3 and 4; type test TT-3 |
 
 ## 3b. Mains voltage stabilisers 5, 10 and 15 kVA (thyristor taps, P4b, D27/D41)
 
@@ -259,8 +260,8 @@ section 5 (the HF type).
 |---|---|---|---|
 | C-14 | change-over | ~~Terminal temperature-rise test, box-clamp terminals, torque label~~ design closed (15 November 2026): 6 mm² DIN-rail blocks, torque label; the temperature rise is type test TT-1 on the prototype | L |
 | C-15, all | all (change-over: design closed, type tests TT-2/TT-3) | Enclosure: IP54, membrane vent, mesh ≤ 1 mm, coating; damp heat cyclic test (IEC 60068-2-30), salt mist (IEC 60068-2-52) | M |
-| C-9 | stabiliser (change-over closed 15 November 2026: TMOV14RP300E) | Varistors with thermal disconnector (TMOV14RP300E) | M |
-| S-7 | stabiliser | Thermal cut-out in the autotransformer winding | M |
+| C-9 | ~~stabiliser, change-over~~ done: TMOV14RP300E in both (15 November 2026) | Varistors with thermal disconnector | L |
+| S-7 | stabiliser | ~~Thermal cut-out in the autotransformer winding~~ done (15 November 2026): in series with the output relay's coil; verified by type tests TT-1, TT-2 | L |
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
 | BM-6 | block machine | Firmware (D24): no outputs after the safety rail returns without a RESET press; K3 in the service plan | M |
 | GC-7 | gate | Firmware (D24): learnt remote codes and a rolling counter; RUN switched off before the relays change | M |
