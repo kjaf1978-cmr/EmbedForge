@@ -129,6 +129,11 @@ export class NB {
  *  and leakage of that size). Its leakage inductance rings with the bridge's junction capacitance
  *  each time the bridge stops conducting; 220 Ω + 100 nF across the secondary damp it. */
 export const SENSE_TR = { value: '0.052', lp: '100', rp: '2k', rs: '20', k: '0.99' };
+/** The stabiliser's sense transformers (D52): 400 V primary, 24 V secondary, 1 VA: continuously
+ *  rated above the 300 V the stabiliser accepts (a 230 V part would run at 130 %); 24 V keeps the
+ *  rectifier's diode drop as small a part of the sense as with the 230/12 V part, so the ladder's
+ *  steps stay where they were designed. */
+export const SENSE_TR400 = { value: '0.06', lp: '300', rp: '6k', rs: '40', k: '0.99' };
 
 /** A change of the mains voltage during the run: from `at` (s) the r.m.s. voltage becomes `to`.
  *  Added as a sine source in series with the mains, phase 0 and its delay moved by the phase, so
@@ -466,7 +471,7 @@ export const STAB_LADDER = ['5.36k', '732', '732', '732', '732', '909', '787'];
  *  delay capacitor (product 4.7 µF film: about 7.6 s; tests use smaller ones). */
 export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STAB_LADDER, o: { delayC?: string } = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB();
-  nb.wired = { rails: ['+12V'], labelled: ['VIN', 'N', 'T5', 'SF', 'VREF', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'OD', 'DLY'] };
+  nb.wired = { rails: ['+12V'], labelled: ['VIN', 'N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'SF', 'VREF', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'OD', 'DLY', 'DTH', 'MT', 'VEL', 'CLK', 'VCH', 'OUTK', 'OUT', 'FLTS', 'VTC', 'O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'SUM'] };
   const V = '+12V';
   nb.para('MAINS VOLTAGE STABILISER 1 kVA, relay-switched taps. The input is connected to one tap of a 1 kVA autotransformer (150 … 280 V); the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in. Six 12 V relays in a chain choose the tap: each relay\'s NC contact feeds the next relay, so two taps are never connected, not even while a relay changes over.', -1250, -300)
     .para('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input, with about 3 V hysteresis. The output relay K7 connects the load after a restart delay of about 8 s; an independent protection (own sense transformer, reference and LM339) opens it outside 190 … 255 V. LEDs: one per tap relay, OUTPUT, FAULT. Control ground is bonded to PE (PELV); the mains neutral N is a separate conductor.', -50, -300);
@@ -480,36 +485,28 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   nb.block('in')
     .part('X1', 'terminal', -900, 70, { value: 'L in' }, { '1': 'L_IN' })
     .part('X2', 'terminal', -900, 130, { value: 'N in' }, { '1': 'N' })
-    .part('X3', 'terminal', -900, 190, { value: 'PE' }, { '1': 'GND' })
+    .part('X3', 'terminal', -900, 190, { wire: '4', value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker1', -760, 70, { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN' }, 3)
     // surge protection L–N inside the unit, 300 V AC, thermally protected: a lasting overvoltage
     // (a lost neutral, up to 400 V) makes its thermal fuse disconnect it; the output cut-off
     // protects the load meanwhile
     .part('RV1', 'mov', -640, 100, { value: 'TMOV14RP300E' }, { '1': 'VIN', '2': 'N' }, 1);
 
-  // ---- 12 V control supply from the input: 24 V transformer, bridge, LM317HV (12 V at any
-  // input from 140 to 300 V: 16 … 45 V before the regulator)
+  // ---- 12 V control supply from the input (D52): a wide-range AC-DC module, reinforced
+  // isolation, through a time-lag fuse; 15 W for nine relay coils (about 0.9 W each) at once
   nb.block('aux')
-    .part('F1', 'fuse', -840, 400, { value: '0.2', r: '2' }, { '1': 'VIN', '2': 'VF' })
-    .part('TR3', 'transformer', -700, 420, { value: '0.13', lp: '20', rp: '140', rs: '1.5', k: '0.995' }, { '1': 'VF', '2': 'N', '3': 'AA', '4': 'AB' })
-    // the leakage inductance rings with the bridge capacitance when the bridge stops conducting
-    .part('RS3', 'resistor', -610, 530, { value: '47', pmax: '0.5' }, { '1': 'AA', '2': 'SN3' }, 1)
-    .part('CS3', 'capacitor', -610, 620, { value: '1u', vmax: '100' }, { '1': 'SN3', '2': 'AB' }, 1)
-    .part('BR3', 'bridge', -560, 440, { value: 'DB107' }, { '1': 'AA', '2': 'AB', '3': 'VRAW', '4': 'GND' })
-    .part('C5', 'capacitor_pol', -470, 440, { value: '2200u', vmax: '63' }, { '1': 'VRAW', '2': 'GND' }, 1)
-    .part('U5', 'lm317', -360, 400, { value: 'LM317HV', heatsink: '8' }, { '3': 'VRAW', '1': 'ADJ', '2': V })
-    .part('R13', 'resistor', -280, 430, { value: '240' }, { '1': V, '2': 'ADJ' }, 1)
-    .part('R14', 'resistor', -360, 490, { value: '2.05k' }, { '1': 'ADJ', '2': 'GND' }, 1)
-    .part('C6', 'capacitor_pol', -200, 440, { value: '100u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
+    .part('F1', 'fuse', -840, 400, { value: '1', r: '0.1' }, { '1': 'VIN', '2': 'VF' })
+    .part('PS1', 'acdc', -640, 420, { value: 'IRM-15-12' }, { L: 'VF', N: 'N', '+V': V, '-V': 'GND' })
+    .part('C6', 'capacitor_pol', -500, 440, { value: '100u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
 
   // ---- input sense: isolating transformer, bridge, divider, filtered to the mean (τ 47 ms)
   nb.block('sense')
-    .part('TR1', 'transformer', -1100, 800, SENSE_TR, { '1': 'VIN', '2': 'N', '3': 'SA', '4': 'SB' })
+    .part('TR1', 'transformer', -1100, 800, SENSE_TR400, { '1': 'VIN', '2': 'N', '3': 'SA', '4': 'SB' })
     .part('RS1', 'resistor', -990, 880, { value: '220' }, { '1': 'SA', '2': 'SN' }, 1)
     .part('CS1', 'capacitor', -990, 970, { value: '100n', vmax: '63' }, { '1': 'SN', '2': 'SB' }, 1)
     .part('BR1', 'bridge', -880, 820, { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VSR', '4': 'GND' })
     .part('C1', 'capacitor_pol', -780, 820, { value: '4.7u', vmax: '50' }, { '1': 'VSR', '2': 'GND' }, 1)
-    .part('R1', 'resistor', -700, 750, { value: '68k' }, { '1': 'VSR', '2': 'SENSE' })
+    .part('R1', 'resistor', -700, 750, { value: '80.6k' }, { '1': 'VSR', '2': 'SENSE' })
     // 6.8k and a 5k 25-turn trimmer: set at commissioning (the sense transformer's no-load
     // voltage varies from unit to unit); an open wiper raises SENSE (lower taps: a safe error)
     .part('R2', 'resistor', -630, 820, { value: '6.8k' }, { '1': 'SENSE', '2': 'STR' }, 1)
@@ -527,14 +524,22 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   // ---- tap relays: per step k a comparator (relay k on while the input is below its
   // threshold), a driver and the relay; the first relay that is on in the chain connects its tap
   nb.block('taps');
-  const chain = ['VIN', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
+  const chain = ['VCH', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   const pk = (k: number) => (k < 4 ? 'TAPS1' : 'TAPS2');
   for (let k = 0; k < 6; k++) {
     const n = k + 1, x = 400 * k, tap = `T${n}`, next = k < 5 ? chain[k + 1] : 'T7';
     nb.part(`U${n + 1}`, 'comparator', x, 150, { value: 'LM339', pkg: pk(k) }, { '3': `N${n}`, '2': 'SF', '1': `O${n}`, '8': V, '4': 'GND' })
-      .part(`RF${n}`, 'resistor', x, 60, { value: '1M' }, { '1': `N${n}`, '2': `O${n}` })
+      // hysteresis: 2 MΩ (two 1 MΩ: the board-leakage rule) from the comparator's output, which now
+      // swings the whole 12 V into the flip-flop: about 5 V of input per step
+      .part(`RF${n}`, 'resistor', x, 60, { value: '1M' }, { '1': `N${n}`, '2': `NF${n}` })
+      .part(`RG${n}`, 'resistor', x + 60, 30, { value: '1M' }, { '1': `NF${n}`, '2': `O${n}` })
       .part(`RP${n}`, 'resistor', x + 90, 90, { value: '2.2k' }, { '1': V, '2': `O${n}` }, 1)
-      .part(`RB${n}`, 'resistor', x + 40, 300, { value: '2.2k' }, { '1': `O${n}`, '2': `B${n}` }, 1)
+      // the tap's state is held in a flip-flop (CD4013) and taken over only while the input relay
+      // KI is open (a tap change never breaks or makes current: D51); 4.7k: the CD4013's output current
+      .part(`FF${n}`, 'dff', x + 40, 230, { value: V, pkg: `FF${Math.ceil(n / 2)}` }, { '1': `O${n}`, '2': 'CLK', '3': `QF${n}`, '4': `nc_QF${n}` })
+      .part(`RB${n}`, 'resistor', x + 40, 300, { value: '4.7k' }, { '1': `QF${n}`, '2': `B${n}` }, 1)
+      // each comparator output into the change detector
+      .part(`RSU${n}`, 'resistor', x + 150, 150, { value: '100k' }, { '1': `O${n}`, '2': 'SUM' })
       .part(`Q${n}`, 'npn', x + 70, 420, { value: 'BD139' }, { '1': `B${n}`, '2': `K${n}`, '3': 'GND' })
       .part(`D${n}`, 'diode', x + 170, 330, { value: '1N4148' }, { '2': `K${n}`, '1': V }, 3)
       // 30 A relays for a 4.5 A load: contact wear, the main field failure of stabilisers, falls
@@ -571,18 +576,61 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RBD', 'resistor', 2970, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3000, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
     .part('DD', 'diode', 3050, 410, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
-    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': 'VTC', '2': 'KD', '3': 'T5', '5': 'OUT' })
+    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': 'VTC', '2': 'KD', '3': 'T5', '5': 'OUTK' })
     // the autotransformer's thermal cut-out (115 °C, NC, in its winding) in series with the
     // output relay's coil: an overheated transformer drops the load until it has cooled (DFMEA S-7)
     .part('XT1', 'terminal', 3240, 60, { value: 'thermal cut-out of T (NC)' }, { '1': V })
     .part('XT2', 'terminal', 3240, 120, { value: 'thermal cut-out of T, return' }, { '1': 'VTC' })
-    .part('LKO', 'led', 3190, 280, { colour: 'green' }, { '2': V, '1': 'LKOA' }, 1)
+    .part('LKO', 'led', 3190, 280, { colour: 'green' }, { '2': 'VTC', '1': 'LKOA' }, 1)
     .part('RLKO', 'resistor', 3190, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
     .part('X4', 'terminal', 3380, 600, { value: 'L out' }, { '1': 'OUT' }, 2)
     .part('X5', 'terminal', 3380, 660, { value: 'N out' }, { '1': 'N' }, 2)
-    .part('X6', 'terminal', 3380, 720, { value: 'PE' }, { '1': 'GND' }, 2)
+    .part('X6', 'terminal', 3380, 720, { wire: '4', value: 'PE' }, { '1': 'GND' }, 2)
+    // the board's control ground to the chassis PE stud by one conductor (input and output PE
+    // run through the stud, not through the board: a 0.3 mm track must not carry a fault current)
+    .part('XPE', 'terminal', 3380, 800, { value: 'PE stud (control ground)' }, { '1': 'GND' }, 2)
     // spare comparator of the package: + to ground, − to a reference, so its output is held low
-    .part('U8S', 'comparator', 2880, 700, { value: 'LM339', pkg: 'TAPS2' }, { '3': 'GND', '2': 'DTH', '1': 'GND', '8': V, '4': 'GND' });
+    // power good (the package's fourth comparator): low until the sense filter has settled
+    // (1M·470n against 80 % of the rail: about 0.76 s); meanwhile the change timer is held, so the
+    // input relay stays open and no tap is connected at power-up (the lowest tap would saturate
+    // the transformer: review of 15 November)
+    .part('RPG', 'resistor', 2780, 620, { value: '1M' }, { '1': V, '2': 'PGC' }, 1)
+    .part('CPG', 'capacitor', 2780, 760, { value: o.delayC ? '220n' : '470n', vmax: '50' }, { '1': 'PGC', '2': 'GND' }, 1)
+    .part('DPGD', 'diode', 2700, 700, { value: '1N4148' }, { '2': 'PGC', '1': V }, 3)
+    .part('U8S', 'comparator', 2880, 700, { value: 'LM339', pkg: 'TAPS2' }, { '3': 'PGC', '2': 'DTH', '1': 'PGN', '8': V, '4': 'GND' })
+    .part('DPG', 'diode', 2980, 760, { value: '1N4148' }, { '2': 'MT', '1': 'PGN' });
+
+  // ---- tap-change sequencer (D51): any change of a tap comparator steps SUM; the step, coupled
+  // into E (biased at half the rail), crosses the window VEL … VEH and empties the timer MT; while
+  // MT is below 80 % of the rail the input relay KI is open (about 63 ms), and the flip-flops take
+  // the comparators' states when MT passes VEL (about 25 ms), so every tap changes with no current
+  nb.block('sequencer')
+    .part('RSUM', 'resistor', 1700, 820, { value: '100k' }, { '1': 'SUM', '2': 'GND' }, 1)
+    .part('CE', 'capacitor', 1800, 760, { value: '100n', vmax: '50' }, { '1': 'SUM', '2': 'E' })
+    .part('RE1', 'resistor', 1900, 680, { value: '100k' }, { '1': V, '2': 'E' }, 1)
+    .part('RE2', 'resistor', 1900, 840, { value: '100k' }, { '1': 'E', '2': 'GND' }, 1)
+    .part('RW1', 'resistor', 2000, 600, { value: '100k' }, { '1': V, '2': 'VEH' }, 1)
+    .part('RW2', 'resistor', 2000, 700, { value: '10k' }, { '1': 'VEH', '2': 'VEL' }, 1)
+    .part('RW3', 'resistor', 2000, 800, { value: '100k' }, { '1': 'VEL', '2': 'GND' }, 1)
+    .part('USQ1', 'comparator', 2150, 640, { value: 'LM339', pkg: 'SEQ' }, { '3': 'VEH', '2': 'E', '1': 'TRG', '8': V, '4': 'GND' })
+    .part('USQ2', 'comparator', 2150, 800, { value: 'LM339', pkg: 'SEQ' }, { '3': 'E', '2': 'VEL', '1': 'TRG', '8': V, '4': 'GND' })
+    .part('RTRG', 'resistor', 2280, 720, { value: '1k' }, { '1': 'MT', '2': 'TRG' })
+    .part('RMT', 'resistor', 2380, 620, { value: '39k' }, { '1': V, '2': 'MT' }, 1)
+    .part('CMT', 'capacitor', 2380, 820, { value: '1u', vmax: '50' }, { '1': 'MT', '2': 'GND' }, 1)
+    .part('USQ3', 'comparator', 2500, 640, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEL', '1': 'CLK', '8': V, '4': 'GND' })
+    .part('RCLK', 'resistor', 2600, 580, { value: '10k' }, { '1': V, '2': 'CLK' }, 1)
+    .part('USQ4', 'comparator', 2500, 820, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'DTH', '1': 'OI', '8': V, '4': 'GND' })
+    .part('RPI', 'resistor', 2600, 760, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
+    .part('RBI', 'resistor', 2650, 880, { value: '2.2k' }, { '1': 'OI', '2': 'BI' }, 1)
+    .part('QI', 'npn', 2700, 980, { value: 'BD139' }, { '1': 'BI', '2': 'KIC', '3': 'GND' })
+    .part('DI', 'diode', 2760, 900, { value: '1N4148' }, { '2': 'KIC', '1': V }, 3)
+    // the input relay: the tap chain fed through its NO contact
+    .part('KI', 'relay', 2850, 900, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KIC', '3': 'VIN', '5': 'VCH' })
+    // its contact snubber, as the tap relays': opening it interrupts the autotransformer's
+    // magnetising current, which would otherwise ring up to a spike (found in simulation)
+    .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VIN', '2': 'SNKI' }, 1)
+    .part('CSKI', 'capacitor', 2950, 1090, { value: '100n', vmax: '630' }, { '1': 'SNKI', '2': 'VCH' }, 1)
+    .part('CDS', 'capacitor', 2380, 960, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.block('load').note('TEST LOAD (not part of the product)', 3480, 540)
     .part('RLOAD', 'resistor', 3530, 640, { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'N' }, 1);
   nb.block('in the autotransformer').part('STC', 'switch', 3330, 90, { closed: 'true' }, { '1': V, '2': 'VTC' }, 1);
@@ -591,15 +639,18 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   // 230 V tap must stay within 190 … 255 V, or the output relay opens and the restart delay
   // starts again; a welded tap relay or a failed control cannot put the load out of range
   nb.block('prot').note('OUTPUT PROTECTION (independent of the control)', 0, 920)
-    .part('TR2', 'transformer', 50, 1040, SENSE_TR, { '1': 'T5', '2': 'N', '3': 'SA2', '4': 'SB2' })
+    .part('TR2', 'transformer', 50, 1040, SENSE_TR400, { '1': 'T5', '2': 'N', '3': 'SA2', '4': 'SB2' })
     .part('RS2', 'resistor', 160, 1120, { value: '220' }, { '1': 'SA2', '2': 'SN2' }, 1)
     .part('CS2', 'capacitor', 160, 1210, { value: '100n', vmax: '63' }, { '1': 'SN2', '2': 'SB2' }, 1)
     .part('BR2', 'bridge', 270, 1060, { value: 'DB107' }, { '1': 'SA2', '2': 'SB2', '3': 'VSR2', '4': 'GND' })
     .part('C3', 'capacitor_pol', 370, 1060, { value: '4.7u', vmax: '50' }, { '1': 'VSR2', '2': 'GND' }, 1)
-    .part('R5', 'resistor', 450, 990, { value: '68k' }, { '1': 'VSR2', '2': 'SEN2' })
-    // the protection's own trimmer, set at commissioning; an open wiper: an overvoltage trip
-    .part('R6', 'resistor', 520, 1060, { value: '6.8k' }, { '1': 'SEN2', '2': 'STR2' }, 1)
-    .part('RT4', 'potentiometer', 580, 1150, { value: '5k', position: '64' }, { '1': 'STR2', '2': 'GND', '3': 'GND' })
+    .part('R5', 'resistor', 450, 990, { value: '806k' }, { '1': 'VSR2', '2': 'SEN2' })
+    // the protection's own trimmer, set at commissioning; an open wiper: an overvoltage trip. The
+    // divider (806k, 68k + 50k) holds C3's peak for about 4 s: the input relay's 60 ms gap at a tap
+    // change lowers it by about 1.4 %, so no undervoltage trip; a rise is caught at once (the
+    // bridge charges C3), an undervoltage within a few seconds
+    .part('R6', 'resistor', 520, 1060, { value: '68k' }, { '1': 'SEN2', '2': 'STR2' }, 1)
+    .part('RT4', 'potentiometer', 580, 1150, { value: '50k', position: '64' }, { '1': 'STR2', '2': 'GND', '3': 'GND' })
     .part('R7', 'resistor', 590, 990, { value: '100k' }, { '1': 'SEN2', '2': 'SF2' })
     .part('C4', 'capacitor', 660, 1060, { value: '470n', vmax: '50' }, { '1': 'SF2', '2': 'GND' }, 1)
     .part('R8', 'resistor', 50, 1320, { value: '2.2k' }, { '1': V, '2': 'VREF2' })
@@ -608,7 +659,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('R10', 'resistor', 250, 1470, { value: '3.65k' }, { '1': 'VOV', '2': 'VUV' }, 1)
     .part('R11', 'resistor', 250, 1560, { value: '10k' }, { '1': 'VUV', '2': 'GND' }, 1)
     .part('U10', 'comparator', 500, 1290, { value: 'LM393', pkg: 'PROT' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': V, '4': 'GND' })
-    .part('U11', 'comparator', 500, 1470, { value: 'LM393', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
+.part('U11', 'comparator', 500, 1470, { value: 'LM393', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
     .part('R12', 'resistor', 620, 1230, { value: '10k' }, { '1': V, '2': 'FLTS' }, 1)
     .part('DF1', 'diode', 750, 1340, { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })
     .part('DF2', 'diode', 750, 1490, { value: '1N4148' }, { '2': 'DLY', '1': 'DF2K' })
@@ -616,6 +667,20 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RDF2', 'resistor', 860, 1490, { value: '2.2k' }, { '1': 'DF2K', '2': 'FLTS' })
     .part('LF', 'led', 880, 1240, { colour: 'red' }, { '2': V, '1': 'LFA' }, 1)
     .part('RLF', 'resistor', 880, 1340, { value: '4.7k' }, { '1': 'LFA', '2': 'FLTS' }, 1)
+    // the protection's own relay KP in series with the output relay: on while the protection
+    // finds the 230 V tap in range; a fault pulls its base down through DPP (DBS keeps it off),
+    // so neither a shorted QD nor a welded K7 can keep the load on (review of 15 November)
+    // KP closes only about 0.18 s after the protection finds the tap in range (47k · 22 µF into a
+    // Darlington): rising through the window at power-up (about 25 ms) does not close it
+    .part('RBP', 'resistor', 1000, 1230, { value: '47k' }, { '1': V, '2': 'BPP' }, 1)
+    .part('CBP', 'capacitor_pol', 940, 1330, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
+    .part('DPP', 'diode', 1000, 1340, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
+    .part('DBS', 'diode', 1100, 1290, { value: '1N4148' }, { '2': 'BPP', '1': 'BPD' })
+    .part('QPD', 'npn', 1160, 1250, { value: 'BC547B' }, { '1': 'BPD', '2': 'KPC', '3': 'BP' })
+    .part('RBEP', 'resistor', 1150, 1400, { value: '10k' }, { '1': 'BP', '2': 'GND' }, 1)
+    .part('QP', 'npn', 1220, 1290, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
+    .part('DP', 'diode', 1300, 1200, { value: '1N4148' }, { '2': 'KPC', '1': V }, 3)
+    .part('KP', 'relay', 1400, 1200, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KPC', '3': 'OUTK', '5': 'OUT' })
     .part('CD3', 'capacitor', 650, 1660, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.v('VIN').v('OUT').v('SF').v('SF2').i('RLOAD', '1');
   nb.sim({ type: 'tran', stop, step: '200u', start: 'zero' });

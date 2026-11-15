@@ -38,7 +38,7 @@ export const DC_PATH: Record<string, string[][]> = {
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],
   opamp: [['6', '7', '4']], switch: [], button: [], spdt: [],
-  regulator: [['1', '2', '3']], lm317: [['1', '2', '3']], timer555: [['1', '3', '5', '7', '8']],
+  regulator: [['1', '2', '3']], acdc: [['L', 'N'], ['+V', '-V']], lm317: [['1', '2', '3']], timer555: [['1', '3', '5', '7', '8']],
   // SCR: its gate–cathode junction (anode–cathode blocks until fired); optotriac: its LED (the
   // triac blocks until triggered); the ribbon header: connection points only
   scr: [['3', '2']], optotriac: [['1', '2']], idc20: [],

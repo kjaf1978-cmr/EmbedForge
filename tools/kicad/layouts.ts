@@ -118,23 +118,30 @@ const STAB_TRACKS: PlanTrack[] = (() => {
 let stabCache: ((k: string) => string) | undefined;
 const stabRef = (k: string) => (stabCache ??= (() => { const { sheet, nb } = stabiliser(); return (key: string) => nb.refOf(sheet, key); })())(k);
 const STAB_PLAN = (): Placed[] => (() => {
+  // every part by its key in the design: references move when parts are added
+  const r = stabRef;
   const p: Placed[] = [];
   for (let k = 0; k < 6; k++) {
-    const y = 70 + 20 * k;
-    p.push({ ref: `K${k + 1}`, x: 95, y, rot: 180 },
+    const y = 70 + 20 * k, n = k + 1;
+    p.push({ ref: r(`K${n}`), x: 95, y, rot: 180 },
       // turned 180°: each resistor's COM pin (1) towards the relay at x 71.62 (1 W, 15.24 mm), the
       // snubber's mid node on the two inner pads (51.75, 56.38), the capacitor's NO / NC pin
       // outside at 44.25 (100 nF 630 V film, 7.5 mm)
-      { ref: `C${7 + 2 * k}`, x: 48, y: y - 4, rot: 180 }, { ref: `R${35 + 2 * k}`, x: 64, y: y - 4, rot: 180 },
-      { ref: `C${6 + 2 * k}`, x: 48, y: y + 4, rot: 180 }, { ref: `R${34 + 2 * k}`, x: 64, y: y + 4, rot: 180 });
+      { ref: r(`CSA${n}`), x: 48, y: y - 4, rot: 180 }, { ref: r(`RSA${n}`), x: 64, y: y - 4, rot: 180 },
+      { ref: r(`CSC${n}`), x: 48, y: y + 4, rot: 180 }, { ref: r(`RSC${n}`), x: 64, y: y + 4, rot: 180 });
   }
-  p.push({ ref: 'K7', x: 95, y: 192, rot: 180 },
-    { ref: 'T2', x: 14, y: 120, rot: 270 },
-    // the terminals by their keys in the design (L in, N in; L out, N out): references move
-    { ref: stabRef('X1'), x: 10, y: 12, rot: 0 }, { ref: stabRef('X2'), x: 10, y: 26, rot: 0 }, { ref: 'Q1', x: 30, y: 12, rot: 0 },
-    { ref: 'RV1', x: 34, y: 34, rot: 0 }, { ref: 'F1', x: 55, y: 12, rot: 0 },
-    { ref: 'T1', x: 93, y: 12, rot: 0 }, { ref: 'T3', x: 93, y: 27, rot: 0 }, { ref: 'T4', x: 93, y: 42, rot: 0 },
-    { ref: stabRef('X4'), x: 10, y: 192, rot: 0 }, { ref: stabRef('X5'), x: 10, y: 204, rot: 0 });
+  p.push({ ref: r('KO'), x: 95, y: 192, rot: 180 },
+    // the protection's own relay beside the output relay; the input relay (D51) above the tap
+    // relays, its snubber in the snubbers' column
+    { ref: r('KP'), x: 66, y: 192, rot: 180 },
+    { ref: r('KI'), x: 95, y: 50, rot: 180 }, { ref: r('CSKI'), x: 48, y: 58, rot: 180 }, { ref: r('RSKI'), x: 64, y: 58, rot: 180 },
+    // the autotransformer's tap block
+    { ref: r('T1'), x: 14, y: 120, rot: 270 },
+    { ref: r('X1'), x: 10, y: 12, rot: 0 }, { ref: r('X2'), x: 10, y: 26, rot: 0 }, { ref: r('QF1'), x: 30, y: 12, rot: 0 },
+    { ref: r('RV1'), x: 18, y: 40, rot: 0 }, { ref: r('F1'), x: 50, y: 12, rot: 0 },
+    // the supply module (D52) and the two sense transformers
+    { ref: r('PS1'), x: 58, y: 36, rot: 0 }, { ref: r('TR1'), x: 93, y: 12, rot: 0 }, { ref: r('TR2'), x: 93, y: 27, rot: 0 },
+    { ref: r('X4'), x: 10, y: 192, rot: 0 }, { ref: r('X5'), x: 10, y: 204, rot: 0 });
   return p;
 })();
 
@@ -555,7 +562,7 @@ const GR24_PLANES: PlanZone[] = [
 
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), panel: (p) => !!p.props.wire, wire: (net) => (net === 'GND' ? '4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board\'s PE terminal' : ''), w: 230, h: 212, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
     keep1: [0, 1, 2, 3, 4, 5, 6].map((k): [number, number, number, number] => { const y = k < 6 ? 70 + 20 * k : 192; return [88, y - 9, 99, y + 9]; }),
     // the output relay's coil to the thermal cut-out terminal (VTC), drawn by tools/kicad/autolink.py
     post: { tracks: [{ net: 'VTC', layer: 'B.Cu', width: 0.5, pts: [[93, 198], [96.75, 198], [108.75, 186], [108.75, 170.3919]] }] } },

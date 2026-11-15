@@ -2,7 +2,7 @@
 // Coordinates are in schematic units; the grid is 10 units, and every pin lies on the grid.
 // Pin numbers follow KiCad's generic symbols, so Increment 3 footprints can map pads by number.
 
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, ISOAMPS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
+import { ACDC_MODULES, ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BREAKER_A, BRIDGES, COMPARATORS, CONTACTORS, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, ISOAMPS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel } from './models';
 
 export interface Pt { x: number; y: number }
 
@@ -536,6 +536,15 @@ export const SYMBOLS: SymbolDef[] = [
     refAt: { x: 0, y: -20 }, valAt: { x: 12, y: 26 }, simulated: true,
     gfx: () => [path('M -40 0 H -25 M 25 0 H 40 M 0 10 V 30'), path('M -25 -10 H 25 V 10 H -25 Z', 'bg'), text(-14, 3, 'IN', 7), text(13, 3, 'OUT', 7), text(0, 8, 'GND', 6)],
     value: { key: 'value', label: 'Model', kind: 'select', options: opts(REGULATORS.map((m) => m.name)), default: '7805' }, params: [HEATSINK],
+  },
+  {
+    id: 'acdc', name: 'AC-DC power module', category: 'Integrated circuits', keywords: ['u', 'ps', 'power supply', 'acdc', 'ac-dc', 'smps', 'module', 'irm', 'mean well', 'hlk'], prefix: 'PS',
+    description: 'Encapsulated AC-DC power module (Mean Well IRM type): mains in (L, N), an isolated regulated DC output (+V, −V). Simulated as a bridge and bulk capacitor on the mains side and an isolated regulator on the output side; its input range is the model\'s.',
+    pins: [{ id: 'L', name: 'AC/L', x: -50, y: -10, type: 'passive' }, { id: 'N', name: 'AC/N', x: -50, y: 10, type: 'passive' },
+      { id: '+V', name: '+V', x: 50, y: -10, type: 'power_out' }, { id: '-V', name: '−V', x: 50, y: 10, type: 'passive' }],
+    refAt: { x: 0, y: -30 }, valAt: { x: 0, y: 34 }, simulated: true,
+    gfx: () => [path('M -50 -10 H -30 M -50 10 H -30 M 30 -10 H 50 M 30 10 H 50'), path('M -30 -22 H 30 V 22 H -30 Z', 'bg'), path('M 0 -22 V 22'), text(-15, -7, 'L', 7), text(-15, 13, 'N', 7), text(15, -7, '+V', 7), text(15, 13, '−V', 7), text(-15, 3, '~', 9), text(15, 3, '=', 9)],
+    value: { key: 'value', label: 'Model', kind: 'select', options: opts(ACDC_MODULES.map((m) => m.name)), default: 'IRM-15-12' }, params: [],
   },
   {
     id: 'tl431', name: 'Shunt reference', category: 'Integrated circuits', keywords: ['u', 'tl431', 'tlv431', 'shunt', 'reference', 'programmable zener', 'feedback'], prefix: 'U',

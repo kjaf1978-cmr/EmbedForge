@@ -193,6 +193,8 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'opto': return [same('DIP-4', pins, '1 A, 2 K, 3 E, 4 C')];
     case 'isoamp': return [same('SOIC-8W', pins, 'AMC1311BDWV: 1 VDD1, 2 IN, 3 SHTDN, 4 GND1 | 5 GND2, 6 OUTN, 7 OUTP, 8 VDD2 (the barrier between the pad rows)')];
     case 'opamp': return OPAMP[v] ?? OPAMP.generic;
+    // the footprint from Mean Well's drawing of the IRM-15 (PROVISIONAL until checked)
+    case 'acdc': return [same('IRM-15', pins)];
     case 'regulator': return [REG[v] ?? legs('TO-220_Vertical', ['1', '2', '3'], 'IN-GND-OUT')];
     case 'lm317': return [legs('TO-220_Vertical', ['1', '2', '3'], 'ADJ-OUT-IN')];
     case 'tl431': return [legs('TO-92_Wide', ['1', '2', '3'], 'REF-A-K')];

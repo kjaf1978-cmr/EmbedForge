@@ -226,6 +226,12 @@ export const RELAYS: NamedModel<RelayModel>[] = [
  *  values of each disc size. α = ln(Ic / 1 mA) / ln(Vc / Vn). */
 export interface VaristorModel { vn: number; vc: number; ic: number; imax: number; energy: number; vac: number }
 export const varistorAlpha = (m: VaristorModel) => Math.log(m.ic / 1e-3) / Math.log(m.vc / m.vn);
+/** AC-DC power modules (encapsulated, PCB mount): output voltage and current, input range. */
+export interface AcDcModel { vout: number; imax: number; vacMin: number; vacMax: number; pout: number }
+export const ACDC_MODULES: NamedModel<AcDcModel>[] = [
+  { name: 'IRM-15-12', note: 'Mean Well IRM-15-12: 12 V 1.25 A (15 W), wide-range AC input (85 … 305 V AC to be confirmed on its data sheet), reinforced isolation, encapsulated, PCB mount', model: { vout: 12, imax: 1.25, vacMin: 85, vacMax: 305, pout: 15 } },
+];
+
 export const VARISTORS: NamedModel<VaristorModel>[] = [
   { name: '10D471K', note: 'Ø 10 mm disc, 300 V AC (470 V at 1 mA), clamps 775 V at 25 A, 3.5 kA, 70 J', model: { vn: 470, vc: 775, ic: 25, imax: 3500, energy: 70, vac: 300 } },
   { name: '14D471K', note: 'Ø 14 mm disc, 300 V AC, clamps 775 V at 50 A, 6 kA, 140 J', model: { vn: 470, vc: 775, ic: 50, imax: 6000, energy: 140, vac: 300 } },

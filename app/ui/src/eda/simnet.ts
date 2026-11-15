@@ -5,7 +5,7 @@ import { terminals, type BjtModel, type Circuit, type DiodeModel, type Element, 
 import { importModel } from './spicemodel';
 import type { Analysis } from '../sim/spice';
 import { decadePoints } from '../sim/engine';
-import { ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, ISOAMPS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
+import { ACDC_MODULES, ADJ_REGULATORS, AUTOTRANSFORMERS, BJTS, BRIDGES, COMPARATORS, CONTACTORS, CURVE_MAG, DIODES, GATE_DRIVERS, GDTS, IGBTS, LED_COLOURS, MOSFETS, OPAMPS, OPTOS, OPTOTRIACS, ISOAMPS, PV_MODULES, REGULATORS, RELAYS, SCRS, SHUNT_REFS, TVS, VARISTORS, ZENERS, findModel, ledModel, pvFit, tvsJunction, varistorAlpha } from './models';
 import { satCurrent } from '../sim/engine';
 import { railVoltage, symbolOf } from './symbols';
 import { connectivity, GND_NET, type Connectivity } from './connectivity';
@@ -702,6 +702,31 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       );
       if (adj) out.push({ kind: 'I', name: `${ref}_IADJ`, p: vin, n: g, dc: m.iq });
       else out.push({ kind: 'R', name: `${ref}_RQ`, a: vin, b: g, r: 7 / m.iq });
+      break;
+    }
+    case 'acdc': {
+      // mains side: a bridge into a bulk capacitor, drawing the module's input power; output side,
+      // isolated: a source that follows the bulk voltage (÷10) feeding a regulator to vout
+      const m = findModel(ACDC_MODULES, p.props.value).model;
+      const bm = findModel(BRIDGES, 'DB107').model;
+      const hp = `${ref}#hp`, hn = `${ref}#hn`, raw = `${ref}#raw`, r = `${ref}#r`, b = `${ref}#b`, h = `${ref}#h`;
+      const g = pin['-V'], vo = pin['+V'];
+      out.push(
+        { kind: 'D', name: `${ref}_D1`, a: pin.L, k: hp, model: bm }, { kind: 'D', name: `${ref}_D2`, a: pin.N, k: hp, model: bm },
+        { kind: 'D', name: `${ref}_D3`, a: hn, k: pin.L, model: bm }, { kind: 'D', name: `${ref}_D4`, a: hn, k: pin.N, model: bm },
+        { kind: 'C', name: `${ref}_CB`, a: hp, b: hn, c: 10e-6 },
+        { kind: 'R', name: `${ref}_RIN`, a: hp, b: hn, r: (325 * 325) / (m.pout / 0.75) },
+        { kind: 'E', name: `${ref}_ISO`, p: raw, n: g, cp: hp, cn: hn, gain: 0.1 },
+        { kind: 'V', name: `${ref}_VREF`, p: r, n: g, dc: m.vout },
+        { kind: 'G', name: `${ref}_GERR`, p: raw, n: b, cp: r, cn: vo, gm: 0.1 },
+        { kind: 'R', name: `${ref}_RBE`, a: b, b: vo, r: 1e4 },
+        { kind: 'Q', name: `${ref}_QP`, c: raw, b, e: vo, model: { type: 'npn', is: 1e-13, bf: 100, br: 1, nf: 1, nr: 1 }, fixedTemp: true },
+        { kind: 'V', name: `${ref}_VH`, p: raw, n: h, dc: 2 },
+        { kind: 'D', name: `${ref}_DH`, a: b, k: h, model: { is: 1e-14, n: 1, rs: 0 }, fixedTemp: true },
+        { kind: 'R', name: `${ref}_RMIN`, a: vo, b: g, r: 1e5 },
+        // the isolation barrier's leakage (keeps the two sides' DC levels defined)
+        { kind: 'R', name: `${ref}_RISO`, a: hn, b: g, r: 1e9 },
+      );
       break;
     }
     case 'timer555':
