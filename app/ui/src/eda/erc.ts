@@ -30,10 +30,11 @@ export const DC_PATH: Record<string, string[][]> = {
   // separately; TL431: cathode–anode (REF is an input only)
   igbt: [['2', '3']], opto: [['1', '2'], ['3', '4']], isoamp: [['1', '2', '3', '4'], ['5', '6', '7', '8']], tl431: [['2', '3']],
   // breakers (closed), contactor coil and its NC auxiliary contact (closed at rest), PV, autotransformer, comparator and driver supplies,
-  // surge voltage generator; varistors, GDTs and the current generator give no DC path
+  // surge voltage generator; a varistor, like a TVS, by its leakage (the star point of a Y-circuit
+  // SPD is held by its three varistors); GDTs and the current generator give no DC path
   breaker1: [['1', '2']], breaker2: [['1', '2'], ['N1', 'N2']], breaker3: [['1', '2'], ['3', '4'], ['5', '6']], breaker4: [['1', '2'], ['3', '4'], ['5', '6'], ['N1', 'N2']],
   contactor: [['A1', 'A2'], ['21', '22']], pv: [['1', '2']], autotransformer: [['N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']],
-  comparator: [['8', '4']], hbdriver: [['8', '3', '4'], ['7', '6', '5']], vsurge: [['1', '2']], mov: [], gdt: [], isurge: [], terminal: [],
+  comparator: [['8', '4']], hbdriver: [['8', '3', '4'], ['7', '6', '5']], vsurge: [['1', '2']], mov: [['1', '2']], gdt: [], isurge: [], terminal: [],
   vdc: [['1', '2']], battery: [['1', '2']], vsin: [['1', '2']], vpulse: [['1', '2']],
   diode: [['1', '2']], zener: [['1', '2']], led: [['1', '2']],
   npn: [['1', '2', '3']], pnp: [['1', '2', '3']], nmos: [['2', '3']], pmos: [['2', '3']],

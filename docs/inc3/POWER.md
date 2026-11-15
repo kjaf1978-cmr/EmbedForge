@@ -279,12 +279,69 @@ Without the type 3 outlet the socket surge reaches the appliance at 5.75 kV, and
 surge at 1.86 kV L–PE: sensitive appliances need it. (A spark-gap type 1 SPD, Up 4 kV, would need
 a second type 2 within a few metres.)
 
-PV house (the 48 V MPPT charger's array, three 280 Wp in series, 25 m of DC cable with its PE
-conductor alongside): two 20D201K (170 V DC) in Y (DC+ and DC− to the frame) in the array box,
-one DC+ to PE at the charger (its DC− is the battery's negative, bonded to PE) and a 5KP130CA
-(5 kW TVS) across the charger's input. With 5 kA 8/20 µs induced into the cable the charger's
-input sees 195 V, under its 200 V MOSFETs; without the TVS 205 V. **P6 change:** the charger's
-board gets the 5KP130CA (bidirectional: a unidirectional one would short an array connected the wrong way round) across its PV input (beside RVPV).
+PV house (D49, 15 November 2026): the 48 V MPPT charger's own array (9 × 410 Wp, 3 in series,
+3 strings: 112 V open circuit, 127 V at −10 °C, 42 A short circuit), 25 m of DC cable (2 × 16 mm²,
+2.3 % drop at the MPP) with its 6 mm² PE conductor alongside, the charger's input as the test
+load (its four 47 µF film capacitors and its MPP current). A certified type 2 PV SPD at each end
+of the cable (IEC 60364-7-712: both ends when the cable is longer than 10 m), DIN rail, in its Y
+circuit (DC+ and DC− each to a star point, the star point to PE; every path two varistors):
+
+- array junction box: **DEHNguard M YPV SCI 150 FM (DEHN 952518)**, with the remote signalling
+  contact, because nobody sees a status window on the roof; the contact (changeover,
+  250 V / 0.5 A AC, 125 V / 0.2 A DC, ≤ 1.5 mm²) is wired with a 2-core cable alongside the DC
+  cable to an indicator lamp beside the charger (the charger has no input for it). The module is for indoor use (IP20):
+  the junction box is an IP65 enclosure with a DIN rail.
+- beside the charger: **DEHNguard M YPV SCI 150 (DEHN 952513)**, status window visible.
+- the old loose 20D201K varistors are gone (models and catalogue).
+
+Module data (both part numbers alike, except the contact), from DEHN's online catalogue, product
+family "DEHNguard modular Y PV SCI", technical-data table and tender text of 952513 and 952518,
+read 15 November 2026. The data-sheet PDFs (952513_GL-en.pdf, 952518_GL-en.pdf) sit on DEHN's
+download host (dxeifbnwdc27t.cloudfront.net), which this environment does not allow, so **page
+references are still to be added** from the PDFs:
+
+| Quantity | Value |
+|---|---|
+| Standard | type 2 SPD to EN 61643-31 / IEC 61643-31 (952518's page and tender text: EN 50539-11, its predecessor); for use to IEC 60364-7-712 |
+| Max. PV voltage UCPV | 150 V DC |
+| Nominal discharge current In (8/20 µs), DC+/DC− to PE | 10 kA |
+| Max. discharge current Imax (8/20 µs), DC+/DC− to PE | 20 kA |
+| Total discharge current Itotal (8/20 µs) | 40 kA |
+| Voltage protection level Up | ≤ 0.8 kV; ≤ 0.6 kV at 5 kA |
+| Short-circuit withstand ISCPV | 10 kA |
+| Response time tA | ≤ 25 ns |
+| Circuit | Y ("fault-resistant Y circuit": an insulation fault in the array does not overload the SPD) |
+| Disconnector | SCI: combined disconnection and short-circuiting device, three-step DC switching, safe electrical isolation in the protection module |
+| Status indication | green / red window; 952518 also the remote signalling changeover contact |
+| Width, mounting | 3 modules (DIN 43880), 35 mm DIN rail (EN 60715), IP20, indoor; −40 … +80 °C |
+| Conductors | 1.5 … 35 mm² stranded (25 mm² flexible) |
+| Approvals | KEMA, UL, CSA |
+| List price (DEHN store, EUR) | 952513: 332.90; 952518: 391.10 |
+
+The model (`models.ts`, one varistor of the Y, the module a three-unit package): 100 V at 1 mA
+(75 V DC each, the 150 V over two), 300 V at 5 kA per varistor, so each path clamps at the
+data sheet's maximum Up (0.6 kV at 5 kA, 0.63 kV at 10 kA against ≤ 0.8 kV): the protection is
+checked at the worst module the data sheet allows. Imax 20 kA for all three (the star–PE
+varistor is rated Itotal 40 kA), 150 J each. The UCPV of 150 V covers the array's 127 V at
+−10 °C; ISCPV 10 kA its 42 A.
+
+Results (`tests/surge.test.ts`): 5 kA 8/20 µs induced into the cable at the array (DC+ to the
+frame): the array's DC+ to its frame 599 V (under Up), the charger's input 121 V; at the
+modules' In (10 kA) 129 V and at their Imax (20 kA) 138 V, the array module's varistors at
+19.8 kA and 109 J of 20 kA and 150 J; every SPD and the TVS within their ratings. The charger's
+input capacitors take the surge's charge: the TVS (144 V breakdown) does not conduct, and without
+it the input stays at 138 V at Imax. Without the array's SPD the modules see 26 kV to their
+frames and the charger's input 303 V (the TVS at 17.6 kW against its 5 kW): the array SPD is the
+protection. At the charger the module's DC+–PE path (DC− bonded to PE through the battery) is
+two varistors and does not conduct for this surge; it is there for surges that enter at the
+charger's end, and while the charger's QPV is open (no bond).
+
+The earlier result (195 V with the TVS, 205 V without) came from a test load that was not the
+charger (20 µF instead of 188 µF) and an array that was one module: the array's size was set
+with a property (`n`) that the PV model does not read (`ns`, `np`). Both corrected.
+
+**P6 change:** none required. The 5KP130CA stays across the charger's PV input as the second
+line (bidirectional: a unidirectional one would short an array connected the wrong way round).
 
 ### P9 — pump control, irrigation, gate controller, trimmer, block machine, grinder drive (D24–D26, D46; DFMEA section 3d)
 

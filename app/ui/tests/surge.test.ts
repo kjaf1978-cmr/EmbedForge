@@ -7,6 +7,8 @@ import { simulate, type SimResult } from '../src/sim/run';
 import { smoke } from '../src/eda/smoke';
 import { connectivity } from '../src/eda/connectivity';
 import type { Sheet } from '../src/eda/schematic';
+import { buildBom } from '../src/eda/bom';
+import { costedBom } from '../src/eda/catalogue';
 
 function run(sheet: Sheet) {
   const r = simulate(sheet) as SimResult;
@@ -31,13 +33,24 @@ describe('mains house (TN-C-S): type 1+2, type 2 and type 3 SPDs coordinated by 
   }, 600_000);
 });
 
-describe('PV house: DC SPDs at the array and at the 48 V charger, the charger\'s input TVS', () => {
-  it('5 kA 8/20 µs induced into the DC cable at the array: the charger\'s input below 200 V (its MOSFETs), every SPD and the TVS within their ratings', () => {
-    const s = run(pvHouse().sheet);
-    expect(s.pk('PVC', 'NVC')).toBeLessThan(200);
-    expect(s.over).toEqual([]);
+describe('PV house (D49): certified type 2 PV SPDs (DEHNguard M YPV SCI 150, Y circuit) at the array and at the 48 V charger, the charger\'s input TVS', () => {
+  for (const ka of [5, 10, 20])
+    it(`${ka} kA 8/20 µs induced into the DC cable at the array${ka === 10 ? ' (the SPDs\' In)' : ka === 20 ? ' (their Imax)' : ''}: the charger's input below 200 V (its MOSFETs), the array's DC+ to its frame within the SPD's Up (0.8 kV), every SPD and the TVS within their ratings`, () => {
+      const s = run(pvHouse({ ka }).sheet);
+      expect(s.pk('PVC', 'NVC')).toBeLessThan(200);
+      expect(s.pk('PVA', 'PEA')).toBeLessThan(800);
+      expect(s.over).toEqual([]);
+    }, 600_000);
+  it('without the array\'s SPD the modules see over 10 kV to their frames and the charger\'s input over 200 V (why it is fitted)', () => {
+    const s = run(pvHouse({ spdArray: false }).sheet);
+    expect(s.pk('PVA', 'PEA')).toBeGreaterThan(10_000);
+    expect(s.pk('PVC', 'NVC')).toBeGreaterThan(200);
   }, 600_000);
-  it('without the TVS the charger\'s input sees over 200 V (why it is fitted)', () => {
-    expect(run(pvHouse({ tvs: false }).sheet).pk('PVC', 'NVC')).toBeGreaterThan(200);
+  it('without the TVS, at Imax, the charger\'s 188 µF of film input capacitors still hold its input below 200 V (the TVS is its second line)', () => {
+    expect(run(pvHouse({ tvs: false, ka: 20 }).sheet).pk('PVC', 'NVC')).toBeLessThan(200);
   }, 600_000);
+  it('parts list: each SPD module is one part (its three varistors are its units), costed from the catalogue', () => {
+    const lines = costedBom(buildBom(pvHouse().sheet)).lines.filter((l) => l.sym === 'mov' && /YPV/.test(l.value));
+    expect(lines.map((l) => [l.value, l.qty, l.cat?.mpn])).toEqual([['DG M YPV SCI 150 FM', 1, '952518 (DG M YPV SCI 150 FM)'], ['DG M YPV SCI 150', 1, '952513 (DG M YPV SCI 150)']]);
+  });
 });

@@ -563,10 +563,26 @@ board, type 2 in the sub-board 10 m on and type 3 at the socket 15 m further, th
 at most 854 V L–N, 815 V L–PE and 600 V N–PE for 12.5 kA 10/350 µs and 20 kA 8/20 µs into the
 service line and for a 6 kV / 3 kA combination wave at the socket; every SPD within its peak
 current and energy. Without the type 3 SPD the socket surge reaches 5.75 kV at the appliance.
-PV house: with Y varistors at the array and the charger and a 5KP130CA across the charger's
-input, 5 kA 8/20 µs induced into the array cable gives 195 V across the charger's input (its
-MOSFETs 200 V); without the TVS 205 V — so the P6 charger now has the TVS. (A spark-gap model
+PV house (superseded 15 November 2026, see below): with Y varistors at the array and the charger
+and a 5KP130CA across the charger's input, 195 V across the charger's input; without the TVS 205 V.
+(A spark-gap model
 chattered under an ideal surge current source; the type 1 SPD is the varistor-based kind.)
+
+### 3n.1 P5: certified PV SPDs (D49, 15 November 2026)
+
+`tests/surge.test.ts`, all 10 passed (mains house unchanged). The PV house now has a DEHNguard
+M YPV SCI 150 FM (952518) in the array junction box and a DEHNguard M YPV SCI 150 (952513) beside
+the charger, each modelled as its Y circuit at the data sheet's maximum Up (0.6 kV at 5 kA); the
+array and the test load are now the charger's own (9 × 410 Wp in 3 × 3, 188 µF film input
+capacitors, 39 A MPP current; before: one module, because the array's size was given as `n`
+instead of `ns`/`np`, and 20 µF). 8/20 µs into the cable at the array: 5 kA: array DC+ to frame
+599 V, charger input 121 V; 10 kA (In): 129 V; 20 kA (Imax): 138 V, the array module's
+varistors at 19.8 kA and 109 J (ratings 20 kA, 150 J). Every SPD and the TVS within their
+ratings; the TVS does not conduct, and without it the input stays at 138 V at 20 kA. Without the
+array's SPD: 26 kV at the modules, 303 V at the charger's input, the TVS at 17.6 kW (rating
+5 kW). Parts list: each module one part (its three varistors are units of one package), costed
+at DEHN's list price. ERC: a varistor now gives a DC path (like a TVS), so the Y's star point is
+not reported as floating.
 
 ## 3o. P9: pump control, irrigation, gate controller, trimmer, block machine (10 November 2026)
 
