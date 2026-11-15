@@ -15,8 +15,9 @@ const COLOURS = ['#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e', '#17becf
 
 /** Blocks that hold the test bench: their parts are marked scope=test (not in the product's BOM). */
 // blocks that are not part of the product: the test bench, and the installation a product sits in
-// (cables, earthing, the neighbouring product P5 protects): simulated, never in its parts list
-const TEST_BLOCKS = new Set(['bench', 'load', 'battery', 'service line', 'feeder', 'final circuit', 'dc cable', 'earthing', 'charger (P6)']);
+// (cables, earthing, the neighbouring product P5 protects), and parts bought inside another part
+// (the autotransformer's thermal cut-out): simulated, never in its parts list
+const TEST_BLOCKS = new Set(['bench', 'load', 'battery', 'service line', 'feeder', 'final circuit', 'dc cable', 'earthing', 'charger (P6)', 'in the autotransformer']);
 
 /** Netlist-style sheet builder: parts at given positions, nets as labels on their pins. */
 export class NB {
@@ -481,9 +482,10 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('X2', 'terminal', -900, 130, { value: 'N in' }, { '1': 'N' })
     .part('X3', 'terminal', -900, 190, { value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker1', -760, 70, { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN' }, 3)
-    // surge protection inside the unit (type 3), 300 V AC: survives a lost neutral (up to 400 V)
-    // only for seconds, so the output cut-off protects the load meanwhile
-    .part('RV1', 'mov', -640, 100, { value: '14D471K' }, { '1': 'VIN', '2': 'N' }, 1);
+    // surge protection L–N inside the unit, 300 V AC, thermally protected: a lasting overvoltage
+    // (a lost neutral, up to 400 V) makes its thermal fuse disconnect it; the output cut-off
+    // protects the load meanwhile
+    .part('RV1', 'mov', -640, 100, { value: 'TMOV14RP300E' }, { '1': 'VIN', '2': 'N' }, 1);
 
   // ---- 12 V control supply from the input: 24 V transformer, bridge, LM317HV (12 V at any
   // input from 140 to 300 V: 16 … 45 V before the regulator)
@@ -506,9 +508,12 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RS1', 'resistor', -990, 880, { value: '220' }, { '1': 'SA', '2': 'SN' }, 1)
     .part('CS1', 'capacitor', -990, 970, { value: '100n', vmax: '63' }, { '1': 'SN', '2': 'SB' }, 1)
     .part('BR1', 'bridge', -880, 820, { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VSR', '4': 'GND' })
-    .part('C1', 'capacitor_pol', -780, 820, { value: '4.7u', vmax: '35' }, { '1': 'VSR', '2': 'GND' }, 1)
+    .part('C1', 'capacitor_pol', -780, 820, { value: '4.7u', vmax: '50' }, { '1': 'VSR', '2': 'GND' }, 1)
     .part('R1', 'resistor', -700, 750, { value: '68k' }, { '1': 'VSR', '2': 'SENSE' })
-    .part('R2', 'resistor', -630, 820, { value: '10k' }, { '1': 'SENSE', '2': 'GND' }, 1)
+    // 6.8k and a 5k 25-turn trimmer: set at commissioning (the sense transformer's no-load
+    // voltage varies from unit to unit); an open wiper raises SENSE (lower taps: a safe error)
+    .part('R2', 'resistor', -630, 820, { value: '6.8k' }, { '1': 'SENSE', '2': 'STR' }, 1)
+    .part('RT3', 'potentiometer', -570, 910, { value: '5k', position: '64' }, { '1': 'STR', '2': 'GND', '3': 'GND' })
     .part('R3', 'resistor', -560, 750, { value: '100k' }, { '1': 'SENSE', '2': 'SF' })
     .part('C2', 'capacitor', -490, 820, { value: '470n', vmax: '50' }, { '1': 'SF', '2': 'GND' }, 1);
 
@@ -565,8 +570,12 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RPD', 'resistor', 2970, 230, { value: '2.2k' }, { '1': V, '2': 'OD' }, 1)
     .part('RBD', 'resistor', 2970, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3000, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
-    .part('DD', 'diode', 3050, 410, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': V }, 3)
-    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KD', '3': 'T5', '5': 'OUT' })
+    .part('DD', 'diode', 3050, 410, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
+    .part('KO', 'relay', 3100, 410, { value: '12 V 30 A', life: '4400000' }, { '1': 'VTC', '2': 'KD', '3': 'T5', '5': 'OUT' })
+    // the autotransformer's thermal cut-out (115 °C, NC, in its winding) in series with the
+    // output relay's coil: an overheated transformer drops the load until it has cooled (DFMEA S-7)
+    .part('XT1', 'terminal', 3240, 60, { value: 'thermal cut-out of T (NC)' }, { '1': V })
+    .part('XT2', 'terminal', 3240, 120, { value: 'thermal cut-out of T, return' }, { '1': 'VTC' })
     .part('LKO', 'led', 3190, 280, { colour: 'green' }, { '2': V, '1': 'LKOA' }, 1)
     .part('RLKO', 'resistor', 3190, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
     .part('X4', 'terminal', 3380, 600, { value: 'L out' }, { '1': 'OUT' }, 2)
@@ -576,6 +585,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('U8S', 'comparator', 2880, 700, { value: 'LM339', pkg: 'TAPS2' }, { '3': 'GND', '2': 'DTH', '1': 'GND', '8': V, '4': 'GND' });
   nb.block('load').note('TEST LOAD (not part of the product)', 3480, 540)
     .part('RLOAD', 'resistor', 3530, 640, { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'N' }, 1);
+  nb.block('in the autotransformer').part('STC', 'switch', 3330, 90, { closed: 'true' }, { '1': V, '2': 'VTC' }, 1);
 
   // ---- independent output protection (its own sense transformer, reference and LM393): the
   // 230 V tap must stay within 190 … 255 V, or the output relay opens and the restart delay
@@ -585,9 +595,11 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RS2', 'resistor', 160, 1120, { value: '220' }, { '1': 'SA2', '2': 'SN2' }, 1)
     .part('CS2', 'capacitor', 160, 1210, { value: '100n', vmax: '63' }, { '1': 'SN2', '2': 'SB2' }, 1)
     .part('BR2', 'bridge', 270, 1060, { value: 'DB107' }, { '1': 'SA2', '2': 'SB2', '3': 'VSR2', '4': 'GND' })
-    .part('C3', 'capacitor_pol', 370, 1060, { value: '4.7u', vmax: '35' }, { '1': 'VSR2', '2': 'GND' }, 1)
+    .part('C3', 'capacitor_pol', 370, 1060, { value: '4.7u', vmax: '50' }, { '1': 'VSR2', '2': 'GND' }, 1)
     .part('R5', 'resistor', 450, 990, { value: '68k' }, { '1': 'VSR2', '2': 'SEN2' })
-    .part('R6', 'resistor', 520, 1060, { value: '10k' }, { '1': 'SEN2', '2': 'GND' }, 1)
+    // the protection's own trimmer, set at commissioning; an open wiper: an overvoltage trip
+    .part('R6', 'resistor', 520, 1060, { value: '6.8k' }, { '1': 'SEN2', '2': 'STR2' }, 1)
+    .part('RT4', 'potentiometer', 580, 1150, { value: '5k', position: '64' }, { '1': 'STR2', '2': 'GND', '3': 'GND' })
     .part('R7', 'resistor', 590, 990, { value: '100k' }, { '1': 'SEN2', '2': 'SF2' })
     .part('C4', 'capacitor', 660, 1060, { value: '470n', vmax: '50' }, { '1': 'SF2', '2': 'GND' }, 1)
     .part('R8', 'resistor', 50, 1320, { value: '2.2k' }, { '1': V, '2': 'VREF2' })

@@ -64,7 +64,7 @@ describe('the stabiliser is a real circuit diagram (D28)', () => {
   });
   it('terminals for every external connection; test supply and load outside the product', () => {
     const t = sheet.parts.filter((p) => p.sym === 'terminal').map((p) => p.props.value).sort();
-    expect(t).toEqual(['L in', 'L out', 'N in', 'N out', 'PE', 'PE']);
+    expect(t).toEqual(['L in', 'L out', 'N in', 'N out', 'PE', 'PE', 'thermal cut-out of T (NC)', 'thermal cut-out of T, return']);
   });
   it('the parts list counts packages: two LM339 (taps; taps, delay and one spare) and an LM393 for the independent protection', () => {
     const bom = buildBom(sheet);

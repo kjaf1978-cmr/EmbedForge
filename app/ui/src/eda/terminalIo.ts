@@ -12,7 +12,7 @@ export const IO_TAG: Record<TerminalIo, string> = { in: 'IN', ctrl: 'CTRL', out:
 export function terminalIo(fn: string): TerminalIo {
   const f = fn.trim();
   if (/^PE\b/.test(f)) return 'pe';
-  if (/choke/i.test(f)) return 'ext';
+  if (/choke|thermal cut-out of T/i.test(f)) return 'ext';
   if (/^motor\s*(A?[+−-]|\d)/i.test(f)) return 'out';
   if (/sensor|limit|beam|e-?stop|\bstop\b|start|reset|switch|\bpot\b|wiper|\bNTC\b|tank|source (COM|DRY)|key/i.test(f)) return 'ctrl';
   if (/\bload\b|\bout\b|motor|valve|vibrator|mixer|feeder|pump [LN]\b/i.test(f)) return 'out';
