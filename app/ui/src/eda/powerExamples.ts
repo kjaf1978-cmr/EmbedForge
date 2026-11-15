@@ -559,7 +559,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   nb.part('CD1', 'capacitor', -150, 150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 1340, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   // the autotransformer: taps on the left, towards the relays
-  nb.part('T1', 'autotransformer', 2430, 640, { value: '1 kVA 230 V, taps 150–280 V' }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
+  nb.part('T1', 'autotransformer', 3560, 1000, { value: '1 kVA 230 V, taps 150–280 V' }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
   // ---- output: restart delay, output relay, terminals. After power-on and after any cut-off
   // the load waits RD·CD·ln 5 (1 MΩ as two 470k + 68k, below the leakage of a humid board;
@@ -670,14 +670,19 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     // the protection's own relay KP in series with the output relay: on while the protection
     // finds the 230 V tap in range; a fault pulls its base down through DPP (DBS keeps it off),
     // so neither a shorted QD nor a welded K7 can keep the load on (review of 15 November)
-    // KP closes only about 0.18 s after the protection finds the tap in range (47k · 22 µF into a
-    // Darlington): rising through the window at power-up (about 25 ms) does not close it
+    // KP closes about 0.24 s after the protection finds the tap in range (47k · 22 µF against the
+    // protection's own 2.5 V reference, in a comparator: the relay is switched hard, never driven
+    // slowly through its pull-in, which would make it chatter): rising through the window at
+    // power-up (about 25 ms) does not close it; a fault empties the capacitor through DPP at once
     .part('RBP', 'resistor', 1000, 1230, { value: '47k' }, { '1': V, '2': 'BPP' }, 1)
     .part('CBP', 'capacitor_pol', 940, 1330, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
     .part('DPP', 'diode', 1000, 1340, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
-    .part('DBS', 'diode', 1100, 1290, { value: '1N4148' }, { '2': 'BPP', '1': 'BPD' })
-    .part('QPD', 'npn', 1160, 1250, { value: 'BC547B' }, { '1': 'BPD', '2': 'KPC', '3': 'BP' })
-    .part('RBEP', 'resistor', 1150, 1400, { value: '10k' }, { '1': 'BP', '2': 'GND' }, 1)
+    .part('UKP', 'comparator', 1100, 1290, { value: 'LM393', pkg: 'PROT2' }, { '3': 'BPP', '2': 'VREF2', '1': 'OKP', '8': V, '4': 'GND' })
+    .part('RPKP', 'resistor', 1160, 1200, { value: '2.2k' }, { '1': V, '2': 'OKP' }, 1)
+    .part('RBKP', 'resistor', 1160, 1380, { value: '2.2k' }, { '1': 'OKP', '2': 'BP' }, 1)
+    // the package's other comparator: inputs held at fixed levels, output low (spare)
+    .part('UKPS', 'comparator', 1250, 1560, { value: 'LM393', pkg: 'PROT2' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
+    .part('CD4', 'capacitor', 1120, 1580, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('QP', 'npn', 1220, 1290, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
     .part('DP', 'diode', 1300, 1200, { value: '1N4148' }, { '2': 'KPC', '1': V }, 3)
     .part('KP', 'relay', 1400, 1200, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KPC', '3': 'OUTK', '5': 'OUT' })

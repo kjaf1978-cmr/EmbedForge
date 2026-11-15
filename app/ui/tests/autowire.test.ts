@@ -66,12 +66,12 @@ describe('the stabiliser is a real circuit diagram (D28)', () => {
     const t = sheet.parts.filter((p) => p.sym === 'terminal').map((p) => p.props.value).sort();
     expect(t).toEqual(['L in', 'L out', 'N in', 'N out', 'PE', 'PE', 'PE stud (control ground)', 'thermal cut-out of T (NC)', 'thermal cut-out of T, return']);
   });
-  it('the parts list counts packages: three LM339 (taps; taps, delay and power good; the tap-change sequencer) and an LM393 for the independent protection', () => {
+  it('the parts list counts packages: three LM339 (taps; taps, delay and power good; the tap-change sequencer) and two LM393 for the independent protection (its window; the delay of its relay)', () => {
     const bom = buildBom(sheet);
     const lm339 = bom.find((l) => l.value === 'LM339')!, lm393 = bom.find((l) => l.value === 'LM393')!;
     expect(lm339.qty).toBe(3);
     expect(lm339.part).toMatch(/4 in one package/);
-    expect(lm393.qty).toBe(1);
+    expect(lm393.qty).toBe(2);
   });
   it('the 12 V control supply is part of the design (no ideal source inside the product): a wide-range AC-DC module (D52)', () => {
     expect(sheet.parts.filter((p) => p.sym === 'vdc')).toEqual([]);
@@ -128,7 +128,7 @@ describe('no wasted parts (owner, 16 October: D31): no unused units beyond what 
   const spares = (s: Sheet) => s.parts.filter((p) => p.sym === 'comparator' && connectivity(s).pinNet.get(`${p.ref}.1`) === 'GND').map((p) => p.ref);
   it('change-over 1P: one spare (seven comparators in two LM339)', () => expect(spares(changeover1().sheet).length).toBe(1));
   it('change-over 3P+N: none (three LM339 and one LM393)', () => expect(spares(changeover3().sheet)).toEqual([]), 30_000);
-  it('stabiliser: none (eight comparators in two LM339 with the power good, the sequencer in a third, the protection in its own LM393)', () => expect(spares(stabiliser().sheet)).toEqual([]));
+  it('stabiliser: one spare (eight comparators in two LM339 with the power good, the sequencer in a third, the protection in its own LM393, the protection relay\'s delay in a second LM393)', () => expect(spares(stabiliser().sheet).length).toBe(1));
   it('MPPT charger: one spare (the independent latch in its LM393, seven comparators in two LM339); the sample-and-hold op-amp is a single TL071', () => {
     const s = mpptCharger().sheet;
     expect(spares(s).length).toBe(1);
