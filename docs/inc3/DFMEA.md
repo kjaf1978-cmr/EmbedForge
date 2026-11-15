@@ -52,13 +52,13 @@ phase more than about 10 % below the highest), otherwise to the back-up source; 
 | C-6 | Restart storm, hunting on a flickering mains | Compressors stall, contactors wear | Immediate return after an outage | Return delay 10.5 s (10 µF film, 2 × 750k) before the mains is taken back | 6 | 2 | 3 | L | dead-time test (scaled timing); timing calculation in the notes |
 | C-7 | Contactor chatter in a brown-out | Coil burn-out, welded contacts | Coil supply between drop-out and pick-up | Coil-supply undervoltage lockout: both contactors open below 20 V | 7 | 2 | 2 | L | power.test: "coil supply at 18 V" |
 | C-8 | Surge destroys the sense and control | Unit dead, possibly stuck on one source | Lightning, switching surges (FF-34, FF-38) | 300 V AC varistors on every phase of both sources (type 3); the installation's type 2 SPD in front (installation guide) | 7 | 4 | 4 | M | review; surge parts rated (stress check) |
-| C-9 | Varistor ageing / thermal runaway | Fire, loss of protection | Many surges, TOV of a lost neutral (FF-34, FF-35) | 14 mm discs (6 kA), Uc 300 V AC; thermally protected type (SPD-T3) in the product; replaced at service when the indicator shows | 8 | 3 | 5 | M | wear-out life in RELIABILITY.md; **open:** thermal fuse not modelled |
+| C-9 | Varistor ageing / thermal runaway | Fire, loss of protection | Many surges, TOV of a lost neutral (FF-34, FF-35) | Thermally protected varistors TMOV14RP300E (14 mm, 300 V AC, 6 kA, UL 1449): their internal thermal fuse disconnects an overheating disc; checked at commissioning and every 5 years (1 mA test) | 8 | 2 | 4 | L | clamping in simulation (power.test, stress check); the thermal disconnect is the part's certified function; surge type test TT-7 (docs/products/P3-changeover/TYPE_TESTS.md) |
 | C-10 | Contacts welded by inrush | Cannot transfer (C-1 guarded by interlock) | Capacitive/motor inrush (FF-01) | 32 A AC-3 contactors for a ≤ 6 A load (5 × margin) | 7 | 2 | 4 | L | stress check (RMS current ≤ rating) |
 | C-11 | Coil drive transistor shorted | Contactor permanently on | MOSFET failure | IRLZ44N at 5 % of its current rating, gate clamped; the interlock still prevents both sources | 7 | 2 | 3 | L | stress check; reliability prediction |
 | C-12 | Threshold drift | Nuisance trips or no trip | Humidity leakage, tempco (FF-08) | E96 metal film, ≤ 750 k per resistor, TL431 reference, coating | 7 | 2 | 3 | L | thresholds tested at ± 1 V; temperature analysis available |
 | C-13 | Diagnosis impossible | Long outages, wrong repairs | No indication | LEDs: ON MAINS, ON BACK-UP, OVERVOLTAGE, UNDERVOLTAGE; FAQ in the help | 4 | 3 | 3 | L | review |
-| C-14 | Terminal overheating | Fire | Loose screws, Al/Cu, thermal cycling (FF-10) | Box-clamp terminals for Cu and Al, torque on the label, no load current through the PCB | 9 | 3 | 6 | **H→M** | **open (mechanical design):** temperature-rise test at 1.1 × rated current |
-| C-15 | Insects or condensation short the board | Wrong operation, fire | FF-41, FF-44 | IP54, membrane vent, mesh, coating, no bare live parts | 8 | 3 | 6 | M | **open (enclosure):** damp heat cyclic test IEC 60068-2-30 |
+| C-14 | Terminal overheating | Fire | Loose screws, Al/Cu, thermal cycling (FF-10) | 6 mm² DIN-rail terminal blocks (Phoenix PT 6, PT 6-PE) for the 32 A circuits, ferrules, torque marked; no load current through the PCB; yearly torque check in the user manual | 9 | 2 | 4 | L | design closed; verified by type test TT-1 (temperature rise at 1.1 × rated current) on the prototype |
+| C-15 | Insects or condensation short the board | Wrong operation, fire | FF-41, FF-44 | IP54 enclosure, membrane vent, insect mesh, conformal coating (assembly guide), no bare live parts | 8 | 2 | 4 | L | design closed; verified by type tests TT-2 (damp heat cyclic) and TT-3 (IP54) on the prototype |
 
 ## 3. Mains voltage stabiliser (relay taps, 1 kVA)
 
@@ -256,9 +256,9 @@ section 5 (the HF type).
 
 | # | Design | Action | AP |
 |---|---|---|---|
-| C-14 | change-over | Terminal temperature-rise test, box-clamp terminals, torque label | H → M |
-| C-15, all | all | Enclosure: IP54, membrane vent, mesh ≤ 1 mm, coating; damp heat cyclic test (IEC 60068-2-30), salt mist (IEC 60068-2-52) | M |
-| C-9 | change-over, stabiliser | Varistors with thermal disconnector and indicator (type 3 SPD part) | M |
+| C-14 | change-over | ~~Terminal temperature-rise test, box-clamp terminals, torque label~~ design closed (15 November 2026): 6 mm² DIN-rail blocks, torque label; the temperature rise is type test TT-1 on the prototype | L |
+| C-15, all | all (change-over: design closed, type tests TT-2/TT-3) | Enclosure: IP54, membrane vent, mesh ≤ 1 mm, coating; damp heat cyclic test (IEC 60068-2-30), salt mist (IEC 60068-2-52) | M |
+| C-9 | stabiliser (change-over closed 15 November 2026: TMOV14RP300E) | Varistors with thermal disconnector (TMOV14RP300E) | M |
 | S-7 | stabiliser | Thermal cut-out in the autotransformer winding | M |
 | M-16 | charger | Installation guide items (DC isolator, DC SPD, connectors, ground fault) | H |
 | BM-6 | block machine | Firmware (D24): no outputs after the safety rail returns without a RESET press; K3 in the service plan | M |
