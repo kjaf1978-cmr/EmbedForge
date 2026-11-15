@@ -70,11 +70,7 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^NOUT$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^KMC$"
+        "pattern": "^T5F$"
       },
       {
         "netclass": "Mains",
@@ -86,91 +82,23 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^GB5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SW5$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^SNB5$"
       },
       {
         "netclass": "Mains",
-        "pattern": "^VIN$"
+        "pattern": "^TK5$"
       },
       {
         "netclass": "Mains",
-        "pattern": "^SNB7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSB7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSA7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSN7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSP7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^GA7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^YB7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^XA7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^GB7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNB6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSB6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSA6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSN6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSP6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^GA6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^YB6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^XA6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^GB6$"
+        "pattern": "^VSB5$"
       },
       {
         "netclass": "Mains",
@@ -186,23 +114,127 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^VSB5$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^GB5$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^XA5$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^YB5$"
-      },
-      {
-        "netclass": "Mains",
         "pattern": "^GA5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSW$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GA7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^TK7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNB7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SW7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSA7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSN7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSP7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSB7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GB7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^XA7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^YB7$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GA6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^TK6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNB6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SW6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSA6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSN6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSP6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VSB6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GB6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T6F$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^KMC1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^KMC$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^XA6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^YB6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GA4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^TK4$"
       },
       {
         "netclass": "Mains",
@@ -210,11 +242,7 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^T4$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSB4$"
+        "pattern": "^SW4$"
       },
       {
         "netclass": "Mains",
@@ -230,15 +258,7 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^GA4$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^YB4$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^XA4$"
+        "pattern": "^VSB4$"
       },
       {
         "netclass": "Mains",
@@ -246,15 +266,31 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^T4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^XA4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^YB4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GA3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^TK3$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^SNB3$"
       },
       {
         "netclass": "Mains",
-        "pattern": "^T3$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSB3$"
+        "pattern": "^SW3$"
       },
       {
         "netclass": "Mains",
@@ -270,15 +306,7 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^GA3$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^YB3$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^XA3$"
+        "pattern": "^VSB3$"
       },
       {
         "netclass": "Mains",
@@ -286,15 +314,31 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^T3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^XA3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^YB3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GA2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^TK2$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^SNB2$"
       },
       {
         "netclass": "Mains",
-        "pattern": "^T2$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSB2$"
+        "pattern": "^SW2$"
       },
       {
         "netclass": "Mains",
@@ -310,15 +354,7 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^GA2$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^YB2$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^XA2$"
+        "pattern": "^VSB2$"
       },
       {
         "netclass": "Mains",
@@ -326,15 +362,31 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^T2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^XA2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^YB2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^GA1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^TK1$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^SNB1$"
       },
       {
         "netclass": "Mains",
-        "pattern": "^T1$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^VSB1$"
+        "pattern": "^SW1$"
       },
       {
         "netclass": "Mains",
@@ -350,11 +402,15 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^GA1$"
+        "pattern": "^VSB1$"
       },
       {
         "netclass": "Mains",
-        "pattern": "^YB1$"
+        "pattern": "^GB1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T1$"
       },
       {
         "netclass": "Mains",
@@ -362,7 +418,11 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^GB1$"
+        "pattern": "^YB1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^VIN$"
       },
       {
         "netclass": "Mains",
@@ -371,6 +431,22 @@
       {
         "netclass": "Mains",
         "pattern": "^L_IN$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^N_IN$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^YB5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^XA5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^NOUT$"
       }
     ]
   }
