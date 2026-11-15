@@ -206,8 +206,8 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('ROHA', 'resistor', 3260, 300, { value: '25.5k' }, { '1': 'VREF', '2': 'VOH' }, 1)
     .part('ROHB', 'resistor', 3260, 420, { value: '10k' }, { '1': 'VOH', '2': 'GND' }, 1)
     .part('UOH', 'comparator', 3360, 420, { value: 'LM393', pkg: 'PROT3' }, { '3': 'VOH', '2': 'ESE', '1': 'OOH', '8': V, '4': 'GND' })
-    .part('DOH1', 'diode', 3360, 560, { value: '1N4148' }, { '2': 'OOH', '1': 'CPE' })
-    .part('DOH2', 'diode', 3460, 560, { value: '1N4148' }, { '2': 'OOH', '1': 'FLTS' })
+    .part('DOH1', 'diode', 3360, 560, { value: '1N4148' }, { '2': 'CPE', '1': 'OOH' })
+    .part('DOH2', 'diode', 3460, 560, { value: '1N4148' }, { '2': 'FLTS', '1': 'OOH' })
     .part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.part('T1', 'autotransformer', 2700, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
