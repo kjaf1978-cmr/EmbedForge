@@ -579,7 +579,9 @@ const GR24_PLANES: PlanZone[] = [
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
   stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), panel: (p) => !!p.props.wire, wire: (net) => (net === 'GND' ? '4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board\'s PE terminal' : ''), w: 230, h: 246, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99,
-    keep1: [50, 70, 90, 110, 130, 150, 170, 192, 214].map((y0): [number, number, number, number] => { const y = y0 + STAB_DY; return [88, y - 9, 99, y + 9]; }) },
+    keep1: [50, 70, 90, 110, 130, 150, 170, 192, 214].map((y0): [number, number, number, number] => { const y = y0 + STAB_DY; return [88, y - 9, 99, y + 9]; }),
+    // the link Freerouting left on the +12V rail, drawn by tools/kicad/autolink.py
+    post: { tracks: [{ net: '+12V', layer: 'B.Cu', width: 0.3, pts: [[133.96, 22.25], [134, 22.25], [134, 17.5], [138.75, 12.75], [146.5, 12.75], [151.5, 17.75], [151.5, 23]] }, { net: '+12V', layer: 'F.Cu', width: 0.3, pts: [[151.5, 23], [149.5, 25], [149.5664, 24.9119]] }], vias: [{ net: '+12V', at: [151.5, 23] }] } },
 
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and

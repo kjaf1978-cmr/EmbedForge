@@ -1,0 +1,2 @@
+net;panel terminals;board connector;wire
+GND;X5:1 X8:1;J_PANEL:1;4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board's PE terminal

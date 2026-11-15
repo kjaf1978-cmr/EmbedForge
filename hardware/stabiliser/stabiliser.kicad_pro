@@ -106,6 +106,10 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^OUTK$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^OUT$"
       },
       {
@@ -162,15 +166,15 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^VCH$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNKI$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^VIN$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNA1$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T1$"
       },
       {
         "netclass": "Mains",
@@ -179,6 +183,18 @@
       {
         "netclass": "Mains",
         "pattern": "^L_IN$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^N_IN$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNA1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T1$"
       }
     ]
   }
