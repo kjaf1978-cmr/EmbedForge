@@ -63,3 +63,21 @@ Each of these was found in P3, and each is checked in every product from P4 on:
 - Documents: user manual, installation (earthing, RCD, short-circuit rating, upstream
   protection), assembly, commissioning with expected values and a record sheet, type tests.
 - An independent review before sign-off; every finding resolved or listed as open.
+
+Added from P4 (D51–D54), checked from P4b on:
+
+- Power-up: nothing switches power until the sense has settled; the safe state while it settles
+  is stated and simulated with the product's timing.
+- An independent protection has its own switching element (its own relay or contactor), and a
+  two-fault test (the control's switch stuck and its driver shorted) is simulated.
+- PE never runs through board copper from input to output: a PE stud, the control's 0 V bonded
+  to it by one conductor.
+- The control supply and sense transformers are rated over the whole input range (and a lost
+  neutral where it can occur).
+- A thermal cut-out switches off the cause (the transformer), not only its load.
+- Isolation claims (PELV) only where creepage, clearance and the parts' own insulation prove
+  them; otherwise the control is treated as live.
+- Switching that a plug could reverse: 1P+N breaker and fixed wiring.
+- Commissioning load tests at both ends of the input range, where the windings carry current;
+  an overvoltage check in the field.
+- A slowly charging RC never drives a relay coil or a gate directly: a comparator switches it.
