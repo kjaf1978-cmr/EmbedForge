@@ -632,7 +632,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     // million operations), not a relay (the 832A: about 200 000). Its coil is fed through the
     // thermal cut-out (VTC), as the output relay's: a hot transformer is switched off, not only
     // its load
-    .part('KI', 'contactor', 2850, 900, { value: '9 A, coil 12 V DC', opsday: '200', life: '1500000' }, { A1: 'VTC', A2: 'KIC', '1': 'VIN', '2': 'VCH' })
+    .part('KI', 'contactor', 2850, 900, { value: '9 A, coil 12 V DC', opsday: '200', life: '1500000', poles: '1' }, { A1: 'VTC', A2: 'KIC', '1': 'VIN', '2': 'VCH' })
     // its contact snubber, as the tap relays': opening it interrupts the autotransformer's
     // magnetising current, which would otherwise ring up to a spike (found in simulation)
     .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VIN', '2': 'SNKI' }, 1)
