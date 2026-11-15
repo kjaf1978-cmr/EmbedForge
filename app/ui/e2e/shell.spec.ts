@@ -117,6 +117,14 @@ test('DIAG-01 view never claims checks it did not run', async ({ page }) => {
   await expect(arts.nth(3)).toContainText('Increment 3');
 });
 
+test('SS-08: status bar shows the integrity state and opens Self-diagnosis', async ({ page }) => {
+  const ind = page.getByTestId('integrity');
+  await expect(ind).toHaveText('Integrity: desktop app only');
+  await ind.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Self-diagnosis', level: 1, exact: true })).toBeVisible();
+});
+
 for (const theme of ['light', 'dark']) {
   test.describe(() => { test.use({ bypassCSP: true });
   test(`accessibility (axe): no serious or critical violations, ${theme} theme`, async ({ page }) => {

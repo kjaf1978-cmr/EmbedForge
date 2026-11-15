@@ -1,12 +1,19 @@
 //! Tauri commands of the Increment 1 shell.
 
+pub mod startup;
+
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
-/// Release public keys trusted for manifests and packages (SEC-02). Filled in by the release
-/// pipeline from your offline key (TEST-04). An empty list means: development build, nothing
-/// is trusted, and DIAG-01 (a) reports the manifest as untrusted.
-pub const TRUSTED_KEYS: &[&str] = &[];
+/// Release public keys trusted for manifests and packages (SEC-02), compiled in from
+/// `EF_TRUSTED_KEYS` by the release pipeline (docs/release/SIGNING.md). An empty list means:
+/// development build, nothing is trusted, and DIAG-01 (a) reports the manifest as untrusted.
+pub fn trusted_keys() -> Vec<&'static str> {
+    ef_integrity::compiled_trusted_keys()
+}
+
+struct Integrity(Arc<Mutex<startup::IntegrityStatus>>);
 
 #[derive(Serialize)]
 pub struct HostResult {
@@ -20,8 +27,12 @@ pub struct DiagResult {
     sections: Vec<serde_json::Value>,
 }
 
+/// The installation root: the directory of the executable. Both installers put the
+/// executable at the top of the app's own directory (`/opt/embedforge`,
+/// `%ProgramFiles%\EmbedForge` or the per-user equivalent), next to `manifest.json`.
 fn install_root() -> PathBuf {
-    std::env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf)).unwrap_or_else(|| PathBuf::from("."))
+    let exe = std::env::current_exe().ok().and_then(|p| std::fs::canonicalize(p).ok());
+    exe.and_then(|p| p.parent().map(Path::to_path_buf)).unwrap_or_else(|| PathBuf::from("."))
 }
 
 pub fn host_check_impl(facts: ef_host::HostFacts) -> HostResult {
@@ -70,7 +81,12 @@ fn host_check(width: u32, height: u32) -> HostResult {
 
 #[tauri::command]
 fn diagnose(full: bool) -> DiagResult {
-    diagnose_impl(&install_root(), TRUSTED_KEYS, full)
+    diagnose_impl(&install_root(), &trusted_keys(), full)
+}
+
+#[tauri::command]
+fn integrity_status(st: tauri::State<'_, Integrity>) -> startup::IntegrityStatus {
+    st.0.lock().map(|g| g.clone()).unwrap_or_default()
 }
 
 #[tauri::command]
@@ -89,8 +105,18 @@ fn settings_save(app: tauri::AppHandle, settings: serde_json::Value) -> Result<(
 }
 
 pub fn run() {
+    let status = Arc::new(Mutex::new(startup::IntegrityStatus::default()));
+    let bg = status.clone();
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![app_version, host_check, diagnose, settings_load, settings_save])
+        .setup(move |app| {
+            use tauri::Manager;
+            // per-user: a per-machine installation is read-only in normal operation (SS-05)
+            let state_dir = app.path().app_local_data_dir()?.join("integrity");
+            std::thread::spawn(move || startup::run(&install_root(), &state_dir, &trusted_keys(), &bg));
+            Ok(())
+        })
+        .manage(Integrity(status))
+        .invoke_handler(tauri::generate_handler![app_version, host_check, diagnose, integrity_status, settings_load, settings_save])
         .run(tauri::generate_context!())
         .expect("error while running EmbedForge");
 }
@@ -102,7 +128,7 @@ mod tests {
     #[test]
     fn dev_build_trusts_nothing_and_says_so() {
         let d = tempfile::tempdir().unwrap();
-        let r = diagnose_impl(d.path(), TRUSTED_KEYS, false);
+        let r = diagnose_impl(d.path(), &trusted_keys(), false);
         assert_eq!(r.overall, "fail");
         assert_eq!(r.sections[0]["status"], "fail");
         assert!(r.sections[0]["details"][0].as_str().unwrap().contains("unsigned"));

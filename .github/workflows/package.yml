@@ -1,0 +1,89 @@
+# WP 1.3 packaging pipeline (SS-01, SEC-02). Hosted runners only.
+#
+# For each host it builds the staging tree with the public release key compiled in
+# (repository variable EF_TRUSTED_KEYS), and uploads it UNSIGNED with SHA256SUMS. Signing
+# happens offline (docs/release/SIGNING.md).
+#
+# Separately, it builds a TEST medium signed with a throwaway key generated in the job and
+# installs from it offline (VAPP-01 automated part, VAPP-04/05 smoke). That build is never
+# published.
+name: package
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    paths-ignore: ['docs/**']
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04, arch: amd64 }        # oldest supported Ubuntu: glibc floor
+          - { runner: ubuntu-22.04-arm, arch: arm64 }    # Pi OS Bookworm arm64 (glibc 2.36 ≥ 2.35)
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev libssl-dev libxdo-dev strace xvfb
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Release staging tree (release public key compiled in, unsigned)
+        env: { EF_TRUSTED_KEYS: '${{ vars.EF_TRUSTED_KEYS }}' }
+        run: packaging/stage.sh out/stage && (cd out && find stage -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with: { name: 'stage-linux-${{ matrix.arch }}-UNSIGNED', path: out/ }
+      - name: Throwaway test key (this job only)
+        id: key
+        run: |
+          export EF_SIGN_PASSWORD="$(head -c 24 /dev/urandom | base64)"; echo "::add-mask::$EF_SIGN_PASSWORD"
+          echo "pw=$EF_SIGN_PASSWORD" >> "$GITHUB_OUTPUT"
+          echo "pk=$(core/target/release/ef-release keygen --dir "$RUNNER_TEMP/k" --name ci | sed 's/.*: //')" >> "$GITHUB_OUTPUT"
+      - name: Test build, test medium
+        env: { EF_TRUSTED_KEYS: '${{ steps.key.outputs.pk }}', EF_SIGN_PASSWORD: '${{ steps.key.outputs.pw }}' }
+        run: |
+          rm -rf core/target/release/ef-bootstrap app/src-tauri/target/release/embedforge
+          packaging/stage.sh test/stage
+          packaging/test-medium.sh test/stage "$RUNNER_TEMP/k/ci.key" linux-${{ matrix.arch }} test/medium
+      - name: Offline install from the test medium (network namespace without interfaces)
+        run: |
+          sudo unshare --net sh test/medium/install-linux.sh --with sample-optional
+          test -x /opt/embedforge/embedforge && test -d /opt/embedforge/components/app-docs
+      - name: Start-up integrity, self-repair and dependency audit (VAPP-03/04)
+        run: bash packaging/ci-smoke-linux.sh /opt/embedforge
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: 'test-evidence-linux-${{ matrix.arch }}', path: 'test/evidence/' }
+
+  windows:
+    runs-on: windows-2025
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Release staging tree (unsigned)
+        env: { EF_TRUSTED_KEYS: '${{ vars.EF_TRUSTED_KEYS }}' }
+        run: packaging/stage.sh out/stage && (cd out && find stage -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with: { name: 'stage-windows-x64-UNSIGNED', path: out/ }
+      - name: Throwaway test key, test build and test medium (installer compiled with makensis)
+        run: |
+          export EF_SIGN_PASSWORD="$(head -c 24 /dev/urandom | base64)"; echo "::add-mask::$EF_SIGN_PASSWORD"
+          export EF_TRUSTED_KEYS="$(core/target/release/ef-release.exe keygen --dir "$RUNNER_TEMP/k" --name ci | sed 's/.*: //')"
+          rm -f core/target/release/ef-bootstrap.exe app/src-tauri/target/release/embedforge.exe
+          packaging/stage.sh test/stage
+          packaging/test-medium.sh test/stage "$RUNNER_TEMP/k/ci.key" windows test/medium
+      - name: Silent per-user install from the test medium
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem test/medium/EmbedForge-Setup-*.exe | Select-Object -First 1
+          $p = Start-Process $exe.FullName -ArgumentList '/S','/CurrentUser' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit $($p.ExitCode)" }
+          if (-not (Test-Path "$env:LOCALAPPDATA\Programs\EmbedForge\components\app-docs")) { throw 'component pack not installed' }

@@ -32,7 +32,10 @@ fn ctx<'a>(
     free: f64,
     full: bool,
 ) -> Context<'a> {
-    let host = ef_host::HostFacts { free_disk_gb: free, ..Default::default() };
+    let host = ef_host::HostFacts {
+        free_disk_gb: free,
+        ..Default::default()
+    };
     Context {
         app_version: "0.1.0".into(),
         install_root: t.join("app"),
@@ -88,4 +91,74 @@ fn untrusted_manifest_fails_section_a() {
     let r = run(&ctx(t.path(), &other, Some(store), 100.0, false));
     assert_eq!(r.sections[0].status, Status::Fail);
     assert!(r.sections[0].remediation[0].contains("Reinstall"));
+}
+
+/// DIAG-01 (a) covers installed component packs, not only the application files.
+#[test]
+fn component_pack_damage_is_reported() {
+    let t = tempfile::tempdir().unwrap();
+    let kp = minisign::KeyPair::generate_unencrypted_keypair().unwrap();
+    let sign = |f: &std::path::Path| {
+        let sig = minisign::sign(
+            Some(&kp.pk),
+            &kp.sk,
+            std::io::Cursor::new(fs::read(f).unwrap()),
+            None,
+            None,
+        )
+        .unwrap();
+        fs::write(ef_pack::sig_path(f), sig.to_string()).unwrap();
+    };
+    let root = t.path().join("app");
+    fs::create_dir_all(&root).unwrap();
+    let m = ef_integrity::build_manifest(&root, "0.1.0").unwrap();
+    fs::write(
+        root.join("manifest.json"),
+        serde_json::to_string(&m).unwrap(),
+    )
+    .unwrap();
+    sign(&root.join("manifest.json"));
+    let src = t.path().join("src");
+    fs::create_dir_all(src.join("bin")).unwrap();
+    fs::write(src.join("bin/avr-gcc.exe"), "gcc").unwrap();
+    let v = semver::Version::new(7, 3, 0);
+    let spec = ef_pack::PackSpec {
+        ci: "avr-gcc".into(),
+        kind: ef_cm::CiKind::Toolchain,
+        changelog: vec![ef_cm::ChangelogEntry {
+            version: v.clone(),
+            date: "d".into(),
+            text: "t".into(),
+        }],
+        version: v,
+        depends: Default::default(),
+        license: "GPL-3.0-or-later".into(),
+    };
+    let (_, mp) = ef_pack::build_pack(&spec, &src, &t.path().join("usb"), 1 << 20, 1).unwrap();
+    sign(&mp);
+    let key = kp.pk.to_base64();
+    let store = ef_cm::RecoveryStore::open(root.join("recovery")).unwrap();
+    ef_pack::install_pack(
+        &mp,
+        &[&key],
+        &root,
+        &store,
+        &root.join("state/e.jsonl"),
+        "t",
+    )
+    .unwrap();
+    let objects = store.objects().clone();
+    let r = run(&ctx(t.path(), &key, Some(objects.clone()), 100.0, false));
+    assert_eq!(r.sections[0].status, Status::Pass, "{:?}", r.sections[0]);
+    fs::write(root.join("components/avr-gcc/bin/avr-gcc.exe"), "GCC").unwrap();
+    let r = run(&ctx(t.path(), &key, Some(objects), 100.0, false));
+    assert_eq!(r.sections[0].status, Status::Fail);
+    assert!(
+        r.sections[0]
+            .details
+            .iter()
+            .any(|d| d.contains("components/avr-gcc/bin/avr-gcc.exe")),
+        "{:?}",
+        r.sections[0]
+    );
 }

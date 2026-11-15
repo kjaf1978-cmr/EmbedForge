@@ -7,6 +7,7 @@ import { filterItems, facetValues } from '../src/core/library';
 import { DocsIndex } from '../src/core/docsIndex';
 import { buildModel, visibleIds } from '../src/core/projectModel';
 import sample from '../src/sample/acc02.json';
+import { integrityLabel } from '../src/core/integrity';
 
 describe('highlight bus (UI-02, PERF-10)', () => {
   const g = new ArtefactGraph();
@@ -129,5 +130,18 @@ describe('project model (UI-01, INV-08)', () => {
   });
   it('keyboard tree navigation sees only expanded nodes', () => {
     expect(visibleIds(tree, new Set(['project']))).toHaveLength(1 + tree.children!.length);
+  });
+});
+
+describe('integrity status wording (SS-08)', () => {
+  const base = { detail: '', pending: 0, restored: [] as string[], unrecoverable: [] as string[] };
+  it('never reports a better state than the back-end', () => {
+    expect(integrityLabel({ ...base, state: 'ok' })).toEqual({ text: 'Integrity: verified', tone: 'ok' });
+    expect(integrityLabel({ ...base, state: 'untrusted' }).tone).toBe('warn');
+    expect(integrityLabel({ ...base, state: 'background', pending: 12 }).text).toContain('12');
+    expect(integrityLabel({ ...base, state: 'repaired', restored: ['a', 'b'] }).text).toContain('2 file(s) restored');
+    const f = integrityLabel({ ...base, state: 'failed', unrecoverable: ['x'] });
+    expect(f.tone).toBe('bad');
+    expect(f.text).toContain('Self-diagnosis');
   });
 });

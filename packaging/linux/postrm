@@ -1,0 +1,8 @@
+#!/bin/sh
+# Uninstallation (SS-05: root only at install, update, uninstall). Components, the recovery
+# store and the dependency set were added by install-linux.sh, not by dpkg, so they are
+# removed here on purge. Per-user data (projects, settings) is never touched.
+set -e
+if [ "$1" = "purge" ]; then
+  rm -rf /opt/embedforge
+fi

@@ -12,7 +12,9 @@ serde_json.workspace = true
 ef-cm = { path = "../ef-cm" }
 ef-integrity = { path = "../ef-integrity" }
 ef-host = { path = "../ef-host" }
+ef-pack = { path = "../ef-pack" }
 
 [dev-dependencies]
 tempfile.workspace = true
 minisign.workspace = true
+semver.workspace = true

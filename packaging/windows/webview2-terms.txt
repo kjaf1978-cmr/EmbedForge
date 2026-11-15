@@ -1,0 +1,4 @@
+PLACEHOLDER — not for release.
+The release pipeline replaces this file with the Microsoft Edge WebView2 Runtime licence
+terms that accompany the standalone installer placed in redist/ on the medium (SS-02).
+build-nsis.sh refuses to build while this placeholder is present.

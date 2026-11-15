@@ -6,7 +6,8 @@ import { UndoStack } from './core/undo';
 import { DocsIndex, type DocPage } from './core/docsIndex';
 import { buildModel, type ProjectDocs } from './core/projectModel';
 import type { LibraryItem } from './core/library';
-import type { Backend } from './backend';
+import type { Backend, IntegrityStatus } from './backend';
+import { integrityLabel } from './core/integrity';
 import { Navigator } from './components/Navigator';
 import { CommandPalette } from './components/CommandPalette';
 import { ArtefactView, DiagView, DocsView, HostView, LibraryView, SettingsView, TraceView } from './components/views';
@@ -54,7 +55,21 @@ export function App({ backend }: { backend: Backend }) {
   const [version, setVersion] = useState('');
   const [, force] = useState(0);
   const [announce, setAnnounce] = useState('');
+  const [integrity, setIntegrity] = useState<IntegrityStatus | null>(null);
 
+  // SS-08: poll the start-up check until it reaches a final state
+  useEffect(() => {
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = () => backend.integrity().then((s) => {
+      if (stop) return;
+      setIntegrity(s);
+      if (s.state === 'checking' || s.state === 'background') timer = setTimeout(poll, 1000);
+      else if (s.state === 'repaired' || s.state === 'failed') setAnnounce(integrityLabel(s).text);
+    }).catch(() => undefined);
+    void poll();
+    return () => { stop = true; if (timer) clearTimeout(timer); };
+  }, []);
   useEffect(() => { void backend.appVersion().then(setVersion); void backend.loadSettings().then((s) => s && setSettingsRaw(sanitise(s))); }, []);
   // F0-24(d): in the compact layout the side panes are overlays, closed until asked for
   useEffect(() => { setShowNav(!compact); setShowHelp(!compact); }, [compact]);
@@ -196,6 +211,9 @@ export function App({ backend }: { backend: Backend }) {
         <span>Highlight: {settings.highlightMode}{latency !== null ? ` · last ${latency.toFixed(0)} ms` : ''}</span>
         <span>{settings.mode === 'guided' ? 'Guided' : 'Expert'} mode</span>
         <span>{compact ? 'Compact layout' : 'Full layout'}</span>
+        {integrity && (() => { const l = integrityLabel(integrity); return (
+          <button type="button" class={`linkish integrity-${l.tone}`} title={integrity.detail} data-testid="integrity"
+            onClick={() => setView('diagnostics')}>{l.text}</button>); })()}
         <span class="muted">{version}</span>
       </footer>
       <div class="sr-only" aria-live="polite">{announce}</div>

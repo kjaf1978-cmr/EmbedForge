@@ -20,11 +20,21 @@ export interface DiagSection {
   remediation: string[];
 }
 
+/** SS-08 start-up check state, from the back-end thread (app/src-tauri/src/startup.rs). */
+export interface IntegrityStatus {
+  state: 'untrusted' | 'checking' | 'background' | 'ok' | 'repaired' | 'failed' | 'preview';
+  detail: string;
+  pending: number;
+  restored: string[];
+  unrecoverable: string[];
+}
+
 export interface Backend {
   kind: 'tauri' | 'preview';
   appVersion(): Promise<string>;
   hostCheck(display: [number, number]): Promise<{ profile: 'A' | 'B'; findings: HostFinding[] }>;
   diagnose(full: boolean): Promise<{ overall: string; sections: DiagSection[] }>;
+  integrity(): Promise<IntegrityStatus>;
   loadSettings(): Promise<unknown>;
   saveSettings(s: UiSettings): Promise<void>;
 }
@@ -42,6 +52,7 @@ class TauriBackend implements Backend {
   appVersion() { return this.invoke<string>('app_version'); }
   hostCheck(display: [number, number]) { return this.invoke<{ profile: 'A' | 'B'; findings: HostFinding[] }>('host_check', { width: display[0], height: display[1] }); }
   diagnose(full: boolean) { return this.invoke<{ overall: string; sections: DiagSection[] }>('diagnose', { full }); }
+  integrity() { return this.invoke<IntegrityStatus>('integrity_status'); }
   loadSettings() { return this.invoke<unknown>('settings_load'); }
   async saveSettings(s: UiSettings) { await this.invoke('settings_save', { settings: s }); }
 }
@@ -68,6 +79,9 @@ class PreviewBackend implements Backend {
       { id: 'e', title: 'Emulator health', status: 'not_yet_available' as const, details: ['delivered in Increment 5'], remediation: [] },
       { id: 'f', title: 'Storage headroom', status: 'not_yet_available' as const, details: ['browser preview: run the desktop app'], remediation: [] },
     ] };
+  }
+  async integrity(): Promise<IntegrityStatus> {
+    return { state: 'preview', detail: 'browser preview: integrity is checked only in the desktop app', pending: 0, restored: [], unrecoverable: [] };
   }
   async loadSettings() { return this.settings; }
   async saveSettings(s: UiSettings) { this.settings = s; }

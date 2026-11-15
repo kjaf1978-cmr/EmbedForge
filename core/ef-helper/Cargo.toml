@@ -1,0 +1,15 @@
+[package]
+name = "ef-helper"
+description = "EmbedForge privileged helper: request policy, boot-medium guard, allowlist and request log (SS-05). Increment 1 skeleton: actions are planned, not executed."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ef-cm = { path = "../ef-cm" }
+
+[dev-dependencies]
+tempfile.workspace = true

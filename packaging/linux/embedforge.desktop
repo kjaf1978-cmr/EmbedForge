@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=EmbedForge
+Comment=Design, build and verify embedded systems
+Exec=/opt/embedforge/embedforge
+Icon=embedforge
+Categories=Development;Electronics;
+Terminal=false

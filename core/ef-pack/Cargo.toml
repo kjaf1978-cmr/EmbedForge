@@ -1,0 +1,21 @@
+[package]
+name = "ef-pack"
+description = "EmbedForge component packs, installation media and offline update packages (SS-01, SS-08, SS-09, SEC-02, CM-09)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+semver.workspace = true
+tar.workspace = true
+zstd.workspace = true
+ef-cm = { path = "../ef-cm" }
+ef-integrity = { path = "../ef-integrity" }
+
+[dev-dependencies]
+tempfile.workspace = true
+minisign.workspace = true

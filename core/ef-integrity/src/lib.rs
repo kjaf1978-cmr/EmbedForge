@@ -99,6 +99,37 @@ fn exec_bit(_m: &fs::Metadata) -> bool {
     false
 }
 
+/// Paths under the install root that the app manifest does not list: the manifest itself,
+/// mutable state, the recovery store, and installed components (each covered by its own
+/// signed pack manifest, see `ef-pack`), and the offline dependency set `deps/` (covered by
+/// its signed `deps.json`, SS-05(c)).
+pub fn is_outside_app_manifest(rel: &str) -> bool {
+    rel == "manifest.json"
+        || rel == "manifest.json.minisig"
+        || [
+            "state/",
+            "recovery/",
+            "components/",
+            "packs-installed/",
+            ".pack-staging-",
+            "deps/",
+        ]
+        .iter()
+        .any(|p| rel.starts_with(p))
+}
+
+/// Trusted release keys compiled into this build from `EF_TRUSTED_KEYS` (comma-separated
+/// base64 minisign public keys, set by the release pipeline). A build without it trusts
+/// nothing, so every signed check fails and DIAG-01 reports the build as untrusted.
+pub fn compiled_trusted_keys() -> Vec<&'static str> {
+    option_env!("EF_TRUSTED_KEYS")
+        .unwrap_or("")
+        .split(',')
+        .map(str::trim)
+        .filter(|k| !k.is_empty())
+        .collect()
+}
+
 /// Release-time helper: builds the manifest of an install tree (the pipeline then signs it).
 pub fn build_manifest(root: &Path, app_version: &str) -> Result<Manifest, IntegrityError> {
     let mut files = Vec::new();
@@ -115,10 +146,7 @@ pub fn build_manifest(root: &Path, app_version: &str) -> Result<Manifest, Integr
                     .unwrap()
                     .to_string_lossy()
                     .replace('\\', "/");
-                if rel == "manifest.json"
-                    || rel == "manifest.json.minisig"
-                    || rel.starts_with("state/")
-                {
+                if is_outside_app_manifest(&rel) {
                     continue;
                 }
                 let (sha256, size) = sha256_file(&p)?;
@@ -240,19 +268,25 @@ struct CacheEntry {
     sha256: String,
 }
 
-fn cache_path(root: &Path) -> PathBuf {
-    root.join("state").join("integrity-cache.json")
+fn cache_path(state_dir: &Path) -> PathBuf {
+    state_dir.join("integrity-cache.json")
 }
 
-fn load_cache(root: &Path) -> BTreeMap<String, CacheEntry> {
-    fs::read_to_string(cache_path(root))
+/// Default state directory: `<root>/state`. A per-machine installation is not writable by the
+/// user, so the app passes a per-user directory to the `_in` variants instead.
+pub fn default_state_dir(root: &Path) -> PathBuf {
+    root.join("state")
+}
+
+fn load_cache(state_dir: &Path) -> BTreeMap<String, CacheEntry> {
+    fs::read_to_string(cache_path(state_dir))
         .ok()
         .and_then(|t| serde_json::from_str(&t).ok())
         .unwrap_or_default()
 }
 
-fn save_cache(root: &Path, c: &BTreeMap<String, CacheEntry>) -> Result<(), IntegrityError> {
-    let p = cache_path(root);
+fn save_cache(state_dir: &Path, c: &BTreeMap<String, CacheEntry>) -> Result<(), IntegrityError> {
+    let p = cache_path(state_dir);
     io(p.parent().unwrap(), fs::create_dir_all(p.parent().unwrap()))?;
     io(&p, fs::write(&p, serde_json::to_string(c).unwrap()))
 }
@@ -266,7 +300,16 @@ fn mtime_ns(m: &fs::Metadata) -> u128 {
 
 /// SS-08 foreground check.
 pub fn check_startup(root: &Path, m: &Manifest) -> Result<Report, IntegrityError> {
-    let cache = load_cache(root);
+    check_startup_in(root, m, &default_state_dir(root))
+}
+
+/// [`check_startup`] with the checksum cache in `state_dir`.
+pub fn check_startup_in(
+    root: &Path,
+    m: &Manifest,
+    state_dir: &Path,
+) -> Result<Report, IntegrityError> {
+    let cache = load_cache(state_dir);
     let mut r = Report::default();
     let mut priority = Vec::new();
     let mut rest = Vec::new();
@@ -323,9 +366,19 @@ pub fn check_full(
     m: &Manifest,
     paths: &[String],
 ) -> Result<Vec<Finding>, IntegrityError> {
+    check_full_in(root, m, paths, &default_state_dir(root))
+}
+
+/// [`check_full`] with the checksum cache in `state_dir`.
+pub fn check_full_in(
+    root: &Path,
+    m: &Manifest,
+    paths: &[String],
+    state_dir: &Path,
+) -> Result<Vec<Finding>, IntegrityError> {
     let by_path: BTreeMap<&str, &ManifestEntry> =
         m.files.iter().map(|f| (f.path.as_str(), f)).collect();
-    let mut cache = load_cache(root);
+    let mut cache = load_cache(state_dir);
     let mut out = Vec::new();
     for path in paths {
         let Some(f) = by_path.get(path.as_str()) else {
@@ -362,7 +415,7 @@ pub fn check_full(
             );
         }
     }
-    save_cache(root, &cache)?;
+    save_cache(state_dir, &cache)?;
     Ok(out)
 }
 

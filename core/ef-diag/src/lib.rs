@@ -104,9 +104,21 @@ pub fn run(ctx: &Context) -> Report {
 
 fn integrity(ctx: &Context) -> Section {
     let title = "Bundled component integrity (SS-08)";
-    let m = match ef_integrity::load_manifest(&ctx.install_root, &ctx.trusted_keys) {
+    // the app manifest plus the signed manifest of every installed component pack
+    let rec = ctx.install_root.join("recovery");
+    let loaded = if rec.join("items").is_dir() {
+        ef_cm::RecoveryStore::open(&rec)
+            .map_err(|e| e.to_string())
+            .and_then(|st| {
+                ef_pack::load_install_manifest(&ctx.install_root, &ctx.trusted_keys, &st)
+                    .map_err(|e| e.to_string())
+            })
+    } else {
+        ef_integrity::load_manifest(&ctx.install_root, &ctx.trusted_keys).map_err(|e| e.to_string())
+    };
+    let m = match loaded {
         Ok(m) => m,
-        Err(e) => return Section { id: 'a', title, status: Status::Fail, details: vec![e.to_string()],
+        Err(e) => return Section { id: 'a', title, status: Status::Fail, details: vec![e],
             remediation: vec!["Reinstall from the signed installation medium; the manifest itself cannot be trusted.".into()] },
     };
     let r = match ef_integrity::check_startup(&ctx.install_root, &m) {

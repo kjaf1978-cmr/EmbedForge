@@ -18,9 +18,16 @@ ef-cm = { path = "../../core/ef-cm" }
 ef-integrity = { path = "../../core/ef-integrity" }
 ef-host = { path = "../../core/ef-host" }
 ef-diag = { path = "../../core/ef-diag" }
+ef-pack = { path = "../../core/ef-pack" }
 
 [dev-dependencies]
 tempfile = "3"
+minisign = "0.10"
+semver = "1"
+
+[features]
+# Production builds embed the UI in the executable (no dev server). Set by packaging/stage.sh.
+custom-protocol = ["tauri/custom-protocol"]
 
 [profile.release]
 lto = true
