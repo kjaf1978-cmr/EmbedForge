@@ -78,14 +78,15 @@ the resulting ringing.
 Example `stabiliser`: a step-type stabiliser for a 1 kVA load. The input feeds one of seven
 taps of a tapped autotransformer (150, 170, 190, 210, 230, 250, 280 V) and the output is
 taken from the 230 V tap, so V_out = V_in·230/tap. Six 12 V relays in a chain select the
-tap; each one's NC contact feeds the next, so two taps can never be connected, even while a
-relay changes over. The input is sensed like the change-over (transformer, snubber, bridge,
+tap; each one's NC contact feeds the next, so only one path to the input exists (since the
+review, a tap also changes only while the input relay is open: see "after the independent
+review" below). The input is sensed like the change-over (transformer, snubber, bridge,
 68k/10k) and filtered to its mean (100k/470 nF). Six LM339 comparators against a TL431 ladder
 (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V in, with 1 MΩ feedback for about 3 V of
-hysteresis. BC547B drivers with 1N4148 flyback diodes drive the relays.
+hysteresis (now 2 × 1 MΩ, about 5 V). BD139 drivers with 1N4148 flyback diodes drive the relays.
 
-A seventh comparator delays the output relay after power-on, using 1 MΩ·1.5 µF against VREF
-(0.35 s here; 3–180 s in a stabiliser for appliances). The first simulation showed why it is
+A seventh comparator delays the output relay after power-on (in the product 1 MΩ·4.7 µF
+against 80 % of the rail, about 7.6 s; the tests use 220 nF). The first simulation showed why it is
 needed: with the sense filter still empty at power-on, every relay is on, the 150 V tap is
 chosen, and the load would see about 346 V for 0.2 s, with 14 A through the relay contacts.
 
@@ -105,9 +106,9 @@ The stabiliser is now drawn as the circuit diagram of the product (pilot of D28)
   symbols; only signals between blocks (VIN, N, T5, SF, VREF, N1 … N6, OD, DLY) carry labels.
   No two parts overlap (test).
 - **Physically complete:** screw terminals L in, N in, PE, L out, N out, PE; the 12 V control
-  supply is built from the input (fuse 0.2 A, 230/27 V 25 VA transformer with RC snubber, DB107,
-  2200 µF 63 V, LM317HV on an 8 K/W heatsink: 11.5 … 12 V over 140 … 300 V in); the mains
-  neutral N is a separate conductor, the control ground is bonded to PE (PELV).
+  supply was built from the input with a transformer and an LM317HV (replaced after the review
+  by a wide-range AC-DC module, D52); the mains neutral N is a separate conductor; the control
+  ground is bonded to PE (no PELV claim since the review, D53).
 - **Parts as bought:** two LM339 packages (taps 1–4; taps 5–6, the restart delay and one
   spare) and an LM393 of its own for the independent output protection, each with a 100 nF
   decoupling capacitor. A spare comparator has + on ground and − on a reference, so its output
@@ -139,6 +140,39 @@ Taken through the plan's definition of done, with the checklist from P3:
 - **Board:** re-routed; its placement plan now finds the terminals by key.
 - **Documents:** user manual, installation guide, assembly guide, commissioning procedure with
   record sheet, and type tests, in docs/products/P4-stabiliser/.
+
+### P4 — after the independent review (D51–D53, 15 November 2026)
+
+The review found three blockers and nine major issues (docs/products/P4-stabiliser/REVIEW.md).
+The circuit now:
+
+- **Power-up (B1):** a power-good comparator (1 MΩ, 470 nF) holds the sequencer's timer low
+  until the sense has settled (about 0.76 s); the input relay K8 stays open until then, so the
+  lowest tap is never connected at full input.
+- **Tap changes without current (D51, major 1):** the six comparators' outputs are latched in
+  CD4013 flip-flops. A change of their sum (a 100 nF differentiator into a window comparator)
+  discharges a timer (39k, 1 µF): the input relay opens at once, the flip-flops are clocked
+  about 25 ms later, and the input relay closes again at about 63 ms. The load sees a gap of
+  about 60 ms at each tap change. K8 has the RC snubber the tap relays have (without it,
+  opening the magnetising current rang up to a spike in simulation).
+- **An independent protection with its own relay (B2):** the protection (own 400/24 V sense
+  transformer, TL431, LM393 window) drives its own output relay K9 in series with the delay
+  relay K7. K9's close delay (47k, 22 µF, about 0.24 s) goes through a second LM393 against the
+  protection's reference: a relay driven slowly through its pull-in chattered at 194 V input
+  in simulation. The protection's sense is a peak hold (τ ≈ 4 s), so the 60 ms gap does not
+  trip it.
+- **Supply (D52):** IRM-15-12 (85 … 305 V AC, 15 W: nine relay coils of about 0.9 W) behind a
+  T 1 A fuse; sense transformers 400/24 V, rated for 300 V continuous.
+- **Earthing (B3, D53):** PE runs from input to output through a PE stud on the chassis; the
+  control's 0 V is bonded to the stud by one conductor; the control is treated as live.
+- **Thermal cut-out (major 9):** it feeds the coils of K7 and K8, so a hot transformer is
+  switched off, not only its load. The OUTPUT LED is fed through it too (major 2).
+- **Input breaker (major 6):** C10 1P+N (ABB S201-C10NA); fixed wiring only.
+
+Verified (tests/stabiliser.test.ts): every step and 140 / 300 V; the two-fault case (K1 stuck
+on and K7's driver shorted: K9 keeps the load off); power-up with the product's timing (K8
+never closed with the lowest tap); a tap changes only while K8 is open; the sag from 230 to
+195 V.
 
 ### The other power designs redrawn (D28) and the design document (D29)
 
@@ -191,7 +225,7 @@ power designs (all parts listed with their nets and checked one by one):
 | change-over 1P | LM393 and its decoupling capacitor; 2 spare LM339 units | seven comparators fit two LM339 |
 | change-over 1P, 3P+N | the 10k gate resistors of the two contactor drives (2 each) | the comparator's 10k pull-up already limits the Zener and gate current |
 | change-over 3P+N | 2 spare LM339 units | three LM339 and an LM393 hold the fourteen comparators exactly |
-| stabiliser | 2 spare comparators (protection in an LM393 now); 470k + 68k of the restart delay | one 1 MΩ resistor gives the same delay (0.8 % shorter) |
+| stabiliser | 2 spare comparators (protection in an LM393 now); 470k + 68k of the restart delay | one 1 MΩ resistor gives the same delay (0.8 % shorter); since the review: three LM339, two LM393, one spare |
 | MPPT charger | the spare half of the TL072 (now a single TL071); two LM393 packages | the independent overvoltage latch keeps its own LM393, the other seven comparators fit two LM339 |
 | inverter (P7a) | the LM358 shunt amplifier and four resistors; one of two FETs holding the driver inputs; a bleed resistor of the overload timer | the shunt goes straight into the window comparator; both drivers' SD pins share one FET; the timer empties through its own resistors. All six IC packages are full (the freed LM358 unit is the overload timer) |
 

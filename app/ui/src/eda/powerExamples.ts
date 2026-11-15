@@ -474,7 +474,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   nb.wired = { rails: ['+12V'], labelled: ['VIN', 'N', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'SF', 'VREF', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'OD', 'DLY', 'DTH', 'MT', 'VEL', 'CLK', 'VCH', 'OUTK', 'OUT', 'FLTS', 'VTC', 'O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'SUM'] };
   const V = '+12V';
   nb.para('MAINS VOLTAGE STABILISER 1 kVA, relay-switched taps. The input is connected to one tap of a 1 kVA autotransformer (150 … 280 V); the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in. Six 12 V relays in a chain choose the tap: each relay\'s NC contact feeds the next relay, so two taps are never connected, not even while a relay changes over.', -1250, -300)
-    .para('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input, with about 3 V hysteresis. The output relay K7 connects the load after a restart delay of about 8 s; an independent protection (own sense transformer, reference and LM339) opens it outside 190 … 255 V. LEDs: one per tap relay, OUTPUT, FAULT. Control ground is bonded to PE (PELV); the mains neutral N is a separate conductor.', -50, -300);
+    .para('LM339 comparators against a TL431 ladder (E96) switch at 160 / 180 / 200 / 220 / 240 / 265 V of input, with about 5 V hysteresis. A tap changes only while the input relay is open (about 60 ms, D51). The output relay connects the load after a restart delay of about 8 s; an independent protection (own sense transformer, reference, LM393 and its own output relay) opens the output outside 190 … 255 V. The thermal cut-out opens the input and output relays. LEDs: one per tap relay, OUTPUT, FAULT. The control is treated as live (no PELV claim, D53); its 0 V is bonded to PE at the PE stud.', -50, -300);
   // ---- test bench: the supply (earthed neutral, TN system) — not part of the product
   nb.block('bench').note('TEST BENCH (not part of the product): mains supply with its neutral earthed at the transformer', -1250, -60);
   nb.part('VIN', 'vsin', -1150, 100, { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': step ? 'L_STEP' : 'N' });
@@ -484,9 +484,10 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   // ---- input: terminals, breaker, surge arrester
   nb.block('in')
     .part('X1', 'terminal', -900, 70, { value: 'L in' }, { '1': 'L_IN' })
-    .part('X2', 'terminal', -900, 130, { value: 'N in' }, { '1': 'N' })
+    .part('X2', 'terminal', -900, 130, { value: 'N in' }, { '1': 'N_IN' })
     .part('X3', 'terminal', -900, 190, { wire: '4', value: 'PE' }, { '1': 'GND' })
-    .part('QF1', 'breaker1', -760, 70, { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN' }, 3)
+    // a 1P+N breaker: both poles open, whichever way round the supply is wired (fixed wiring only)
+    .part('QF1', 'breaker2', -760, 70, { value: '10', curve: 'C' }, { '1': 'L_IN', '2': 'VIN', N1: 'N_IN', N2: 'N' }, 3)
     // surge protection L–N inside the unit, 300 V AC, thermally protected: a lasting overvoltage
     // (a lost neutral, up to 400 V) makes its thermal fuse disconnect it; the output cut-off
     // protects the load meanwhile
@@ -562,8 +563,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
   nb.part('T1', 'autotransformer', 3560, 1000, { value: '1 kVA 230 V, taps 150–280 V' }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
   // ---- output: restart delay, output relay, terminals. After power-on and after any cut-off
-  // the load waits RD·CD·ln 5 (1 MΩ as two 470k + 68k, below the leakage of a humid board;
-  // 4.7 µF film): the comparator compares against 80 % of the 12 V rail, so the delay does not
+  // the load waits RD·CD·ln 5 (one 1 MΩ; 4.7 µF film): the comparator compares against 80 % of the 12 V rail, so the delay does not
   // depend on the rail; DDIS empties CD at once when the supply goes
   nb.block('out')
     .part('RD1', 'resistor', 2730, 150, { value: '1M' }, { '1': V, '2': 'DLY' }, 1)
@@ -623,9 +623,11 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('RPI', 'resistor', 2600, 760, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
     .part('RBI', 'resistor', 2650, 880, { value: '2.2k' }, { '1': 'OI', '2': 'BI' }, 1)
     .part('QI', 'npn', 2700, 980, { value: 'BD139' }, { '1': 'BI', '2': 'KIC', '3': 'GND' })
-    .part('DI', 'diode', 2760, 900, { value: '1N4148' }, { '2': 'KIC', '1': V }, 3)
-    // the input relay: the tap chain fed through its NO contact
-    .part('KI', 'relay', 2850, 900, { value: '12 V 30 A', life: '4400000' }, { '1': V, '2': 'KIC', '3': 'VIN', '5': 'VCH' })
+    .part('DI', 'diode', 2760, 900, { value: '1N4148' }, { '2': 'KIC', '1': 'VTC' }, 3)
+    // the input relay: the tap chain fed through its NO contact. Its coil is fed through the
+    // thermal cut-out (VTC), as the output relay's: a hot transformer is switched off, not only
+    // its load
+    .part('KI', 'relay', 2850, 900, { value: '12 V 30 A', life: '4400000' }, { '1': 'VTC', '2': 'KIC', '3': 'VIN', '5': 'VCH' })
     // its contact snubber, as the tap relays': opening it interrupts the autotransformer's
     // magnetising current, which would otherwise ring up to a spike (found in simulation)
     .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VIN', '2': 'SNKI' }, 1)
