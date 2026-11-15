@@ -32,7 +32,10 @@ OS_RES = ("/usr/share/fonts/", "/usr/share/icons/", "/usr/share/themes/", "/usr/
           "/usr/share/webkitgtk-", "/usr/share/i18n/", "/usr/share/hunspell/", "/usr/share/enchant",
           "/usr/share/gstreamer-1.0/", "/usr/share/libdrm/", "/usr/share/terminfo/",
           "/etc/", "/proc/", "/sys/", "/dev/", "/run/", "/var/cache/fontconfig/", "/var/lib/dbus/",
-          "/tmp/", "/var/tmp/")
+          "/tmp/", "/var/tmp/",
+          # in the distribution's default fontconfig search path (/etc/fonts/fonts.conf):
+          # fontconfig lists it whether or not anything is there
+          "/usr/local/share/fonts/")
 APP_ID = "org.embedforge.app"
 
 LINE = re.compile(r'^(?:\[pid\s+)?(\d+)\]?\s*(openat|open|execve)\((?:AT_FDCWD|\d+)?,?\s*"([^"]+)".*\)\s*=\s*(-?\d+)')
@@ -50,9 +53,9 @@ def classify(path, kind, app, home_dirs):
         if p.startswith(OS_EXE) and os.path.basename(p) in OS_EXE_OK:
             return "os-library"
         return "violation"
-    if p.startswith(OS_LIB):
+    if (p + "/").startswith(OS_LIB):
         return "os-library"
-    if p.startswith(OS_RES) or p in ("/etc", "/proc", "/sys", "/dev"):
+    if (p + "/").startswith(OS_RES) or p in ("/etc", "/proc", "/sys", "/dev"):
         return "os-resource"
     home = os.path.expanduser("~")
     # GTK/fontconfig per-user caches and settings are OS behaviour, not app dependencies

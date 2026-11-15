@@ -13,11 +13,16 @@ deb="$(ls "$medium"/embedforge_*_"$(dpkg --print-architecture)".deb 2>/dev/null 
 [ -n "$deb" ] || { echo "This medium has no EmbedForge package for $(dpkg --print-architecture)." >&2; exit 1; }
 
 echo "Installing EmbedForge and its dependencies from the medium (offline)…"
-# Only local files: the application package and the dependency .debs missing from a clean
-# image of this release (SS-01). apt resolves the order; no repository is contacted.
+# Only local files: the dependency .debs missing from a clean image of this release (SS-01)
+# and the application package, in one dpkg run (dpkg unpacks all, then configures them in
+# dependency order). No repository is contacted.
 # shellcheck disable=SC2046
-apt-get install -y --no-download -o Dir::Etc::SourceList=/dev/null -o Dir::Etc::SourceParts=/dev/null \
-  "$deb" $(ls "$medium"/deps/*.deb 2>/dev/null)
+if ! dpkg -i $(ls "$medium"/deps/*.deb 2>/dev/null) "$deb"; then
+  echo "Installation stopped: a dependency is missing from this medium for this OS release." >&2
+  echo "Nothing was downloaded. Report the dpkg message above with your OS version." >&2
+  dpkg --remove embedforge >/dev/null 2>&1 || true
+  exit 1
+fi
 
 # The signed dependency set stays available for the helper allowlist (SS-05(c)).
 if [ -d "$medium/deps" ]; then

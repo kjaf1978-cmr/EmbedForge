@@ -13,13 +13,16 @@ echo "== SS-08 full verification of the fresh installation"
 
 echo "== VAPP-04: damage one start-up file, one deferred file, delete one component file"
 victim_exe="$root/ef-bootstrap"; cp "$victim_exe" "$ev/.bootstrap-copy"   # keep a runner for the repair
-sudo sh -c "printf X | dd of='$root/LICENSE.txt' bs=1 seek=10 conv=notrunc status=none"
+# flip one byte (XOR 0xFF), so the content is guaranteed to change and the size is kept
+flip() { sudo python3 -c 'import sys; f=open(sys.argv[1],"r+b"); o=int(sys.argv[2]); f.seek(o); b=f.read(1); f.seek(o); f.write(bytes([b[0]^255]))' "$1" "$2"; }
+flip "$root/LICENSE.txt" 10
 sudo rm -f "$(find "$root/components/app-docs" -type f | sort | head -1)"
-sudo sh -c "printf X | dd of='$root/embedforge' bs=1 seek=4096 conv=notrunc status=none"
+flip "$root/embedforge" 4096
 if "$ev/.bootstrap-copy" --root "$root" --verify > "$ev/verify-damaged.txt"; then
   echo "damage was NOT detected" >&2; exit 1
 fi
 cat "$ev/verify-damaged.txt"
+[ "$(grep -c '^  ' "$ev/verify-damaged.txt")" -eq 3 ] || { echo "expected exactly 3 problems" >&2; exit 1; }
 echo "-- repair as root, offline (the medium is not used)"
 sudo unshare --net "$ev/.bootstrap-copy" --root "$root" --repair | tee "$ev/repair.txt"
 "$root/ef-bootstrap" --root "$root" --verify | tee "$ev/verify-repaired.txt"

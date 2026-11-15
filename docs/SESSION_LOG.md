@@ -74,3 +74,23 @@
   - 12 unit tests and 10 browser tests pass (axe: 0 serious/critical).
   - The Tauri shell builds; clippy is clean and its 2 tests pass.
   - The native app ran under Xvfb against the real Rust core.
+
+## 2026-11-15 — session 3: WP 1.3
+- First, read-only datasheet research for you; nothing committed. Mean Well IRM-15 read from
+  the PDF. The Song Chuan 832A and Littelfuse TMOV datasheets were blocked by their sites.
+- WP 1.3 delivered on branch `claude/ecstatic-cori-4ys1wg`:
+  - packs and media (`ef-pack`, `ef-bootstrap`);
+  - the SS-05 helper policy skeleton (`ef-helper`);
+  - the release tool (`ef-release`);
+  - SS-08 start-up check and repair in the app;
+  - `.deb` and NSIS installers;
+  - test media, CI workflow `package.yml`, VAPP-03 audit tool;
+  - SIGNING.md and VAPP procedures.
+- Tests: 48 core, 7 shell (also run unprivileged), 13 unit, 11 browser; clippy 0; licence
+  gate pass.
+- End-to-end on Linux x86-64: offline install from a signed test medium, self-repair,
+  dependency audit (0 violations), update and rollback. All passed after fixing the offline
+  `apt` defect.
+- Raised: D16-a (repair on read-only per-machine installs) and D16-b ("signed cached
+  checksum").
+- Not run yet: CI `package.yml` (Windows, arm64), real hosts (VAPP, user-executed).
