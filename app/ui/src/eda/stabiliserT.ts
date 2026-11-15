@@ -219,7 +219,10 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CLTH', 'capacitor', 3740, 420, { value: '1u', vmax: '50' }, { '1': 'LTH', '2': 'GND' }, 1)
     .part('UL', 'comparator', 3560, 520, { value: 'LM393', pkg: 'PROT3' }, { '3': 'LAT', '2': 'LTH', '1': 'OL', '8': V, '4': 'GND' })
     .part('DLH', 'diode', 3460, 640, { value: '1N4148' }, { '2': 'LAT', '1': 'OL' })
-    .part('DOH1', 'diode', 3560, 640, { value: '1N4148' }, { '2': 'CPE', '1': 'OL' })
+    // through 1k: emptying the 47 µF at once through a bare diode took more than the comparator
+    // can sink, its output stayed at 1.7 V and the latch let go (found in simulation)
+    .part('DOH1', 'diode', 3560, 640, { value: '1N4148' }, { '2': 'CPE', '1': 'CPD' })
+    .part('RDOH', 'resistor', 3560, 740, { value: '1k' }, { '1': 'CPD', '2': 'OL' }, 1)
     .part('DOH2', 'diode', 3660, 640, { value: '1N4148' }, { '2': 'FLTS', '1': 'OL' })
     .part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.part('T1', 'autotransformer', 2700, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);

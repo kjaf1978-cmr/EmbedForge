@@ -75,9 +75,9 @@ const mains = (seeds: string[], track = 1.6) => (s: Sheet): NetClass[] => [{ ...
 // insulation rules. Each relay's two snubbers (COM–NO, COM–NC) lie in two rows to its left.
 // Input terminals, breaker, MOV and fuse at the top left; the two sense transformers at the top of
 // the boundary; the supply module PS1 across the boundary (mains pads left, 12 V outputs right).
-const STAB_Y1 = 68, STAB_P = 30;
+const STAB_Y1 = 83, STAB_P = 30;
 const stabY = (k: number) => STAB_Y1 + STAB_P * (k - 1);
-const STAB_KO = stabY(7), STAB_KP = stabY(8), STAB_TAPC = 160;
+const STAB_KO = stabY(7), STAB_KP = stabY(8), STAB_TAPC = 175;
 const STAB_TRACKS: PlanTrack[] = (() => {
   const t: PlanTrack[] = [];
   const tapY = (k: number) => STAB_TAPC - 19.05 + 7.62 * (k - 1);
@@ -104,6 +104,10 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   // K7's NO to K9's COM (bottom layer, left of both open NC pads: 6 mm, the insulation distance
   // holds to an open pad too)
   t.push({ net: 'OUTK', layer: 'B.Cu', width: 1.6, pts: [[87.6, STAB_KO], [87.6, STAB_KO - 6], [74, STAB_KO - 6], [74, STAB_KP + 13.3], [78.5, STAB_KP + 17.8], [90.14, STAB_KP + 17.8]] });
+  // N from the tap block's N pad down the left edge (bottom layer, x 4: left of the tap pads and
+  // under T5) to the N-out terminal
+  const nY = tapY(1) - 7.62, x5 = STAB_KP + 12;
+  t.push({ net: 'N', layer: 'B.Cu', width: 1.6, pts: [[14, nY], [10, nY + 4], [4, nY + 10], [4, x5 - 6], [10, x5]] });
   return t;
 })();
 
@@ -123,6 +127,9 @@ const STAB_PLAN = (): Placed[] => (() => {
       { ref: r(`CSC${k}`), x: 42, y: y + 13, rot: 180 }, { ref: r(`RSC${k}`), x: 58, y: y + 13, rot: 180 });
   }
   p.push({ ref: r('KO'), x: 80, y: STAB_KO, rot: 0 }, { ref: r('KP'), x: 80, y: STAB_KP, rot: 0 },
+    // the input contactor's landing block (D57) across the boundary, turned: its pole's pads (VIN,
+    // VCH) at x 95.2 and 87.6 in the mains zone, its coil's at 102.8 and 110.4
+    { ref: r('KI'), x: 99, y: 70, rot: 180 },
     // the input contactor's snubber (across its pole, VIN–VCH) below the varistor
     { ref: r('CSKI'), x: 24, y: 56, rot: 180 }, { ref: r('RSKI'), x: 40, y: 56, rot: 180 },
     // the autotransformer's tap block
@@ -553,7 +560,7 @@ const GR24_PLANES: PlanZone[] = [
 
 export const DESIGNS: Record<string, Design> = {
   ...inverterBoards(16, '48'), ...inverterBoards(8, '24'), ...inverterBoards(4, '12'),
-  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), panel: (p) => !!p.props.wire, wire: (net) => (net === 'GND' ? '4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board\'s PE terminal' : ''), w: 230, h: 306, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99 },
+  stabiliser: { sheet: () => stabiliser().sheet, title: 'Mains voltage stabiliser 1 kVA', revision: 'A', classes: mains(['L_IN', 'N']), panel: (p) => !!p.props.wire, wire: (net) => (net === 'GND' ? '4 mm² green-yellow: PE in to the PE stud to PE out; 1.5 mm² green-yellow from the stud to the board\'s PE terminal' : ''), w: 230, h: 321, plan: STAB_PLAN, tracks: STAB_TRACKS, region: { x0: 105, x1: 230 }, edge: 99 },
 
   // the change-overs switch 32 A: the contactors, breakers and power terminals sit on the DIN rail
   // (panel.csv is their wiring); the board carries the sense and auxiliary transformers' fuses and
