@@ -212,7 +212,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     // a trip of a fraction of a microsecond empties CLAT at once; it recovers through 10k (1 ms),
     // long enough for the latch to set (without it the check fired and released again within one
     // step, and the enable hunted at its threshold: found in simulation)
-    .part('CLAT', 'capacitor', 3760, 560, { value: '100n', vmax: '50' }, { '1': 'LAT', '2': 'GND' }, 1)
+    .part('CLAT', 'capacitor', 3460, 780, { value: '100n', vmax: '50' }, { '1': 'LAT', '2': 'GND' }, 1)
     // the latch's threshold rises slower than LAT at power-up (10k, 10k, 1 µF): it never sets then
     .part('RLTA', 'resistor', 3660, 300, { value: '10k' }, { '1': 'VREF', '2': 'LTH' }, 1)
     .part('RLTB', 'resistor', 3660, 420, { value: '10k' }, { '1': 'LTH', '2': 'GND' }, 1)
@@ -245,7 +245,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RPD', 'resistor', 3270, 230, { value: '2.2k' }, { '1': V, '2': 'OD' }, 1)
     .part('RBD', 'resistor', 3270, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3300, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
-    .part('DD', 'diode', 3350, 410, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
+    .part('DD', 'diode', 3350, 470, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
     .part('KO', 'relay', 3400, 410, { value: '12 V 30 A', life: '100000' }, { '1': 'VTC', '2': 'KD', '3': 'T6F', '5': 'KMC1' })
     .part('LKO', 'led', 3490, 280, { colour: 'green' }, { '2': 'VTC', '1': 'LKOA' }, 1)
     .part('RLKO', 'resistor', 3490, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
