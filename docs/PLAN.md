@@ -25,7 +25,7 @@ current product's own long runs. One session works on the branch.
 | 1 | P3 change-over (1P, 3P+N) | 2–3 days | **signed off 15 November 2026** (package c6ddfd3; open for the prototype: interlock kit fit, TMOV body, type tests) |
 | 2 | P4 stabiliser 1 kVA | 1–2 days | **signed off 15 November 2026** (package 6df257f; open for the prototype: relay footprint and TMOV body against the datasheets, autotransformer to specification, type tests) |
 | 3 | P4b stabilisers 5/10/15 kVA | 2 days | |
-| 4 | P5 surge protection | 1 day | D49: certified PV SPD modules |
+| 4 | P5 surge protection | 1 day | D49 done 15 November (DEHN 952513 / 952518, verified by simulation); open: the mains-side products (owner), review, package (`docs/products/P5-surge`) |
 | 5 | P9 pump controller | 1 day | |
 | 6 | P9 gate controller (Nano) | 4–5 days | firmware framework (D48) |
 | 7 | P9 block machine (Nano) | 2–3 days | |
