@@ -42,6 +42,6 @@
 "yes","1","U4","Shunt reference","TL431","","TO-92_Wide","TL431ACLP","Texas Instruments","any distributor (TO-92)","0.30","0.30","estimate"
 "yes","1","U5","Comparator (4 in one package)","LM339","","DIP-14","LM339N","Texas Instruments","any distributor (DIP-14)","0.45","0.45","estimate"
 "yes","1","U6","Comparator (2 in one package)","LM393","","DIP-8","LM393P","Texas Instruments","any distributor (DIP-8)","0.40","0.40","estimate"
-"yes","7","X1 X2 X3 X4 X5 X6 X7","Screw terminal","5.08 mm, 1 pole","functions: battery + (from the trigger's main contact), battery −, motor +, motor − (and the trigger's brake contact), speed pot (trigger) top, speed pot wiper, speed pot bottom","TerminalBlock_1x1","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","2.80","estimate"
+"yes","7","X1 X2 X3 X4 X5 X6 X7","Screw terminal","5.08 mm, 1 pole","functions: X1 battery + (from the trigger's main contact), X2 battery −, X3 motor +, X4 motor − (and the trigger's brake contact), X5 speed pot (trigger) top, X6 speed pot wiper, X7 speed pot bottom","TerminalBlock_1x1","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","2.80","estimate"
 
 "Parts on this board: EUR 26.60 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."

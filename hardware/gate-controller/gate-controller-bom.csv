@@ -11,7 +11,7 @@
 "yes","4","D2 D3 D8 D9","Diode","1N4148","","D_DO-35","1N4148","various","any distributor (DO-35)","0.06","0.24","estimate"
 "yes","1","D6","Diode","MBR20100CT","","TO-220_Vertical","MBR20100CTG","onsemi","Mouser; Digi-Key","0.95","0.95","estimate"
 "yes","2","D7 D10","Diode","BAT54","","SOT-23","BAT54","various","LCSC C47546","0.05","0.10","estimate"
-"yes","1","F1","Fuse","10 A","cold resistance 10 mΩ","Fuseholder_5x20","0034.3109 + 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","1.20","estimate"
+"yes","1","F1","Fuse","10 A","cold resistance 10 mΩ","Fuseholder_5x20","FST 5×20 T 10 A (Schurter 0034.31xx series) + PCB holder 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","1.20","estimate"
 "yes","2","K1 K2","Relay","24 V 30 A","","Relay_SPDT_SRD","832A-1C-S 24VDC","Song Chuan","Mouser (832AWP variant)","3.00","6.00","estimate"
 "yes","5","Q3 Q4 Q5 Q8 Q9","NPN transistor","BC547B","","TO-92_Wide","BC547B","onsemi","any distributor (TO-92)","0.10","0.50","estimate"
 "yes","1","Q6","PNP transistor","BC557B","","TO-92_Wide","BC557B","onsemi","any distributor (TO-92)","0.10","0.10","estimate"
@@ -29,6 +29,6 @@
 "yes","1","U2","Microcontroller module (Arduino Nano, 5 V)","Arduino Nano","","Arduino_Nano","A000005 (Arduino Nano)","Arduino","Mouser 782-A000005; Digi-Key","21.00","21.00","estimate"
 "yes","1","U3","Comparator (2 in one package)","LM393","","DIP-8","LM393P","Texas Instruments","any distributor (DIP-8)","0.40","0.40","estimate"
 "yes","1","U4","Infrared receiver 38 kHz (TSOP38238)","TSOP38238","","IR_Receiver_TSOP382","TSOP38238","Vishay","Mouser 782-TSOP38238; Digi-Key","1.00","1.00","estimate"
-"yes","7","X1 X2 X3 X4 X5 X6 X7","Screw terminal","5.08 mm, 1 pole","functions: +24 V, 0 V, open limit (NC), close limit and photo-beam (NC, in series), limit / beam common +24 V, motor 1, motor 2","TerminalBlock_1x1","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","2.80","estimate"
+"yes","7","X1 X2 X3 X4 X5 X6 X7","Screw terminal","5.08 mm, 1 pole","functions: X1 +24 V, X2 0 V, X3 open limit (NC), X4 motor 1, X5 motor 2, X6 close limit and photo-beam (NC, in series), X7 limit / beam common +24 V","TerminalBlock_1x1","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","2.80","estimate"
 
 "Parts on this board: EUR 45.87 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
