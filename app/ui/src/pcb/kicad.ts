@@ -216,6 +216,7 @@ function sides(p: Part): string[][] | null {
     case 'isoamp': return [['1', '2', '3', '4'], ['5', '6', '7', '8']];
     case 'optotriac': return [['1', '2'], ['4', '6']];
     case 'relay': return [['1', '2'], ['3', '4', '5']];
+    case 'acdc': return [['L', 'N'], ['+V', '-V']];
     case 'contactor': return [['A1', 'A2'], ['1', '2'], ['3', '4'], ['5', '6'], ['7', '8'], ['13', '14'], ['21', '22']];
     default: return null;
   }
