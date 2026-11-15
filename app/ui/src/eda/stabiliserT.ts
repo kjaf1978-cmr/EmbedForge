@@ -198,16 +198,25 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RPB', 'resistor', 3080, 420, { value: '2.2k' }, { '1': 'OPE', '2': 'BPE' })
     .part('RPB2', 'resistor', 3080, 520, { value: '47k' }, { '1': 'BPE', '2': 'GND' }, 1)
     .part('QPE', 'npn', 3160, 420, { value: 'BC547B' }, { '1': 'BPE', '2': 'EG', '3': 'ESE' })
-    // one gate at most: the LEDs' common current through 33 Ω (one LED about 0.4 V, two about
-    // 0.8 V) against 0.70 V: a second lit gate empties CPE (every gate off within microseconds)
-    // and pulls FLTS low (the output opens, the restart delay starts again). A pair already fired
-    // conducts to its current zero; a resulting short clears the aR fuse
+    // one gate at most: the LEDs' common current through 33 Ω (one LED about 0.5 V, two about
+    // 0.9 V) against 0.70 V: a second lit gate sets a latch (UL), which holds CPE empty (every gate
+    // off) and FLTS low (the output open, FAULT on) until the unit is switched off. A pair already
+    // fired conducts to its current zero; a resulting short clears the aR fuse. (Without the
+    // latch the enable hunted at its threshold, firing again and again: found in simulation)
     .part('RSE', 'resistor', 3160, 560, { value: '33' }, { '1': 'ESE', '2': 'GND' }, 1)
     .part('ROHA', 'resistor', 3260, 300, { value: '25.5k' }, { '1': 'VREF', '2': 'VOH' }, 1)
     .part('ROHB', 'resistor', 3260, 420, { value: '10k' }, { '1': 'VOH', '2': 'GND' }, 1)
     .part('UOH', 'comparator', 3360, 420, { value: 'LM393', pkg: 'PROT3' }, { '3': 'VOH', '2': 'ESE', '1': 'OOH', '8': V, '4': 'GND' })
-    .part('DOH1', 'diode', 3360, 560, { value: '1N4148' }, { '2': 'CPE', '1': 'OOH' })
-    .part('DOH2', 'diode', 3460, 560, { value: '1N4148' }, { '2': 'FLTS', '1': 'OOH' })
+    .part('DLS', 'diode', 3460, 420, { value: '1N4148' }, { '2': 'LAT', '1': 'OOH' })
+    .part('RLAT', 'resistor', 3560, 300, { value: '10k' }, { '1': V, '2': 'LAT' }, 1)
+    // the latch's threshold rises slower than LAT at power-up (10k, 10k, 1 µF): it never sets then
+    .part('RLTA', 'resistor', 3660, 300, { value: '10k' }, { '1': 'VREF', '2': 'LTH' }, 1)
+    .part('RLTB', 'resistor', 3660, 420, { value: '10k' }, { '1': 'LTH', '2': 'GND' }, 1)
+    .part('CLTH', 'capacitor', 3740, 420, { value: '1u', vmax: '50' }, { '1': 'LTH', '2': 'GND' }, 1)
+    .part('UL', 'comparator', 3560, 520, { value: 'LM393', pkg: 'PROT3' }, { '3': 'LAT', '2': 'LTH', '1': 'OL', '8': V, '4': 'GND' })
+    .part('DLH', 'diode', 3460, 640, { value: '1N4148' }, { '2': 'LAT', '1': 'OL' })
+    .part('DOH1', 'diode', 3560, 640, { value: '1N4148' }, { '2': 'CPE', '1': 'OL' })
+    .part('DOH2', 'diode', 3660, 640, { value: '1N4148' }, { '2': 'FLTS', '1': 'OL' })
     .part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.part('T1', 'autotransformer', 2700, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
@@ -287,7 +296,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('UTH', 'comparator', 1000, 2750, { value: 'LM393', pkg: 'PROT2' }, { '3': 'VT70', '2': 'NHS', '1': 'FLTS', '8': V, '4': 'GND' })
     .part('RNOA', 'resistor', 1100, 2750, { value: '240k' }, { '1': 'VREF2', '2': 'VNO' }, 1)
     .part('RNOB', 'resistor', 1100, 2870, { value: '10k' }, { '1': 'VNO', '2': 'GND' }, 1)
-    .part('UNO', 'comparator', 1200, 2750, { value: 'LM393', pkg: 'PROT3' }, { '3': 'NHS', '2': 'VNO', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('UNO', 'comparator', 1200, 2750, { value: 'LM393', pkg: 'PROT4' }, { '3': 'NHS', '2': 'VNO', '1': 'FLTS', '8': V, '4': 'GND' })
     // the fan (D56) on the heatsink, 230 V AC, switched by a 50 °C thermostat there: fed from the
     // 230 V tap, fused for the board
     .part('XF1', 'terminal', 1300, 2700, { value: 'heatsink fan (via its 50 °C thermostat)' }, { '1': 'T5F' })
@@ -299,7 +308,6 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CBP', 'capacitor_pol', 1240, 2500, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
     .part('DPP', 'diode', 1300, 2510, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
     .part('UKP', 'comparator', 1400, 2460, { value: 'LM393', pkg: 'PROT4' }, { '3': 'BPP', '2': 'VREF2', '1': 'OKP', '8': V, '4': 'GND' })
-    .part('UKPS', 'comparator', 1400, 2640, { value: 'LM393', pkg: 'PROT4' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
     .part('RPKP', 'resistor', 1460, 2370, { value: '2.2k' }, { '1': V, '2': 'OKP' }, 1)
     .part('RBKP', 'resistor', 1460, 2550, { value: '2.2k' }, { '1': 'OKP', '2': 'BP' }, 1)
     .part('QP', 'npn', 1520, 2460, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
