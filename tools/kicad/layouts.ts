@@ -117,6 +117,10 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   // K1's COM is fed through the input relay K8 (VCH, from K8's NO at (80.8, 64) down the channel
   // between K8's NC and coil pins, 4.75 mm from each)
   t.push({ net: 'VCH', layer: 'F.Cu', width: 1.6, pts: [[80.8, 44 + STAB_DY], [87, 50 + STAB_DY], [87, 70 + STAB_DY]] });
+  // the output relay's NO to the protection relay's COM (OUTK), on the bottom layer under the T5
+  // track: left of K7's open NC (4.25 mm, the insulation distance holds to an open pad too), into
+  // K9's COM between its NO and NC
+  t.push({ net: 'OUTK', layer: 'B.Cu', width: 1.6, pts: [[80.8, STAB_KO - 6], [74.5, STAB_KO + 0.3], [74.5, STAB_KP - 4.3], [78.8, STAB_KP], [95, STAB_KP]] });
   const com = ['VCH', 'C2N', 'C3N', 'C4N', 'C5N', 'C6N'];
   com.forEach((n, k) => {
     const y = 70 + STAB_DY + 20 * k;
