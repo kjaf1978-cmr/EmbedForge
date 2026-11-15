@@ -225,11 +225,11 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
 
   // ---- inputs: terminals, two-pole breakers, surge arresters (type 3, 300 V AC)
   nb.block('in')
-    .part('X1', 'terminal', -1100, 120, { value: 'L mains' }, { '1': 'LM_IN' })
-    .part('X2', 'terminal', -1100, 180, { value: 'N mains' }, { '1': 'NM' })
-    .part('X3', 'terminal', -1100, 570, { value: 'L back-up' }, { '1': 'LB_IN' })
-    .part('X4', 'terminal', -1100, 630, { value: 'N back-up' }, { '1': 'NB' })
-    .part('X5', 'terminal', -1100, 780, { value: 'PE' }, { '1': 'GND' })
+    .part('X1', 'terminal', -1100, 120, { wire: '6', value: 'L mains' }, { '1': 'LM_IN' })
+    .part('X2', 'terminal', -1100, 180, { wire: '6', value: 'N mains' }, { '1': 'NM' })
+    .part('X3', 'terminal', -1100, 570, { wire: '6', value: 'L back-up' }, { '1': 'LB_IN' })
+    .part('X4', 'terminal', -1100, 630, { wire: '6', value: 'N back-up' }, { '1': 'NB' })
+    .part('X5', 'terminal', -1100, 780, { wire: '6', value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker2', -950, 150, { value: '32', curve: 'C' }, { '1': 'LM_IN', '2': 'L1', N1: 'NM', N2: 'N1' }, 3)
     .part('RV1', 'mov', -820, 150, { value: 'TMOV14RP300E' }, { '1': 'L1', '2': 'N1' }, 1)
     .part('QF2', 'breaker2', -950, 600, { value: '32', curve: 'C' }, { '1': 'LB_IN', '2': 'L2', N1: 'NB', N2: 'N2' }, 3)
@@ -301,9 +301,9 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
     .part('D2', 'diode', 1780, 300, { value: '1N4007' }, { '2': 'K1C', '1': 'K1A' }, 3)
     .part('K2', 'contactor', 2300, 300, { value: '32 A, coil 24 V DC' }, { A1: 'K2A', A2: 'K2C', '1': 'L2', '2': 'LOAD', '7': 'N2', '8': 'NLOAD', '21': V, '22': 'K1A' })
     .part('D3', 'diode', 2180, 300, { value: '1N4007' }, { '2': 'K2C', '1': 'K2A' }, 3)
-    .part('X6', 'terminal', 2650, 500, { value: 'L load' }, { '1': 'LOAD' }, 2)
-    .part('X7', 'terminal', 2650, 560, { value: 'N load' }, { '1': 'NLOAD' }, 2)
-    .part('X8', 'terminal', 2650, 620, { value: 'PE' }, { '1': 'GND' }, 2);
+    .part('X6', 'terminal', 2650, 500, { wire: '6', value: 'L load' }, { '1': 'LOAD' }, 2)
+    .part('X7', 'terminal', 2650, 560, { wire: '6', value: 'N load' }, { '1': 'NLOAD' }, 2)
+    .part('X8', 'terminal', 2650, 620, { wire: '6', value: 'PE' }, { '1': 'GND' }, 2);
   nb.block('load').note('TEST LOAD (not part of the product)', 2750, 440)
     .part('RL', 'resistor', 2800, 530, { value: '51', pmax: '1.5k' }, { '1': 'LOAD', '2': 'NLOAD' }, 1)
     // the load's insulation to PE: refers it to earth while both contactors are open
@@ -340,11 +340,11 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
 
   // ---- inputs: terminals, four-pole breakers, surge arresters on every phase (type 3, 300 V AC)
   nb.block('in');
-  L.forEach((ph, k) => nb.part(`XM${ph}`, 'terminal', -1250, 30 + 60 * k, { value: `L${ph} mains` }, { '1': `LM${ph}` })
-    .part(`XB${ph}`, 'terminal', -1250, 640 + 60 * k, { value: `L${ph} back-up` }, { '1': `LB${ph}` }));
-  nb.part('XMN', 'terminal', -1250, 210, { value: 'N mains' }, { '1': 'NM' })
-    .part('XBN', 'terminal', -1250, 820, { value: 'N back-up' }, { '1': 'NB' })
-    .part('XPE', 'terminal', -1250, 960, { value: 'PE' }, { '1': 'GND' })
+  L.forEach((ph, k) => nb.part(`XM${ph}`, 'terminal', -1250, 30 + 60 * k, { wire: '6', value: `L${ph} mains` }, { '1': `LM${ph}` })
+    .part(`XB${ph}`, 'terminal', -1250, 640 + 60 * k, { wire: '6', value: `L${ph} back-up` }, { '1': `LB${ph}` }));
+  nb.part('XMN', 'terminal', -1250, 210, { wire: '6', value: 'N mains' }, { '1': 'NM' })
+    .part('XBN', 'terminal', -1250, 820, { wire: '6', value: 'N back-up' }, { '1': 'NB' })
+    .part('XPE', 'terminal', -1250, 960, { wire: '6', value: 'PE' }, { '1': 'GND' })
     .part('QF1', 'breaker4', -1050, 150, { value: '32', curve: 'C' }, { '1': 'LM1', '2': 'L1', '3': 'LM2', '4': 'L2', '5': 'LM3', '6': 'L3', N1: 'NM', N2: 'NMQ' })
     .part('QF2', 'breaker4', -1050, 760, { value: '32', curve: 'C' }, { '1': 'LB1', '2': 'B1', '3': 'LB2', '4': 'B2', '5': 'LB3', '6': 'B3', N1: 'NB', N2: 'NBQ' });
   // the breakers switch N too: downstream of them the neutrals are NMQ and NBQ
@@ -427,9 +427,9 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
     .part('D2', 'diode', 1780, 300, { value: '1N4007' }, { '2': 'K1C', '1': 'K1A' }, 3)
     .part('K2', 'contactor', 2300, 300, { value: '32 A, coil 24 V DC' }, { A1: 'K2A', A2: 'K2C', '1': 'B1', '2': 'T1', '3': 'B2', '4': 'T2', '5': 'B3', '6': 'T3', '7': 'NBQ', '8': 'TN', '21': V, '22': 'K1A' })
     .part('D3', 'diode', 2180, 300, { value: '1N4007' }, { '2': 'K2C', '1': 'K2A' }, 3);
-  L.forEach((ph, k) => nb.part(`XL${ph}`, 'terminal', 2700, 480 + 60 * k, { value: `L${ph} load` }, { '1': `T${ph}` }, 2));
-  nb.part('XLN', 'terminal', 2700, 660, { value: 'N load' }, { '1': 'TN' }, 2)
-    .part('XLPE', 'terminal', 2700, 720, { value: 'PE' }, { '1': 'GND' }, 2);
+  L.forEach((ph, k) => nb.part(`XL${ph}`, 'terminal', 2700, 480 + 60 * k, { wire: '6', value: `L${ph} load` }, { '1': `T${ph}` }, 2));
+  nb.part('XLN', 'terminal', 2700, 660, { wire: '6', value: 'N load' }, { '1': 'TN' }, 2)
+    .part('XLPE', 'terminal', 2700, 720, { wire: '6', value: 'PE' }, { '1': 'GND' }, 2);
   nb.block('load').note('TEST LOAD (not part of the product): 3 × 51 Ω star', 2800, 420);
   L.forEach((ph, k) => nb.part(`RL${ph}`, 'resistor', 2850 + 80 * k, 560, { value: '51', pmax: '1.5k' }, { '1': `T${ph}`, '2': 'TN' }, 1));
   nb.part('RN', 'resistor', 3100, 700, { value: '1M' }, { '1': 'TN', '2': 'GND' }, 1);

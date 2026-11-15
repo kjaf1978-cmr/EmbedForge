@@ -40,6 +40,7 @@
 "yes","1","U4","Shunt reference","TL431","","TO-92_Wide","TL431ACLP","Texas Instruments","any distributor (TO-92)","0.30","0.30","estimate"
 "no","2","K1 K2","Contactor","32 A, coil 24 V DC","","","LC1DT32BD + LADN01","Schneider Electric","RS 608-9914; RS (LADN01) 018-7891","165.00","330.00","live"
 "no","2","Q1 Q2","Circuit breaker 1-pole + N","C32 A","","","S201-C32NA","ABB","electrical wholesale","35.00","70.00","estimate"
-"no","8","X1 X2 X3 X4 X5 X6 X7 X8","Screw terminal","5.08 mm, 1 pole","functions: L mains, N mains, L back-up, N back-up, PE, L load, N load, PE","","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","3.20","estimate"
+"no","6","X1 X2 X3 X4 X5 X7","Screw terminal","DIN rail, 6 mm²","functions: L mains, N mains, L back-up, N back-up, L load, N load","","PT 6","Phoenix Contact","RS; electrical wholesale","1.20","7.20","estimate"
+"no","2","X6 X8","Screw terminal","DIN rail, 6 mm², PE","functions: PE, PE","","PT 6-PE","Phoenix Contact","RS; electrical wholesale","3.50","7.00","estimate"
 
 "Parts on this board: EUR 75.18 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."

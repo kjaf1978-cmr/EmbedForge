@@ -11,12 +11,15 @@ export interface BomLine { qty: number; refs: string[]; part: string; value: str
 
 /** Parts of a test bench (scope=test: sources, loads, the PV array, the battery) are not part of
  *  the product; `withTest` lists them too. */
+/** What a terminal is bought as: a PCB screw terminal, or a DIN-rail block for its conductor. */
+export const terminalKind = (props: Record<string, string>) =>
+  props.wire ? `DIN rail, ${props.wire} mm²${props.io === 'pe' ? ', PE' : ''}` : '5.08 mm, 1 pole';
 export const isTestPart = (p: { props: Record<string, string> }) => p.props.scope === 'test';
 
 export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
   const lines = new Map<string, BomLine>();
   const seenPkg = new Set<string>();
-  const terminals: string[] = [];
+  const terminals = new Map<string, string[]>();
   for (const p of sheet.parts) {
     const s = symbolOf(p.sym);
     if (s.power || (!withTest && isTestPart(p))) continue;
@@ -26,8 +29,10 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     // switches' states and positions are operating states, not part values
     const num = s.value.unit ? parseValue(raw) : null;
     let value = s.value.kind === 'bool' || s.interactive ? '' : num !== null && !raw.endsWith(s.value.unit!) ? formatValue(num, s.value.unit) : raw;
-    // a terminal's value is its function (L in, PV+…): all terminals are one part, the functions listed
-    if (p.sym === 'terminal') { terminals.push(raw); value = '5.08 mm, 1 pole'; }
+    // a terminal's value is its function (L in, PV+…): the terminals of one kind are one part,
+    // their functions listed. The kind: a PCB terminal, or (`wire`: the conductor in mm²) a
+    // DIN-rail terminal block for that conductor, green-yellow for PE
+    if (p.sym === 'terminal') { value = terminalKind(p.props); terminals.set(value, [...(terminals.get(value) ?? []), raw]); }
     // a breaker's rating and curve are what is bought (its state is an operating state)
     if (p.sym.startsWith('breaker')) value = `${p.props.curve ?? 'C'}${p.props.value ?? ''} A`;
     const card = p.props.spice?.trim() ? importModel(p.sym, p.props.spice) : null;
@@ -46,8 +51,7 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     if (l) { l.qty++; l.refs.push(ref); } else lines.set(key, { qty: 1, refs: [ref], part, value, details, standard: false, sym: p.sym, raw });
   }
   const out = [...lines.values()];
-  const t = out.find((l) => l.part === symbolOf('terminal').name);
-  if (t) t.details = `functions: ${terminals.join(', ')}`;
+  for (const t of out.filter((l) => l.part === symbolOf('terminal').name)) t.details = `functions: ${(terminals.get(t.value) ?? []).join(', ')}`;
   for (const l of out) l.refs.sort(pinOrder);
   return out.sort((a, b) => pinOrder(a.refs[0], b.refs[0]));
 }

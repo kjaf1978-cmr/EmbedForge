@@ -152,7 +152,17 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     '1M': e('3386P-1-105LF', 'Bourns', 'trimmer 1 MΩ, 9.5 mm, top adjust', 0.9, 0.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'LCSC' }]),
   },
   ntc: { '10k': e('NTCLE100E3103JB0', 'Vishay', 'NTC thermistor 10 kΩ, B 3977 K, radial (heatsink sensor)', 0.47, 0.27, 'live', [{ distributor: 'Farnell', sku: '1434160' }, { distributor: 'LCSC', sku: 'C141588' }, { distributor: 'RS', sku: '754-6645' }]) },
-  terminal: { '5.08 mm, 1 pole': e('MKDS 1,5/ 2-5,08 (2 poles per block)', 'Phoenix Contact', 'PCB screw terminal 5.08 mm (control and sensors, per pole); mains and battery wiring: DIN-rail terminals PT 10 / PT 16 N', 0.4, 0.25, 'estimate', [{ distributor: 'RS', sku: '193-0564' }], 'power terminals PT 10 BK (RS 207-2871) about €1.00 per pole') },
+  terminal: { '5.08 mm, 1 pole': e('MKDS 1,5/ 2-5,08 (2 poles per block)', 'Phoenix Contact', 'PCB screw terminal 5.08 mm (control and sensors, per pole); mains and battery wiring: DIN-rail terminals PT 10 / PT 16 N', 0.4, 0.25, 'estimate', [{ distributor: 'RS', sku: '193-0564' }], 'power terminals PT 10 BK (RS 207-2871) about €1.00 per pole'),
+    // DIN-rail terminal blocks for the power wiring of a panel (the terminal's `wire`, mm²);
+    // push-in, for copper conductors; one end cover and two end clamps per row not listed
+    'DIN rail, 4 mm²': e('PT 4', 'Phoenix Contact', 'DIN-rail feed-through terminal block, push-in, 4 mm², 32 A, 800 V', 0.9, 0.7, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 4 mm², PE': e('PT 4-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 4 mm²', 2.8, 2.2, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 6 mm²': e('PT 6', 'Phoenix Contact', 'DIN-rail feed-through terminal block, push-in, 6 mm², 41 A, 800 V', 1.2, 0.9, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 6 mm², PE': e('PT 6-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 6 mm²', 3.5, 2.8, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 10 mm²': e('PT 10', 'Phoenix Contact', 'DIN-rail feed-through terminal block, push-in, 10 mm², 57 A, 800 V', 1.0, 0.8, 'estimate', [{ distributor: 'RS', sku: '207-2871' }]),
+    'DIN rail, 10 mm², PE': e('PT 10-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 10 mm²', 4.5, 3.6, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 16 mm²': e('PT 16 N', 'Phoenix Contact', 'DIN-rail feed-through terminal block, push-in, 16 mm², 76 A, 1000 V', 2.2, 1.8, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 16 mm², PE': e('PT 16 N-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 16 mm²', 6.5, 5.2, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]) },
   optotriac: { FOD4218: e('FOD4218', 'onsemi', 'opto-triac driver 800 V, random phase, 10 kV/us, IFT 1.3 mA, DIP-6', 1.6, 0.95, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]), MOC3052: e('MOC3052M', 'onsemi', 'opto-triac driver 600 V, random phase, IFT 10 mA, DIP-6', 0.9, 0.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]) },
   scr: {
     'VS-40TPS12': e('VS-40TPS12LHM3', 'Vishay', 'thyristor 1200 V 55 A r.m.s., TO-247AC', 5.2, 3.6, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]),
@@ -272,7 +282,7 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'transformer': return TRANSFORMERS[v] ?? null;
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
-    case 'terminal': return BY_VALUE.terminal['5.08 mm, 1 pole'];
+    case 'terminal': return BY_VALUE.terminal[line.value] ?? BY_VALUE.terminal['5.08 mm, 1 pole'];
     case 'button': return BY_VALUE.button['22 mm, 1 NO']; // its value is its state in a test
     case 'spdt': return BY_VALUE.spdt.jumper; // the designs' changeover switches are jumpers; its value is its position
     case 'dff': case 'cd4020': case 'nor2': case 'and2': case 'nand2': case 'or2': case 'xor2': case 'not': case 'schmitt':
