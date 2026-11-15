@@ -104,6 +104,8 @@ const STAB_TRACKS: PlanTrack[] = (() => {
   // K7's NO to K9's COM (bottom layer, left of both open NC pads: 6 mm, the insulation distance
   // holds to an open pad too)
   t.push({ net: 'OUTK', layer: 'B.Cu', width: 1.6, pts: [[87.6, STAB_KO], [87.6, STAB_KO - 6], [74, STAB_KO - 6], [74, STAB_KP + 13.3], [78.5, STAB_KP + 17.8], [90.14, STAB_KP + 17.8]] });
+  // K9's NO to the L-out terminal (top layer): up 6 mm (3.45 mm from K9's open NC), left under T5
+  t.push({ net: 'OUT', layer: 'F.Cu', width: 1.6, pts: [[87.6, STAB_KP], [87.6, STAB_KP - 6], [16, STAB_KP - 6], [10, STAB_KP]] });
   // N from the tap block's N pad down the left edge (bottom layer, x 4: left of the tap pads and
   // under T5) to the N-out terminal
   const nY = tapY(1) - 7.62, x5 = STAB_KP + 12;
