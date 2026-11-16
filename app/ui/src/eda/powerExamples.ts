@@ -695,7 +695,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('KP', 'relay', 1400, 1200, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KPC', '3': 'OUTK', '5': 'OUT' })
     .part('CD3', 'capacitor', 650, 1660, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.v('VIN').v('OUT').v('SF').v('SF2').i('RLOAD', '1');
-  nb.sim({ type: 'tran', stop, step: '200u', start: 'zero' });
+  nb.sim({ type: 'tran', stop, step: '200u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }
 
