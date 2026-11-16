@@ -228,7 +228,9 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   nb.part('T1', 'autotransformer', 2700, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
   // ---- output: restart delay, the relay that switches the contactor's coil, the protection's own
-  // relay in series with it, the contactor, the terminals. The coil (200–277 V) is on the 250 V
+  // relay in series with it, the contactor, the terminals. Each relay's unused NC pin is joined to
+  // its COM (no change at rest, where they touch anyway): an open pad has no net, and the board's
+  // insulation rules cannot keep the mains copper 3.2 mm from it (found on the routed board). The coil (200–277 V) is on the 250 V
   // tap, fused for the board: 233 V at 140 V in, 268 V at 300 V in (on the 230 V tap a 230 V
   // coil saw only 213 V at 140 V in). The relay coils are fed through the thermal cut-out (VTC)
   nb.block('out')
@@ -246,7 +248,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RBD', 'resistor', 3270, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
     .part('QD', 'npn', 3300, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
     .part('DD', 'diode', 3350, 470, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
-    .part('KO', 'relay', 3400, 410, { value: '12 V 30 A', life: '100000' }, { '1': 'VTC', '2': 'KD', '3': 'T6F', '5': 'KMC1' })
+    .part('KO', 'relay', 3400, 410, { value: '12 V 30 A', life: '100000' }, { '1': 'VTC', '2': 'KD', '3': 'T6F', '4': 'T6F', '5': 'KMC1' })
     .part('LKO', 'led', 3490, 280, { colour: 'green' }, { '2': 'VTC', '1': 'LKOA' }, 1)
     .part('RLKO', 'resistor', 3490, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
     .part('KM', 'contactor', 3600, 600, { value: vr.km }, { A1: 'KMC', A2: 'N', '1': 'T5', '2': 'OUT', '3': 'N', '4': 'NOUT' })
@@ -319,7 +321,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RBKP', 'resistor', 1460, 2550, { value: '2.2k' }, { '1': 'OKP', '2': 'BP' }, 1)
     .part('QP', 'npn', 1520, 2460, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
     .part('DKP', 'diode', 1580, 2380, { value: '1N4148' }, { '2': 'KPC', '1': V }, 3)
-    .part('KP', 'relay', 1650, 2380, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KPC', '3': 'KMC1', '5': 'KMC' })
+    .part('KP', 'relay', 1650, 2380, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KPC', '3': 'KMC1', '4': 'KMC1', '5': 'KMC' })
     .part('CD7', 'capacitor', 1650, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('R12', 'resistor', 620, 2460, { value: '10k' }, { '1': V, '2': 'FLTS' }, 1)
     .part('DF1', 'diode', 750, 2570, { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })

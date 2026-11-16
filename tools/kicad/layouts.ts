@@ -590,7 +590,13 @@ export const DESIGNS: Record<string, Design> = {
   'stabiliser-t-pair': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA: thyristor pair driver (7 per unit)', revision: 'A',
     classes: mains(['L_IN', 'N'], 0.5), panel: (p) => !stabTRefs().pair1.has(p.ref), w: 120, h: 80,
     plan: () => [...STABT_PAIR_PLAN.map(([k, x, y, rot]) => ({ ref: stabTRefs().ref(k), x, y, rot })), { ref: 'J_MAINS', x: 25, y: 70, rot: 0 }, { ref: 'J_PANEL', x: 100, y: 30, rot: 0 }],
-    region: { x0: 78, x1: 120 } },
+    region: { x0: 78, x1: 120 },
+    // the bridge's two outputs to the optocoupler, which Freerouting leaves (paths checked through
+    // route.py --post-only: VSN1 straight on F.Cu; VSP1 below the bridge, a via, up on B.Cu)
+    post: { tracks: [{ net: 'VSN1', layer: 'F.Cu', width: 0.5, pts: [[64.62, 56], [64.62, 45.27], [71.19, 45.27]] },
+      { net: 'VSP1', layer: 'F.Cu', width: 0.5, pts: [[49.38, 56], [49.38, 61], [68, 61]] },
+      { net: 'VSP1', layer: 'B.Cu', width: 0.5, pts: [[68, 61], [68, 42.73], [71.19, 42.73]] }],
+      vias: [{ net: 'VSP1', at: [68, 61] }] } },
   'stabiliser-t-logic': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: logic board', revision: 'A',
     // off the board: the DIN-rail and heatsink parts, the power parts with a wire size (the aR fuse),
     // the thyristor modules, the autotransformer and the seven pair drivers
