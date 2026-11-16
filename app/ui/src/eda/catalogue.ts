@@ -177,6 +177,9 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
     'DIN rail, 6 mm², PE': e('PT 6-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 6 mm²', 3.5, 2.8, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
     'DIN rail, 10 mm²': e('PT 10', 'Phoenix Contact', 'DIN-rail feed-through terminal block, push-in, 10 mm², 57 A, 800 V', 1.0, 0.8, 'estimate', [{ distributor: 'RS', sku: '207-2871' }]),
     'DIN rail, 10 mm², PE': e('PT 10-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 10 mm²', 4.5, 3.6, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    // the 15 kVA stabiliser's power terminals (P4b): 25 mm² out, 35 mm² in
+    'DIN rail, 25 mm²': e('UT 35', 'Phoenix Contact', 'DIN-rail feed-through terminal block, screw, 35 mm² (takes 25 mm²), 125 A, 1000 V', 5.5, 4.4, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
+    'DIN rail, 35 mm²': e('UT 35', 'Phoenix Contact', 'DIN-rail feed-through terminal block, screw, 35 mm², 125 A, 1000 V', 5.5, 4.4, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
     'DIN rail, 16 mm²': e('PT 16 N', 'Phoenix Contact', 'DIN-rail feed-through terminal block, push-in, 16 mm², 76 A, 1000 V', 2.2, 1.8, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]),
     'DIN rail, 16 mm², PE': e('PT 16 N-PE', 'Phoenix Contact', 'DIN-rail protective-earth terminal block (green-yellow), push-in, 16 mm²', 6.5, 5.2, 'estimate', [{ distributor: 'RS' }, { distributor: 'electrical wholesale' }]) },
   optotriac: { FOD4218: e('FOD4218', 'onsemi', 'opto-triac driver 800 V, random phase, 10 kV/us, IFT 1.3 mA, DIP-6', 1.6, 0.95, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]), MOC3052: e('MOC3052M', 'onsemi', 'opto-triac driver 600 V, random phase, IFT 10 mA, DIP-6', 0.9, 0.5, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'Digi-Key' }]) },
@@ -310,6 +313,8 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'fuse': return fuse(v, line.value);
     case 'transformer': return TRANSFORMERS[v] ?? null;
     case 'breaker1': case 'breaker2': case 'breaker4': return BY_VALUE[line.sym]?.[line.value] ?? null;
+    // a contactor bought with its front auxiliary block: priced by its listed value (bom.ts)
+    case 'contactor': return BY_VALUE.contactor?.[line.value] ?? BY_VALUE.contactor?.[v] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal[line.value] ?? BY_VALUE.terminal['5.08 mm, 1 pole'];
     case 'button': return BY_VALUE.button['22 mm, 1 NO']; // its value is its state in a test
