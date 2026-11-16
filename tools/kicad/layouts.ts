@@ -586,10 +586,11 @@ export const DESIGNS: Record<string, Design> = {
     classes: () => [IRR_POWER], w: 130, h: 100,
     plan: irrMainPlan,
     region: { x0: 0, x1: 130, y0: 54, y1: 100 } },
-  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V: motor drive, protections, Arduino Nano and IR receiver', revision: 'A',
+  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V: motor drive, protections, Arduino Nano and IR receiver', revision: 'B',
     classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110,
-    // the supply link Freerouting left (link.py, checked through route.py --post-only)
-    post: { tracks: [{ net: 'V24F', layer: 'B.Cu', width: 2, pts: [[42.65,  13.0],  [42.75,  13.0],  [39.5,  9.75],  [33.5,  9.75],  [28.25,  15.0],  [28.25,  16.5],  [28.23,  16.58]] }] } },
+    // revision B: the motor relays on the 832A footprint (the part the schematic specifies, 24 V 30 A;
+    // revision A had the SRD's)
+  },
   // P9 (D26, D46): the grinder drive's boards (see GR_POWER)
   'grinder-240-power': { sheet: () => grinder({ supply: '240' }).sheet, title: 'Grinder drive 2.5 kW, 240 V: power board (bridge, bus, IGBTs, driver, shunt)', revision: 'A',
     // the whole board at the mains' potential (the control's ground is the bridge's negative):
