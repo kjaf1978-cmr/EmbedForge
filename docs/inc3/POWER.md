@@ -275,6 +275,38 @@ autotransformer (150 … 280 V) switched by seven anti-parallel thyristor pairs 
 
 Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).
 
+### P4b — after the audit (D55, D56, 15–16 November 2026)
+
+An audit against the checklist (P3 and P4) found 4 blockers and 9 major issues; the circuit now:
+
+- **One tap at most:** the decoder is a priority chain (B_k = some lower tap wanted, an OR chain;
+  tap k = LO_k and not B_k); the first decoder lit two taps if one input stuck.
+- **A second lit gate locks the unit off:** the gate LEDs' common current through 33 Ω against
+  0.70 V sets a latch (LM393, 100 nF on its input: a trip of a microsecond released before the
+  latch set; the dump of the 47 µF enable capacitor goes through 1k: through a bare diode the
+  comparator could not pull its output low) that holds every gate off and FLTS low until the unit
+  is switched off. Simulated with a gate driver shorted.
+- **Gate enable by a comparator** (47k, 47 µF against VREF, 1 M of hysteresis: about 0.5 s),
+  fed through the transformer's thermal cut-out: an open cut-out removes every gate.
+- **The protection's own relay KP** in series with KO in the contactor's coil feed (as P4); KO's
+  coil feed from the 250 V tap, fused (233 … 268 V at the coil over 140 … 300 V in).
+- **Thyristor protection (D55):** an aR fuse (50 / 100 / 160 A) before the thyristors; isolated
+  modules SKKT 106/16E (5, 10 kVA) and SKKT 162/16E (15 kVA). Only the selected pair conducts:
+  about 30 / 65 / 150 W at full load and 140 V.
+- **Cooling (D56):** a fan behind a 50 °C thermostat; the heatsink trip at 70 °C, its NTC in a
+  fail-safe divider (an open NTC reads 0 V and trips through a second comparator).
+- **Installation:** 2-pole breaker, TMOV14RP300E, ceramic 1.5 kA fuses at every board's mains
+  entry (logic: 1 A supply, 0.5 A protection sense and fan, 1 A coil feed; pair boards: 0.5 A on
+  each entry), wire sizes on the power terminals (6 / 16 / 35 mm² in), PE stud, IRM-15-12 supply,
+  400/24 V sense transformers with 25-turn trimmers.
+- **Relays' unused NC joined to COM:** an open pad has no net, and the board's insulation rules
+  could not keep mains copper 3.2 mm from it.
+
+Verified (LONG=1): steady state at 140 / 230 / 300 V for each size (at 15 kVA and 140 V the series
+drop is 2.2 %: 210.0 V); tap changes under load (sag, swell, power factor 0.8) and at no load; a
+shorted pair; a shorted gate driver; the heatsink hot and its NTC open; two faults (KO's driver
+shorted and 330 V in); power-up with the product's timing.
+
 ### P5 — surge and lightning protection (D20; DFMEA section 3c)
 
 `src/eda/surge.ts`, installation designs (DIN-rail SPDs, earthing, wiring), verified by
