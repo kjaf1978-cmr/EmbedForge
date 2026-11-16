@@ -36,11 +36,16 @@ describe('thyristor-switched stabiliser: the drawing', () => {
 
 describe.runIf(LONG)('thyristor-switched stabiliser: steady state at full load', () => {
   for (const kva of [5, 10, 15] as const) for (const v of [140, 230, 300]) {
-    it(`${kva} kVA, ${v} V in: tap ${tapFor(v)} V, output ${(v * 230 / tapFor(v)).toFixed(0)} V ±2 %; the thyristors' peak within the rated input's; no part over its ratings`, () => {
+    it(`${kva} kVA, ${v} V in: tap ${tapFor(v)} V, output ${(v * 230 / tapFor(v)).toFixed(0)} V +2/−3 % and within 230 V ± 10 %; the thyristors' peak within the rated input's; no part over its ratings`, () => {
       const s = run({ kva, vin: v, stop: '1.5' });
       const o = s.rms(s.out, 1.4);
-      expect(o).toBeGreaterThan(v * 230 / tapFor(v) * 0.98);
+      // the ratio within 2 % above and 3 % below: at full load the series drop (2-pole breaker, aR
+      // fuse, thyristor module, contactor) takes 2.2 % at 15 kVA and 140 V in (107 A); and the
+      // output within 230 V ± 10 % always
+      expect(o).toBeGreaterThan(v * 230 / tapFor(v) * 0.97);
       expect(o).toBeLessThan(v * 230 / tapFor(v) * 1.02);
+      expect(o).toBeGreaterThan(207);
+      expect(o).toBeLessThan(253);
       expect(s.scrPeak).toBeLessThan(1.5 * ipk(kva));
       expect(s.over()).toEqual([]);
     }, 1_800_000);
