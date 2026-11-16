@@ -30,9 +30,16 @@ export interface StabTOptions {
   /** The test load: its power factor (1: resistive; below 1: R and L in series), its share of
    *  the rating (1: full load), or none. */
   pf?: number; share?: number; noLoad?: boolean;
-  /** Tests (DFMEA): the tap contactor k (1 … 7) welded (its main pole and its NO auxiliary stay
-   *  closed). */
-  welded?: number;
+  /** Tests (DFMEA): the tap contactor k (1 … 7) welded: its armature held in (its coil's switched
+   *  end tied to ground, so its main poles, NO and NC auxiliaries stay as when closed); with
+   *  `noOpens`, its NO auxiliary opens all the same (IEC 60947-4-1 Annex F guarantees only the
+   *  NC mirror contact). */
+  welded?: number; noOpens?: boolean;
+  /** Tests (DFMEA): the coil driver of tap k shorts at `at` seconds into the run (the unit already
+   *  running on another tap). */
+  driverShortsAt?: { k: number; at: number };
+  /** Tests: the supply's source impedance (Ω, resistive), a weak rural line. */
+  rs?: number;
   /** Tests (DFMEA): the coil driver of tap k shorted (its contactor always closed). */
   driverShorted?: number;
   /** Tests (DFMEA): the output relay's driver shorted (KO closed from power-up). */
@@ -64,9 +71,10 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- test bench: the supply (TN, neutral earthed at the transformer) — not part of the product
   nb.block('bench').note('TEST BENCH (not part of the product): mains supply with its neutral earthed at the transformer', -1250, -60);
-  nb.part('VIN', 'vsin', -1150, 100, { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': 'L_IN', '2': o.step ? 'L_STEP' : 'N_IN' });
+  nb.part('VIN', 'vsin', -1150, 100, { value: String(Number((vin * Math.SQRT2).toPrecision(6))), freq: '50' }, { '1': o.rs ? 'L_SRC' : 'L_IN', '2': o.step ? 'L_STEP' : 'N_IN' });
   if (o.step) nb.part('VS', 'vsin', -1150, 220, { value: String(Number(((o.step.to[0] - vin) * Math.SQRT2).toPrecision(6))), freq: '50', delay: String(o.step.at) }, { '1': 'L_STEP', '2': 'N_IN' });
   nb.part('RE', 'resistor', -1050, 300, { value: '0.1' }, { '1': 'N_IN', '2': 'GND' }, 1);
+  if (o.rs) nb.part('RSRC', 'resistor', -1000, 20, { value: String(o.rs) }, { '1': 'L_SRC', '2': 'L_IN' });
 
   // ---- input: terminals (DIN-rail blocks sized for the input current), a 2-pole breaker (fixed
   // wiring only), the thermally protected surge arrester
@@ -74,7 +82,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('X1', 'terminal', -900, 70, { value: 'L in', wire: vr.win }, { '1': 'L_IN' })
     .part('X2', 'terminal', -900, 130, { value: 'N in', wire: vr.win }, { '1': 'N_IN' })
     .part('X3', 'terminal', -900, 190, { value: 'PE', wire: vr.wpe }, { '1': 'GND' })
-    .part('QF1', 'breaker2', -760, 70, { value: vr.qf, curve: 'C' }, { '1': 'L_IN', '2': 'VIN', N1: 'N_IN', N2: 'N' }, 3)
+    .part('QF1', 'breaker2', -760, 70, { value: vr.qf, curve: 'D' }, { '1': 'L_IN', '2': 'VIN', N1: 'N_IN', N2: 'N' }, 3)
     .part('RV1', 'mov', -640, 100, { value: 'TMOV14RP300E' }, { '1': 'VIN', '2': 'N' }, 1);
 
   // ---- control supplies from the input (before KI): 12 V for the control (D52, as the 1 kVA
@@ -100,7 +108,18 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('R1', 'resistor', -700, 750, { value: '80.6k' }, { '1': 'VSR', '2': 'SENSE' })
     .part('R2', 'resistor', -630, 820, { value: '6.8k' }, { '1': 'SENSE', '2': 'STR' }, 1)
     .part('RT1C', 'potentiometer', -630, 920, { value: '5k', pmax: '0.5', position: '64' }, { '1': 'STR', '2': 'GND', '3': 'GND' }, 1)
-    .part('R3', 'resistor', -560, 750, { value: '100k' }, { '1': 'SENSE', '2': 'SF' })
+    .part('R3', 'resistor', -560, 750, { value: '100k' }, { '1': 'SENSE', '2': 'SFI' })
+    // the sense is held from the start of a tap change until about 0.6 s after KI has closed
+    // again (QSH off): during the gap the input is unloaded, and on a weak line (0.5 Ω at 107 A:
+    // 53 V) the unloaded voltage chose another tap, and the next change chose the first again
+    // (the review of 16 November). TRG empties CSH at a change, through KI's NO 43-44: only while
+    // KI is closed, so never at power-up (switching on is a change too, and the sense held 0 V and
+    // chose the lowest tap: found in simulation); it recharges through 4.7M. CSH from the rail: at
+    // power-up QSH is on at once
+    .part('QSH', 'nmos', -490, 700, { value: '2N7000' }, { '1': 'GSH', '2': 'SFI', '3': 'SF' })
+    .part('CSH', 'capacitor', -400, 620, { value: '1u', vmax: '50' }, { '1': V, '2': 'GSH' }, 1)
+    .part('RSH', 'resistor', -320, 620, { value: '4.7M' }, { '1': V, '2': 'GSH' }, 1)
+    .part('DSH', 'diode', -320, 720, { value: '1N4148' }, { '2': 'GSH', '1': 'DSHK' })
     .part('C2', 'capacitor', -490, 820, { value: '470n', vmax: '50' }, { '1': 'SF', '2': 'GND' }, 1);
 
   // ---- reference and threshold ladder (as the 1 kVA unit)
@@ -140,10 +159,17 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CD2', 'capacitor', 1650, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD3', 'capacitor', 1750, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  // ---- per tap: the coil driver (a logic-level gate from the decoder), the contactor's coil with
-  // its suppressor (a diode and a 24 V Zener: it opens in a few tens of ms), an indicator, and the
-  // NO auxiliary into the match node M. The three main poles, in parallel, join the switched
-  // input VCH to tap k
+  // ---- per tap: the coil driver (an IRF540N, its gate at 12 V from the decoder), the contactor's
+  // coil with its suppressor (a diode and a 1500 W TVS: it opens in a few tens of ms), an
+  // indicator, the NO auxiliary into the match node M, and two interlocks (the review of 16
+  // November):
+  //  - seal-in: the coil's feed CF_k comes from VTF (KI's second NC: live only while KI is open)
+  //    through a diode, or from 24 V through its own NO 43-44: a tap contactor can pull in only
+  //    while KI is open, whatever its driver does; once in, it holds itself;
+  //  - mirror chain: KI's coil current runs through the NC (mirror) auxiliaries 21-22 of all seven
+  //    tap contactors in series, each bridged by a MOSFET for the commanded tap only: any other
+  //    tap contactor closed (welded) keeps KI open.
+  // The three main poles, in parallel, join the switched input VCH to tap k
   nb.block('taps');
   for (let k = 1; k <= 7; k++) {
     const x = 400 * (k - 1), kt = `KT${k}`;
@@ -151,27 +177,37 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`RGD${k}`, 'resistor', x + 60, 240, { value: '100k' }, { '1': `GT${k}`, '2': 'GND' }, 1)
       .part(`QT${k}`, 'nmos', x + 120, 300, { value: 'IRF540N' }, { '1': `GT${k}`, '2': kt, '3': 'GND' })
       .part(`DT${k}`, 'diode', x + 200, 120, { value: '1N4007' }, { '2': kt, '1': `DZT${k}` }, 3)
-      .part(`ZT${k}`, 'zener', x + 200, 220, { value: 'BZX85C24' }, { '1': `DZT${k}`, '2': V24 }, 3)
-      .part(`LT${k}`, 'led', x + 280, 60, { colour: 'yellow' }, { '2': V24, '1': `LTA${k}` }, 1)
+      .part(`ZT${k}`, 'tvs', x + 200, 220, { value: '1.5KE27A' }, { '1': `DZT${k}`, '2': `CF${k}` }, 3)
+      .part(`LT${k}`, 'led', x + 280, 60, { colour: 'yellow' }, { '2': `CF${k}`, '1': `LTA${k}` }, 1)
+      .part(`DLT${k}`, 'diode', x + 240, 100, { value: '1N4148' }, { '2': `LTA${k}`, '1': `CF${k}` }, 1)
       .part(`RLT${k}`, 'resistor', x + 280, 150, { value: '4.7k' }, { '1': `LTA${k}`, '2': kt }, 1)
-      .part(`K${k}`, 'contactor', x + 320, 300, { value: vr.kt, opsday: '200', life: '10000000', land: 'A1 A2 13 14' }, { A1: V24, A2: kt, '1': 'VCH', '2': `T${k}`, '3': 'VCH', '4': `T${k}`, '5': 'VCH', '6': `T${k}`, '13': kt, '14': `AX${k}` })
-      .part(`RAX${k}`, 'resistor', x + 320, 420, { value: '2.2k' }, { '1': `AX${k}`, '2': 'M' });
-    if (o.welded === k) nb.block('bench').part('RWP', 'resistor', x + 380, 360, { value: '0.002' }, { '1': 'VCH', '2': `T${k}` }).part('RWX', 'resistor', x + 380, 440, { value: '1' }, { '1': kt, '2': `AX${k}` }).block('taps');
+      .part(`DF${k}`, 'diode', x + 360, 60, { value: '1N4007' }, { '2': 'VTF', '1': `CF${k}` })
+      .part(`K${k}`, 'contactor', x + 320, 300, { value: vr.kt, aux2: 'true', opsday: '200', life: '10000000', land: 'A1 A2 13 14 21 22 43 44' },
+        { A1: `CF${k}`, A2: kt, '1': 'VCH', '2': `T${k}`, '3': 'VCH', '4': `T${k}`, '5': 'VCH', '6': `T${k}`, '13': kt, '14': o.welded === k && o.noOpens ? `nc_AX${k}` : `AX${k}`, '21': (k === 1 ? 'KIC' : `KC${k - 1}`), '22': (k === 7 ? 'KID' : `KC${k}`), '43': V24, '44': `CF${k}` })
+      .part(`RAX${k}`, 'resistor', x + 320, 420, { value: '2.2k' }, { '1': `AX${k}`, '2': 'M' })
+      .part(`RGB${k}`, 'resistor', x + 120, 480, { value: '1k' }, { '1': `S${k}`, '2': `GB${k}` })
+      .part(`RGE${k}`, 'resistor', x + 60, 560, { value: '100k' }, { '1': `GB${k}`, '2': 'GND' }, 1)
+      .part(`QB${k}`, 'nmos', x + 200, 560, { value: 'IRF540N' }, { '1': `GB${k}`, '2': (k === 1 ? 'KIC' : `KC${k - 1}`), '3': (k === 7 ? 'KID' : `KC${k}`) });
+    if (o.welded === k) nb.block('bench').part('RWP', 'resistor', x + 380, 360, { value: '0.002' }, { '1': 'VCH', '2': `T${k}` }).part('RWH', 'resistor', x + 380, 440, { value: '1' }, { '1': kt, '2': 'GND' }).block('taps');
     if (o.driverShorted === k) nb.block('bench').part('RQSH', 'resistor', x + 160, 380, { value: '1' }, { '1': kt, '2': 'GND' }).block('taps');
+    if (o.driverShortsAt?.k === k) nb.block('bench')
+      .part('VQSH', 'vpulse', x + 120, 640, { value: '12', low: '0', freq: '0.01', duty: '99', delay: String(o.driverShortsAt.at), edge: '1u' }, { '1': 'GQSH', '2': 'GND' })
+      .part('QQSH', 'nmos', x + 160, 700, { value: 'IRF540N' }, { '1': 'GQSH', '2': kt, '3': 'GND' }).block('taps');
   }
   nb.part('T1', 'autotransformer', 3100, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
   // ---- the match check: M (2.2k to 24 V, and 2.2k per closed auxiliary to its coil's switched
   // end) is about 12 V only when exactly the commanded tap contactor is closed. Divided (100k,
   // 47k) and filtered (15 ms: auxiliary contact bounce) to MS against the window 3.17 … 4.48 V
-  // (VWL, VWH from the 12 V rail): MS is about 3.8 V then; none closed or a wrong one 7.6 V, one
-  // beside it 5.1 V, two commanded 2.6 V
+  // (VWL, VWH from the 24 V rail, so the levels and the window scale together: the review of 16
+  // November): MS is about 3.8 V then; none closed or a wrong one 7.6 V, one beside it 5.1 V,
+  // two commanded 2.6 V
   nb.block('match')
     .part('RMP', 'resistor', 2850, 1250, { value: '2.2k' }, { '1': V24, '2': 'M' }, 1)
     .part('RMA', 'resistor', 2950, 1250, { value: '100k' }, { '1': 'M', '2': 'MS' })
     .part('RMB', 'resistor', 3050, 1350, { value: '47k' }, { '1': 'MS', '2': 'GND' }, 1)
     .part('CMS', 'capacitor', 3130, 1350, { value: '470n', vmax: '50' }, { '1': 'MS', '2': 'GND' }, 1)
-    .part('RWA', 'resistor', 3250, 1150, { value: '10k' }, { '1': V, '2': 'VWH' }, 1)
+    .part('RWA', 'resistor', 3250, 1150, { value: '26.1k' }, { '1': V24, '2': 'VWH' }, 1)
     .part('RWB', 'resistor', 3250, 1250, { value: '1.74k' }, { '1': 'VWH', '2': 'VWL' }, 1)
     .part('RWC', 'resistor', 3250, 1350, { value: '4.22k' }, { '1': 'VWL', '2': 'GND' }, 1)
     .part('UW1', 'comparator', 3400, 1200, { value: 'LM393', pkg: 'WIN' }, { '3': 'MS', '2': 'VWL', '1': 'OI', '8': V, '4': 'GND' })
@@ -180,9 +216,11 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- tap-change sequencer (as the 1 kVA unit, D51): any change of a tap comparator steps SUM;
   // the step, coupled into E (biased at half the rail), crosses the window VEL … VEH and empties
-  // the timer MT. While MT is below VEH, KI is open; the latch is clocked when MT passes VEL and
-  // KI's NC auxiliary shows it open (CLK's pull-up runs through it); KI closes again once MT has
-  // passed VEH and the match check holds
+  // the timer MT. While MT is below VEH, KI is open. MT charges only through KI's NC auxiliary
+  // (CLKP), so it starts only once KI is open: the latch is clocked when MT passes VEL, and KI
+  // closes again once MT has passed VEH, the match check holds and the mirror chain is closed.
+  // (Charged from the rail, MT passed VEH before a slow KI had opened and KI closed again before
+  // the latch was clocked: the review of 16 November.) 10M keeps MT up while KI is closed
   nb.block('sequencer')
     .part('RSUM', 'resistor', 1700, 2120, { value: '100k' }, { '1': 'SUM', '2': 'GND' }, 1)
     .part('CE', 'capacitor', 1800, 2060, { value: '100n', vmax: '50' }, { '1': 'SUM', '2': 'E' })
@@ -194,27 +232,35 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('USQ1', 'comparator', 2150, 1940, { value: 'LM339', pkg: 'SEQ' }, { '3': 'VEH', '2': 'E', '1': 'TRG', '8': V, '4': 'GND' })
     .part('USQ2', 'comparator', 2150, 2100, { value: 'LM339', pkg: 'SEQ' }, { '3': 'E', '2': 'VEL', '1': 'TRG', '8': V, '4': 'GND' })
     .part('RTRG', 'resistor', 2280, 2020, { value: '1k' }, { '1': 'MT', '2': 'TRG' })
-    .part('RMT', 'resistor', 2380, 1920, { value: '61.9k' }, { '1': V, '2': 'MT' }, 1)
+    .part('DMT', 'diode', 2330, 1860, { value: '1N4148' }, { '2': 'CLKP', '1': 'MTP' })
+    .part('RMT', 'resistor', 2380, 1920, { value: '61.9k' }, { '1': 'MTP', '2': 'MT' }, 1)
+    .part('RMTH', 'resistor', 2440, 1840, { value: '10M' }, { '1': V, '2': 'MT' }, 1)
     .part('CMT', 'capacitor', 2380, 2120, { value: '1u', vmax: '50' }, { '1': 'MT', '2': 'GND' }, 1)
     .part('USQ3', 'comparator', 2500, 1940, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEL', '1': 'CLK', '8': V, '4': 'GND' })
     .part('RCLK', 'resistor', 2600, 1880, { value: '10k' }, { '1': 'CLKP', '2': 'CLK' }, 1)
     .part('RCLD', 'resistor', 2600, 2040, { value: '100k' }, { '1': 'CLK', '2': 'GND' }, 1)
+    // the clock filtered (1 ms) against pick-up on its loop through KI's auxiliary; the loop
+    // loaded to 5 mA (2.2k), the makers' minimum for a reliable auxiliary contact
+    .part('CCLK', 'capacitor', 2680, 2040, { value: '100n', vmax: '50' }, { '1': 'CLK', '2': 'GND' }, 1)
+    .part('RCLL', 'resistor', 2680, 1880, { value: '2.2k', pmax: '0.25' }, { '1': 'CLKP', '2': 'GND' }, 1)
     .part('USQ4', 'comparator', 2500, 2120, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEH', '1': 'OI', '8': V, '4': 'GND' })
     .part('RPI', 'resistor', 2600, 2160, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
     .part('RGI', 'resistor', 2680, 2200, { value: '1k' }, { '1': 'OI', '2': 'GI' })
-    .part('QI', 'nmos', 2760, 2280, { value: 'IRF540N' }, { '1': 'GI', '2': 'KIC', '3': 'GND' })
+    .part('QI', 'nmos', 2760, 2280, { value: 'IRF540N' }, { '1': 'GI', '2': 'KID', '3': 'GND' })
     .part('DI', 'diode', 2840, 2160, { value: '1N4007' }, { '2': 'KIC', '1': 'DIZ' }, 3)
-    .part('DZI', 'zener', 2840, 2260, { value: 'BZX85C24' }, { '1': 'DIZ', '2': 'V24C' }, 3)
+    .part('DZI', 'tvs', 2840, 2260, { value: '1.5KE27A' }, { '1': 'DIZ', '2': 'V24C' }, 3)
     // the input contactor: it makes and breaks the input current at every tap change (AC-1, about
     // 0.55 of its rating). Its coil is fed through the thermal cut-out (V24C): a hot transformer
-    // is switched off. Its NC auxiliary feeds CLK's pull-up
-    .part('KI', 'contactor', 2950, 2200, { value: vr.ki, opsday: '200', life: '1500000', land: 'A1 A2 21 22' }, { A1: 'V24C', A2: 'KIC', '1': 'VIN', '2': 'VCH', '21': V, '22': 'CLKP' })
+    // is switched off. Its NC auxiliary feeds CLK's pull-up and the timer; its second NC feeds the
+    // tap coils (VTF) while it is open; its second NO lets a change hold the sense
+    .part('KI', 'contactor', 2950, 2200, { value: vr.ki, aux2: 'true', opsday: '200', life: '1500000', land: 'A1 A2 21 22 31 32 43 44' }, { A1: 'V24C', A2: 'KIC', '1': 'VIN', '2': 'VCH', '21': V, '22': 'CLKP', '31': V24, '32': 'VTF', '43': 'DSHK', '44': 'TRG' })
     // the switched input's snubber, to N (not across the contact): opening KI interrupts the
     // autotransformer's magnetising current, which rings into it. Across the open contact it fed
     // the winding from the input through 220 nF while KI was open, and the winding rang up to
     // 380 V (found in simulation)
+    // an X2 film capacitor: it is across the mains whenever KI is closed (the review of 16 November)
     .part('RSKI', 'resistor', 3050, 2300, { value: '100', pmax: '2' }, { '1': 'VCH', '2': 'SNKI' }, 1)
-    .part('CSKI', 'capacitor', 3050, 2390, { value: '220n', vmax: '1000' }, { '1': 'SNKI', '2': 'N' }, 1)
+    .part('CSKI', 'capacitor', 3050, 2390, { value: '220n', vmax: '630' }, { '1': 'SNKI', '2': 'N' }, 1)
     .part('CDS', 'capacitor', 2380, 2260, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('XT1', 'terminal', 3150, 2000, { value: 'thermal cut-out of T (NC)' }, { '1': V24 })
     .part('XT2', 'terminal', 3150, 2060, { value: 'thermal cut-out of T, return' }, { '1': 'V24C' });
@@ -249,7 +295,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('QF2', 'breaker2', 4100, 560, { value: vr.qfo, curve: 'C' }, { '1': 'T5', '2': 'T5Q', N1: 'N', N2: 'NQ' }, 3)
     .part('KM', 'contactor', 4250, 600, { value: vr.ki, land: 'A1 A2' }, { A1: 'KMC', A2: 'GND', '1': 'T5Q', '2': 'OUT', '3': 'NQ', '4': 'NOUT' })
     .part('DKM', 'diode', 4180, 700, { value: '1N4007' }, { '2': 'GND', '1': 'DKZ' }, 3)
-    .part('ZKM', 'zener', 4180, 800, { value: 'BZX85C24' }, { '1': 'DKZ', '2': 'KMC' }, 3)
+    .part('ZKM', 'tvs', 4180, 800, { value: '1.5KE27A' }, { '1': 'DKZ', '2': 'KMC' }, 3)
     .part('X4', 'terminal', 4400, 560, { value: 'L out', wire: vr.wout }, { '1': 'OUT' }, 2)
     .part('X5', 'terminal', 4400, 620, { value: 'N out', wire: vr.wout }, { '1': 'NOUT' }, 2)
     .part('X6', 'terminal', 4400, 680, { value: 'PE', wire: vr.wpe }, { '1': 'GND' }, 2)
@@ -299,7 +345,9 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('CBP', 'capacitor_pol', 940, 2860, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
     .part('DPP', 'diode', 1000, 2870, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
     .part('UKP', 'comparator', 1100, 2820, { value: 'LM393', pkg: 'PROT2' }, { '3': 'BPP', '2': 'VREF2', '1': 'OKP', '8': V, '4': 'GND' })
-    .part('UKPS', 'comparator', 1250, 3090, { value: 'LM393', pkg: 'PROT2' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
+    // the package's second comparator: an overvoltage at the 230 V tap also opens KI (a lost
+    // neutral: 400 V would saturate the transformer, not only harm the load)
+    .part('UKPS', 'comparator', 1250, 3090, { value: 'LM393', pkg: 'PROT2' }, { '3': 'VOV', '2': 'SF2', '1': 'OI', '8': V, '4': 'GND' })
     .part('RPKP', 'resistor', 1160, 2730, { value: '2.2k' }, { '1': V, '2': 'OKP' }, 1)
     .part('RBKP', 'resistor', 1160, 2910, { value: '2.2k' }, { '1': 'OKP', '2': 'BP' }, 1)
     .part('QP', 'npn', 1220, 2820, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })

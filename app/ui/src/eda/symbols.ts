@@ -762,11 +762,15 @@ export const SYMBOLS: SymbolDef[] = [
       { id: '5', name: '5/L3', x: 10, y: -30, type: 'passive', optional: true }, { id: '6', name: '6/T3', x: 10, y: 30, type: 'passive', optional: true },
       { id: '7', name: '7/N', x: 30, y: -30, type: 'passive', optional: true }, { id: '8', name: '8/N', x: 30, y: 30, type: 'passive', optional: true },
       { id: '13', name: '13', x: 50, y: -30, type: 'passive', optional: true }, { id: '14', name: '14 NO', x: 50, y: 30, type: 'passive', optional: true },
-      { id: '21', name: '21', x: 70, y: -30, type: 'passive', optional: true }, { id: '22', name: '22 NC', x: 70, y: 30, type: 'passive', optional: true }],
+      { id: '21', name: '21', x: 70, y: -30, type: 'passive', optional: true }, { id: '22', name: '22 NC', x: 70, y: 30, type: 'passive', optional: true },
+      // a front-mounted auxiliary block (1 NO + 1 NC), drawn when the part has aux2
+      { id: '43', name: '43', x: 90, y: -30, type: 'passive', optional: true }, { id: '44', name: '44 NO', x: 90, y: 30, type: 'passive', optional: true },
+      { id: '31', name: '31', x: 110, y: -30, type: 'passive', optional: true }, { id: '32', name: '32 NC', x: 110, y: 30, type: 'passive', optional: true }],
     refAt: { x: 80, y: -6 }, valAt: { x: 80, y: 8 }, simulated: true,
-    gfx: () => [path('M -60 -20 H -50 V -8 M -60 20 H -50 V 8'), path('M -56 -8 H -44 V 8 H -56 Z', 'bg'),
+    gfx: (p) => [path('M -60 -20 H -50 V -8 M -60 20 H -50 V 8'), path('M -56 -8 H -44 V 8 H -56 Z', 'bg'),
       ...[-30, -10, 10, 30, 50].map((x) => path(`M ${x} -30 V -8 M ${x} 8 V 30 M ${x} 8 L ${x - 7} -7`, 'none', 1.6)),
-      path('M 70 -30 V -8 M 70 8 V 30 M 70 -8 L 64 8', 'none', 1.6), path('M -44 0 H 66', 'none', 0.8)],
+      path('M 70 -30 V -8 M 70 8 V 30 M 70 -8 L 64 8', 'none', 1.6), path(`M -44 0 H ${p.aux2 === 'true' ? 106 : 66}`, 'none', 0.8),
+      ...(p.aux2 === 'true' ? [path('M 90 -30 V -8 M 90 8 V 30 M 90 8 L 83 -7', 'none', 1.6), path('M 110 -30 V -8 M 110 8 V 30 M 110 -8 L 104 8', 'none', 1.6)] : [])],
     value: { key: 'value', label: 'Size and coil', kind: 'select', options: opts(CONTACTORS.map((m) => m.name)), default: CONTACTORS[0].name }, params: [],
   },
   {

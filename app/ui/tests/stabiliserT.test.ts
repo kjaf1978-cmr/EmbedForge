@@ -88,13 +88,33 @@ describe.runIf(LONG)('contactor-switched stabiliser: sequence and faults (DFMEA 
     expect(out).toBeGreaterThan(want * 0.97);
     expect(out).toBeLessThan(want * 1.02);
   }, 1_200_000);
-  it('tap contactor K5 welded, 230 → 215 V: KI never closes onto two taps; the output opens (FAULT)', () => {
+  it('tap contactor K5 welded (held in), 230 → 215 V: KI never closes onto two taps; the output opens (FAULT)', () => {
     const s = run({ kva: 5, vin: 230, welded: 5, step: { to: [215], at: 1.5 }, stop: '2.6' });
     // K4 is commanded, K5 stays closed: KI's coil stays off after the change
     const ki = s.r.v['KIC'].filter((_, k) => s.x[k] > 1.7);
     expect(Math.min(...ki)).toBeGreaterThan(18);
     expect(Math.max(...s.r.i['K4.1'].filter((_, k) => s.x[k] > 1.7).map(Math.abs))).toBeLessThan(2);
     expect(s.rms(s.out, 2.4)).toBeLessThan(10);
+  }, 1_200_000);
+  it('tap contactor K5 welded and its NO auxiliary open all the same (only the NC is a mirror contact), 230 → 215 V: the match check sees only K4, the mirror chain keeps KI open', () => {
+    const s = run({ kva: 5, vin: 230, welded: 5, noOpens: true, step: { to: [215], at: 1.5 }, stop: '2.4' });
+    expect(Math.min(...s.r.v['KIC'].filter((_, k) => s.x[k] > 1.7))).toBeGreaterThan(18);
+    expect(s.rms(s.out, 2.2)).toBeLessThan(10);
+  }, 1_200_000);
+  it('the coil driver of K1 shorts while running on tap 5: K1 cannot pull in while KI is closed (seal-in), the output carries on', () => {
+    const s = run({ kva: 5, vin: 230, driverShortsAt: { k: 1, at: 1.5 }, stop: '2.2' });
+    expect(Math.max(...s.r.v['CF1'].filter((_, k) => s.x[k] > 1.5).map(Math.abs))).toBeLessThan(3);
+    expect(s.ipole(1, 1.5, 2.2)).toBeLessThan(1);
+    const out = s.rms(s.out, 2.0);
+    expect(out).toBeGreaterThan(220);
+    expect(out).toBeLessThan(236);
+  }, 1_200_000);
+  it('15 kVA on a weak line (0.3 Ω), the open-circuit input stepped 230 → 225 V: no hunting (the sense held through each change), the output within 230 V ± 10 %', () => {
+    const s = run({ kva: 15, vin: 230, rs: 0.3, step: { to: [225], at: 1.5 }, stop: '3.5' });
+    // KI's openings after the step: at most one change
+    const kic = s.r.v['KIC'], opens = s.x.filter((t, k) => t > 1.5 && k > 0 && kic[k - 1] < 12 && kic[k] >= 12);
+    expect(opens.length).toBeLessThanOrEqual(1);
+    expect(Math.abs(s.rms(s.out, 3.2) - 230)).toBeLessThan(23);
   }, 1_200_000);
   it('the coil driver of K1 shorted (K1 always closed) at 230 V: KI never closes, the output stays off', () => {
     const s = run({ kva: 5, vin: 230, driverShorted: 1, stop: '1.8' });

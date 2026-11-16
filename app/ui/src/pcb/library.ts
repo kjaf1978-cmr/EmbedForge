@@ -163,7 +163,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     }
     case 'zener': return [map(v.startsWith('1N53') ? 'D_DO-201AD' : v.startsWith('1N47') ? 'D_DO-41' : 'D_DO-35', { 1: '1', 2: '2' })];
     case 'led': return [map('LED_D5.0', { 1: '1', 2: '2' }, { note: 'pad 1 (square) is the cathode, the short leg' })];
-    case 'tvs': return [map(v.startsWith('5KP') ? 'D_P600' : 'D_SMA', { 1: '1', 2: '2' }, { note: v.endsWith('CA') ? 'bidirectional: either way round' : 'pad 1 (band) is the cathode, on the protected line' })];
+    case 'tvs': return [map(v.startsWith('5KP') ? 'D_P600' : v.startsWith('1.5KE') ? 'D_DO-201AD' : 'D_SMA', { 1: '1', 2: '2' }, { note: v.endsWith('CA') ? 'bidirectional: either way round' : 'pad 1 (band) is the cathode, on the protected line' })];
     case 'bridge': return [map('Bridge_Inline_4', { 3: '1', 1: '2', 2: '3', 4: '4' }, { note: 'inline + ~ ~ −: check the marking on the body' })];
     case 'npn': case 'pnp': return [BJT[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C')];
     case 'nmos': case 'pmos': return [FET[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D')];
