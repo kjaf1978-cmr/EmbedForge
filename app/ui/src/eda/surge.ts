@@ -7,7 +7,7 @@
 // the cable between them.
 
 import { NB } from './powerExamples';
-import type { Sheet } from './schematic';
+import type { Rot, Sheet } from './schematic';
 
 export type MainsSurge = 'lightning' | 'lightning-L' | 'lps' | 'induced' | 'socket';
 
@@ -63,7 +63,7 @@ export function mainsHouse(surge: MainsSurge, stages: { t1?: boolean; t2?: boole
     .part('REL', 'resistor', -550, 200, { value: '10', pmax: '1G' }, { '1': 'PE1', '2': 'GND' }, 1);
   // each SPD's leads: its line lead and its PE lead make up the `lead` of a path (half each, the
   // N lead as the L lead); the V-wired type 3 has only its PE lead
-  const lead = (k: string, a: string, b: string, uh: number, x: number, y: number, r = 1) => { nb.block('SPD leads').part(`LL${k}`, 'inductor', x, y, { value: `${+uh.toFixed(3)}u`, imax: '30k' }, { '1': a, '2': b }, r); };
+  const lead = (k: string, a: string, b: string, uh: number, x: number, y: number, r: Rot = 1) => { nb.block('SPD leads').part(`LL${k}`, 'inductor', x, y, { value: `${+uh.toFixed(3)}u`, imax: '30k' }, { '1': a, '2': b }, r); };
   const h = s.lead / 2;
   if (s.t1) { lead('T1L', 'L1', 'T1L', h, -700, 0, 0); lead('T1N', 'PEN1', 'T1N', h, -620, 120, 0); lead('T1E', 'T1E', 'PE1', h, -600, 260); }
   if (s.t2) { lead('T2L', 'L2', 'T2L', h, -200, -40, 0); lead('T2N', 'N2', 'T2N', h, -280, 120, 0); lead('T2E', 'T2E', 'PE2', h, -120, 260); }
