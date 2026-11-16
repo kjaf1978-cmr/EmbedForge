@@ -597,6 +597,33 @@ carries the surge). At the appliance: 12.5 kA 10/350 µs: 799 V L–N, 1030 V L�
 within its ratings. Without the type 3: 5.7 kV L–N at the socket surge. The TT version of the
 type 2 (942121) left the appliance at 1.67 kV L–PE under lightning, hence the TN version.
 
+### 3n.3 P5 after the independent review (16 November 2026)
+
+`tests/surge.test.ts`, all 28 passed (156 s). Findings and resolutions:
+`docs/products/P5-surge/REVIEW.md`.
+
+- **Mains:** four surges (25 kA 10/350 µs shared by L and PEN; 22.5 kA into L, the DEHNshield at
+  its Iimp of 12.5 kA; 20 kA 8/20 µs; 6 kV / 3 kA at the socket). The sensitive equipment at
+  most 1232 V L–N, 1255 V L–PE, 718 V N–PE; the sub-board below 4 kV, the main board below
+  6 kV. Every SPD within its ratings, and no SPD current above the surge injected.
+- **Mains sensitivity:** cable capacitance × 0.5 and × 1.5, no Y capacitors, and 0.3 m leads all
+  stay below 1.5 kV. With 1 m leads the main board exceeds 6 kV.
+- **Strike on the building (no LPS):** below 2.5 kV. Without the type 3: 5.7 kV.
+- **PV:** the charger's input as P6 builds it, two 68 µH decoupling chokes, and P6's new 47 µF
+  capacitor across QPV. 10 and 20 kA 8/20 µs at the array's and at the charger's end, charger
+  running and stopped (8 cases): input at most 167 V, QPV at most 162 V, every part within its
+  ratings. Showing why each part is fitted:
+  - without the chokes, 5 kA at the charger's end exceeds 200 V;
+  - without the capacitor, QPV exceeds 200 V when the charger is stopped;
+  - without the TVS the input stays below 200 V;
+  - without the array SPD the modules see over 10 kV.
+  - When the fault latch opens QPV at full current, QPV sees 82 V; without the capacitor the TVS
+    exceeds its rating.
+- **Engine:** a spark gap's arc no longer drives current against its own voltage.
+- **ERC:** a capacitor across a switch, or across a back-to-back pair, counts as the path for an
+  inductive load's current.
+- **Drawings:** both readable (no wires of different nets side by side).
+
 ## 3o. P9: pump control, irrigation, gate controller, trimmer, block machine (10 November 2026)
 
 **Library check (new, `tests/modellookup.test.ts`):** every design's part values must name a

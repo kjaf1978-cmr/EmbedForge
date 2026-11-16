@@ -184,6 +184,14 @@ export function erc(sheet: Sheet, conn: Connectivity = connectivity(sheet)): Erc
       // the high-side switch of a half bridge: its body diode returns the load current to the bus
       (['nmos', 'igbt'].includes(d.sym) && ends.includes(net(d.ref, '3')) && net(d.ref, '2') !== net(d.ref, '3') &&
         sheet.parts.some((q) => q.ref !== d.ref && ['nmos', 'igbt'].includes(q.sym) && net(q.ref, '2') === net(d.ref, '3'))) ||
+      // a capacitor across the switch, or across a back-to-back pair (common source), takes the
+      // load's current when it opens (the voltage it reaches is checked by simulation)
+      (d.sym === 'capacitor' && sheet.parts.some((q) => q.sym === 'nmos' && ends.includes(net(q.ref, '2')) && (() => {
+        const cn = new Set([net(d.ref, '1'), net(d.ref, '2')]);
+        if (!cn.has(net(q.ref, '2'))) return false;
+        if (cn.has(net(q.ref, '3'))) return true;
+        return sheet.parts.some((q2) => q2.ref !== q.ref && q2.sym === 'nmos' && net(q2.ref, '3') === net(q.ref, '3') && cn.has(net(q2.ref, '2')));
+      })())) ||
       // a TVS clamping the switch's drain to its source (energy absorbed in the TVS: faster release)
       (d.sym === 'tvs' && sheet.parts.some((q) => q.sym === 'nmos' && ends.includes(net(q.ref, '2')) &&
         new Set([net(d.ref, '1'), net(d.ref, '2')]).has(net(q.ref, '2')) && new Set([net(d.ref, '1'), net(d.ref, '2')]).has(net(q.ref, '3')))));

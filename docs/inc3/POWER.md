@@ -278,71 +278,80 @@ Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).
 ### P5 — surge and lightning protection (D20; DFMEA section 3c)
 
 `src/eda/surge.ts`, installation designs (DIN-rail SPDs, earthing, wiring), verified by
-simulation (`tests/surge.test.ts`, TEST_REPORT.md section 3n). The cables are their inductance
-(about 1 µH per metre of conductor) and resistance; the SPDs coordinate through them.
+simulation (`tests/surge.test.ts`, TEST_REPORT.md sections 3n–3n.3). The cables are their
+inductance (about 1 µH per metre of conductor), resistance and capacitance (about 100 pF per
+metre between conductors); every SPD connection is a lead (0.5 m per path, the installation's
+limit, 0.5 µH), so the let-through at a busbar is the SPD's Up plus its leads' voltage. Revised
+after the independent review of 16 November 2026 (`docs/products/P5-surge/REVIEW.md`).
 
-Mains house (TN-C-S, single phase), with DEHN SPDs (owner, 15 November 2026; data from DEHN's
-online catalogue, list prices in EUR):
+**Mains house** (TN-C-S, single phase), DEHN SPDs (owner, 15 November 2026; data from DEHN's
+online catalogue, list prices in EUR without VAT):
 
 | Where | SPD | Data | Price |
 |---|---|---|---|
-| Main board, at the PEN split (earth electrode ≤ 10 Ω) | DEHNshield TN 255 FM (941205), type 1+2 | spark gaps L–PE and N–PE; Uc 255 V; Iimp 12.5 kA (10/350 µs) per pole, Itotal 25 kA; In 12.5 kA; Up ≤ 1.5 kV; Ifi 25 kA rms with follow-current limitation (a 32 A gG fuse does not trip); backup ≤ 160 A gG; TOV 440 V / 120 min withstand; energy-coordinated with a type 3 within 10 m; status window, remote contact; 2 modules | 473.90 |
-| Sub-board, 10 m on (10 mm²) | DEHNguard MP TN ACI 275 FM (942220), type 2 | L–PE varistor with a series spark gap (ACI: no leakage current), N–PE spark gap; Uc 275 V L–PE, 255 V N–PE; In 20 kA; Up ≤ 1.5 kV L–PE and N–PE (also at 5 kA); ISCCR 25 kA, no backup fuse; V-connection to 40 A; status window, remote contact; 2 modules | 260.10 |
-| Final circuit of the sensitive equipment, 15 m further (2.5 mm²) | DEHNrail M 2P 255 (953200), type 3 | L–N varistor, N–PE spark gap; Uc 255 V; In 3 kA, Itotal 5 kA; Uoc 6 kV; Up ≤ 1.25 kV L–N, ≤ 1.5 kV L/N–PE; 25 A load current (V-wired); backup 25 A gG or B 25; status window; 1 module | 138.30 |
+| Main board, at the PEN split (earth electrode ≤ 10 Ω) | DEHNshield TN 255 FM (941205), type 1+2, prewired (not pluggable) | spark gaps L–PE and N–PE; Uc 255 V; Iimp 12.5 kA (10/350 µs) per pole, Itotal 25 kA; In 12.5 kA; Up ≤ 1.5 kV; Ifi 25 kA rms with follow-current limitation (a 32 A gG fuse does not trip); backup ≤ 160 A gG; TOV 440 V / 120 min withstand; energy-coordinated (IEC 62305-4) with DEHN's Red/Line arresters and terminal equipment; indicator flag, remote contact; 2 modules | 473.90 |
+| Sub-board, 10 m on (10 mm²) | DEHNguard MP TN ACI 275 FM (942220), type 2, pluggable | L–PE varistor with a series spark gap (ACI: no leakage current), N–PE spark gap; Uc 275 V L–PE, 255 V N–PE; In 20 kA; Up ≤ 1.5 kV L–PE and N–PE (also at 5 kA); ISCCR 25 kA, no backup fuse; V-connection to 40 A; status window, remote contact; 2 modules | 260.10 |
+| Final circuit of the sensitive equipment, 15 m further (2.5 mm²) | DEHNrail M 2P 255 (953200), type 3, pluggable | L–N varistor, N–PE spark gap; Uc 255 V; In 3 kA, Itotal 5 kA; Uoc 6 kV; Up ≤ 1.25 kV L–N, ≤ 1.5 kV L/N–PE; 25 A load current (V-wired); backup 25 A gG or B 25 with ISCCR 6 kA; status window; 1 module | 138.30 |
 
-With the PEN's 16 mm² DIN-rail terminal (€6.50) the mains side costs €878.80. The type 2 is the
-TN version: the 1+1 version for TT systems (DG MP TT 2P ACI 275 FM, 942121, first proposed) has
-only L–N and N–PE elements, so in a TN-S sub-board its L–PE protection is two elements in series
-(up to 3 kV); in the simulation it hardly conducted and the appliance saw 1.67 kV L–PE.
+The PEN lands on a 16 mm² feed-through terminal (PT 16 N, not bonded to the rail, €2.20
+estimate) and then on the MET bar: €874.50 in all. The type 2 is the TN version: the 1+1 version
+for TT systems (942121) has only L–N and N–PE elements, so in a TN-S sub-board its L–PE
+protection is two elements in series (in the simulation the appliance saw 1.67 kV L–PE).
 
-The model: each product a package of its units (one part in the parts list): the spark gaps
-fire at the product's Up (1.5 kV; the type 3's N–PE gap at 1 kV, derived: its L–PE path is the
-L–N varistor and that gap, and both Up values hold only so, to be confirmed against DEHN's
-circuit diagram); the varistors at their Up at In. The DEHNshield's follow-current limitation
-is an arc voltage above the mains peak (400 V, an assumption): the mains cannot keep it burning.
-Spark gaps go out below 10 mA. Two parts of the installation are now simulated that a spark gap
-needs: the cables' capacitance (100 pF per metre at the receiving end), without which an ideal
-surge source drove the gap's voltage to megavolts in one step, and the type 1+2's and type 2's
-connecting leads at the installation's limit (0.5 m, 0.5 µH), without which the board's
-capacitance discharged through the arc in picoseconds. The type 3 is V-wired (no leads in the
-appliance's path).
+The model: each product a package of its units (one part in the parts list). The spark gaps
+fire at the product's Up (1.5 kV); the type 2's at 1.26 kV, so that its L–PE pair (varistor and
+series gap) fires at its Up of 1.5 kV (in the model the open gap leaves about 240 V on the
+varistor; in the product the varistor's capacitance holds it near 0 V); the type 3's N–PE gap at
+1 kV (derived from its two Up values: its L–PE path is the L–N varistor and that gap). The
+DEHNshield's follow-current limitation is an arc voltage above the mains peak (400 V, an
+assumption). An arc conducts only while its voltage exceeds the arc voltage in its direction
+(engine change: before, a burning gap in a loop with a charged capacitor drew a reverse current
+for one step, and the stress check read 47–84 kA from a 25 kA surge).
 
-Results (`tests/surge.test.ts`): at the appliance
+Results at the sensitive equipment (behind the type 3), the sub-board and the main board (with
+their SPDs' leads), against the impulse categories of IEC 60364-4-44 (I 1.5 kV, II 2.5 kV,
+III 4 kV, IV 6 kV):
 
-| Surge | L–N | L–PE | N–PE | Main board L–PE (with its leads) |
+| Surge | Equipment L–N / L–PE / N–PE | Sub-board L–PE | Main board L–PE | SPD current |
 |---|---|---|---|---|
-| 12.5 kA 10/350 µs into the service line | 799 V | 1030 V | 247 V | 3.7 kV |
-| 20 kA 8/20 µs into the service line | 883 V | 1152 V | 332 V | 2.6 kV |
-| 6 kV / 3 kA 1.2/50 µs at the socket, L–N | 1232 V | 1141 V | 436 V | — |
+| Strike on the line: 25 kA 10/350 µs shared by L and PEN | 739 / 1040 / 319 V | 1.5 kV | 3.6 kV | DEHNshield 2.2 kA |
+| 22.5 kA 10/350 µs into L: the DEHNshield at its Iimp | 877 / 1255 / 549 V | 2.6 kV | 5.3 kV | DEHNshield 12.5 kA |
+| 20 kA 8/20 µs into L (induced) | 866 / 1155 / 718 V | 1.6 kV | 2.6 kV | DEHNshield 11.0 kA |
+| 6 kV / 3 kA 1.2/50 µs at the socket, L–N | 1232 / 1141 / 436 V | 1.2 kV | 0.9 kV | DEHNrail 2.5 kA |
 
-all below 1.5 kV (overvoltage category I); every SPD within its ratings: the DEHNshield carries
-6.8 kA (lightning) and 11.1 kA (induced) of its 12.5 kA, the rest returning through the service
-line to the substation's earth; the DEHNrail takes the socket surge (2.5 kA, 96 of the 100 J
-the model gives it). Without the type 3 the socket surge reaches the appliance at 5.7 kV L–N:
-sensitive equipment needs it. The main board's busbar sees Up plus its leads (2.6–3.7 kV):
-equipment at the main board itself is not protected to category I; the sub-board's type 2 and
-the type 3 are.
+Every SPD within its ratings, no SPD current above the surge injected. Varied (cable capacitance
+× 0.5 and × 1.5, an appliance without Y capacitors, leads 0.3 m), the equipment stays below
+1.5 kV in every case (worst 1299 V L–PE with 1 m leads, which however lift the main board to
+8.9 kV and the sub-board to 5.7 kV at the DEHNshield's Iimp: the 0.5 m rule matters). Without
+the type 3 the socket surge reaches the appliance at 5.7 kV. Limits:
 
-PV house (D49, 15 November 2026): the 48 V MPPT charger's own array (9 × 410 Wp, 3 in series,
-3 strings: 112 V open circuit, 127 V at −10 °C, 42 A short circuit), 25 m of DC cable (2 × 16 mm²,
-2.3 % drop at the MPP) with its 6 mm² PE conductor alongside, the charger's input as the test
-load (its four 47 µF film capacitors and its MPP current). A certified type 2 PV SPD at each end
-of the cable (IEC 60364-7-712: both ends when the cable is longer than 10 m), DIN rail, in its Y
-circuit (DC+ and DC− each to a star point, the star point to PE; every path two varistors):
+- Equipment on a sub-board circuit without a type 3 (overvoltage category II, 2.5 kV) is
+  marginal in the full-Iimp case (2.6 kV at the busbar, less after its cable): sensitive and
+  valuable equipment gets the type 3.
+- A strike on the building itself (25 kA 10/350 µs into the earthing) needs an external
+  lightning protection system, which P5 does not include. Simulated for information: the
+  equipment at 1453 V L–PE (1.56–1.69 kV with the variations), so only below category II there.
 
-- array junction box: **DEHNguard M YPV SCI 150 FM (DEHN 952518)**, with the remote signalling
-  contact, because nobody sees a status window on the roof; the contact (changeover,
-  250 V / 0.5 A AC, 125 V / 0.2 A DC, ≤ 1.5 mm²) is wired with a 2-core cable alongside the DC
-  cable to an indicator lamp beside the charger (the charger has no input for it). The module is for indoor use (IP20):
-  the junction box is an IP65 enclosure with a DIN rail.
-- beside the charger: **DEHNguard M YPV SCI 150 (DEHN 952513)**, status window visible.
-- the old loose 20D201K varistors are gone (models and catalogue).
+**PV house** (D49; revised after the review): the 48 V MPPT charger's own array (9 × 410 Wp,
+3 in series, 3 strings: 112 V open circuit, 127 V at −10 °C, 42 A short circuit), 25 m of DC
+cable (2 × 16 mm², 2.3 % drop at the MPP) with its 6 mm² bonding conductor alongside, and the
+charger's input as P6 builds it: RVPV and the TVS across PV+ and PV−, its 188 µF of film
+capacitors from PV+ to the battery negative, PV− reaching the battery negative only through
+QPV and QPV2 (IRFP4668, 200 V, back to back). The battery negative is bonded to PE (the
+inverters bond it with their output's N), so the array is functionally earthed while QPV is on.
 
-Module data (both part numbers alike, except the contact), from DEHN's online catalogue, product
-family "DEHNguard modular Y PV SCI", technical-data table and tender text of 952513 and 952518,
-read 15 November 2026. The data-sheet PDFs (952513_GL-en.pdf, 952518_GL-en.pdf) sit on DEHN's
-download host (dxeifbnwdc27t.cloudfront.net), which this environment does not allow, so **page
-references are still to be added** from the PDFs:
+- Array junction box (IP65, DIN rail): **DEHNguard M YPV SCI 150 FM (952518)**, remote contact
+  to a lamp beside the charger (lit while healthy).
+- Charger's PV enclosure: **DEHNguard M YPV SCI 150 (952513)**, then **two 68 µH air-core
+  decoupling chokes**, one in DC+ and one in DC−, to the charger (52 A continuous, ≥ 500 A
+  peak, ≤ 6 mΩ; about 24 turns of 35 mm², 8 W each at the MPP; estimate €120 each).
+- **P6 change:** a 47 µF / 250 V film capacitor (the CIN type) from PV− to the battery
+  negative, across QPV and QPV2.
+
+Module data (both part numbers alike, except the contact), from DEHN's online catalogue
+(technical data and tender text of 952513 and 952518, 15 November 2026; **page references of the
+data-sheet PDFs still to be added**: they are on DEHN's download host, which this environment
+does not allow):
 
 | Quantity | Value |
 |---|---|
@@ -354,38 +363,51 @@ references are still to be added** from the PDFs:
 | Voltage protection level Up | ≤ 0.8 kV; ≤ 0.6 kV at 5 kA |
 | Short-circuit withstand ISCPV | 10 kA |
 | Response time tA | ≤ 25 ns |
-| Circuit | Y ("fault-resistant Y circuit": an insulation fault in the array does not overload the SPD) |
+| Circuit | Y ("fault-resistant Y circuit") |
 | Disconnector | SCI: combined disconnection and short-circuiting device, three-step DC switching, safe electrical isolation in the protection module |
-| Status indication | green / red window; 952518 also the remote signalling changeover contact |
+| Status indication | green / red window; 952518 also the remote signalling changeover contact (250 V / 0.5 A AC, 125 V / 0.2 A DC) |
 | Width, mounting | 3 modules (DIN 43880), 35 mm DIN rail (EN 60715), IP20, indoor; −40 … +80 °C |
 | Conductors | 1.5 … 35 mm² stranded (25 mm² flexible) |
 | Approvals | KEMA, UL, CSA |
 | List price (DEHN store, EUR) | 952513: 332.90; 952518: 391.10 |
 
-The model (`models.ts`, one varistor of the Y, the module a three-unit package): 100 V at 1 mA
-(75 V DC each, the 150 V over two), 300 V at 5 kA per varistor, so each path clamps at the
-data sheet's maximum Up (0.6 kV at 5 kA, 0.63 kV at 10 kA against ≤ 0.8 kV): the protection is
-checked at the worst module the data sheet allows. Imax 20 kA for all three (the star–PE
-varistor is rated Itotal 40 kA), 150 J each. The UCPV of 150 V covers the array's 127 V at
-−10 °C; ISCPV 10 kA its 42 A.
+The model: one varistor of the Y per unit, 100 V at 1 mA and 400 V at 10 kA, so each path
+clamps at the data sheet's Up at In (0.8 kV) and above it at lower currents (0.76 kV at 5 kA
+against ≤ 0.6 kV): conservative at every current. Imax 20 kA and 150 J each (derived ratings).
 
-Results (`tests/surge.test.ts`): 5 kA 8/20 µs induced into the cable at the array (DC+ to the
-frame): the array's DC+ to its frame 599 V (under Up), the charger's input 121 V; at the
-modules' In (10 kA) 129 V and at their Imax (20 kA) 138 V, the array module's varistors at
-19.8 kA and 109 J of 20 kA and 150 J; every SPD and the TVS within their ratings. The charger's
-input capacitors take the surge's charge: the TVS (144 V breakdown) does not conduct, and without
-it the input stays at 138 V at Imax. Without the array's SPD the modules see 26 kV to their
-frames and the charger's input 303 V (the TVS at 17.6 kW against its 5 kW): the array SPD is the
-protection. At the charger the module's DC+–PE path (DC− bonded to PE through the battery) is
-two varistors and does not conduct for this surge; it is there for surges that enter at the
-charger's end, and while the charger's QPV is open (no bond).
+Why the chokes and the capacitor: the SPD's Up (0.6–0.8 kV) is far above what the charger
+withstands (200 V MOSFETs, 250 V capacitors). With the earlier model (the input capacitors
+across PV+ and PV−, QPV always on, no leads) the charger looked safe. The charger as built is
+not, in two credible cases the review found:
 
-The earlier result (195 V with the TVS, 205 V without) came from a test load that was not the
-charger (20 µF instead of 188 µF) and an array that was one module: the array's size was set
-with a property (`n`) that the PV model does not read (`ns`, `np`). Both corrected.
+- a surge entering at the charger's end of the cable: 2 kA already overloaded the TVS
+  (10.3 kW) and the capacitors (255 V); 5–10 kA destroyed QPV;
+- the charger stopped (QPV off: at night, or latched off after a fault): 10 kA at the array put
+  286 V on QPV; PV− is then held to the battery negative only by the open MOSFETs.
 
-**P6 change:** none required. The 5KP130CA stays across the charger's PV input as the second
-line (bidirectional: a unidirectional one would short an array connected the wrong way round).
+The chokes make the SPD take a surge from either end and limit what reaches the charger; the
+capacitor holds PV− as CIN holds PV+. Results (`tests/surge.test.ts`), charger input / QPV:
+
+| Surge (8/20 µs, DC+ to PE) | Charger running | Charger stopped |
+|---|---|---|
+| 10 kA at the array's end | 121 V / 2 V | 69 V / 112 V |
+| 20 kA at the array's end | 129 V / 2 V | 86 V / 139 V |
+| 10 kA at the charger's end | 149 V / 2 V | 67 V / 120 V |
+| 20 kA at the charger's end | 167 V / 2 V | 108 V / 162 V |
+
+All below 200 V, every part within its ratings (the chokes peak at 413 A). Without the chokes
+a 5 kA surge at the charger's end exceeds 200 V; without the capacitor, the charger stopped,
+10 kA at the array puts over 200 V on QPV; without the TVS, 20 kA at the charger's end, the
+input stays below 200 V (the TVS is the second line). The chokes' energy when the fault latch
+opens QPV at full current goes into the capacitor (QPV 82 V); without it the TVS takes 10.2 kW.
+Without the array's SPD the modules see over 10 kV to their frames. With its leads the array's
+DC+ reaches 1.5–2.3 kV against its frame: to be compared with the chosen modules' rated impulse
+voltage (open).
+
+The functional earth: with QPV on, an insulation fault from DC+ to the frame short-circuits the
+array (42 A) through the bonding conductor and QPV. IEC 60364-7-712 asks for earth-fault
+detection on a functionally earthed array: **P6 change** (open): detect it (the array's voltage
+collapses in daylight with no output) and open QPV with an alarm.
 
 ### P9 — pump control, irrigation, gate controller, trimmer, block machine, grinder drive (D24–D26, D46; DFMEA section 3d)
 
@@ -617,6 +639,14 @@ mincers), from 240 V single-phase or from a 24 V battery.
 - Results (time-weighted means over the switching): see TEST_REPORT section 3q.
 
 ### P6 — MPPT solar charger (done: one 3.7 kW unit; DFMEA in DFMEA.md)
+
+**Changes required by P5 (review of 16 November 2026), to be made when P6 is taken through the
+definition of done:** a 47 µF / 250 V film capacitor from PV− to the battery negative, across
+QPV and QPV2 (surges while QPV is off; the energy of P5's decoupling chokes when the fault latch
+opens QPV); earth-fault detection of the functionally earthed array (an insulation fault from
+DC+ to the frame shorts the array through QPV: open QPV and signal it). The P5 simulation
+(`surge.ts`, `pvHouse`) models the charger's input with the capacitor.
+
 
 Example `mppt-charger`: 9 × 410 Wp (3 in series, 3 strings, Voc up to 120 V in the cold) into a
 48 V (16-cell LiFePO₄) battery. A 20 kHz buck converter: IRFP4668 (200 V) on a heatsink,

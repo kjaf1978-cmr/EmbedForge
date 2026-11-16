@@ -574,27 +574,37 @@ class VSwitch implements Device {
  *  direction of the spark) until the current falls below ihold. */
 class Gdt implements Device {
   dir = 0; // 0 off, ±1 conducting
+  /** In the current Newton iteration: the arc carries current (its voltage above the arc voltage
+   *  in its direction). An arc cannot drive current against its own voltage: below it the gap
+   *  is open within the iteration, not only once the step has ended (a burning gap in a loop with
+   *  a charged capacitor otherwise drew a reverse current of (varc − v)/ron for one step). */
+  private live = false;
   constructor(public el: Element & { kind: 'N' }, private a: number, private b: number) {}
   private static readonly GOFF = 1e-10;
+  private fwd(v: number) { return this.dir !== 0 && this.dir * v >= this.el.varc; }
+  private cur(v: number) { return this.fwd(v) ? (v - this.dir * this.el.varc) / this.el.ron : v * Gdt.GOFF; }
   private next(x: Float64Array): number {
     const v = V(x, this.a) - V(x, this.b);
     if (this.dir === 0) return Math.abs(v) > this.el.vspark ? Math.sign(v) : 0;
-    const i = (v - this.dir * this.el.varc) / this.el.ron;
-    return i * this.dir < this.el.ihold ? 0 : this.dir;
+    return this.cur(v) * this.dir < this.el.ihold ? 0 : this.dir;
   }
   pending(x: Float64Array) { return this.next(x) !== this.dir; }
   commitState(x: Float64Array) { this.dir = this.next(x); }
   load(c: Ctx) {
-    if (this.dir === 0) { stampG(c, this.a, this.b, Gdt.GOFF); return; }
+    // just fired (or at the first iteration): conducting
+    this.live = this.dir !== 0 && (c.init || this.fwd(V(c.x, this.a) - V(c.x, this.b)) || !this.seen);
+    this.seen = this.dir !== 0;
+    if (!this.live) { stampG(c, this.a, this.b, Gdt.GOFF); return; }
     // i = (v − dir·varc)/ron: a conductance and a source
     const g = 1 / this.el.ron;
     stampG(c, this.a, this.b, g);
     rhs(c, this.a, (this.dir * this.el.varc) * g); rhs(c, this.b, -(this.dir * this.el.varc) * g);
   }
+  private seen = false;
+  converged(x: Float64Array) { return this.dir === 0 || this.fwd(V(x, this.a) - V(x, this.b)) === this.live; }
   loadAC(c: AcCtx) { stampGc(c, this.a, this.b, this.dir ? 1 / this.el.ron : Gdt.GOFF, 0); }
   currents(x: Float64Array) {
-    const v = V(x, this.a) - V(x, this.b);
-    const i = this.dir === 0 ? v * Gdt.GOFF : (v - this.dir * this.el.varc) / this.el.ron;
+    const i = this.cur(V(x, this.a) - V(x, this.b));
     return [i, -i];
   }
 }
