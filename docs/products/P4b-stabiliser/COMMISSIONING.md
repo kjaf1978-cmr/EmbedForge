@@ -28,7 +28,8 @@ check), +12V and +24V.
 ## 1. Before any voltage
 
 1. **Visual check:** the wiring against panel.csv; each tap contactor's three poles linked on both
-   sides; the tap ratio and auxiliary checks (ASSEMBLY.md section 3) done and recorded; screws
+   sides, and its 2-4-6 side continuous to its own tap only (a pole link split between two taps
+   would short a section); the tap ratio and auxiliary checks (ASSEMBLY.md section 3) done and recorded; screws
    tightened.
 2. **PE continuity** from X3 to X6, the PE stud, the enclosure, the door, the DIN rail and the
    transformer core: ≤ 0.1 Ω plus the leads.
@@ -64,7 +65,7 @@ Each sense is set as a ratio to its own reference, with its 25-turn trimmer.
 ## 4. The steps (variac, no load)
 
 Raise the input slowly through each step. Exactly one yellow LED is on at a time; at each change
-KI opens and closes (heard twice, about a quarter of a second apart). The expected output (at
+KI opens and closes (heard twice, about 0.3 s apart). The expected output (at
 the 230 V tap) is U_in · 230 / tap ± 2 %. Then lower the input through each step: it changes a
 few volts lower.
 
@@ -92,8 +93,13 @@ Each step should change at 160 / 180 / 200 / 220 / 240 / 265 V ± 4 V.
 | 5.4 | Turn it back to the noted SF2; check the ratio of step 3.2 | FAULT off; OUTPUT on after the delay |
 | 5.5 | **Window.** VOV / VREF2 and VUV / VREF2 | 0.882 and 0.646, ± 0.01 |
 | 5.6 | **Match check.** Safe isolation; disconnect the wire on terminal 14 of the tap contactor that is in use at 230 V (K5); restore the supply | KI stays open (MS above 4.5 V: none seen closed), FAULT on, OUTPUT off; reconnect after safe isolation |
-| 5.7 | **Thermal cut-out.** Safe isolation; remove the cut-out lead from XT2, insulate it; restore the supply | KI stays open; FAULT on; OUTPUT off; reconnect after safe isolation; OUTPUT on after about 8.5 s |
-| 5.8 | **Restart.** QF1 off and on | OUTPUT on about 8.5 s after power returns |
+| 5.7 | **Match check, the other direction.** Safe isolation; bridge 13 and 14 of a tap contactor that is not in use at 230 V (K1) with a short wire; restore the supply | MS 4.8 … 5.4 V (one seen beside the commanded one); KI stays open; FAULT on; remove the bridge after safe isolation |
+| 5.8 | **Mirror chain.** Safe isolation; disconnect the wire on terminal 22 of K1 (not in use at 230 V); restore the supply | KI stays open (MS normal, 3.5 … 4.1 V: the chain alone holds it); FAULT on; reconnect after safe isolation |
+| 5.9 | **Thermal cut-out.** Safe isolation; remove the cut-out lead from XT2, insulate it; restore the supply | KI stays open; FAULT on; OUTPUT off; reconnect after safe isolation; OUTPUT on after about 8.5 s |
+| 5.10 | **Restart.** QF1 off and on | OUTPUT on about 8.5 s after power returns |
+
+Repeat 5.6 … 5.8 at every yearly check: they prove that the two checks which keep two taps from
+being connected still work.
 
 ## 6. Varistor
 
@@ -134,6 +140,8 @@ The full-load tests at 140 V and 300 V input need a large adjustable source: the
 | Overvoltage trip | SF2 / VREF2 = 0.882 ± 0.01 | | |
 | VOV / VREF2, VUV / VREF2 | 0.882, 0.646 ± 0.01 | | |
 | Match check (14 of K5 open) | KI open, output off | | |
+| Match check, one beside (13-14 of K1 bridged) | MS 4.8 … 5.4 V, KI open | | |
+| Mirror chain (22 of K1 open) | KI open | | |
 | Thermal cut-out open | KI open, output off | | |
 | Restart delay | 7 … 10 s | | |
 | Varistor at 1 mA | 423 … 517 V | | |

@@ -65,7 +65,7 @@ The power terminals X1 … X6 are DIN-rail terminal blocks sized for these cable
 
 - maker, model, size, serial number, year;
 - input 140 … 300 V~ 50 Hz, maximum input current (36 / 71 / 107 A);
-- "Tap changes interrupt the output for about 0.25 s";
+- "Tap changes interrupt the output for about 0.3 s";
 - output 230 V~ ± 10 %, rated power and current;
 - protection class I symbol and IP code;
 - "Autotransformer: the output is not isolated from the mains";
@@ -73,9 +73,13 @@ The power terminals X1 … X6 are DIN-rail terminal blocks sized for these cable
 
 ## 6. Motors and compressors
 
-- **Tap-change gap.** About 0.25 s per change: motors slow down but do not stop; contactors in
+- **Tap-change gap.** About 0.3 s per change (0.25 … 0.4 s): motors slow down but do not stop; contactors in
   the loads (about 20 ms drop-out) may drop out and must restart by themselves or be held by
   their own control. Equipment that cannot tolerate it needs a UPS.
+- **No backfeeding source on the output.** An inverter, a generator or a PV system on the
+  output side would keep the winding live while KI is open, and the tap contactors would then
+  switch current. Connect such sources only on the supply side of the stabiliser, or through a
+  change-over that disconnects the stabiliser.
 - **Restart delay.** About 8.5 s. A refrigeration compressor without its own restart protection
   needs a 3-minute restart-delay relay of its own.
 - **Starting current.** Count about three times the running power of each motor.

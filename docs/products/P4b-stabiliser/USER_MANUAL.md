@@ -39,8 +39,7 @@ Behaviour:
   and the lowest input, the voltage drop in the unit takes up to about 2 %.
 - **Tap changes with a short gap.** Before a tap changes, the input contactor opens; the tap
   contactors change while no current flows, and the input contactor closes again once the unit
-  has checked that exactly the right tap contactor is closed. The load sees a gap of about a
-  quarter of a second. Lamps blink once; most appliances ride through it, but a computer without
+  has checked that exactly the right tap contactor is closed. The load sees a gap of about 0.3 s. Lamps blink once; most appliances ride through it, but a computer without
   a UPS may restart. The tap contactors never switch current, so they do not wear.
 - **Start-up.** At switch-on the unit first measures the input (about 0.8 s), then closes the
   tap and the input contactor, and connects the load through the output contactor after a restart delay of about
@@ -73,7 +72,7 @@ Behaviour:
 |---|---|---|
 | One yellow, green on | normal | nothing |
 | Red for about 1 s, then green after about 8.5 s, at switch-on | start-up and restart delay | wait |
-| Lamps blink once now and then | a tap change (about 0.25 s) | nothing; many changes a day mean a very unsteady grid |
+| Lamps blink once now and then | a tap change (about 0.3 s) | nothing; many changes a day mean a very unsteady grid |
 | Green off, red on, one yellow on, for a long time | the input out of range (below about 124 V or above about 310 V), the transformer too hot (its cut-out open), or a tap contactor that did not follow its command | if the input is normal, call the electrician |
 | Nothing on | no input, the breaker has tripped, or the control's fuse has blown | check the breakers; then the electrician |
 
@@ -116,7 +115,7 @@ All sizes:
 
 | | |
 |---|---|
-| Tap change | 6 steps; the input contactor open for about 0.25 s per change |
+| Tap change | 6 steps; the input contactor open for about 0.3 s per change |
 | Protection window | output 190 … 255 V, else the output contactor opens |
 | Start-up, restart delay | load supplied about 8.5 s after switch-on and after each cut-off |
 | Control supplies | 12 V, 15 W (control); 24 V, 96 W (contactor coils); both 90 … 305 V AC |

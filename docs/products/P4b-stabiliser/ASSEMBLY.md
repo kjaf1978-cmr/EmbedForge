@@ -35,10 +35,15 @@ The DIN-rail parts per size:
 | KI, KM | 2 × LC1D40ABD | 2 × LC1D80BD | 2 × LC1D115BD |
 | PS2 | Mean Well HLG-100H-24 | same | same |
 
-Every contactor has a 24 V DC coil and 1 NO + 1 NC auxiliary contacts that are mechanically linked
-to the main poles (TeSys D built-in auxiliaries). The match check runs about 5 mA through the
-auxiliary contacts: if the chosen maker states a higher minimum for its auxiliaries, fit its
-low-level (gold-plated) auxiliary block.
+Every contactor has a 24 V DC coil and 1 NO + 1 NC built-in auxiliaries (13-14, 21-22); the tap
+contactors and KI also a front-mounted auxiliary block LADN11 (1 NO 43-44 + 1 NC 31-32). The NC
+contacts must be mirror contacts (IEC 60947-4-1 Annex F, stated by the maker for TeSys D): the
+mirror chain relies on them. The checks run about 5 mA through the auxiliaries at 12 or 24 V: if
+the maker states a higher minimum, fit the gold-plated low-level block LADN11P.
+
+**Coil data of the 15 kVA unit (open):** check the LC1D115BD's coil on the data sheet before
+ordering. If it is an electronic coil with a pull-in power above about 60 W, fit a 240 W supply
+(HLG-240H-24) instead of the HLG-100H-24.
 
 The autotransformer is made to specification:
 
@@ -53,6 +58,8 @@ Order it also with:
 - no saturation at 1.1 × rated volts per turn on any tap;
 - class F;
 - the no-load loss and the magnetising current stated;
+- the inrush current at switch-on at the worst phase stated, at most 10 × the rated input current
+  (KI energises the transformer at every tap change; QF1 is D-curve);
 - a thermal cut-out in the winding: NC, opens at 115 °C ± 5 °C, self-resetting, rated 24 V DC 2 A
   (it carries KI's coil current), double-insulated leads;
 - a routine test certificate: insulation 2.5 kV and the ratio of each tap.
@@ -60,8 +67,7 @@ Order it also with:
 ## 2. The board
 
 1. **Fit the parts in order of height** (the assembly drawing): resistors and diodes, ICs,
-   capacitors, trimmers (do not turn them yet: section 4 of the commissioning sets them to the
-   middle first), LEDs, transistors and MOSFETs, bridges, the fuse holders with their ceramic
+   capacitors, trimmers (do not turn them: COMMISSIONING.md 1.4 sets them to their safe end first), LEDs, transistors and MOSFETs, bridges, the fuse holders with their ceramic
    fuses (F1 T 1 A H, F2 T 2 A H, FT5 T 0.5 A H), the supply module PS1, the sense transformers,
    the relays KO and KP (Song Chuan 832A: check which fixed contact is NC on the first one by
    continuity), the terminal blocks and the panel connector.
@@ -80,8 +86,9 @@ Order it also with:
    sides); each K_k's 2-4-6 side → tap k of the transformer; the 230 V tap → QF2 → KM → X4, X5; N
    from QF1 to the transformer's N, to QF2 and to the board's N terminal. Sizes in INSTALLATION.md
    section 3.
-4. **Control wiring** by panel.csv: the coils (A1, A2) of K1 … K7, KI and KM; the NO auxiliaries
-   (13, 14) of K1 … K7; KI's NC auxiliary (21, 22); PS2's input and output; the thermal cut-out
+4. **Control wiring** by panel.csv: the coils (A1, A2) of K1 … K7, KI and KM; the auxiliaries of
+   K1 … K7 (13-14 NO, 21-22 NC in the mirror chain, 43-44 NO of the seal-in) and of KI (21-22 and
+   31-32 NC, 43-44 NO); PS2's input and output; the thermal cut-out
    (XT1, XT2); the board's mains feeds (VIN, N) and the 230 V tap feed of the protection. Every
    wire labelled with its net name at both ends.
 5. **PE** from X3 and X6 to the PE stud; the board's XPE to the stud with one conductor; the

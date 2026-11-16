@@ -277,17 +277,23 @@ independent protection with its relay KP; per size:
   the tap states are clocked once the timer passes VEL **and** KI's NC auxiliary (a mirror contact)
   shows it open; the decoder commands the new tap; the old tap contactor opens, the new one
   closes (about 60 … 100 ms); KI closes once the timer passes VEH **and** the match check holds.
-  The load sees a gap of about 0.25 s (P4: under 0.1 s; these frames close in about 100 ms).
+  The load sees a gap of about 0.3 s (P4: under 0.1 s; these frames close in about 100 ms).
 - **Match check:** each tap contactor's NO auxiliary from its coil's switched end through 2.2k to
   node M (2.2k to 24 V). Exactly the commanded contactor closed puts M at about 12 V (MS about
   3.8 V after the 100k / 47k divider and a 15 ms filter); none closed, a wrong one, one more beside
   it or two commanded give 24, 24, 16 or 8 V. A window comparator (LM393, 3.17 … 4.48 V from the
   12 V rail) is wired into KI's command with the timer. The auxiliary contacts carry about 5 mA at
-  12 V, inside the makers' minimum (17 V, 5 mA for the whole circuit) — confirm on the chosen
-  auxiliary block; a gold-plated low-level auxiliary block is the alternative.
+  24 V; KI's NC loop is loaded to 5 mA at 12 V — the gold-plated low-level block LADN11P where
+  the maker's minimum is not met.
 - **Snubber of the switched input to N,** not across KI: across the open contact it fed the
   winding through 220 nF and it rang up to 380 V (found in simulation; P4 has a 100 nF RC across
   its input contactor: the linear model shows 8 V there, but see the note to the owner).
+- **After the independent review (16 November, `docs/products/P4b-stabiliser/REVIEW.md`):** a
+  seal-in on each tap coil (fed only from KI's second NC, or its own NO once in); a mirror chain
+  (KI's coil through all seven tap NC mirror contacts, each bridged by a MOSFET for the
+  commanded tap); the timer charged through KI's NC; the match window ratiometric to 24 V; the
+  sense held through each change (weak lines); TVS suppressors; D-curve QF1; the protection's
+  overvoltage also opens KI.
 - **No thyristors, aR fuse, heatsink, fan or pair boards;** one control board.
 
 Verified (LONG=1, `tests/stabiliserT.test.ts`): steady state at full load at 140 / 230 / 300 V
