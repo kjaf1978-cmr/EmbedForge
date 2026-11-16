@@ -719,7 +719,10 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         // 10 µF sagged its 24 V output to 17 V at full load: found in simulation)
         { kind: 'C', name: `${ref}_CB`, a: hp, b: hn, c: 10e-6 * Math.max(1, m.pout / 15) },
         { kind: 'R', name: `${ref}_RIN`, a: hp, b: hn, r: (325 * 325) / (m.pout / 0.75) },
-        { kind: 'E', name: `${ref}_ISO`, p: raw, n: g, cp: hp, cn: hn, gain: 0.1 },
+        // the isolated side follows the bulk voltage ÷ 10 (12 V modules); a 24 V module scaled so
+        // it still has 4 V of headroom at its lowest rated input (÷ 10 left a 24 V supply at 18 V
+        // with 154 V in: found in simulation)
+        { kind: 'E', name: `${ref}_ISO`, p: raw, n: g, cp: hp, cn: hn, gain: m.vout > 15 ? (m.vout + 4) / (m.vacMin * Math.SQRT2 * 0.85) : 0.1 },
         { kind: 'V', name: `${ref}_VREF`, p: r, n: g, dc: m.vout },
         { kind: 'G', name: `${ref}_GERR`, p: raw, n: b, cp: r, cn: vo, gm: 0.1 },
         { kind: 'R', name: `${ref}_RBE`, a: b, b: vo, r: 1e4 },

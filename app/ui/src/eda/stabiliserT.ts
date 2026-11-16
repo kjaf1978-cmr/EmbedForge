@@ -183,11 +183,13 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`RLT${k}`, 'resistor', x + 280, 150, { value: '4.7k' }, { '1': `LTA${k}`, '2': kt }, 1)
       .part(`DF${k}`, 'diode', x + 360, 60, { value: '1N4007' }, { '2': 'VTF', '1': `CF${k}` })
       .part(`K${k}`, 'contactor', x + 320, 300, { value: vr.kt, aux2: 'true', opsday: '200', life: '10000000', land: 'A1 A2 13 14 21 22 43 44' },
-        { A1: `CF${k}`, A2: kt, '1': 'VCH', '2': `T${k}`, '3': 'VCH', '4': `T${k}`, '5': 'VCH', '6': `T${k}`, '13': kt, '14': o.welded === k && o.noOpens ? `nc_AX${k}` : `AX${k}`, '21': (k === 1 ? 'KIC' : `KC${k - 1}`), '22': (k === 7 ? 'KID' : `KC${k}`), '43': V24, '44': `CF${k}` })
+        { A1: `CF${k}`, A2: kt, '1': 'VCH', '2': `T${k}`, '3': 'VCH', '4': `T${k}`, '5': 'VCH', '6': `T${k}`, '13': kt, '14': o.welded === k && o.noOpens ? `nc_AX${k}` : `AX${k}`, '21': (k === 1 ? 'KIS' : `KC${k - 1}`), '22': (k === 7 ? 'GND' : `KC${k}`), '43': V24, '44': `CF${k}` })
       .part(`RAX${k}`, 'resistor', x + 320, 420, { value: '2.2k' }, { '1': `AX${k}`, '2': 'M' })
-      .part(`RGB${k}`, 'resistor', x + 120, 480, { value: '1k' }, { '1': `S${k}`, '2': `GB${k}` })
+      .part(`RGB${k}`, 'resistor', x + 120, 480, { value: '10k' }, { '1': `S${k}`, '2': `GB${k}` })
+      // its gate held within −0.7 … +13 V of its source, which floats on the chain
+      .part(`ZGB${k}`, 'zener', x + 260, 600, { value: 'BZX55C13' }, { '1': `GB${k}`, '2': (k === 7 ? 'GND' : `KC${k}`) }, 1)
       .part(`RGE${k}`, 'resistor', x + 60, 560, { value: '100k' }, { '1': `GB${k}`, '2': 'GND' }, 1)
-      .part(`QB${k}`, 'nmos', x + 200, 560, { value: 'IRF540N' }, { '1': `GB${k}`, '2': (k === 1 ? 'KIC' : `KC${k - 1}`), '3': (k === 7 ? 'KID' : `KC${k}`) });
+      .part(`QB${k}`, 'nmos', x + 200, 560, { value: 'IRF540N' }, { '1': `GB${k}`, '2': (k === 1 ? 'KIS' : `KC${k - 1}`), '3': (k === 7 ? 'GND' : `KC${k}`) });
     if (o.welded === k) nb.block('bench').part('RWP', 'resistor', x + 380, 360, { value: '0.002' }, { '1': 'VCH', '2': `T${k}` }).part('RWH', 'resistor', x + 380, 440, { value: '1' }, { '1': kt, '2': 'GND' }).block('taps');
     if (o.driverShorted === k) nb.block('bench').part('RQSH', 'resistor', x + 160, 380, { value: '1' }, { '1': kt, '2': 'GND' }).block('taps');
     if (o.driverShortsAt?.k === k) nb.block('bench')
@@ -245,8 +247,12 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RCLL', 'resistor', 2680, 1880, { value: '2.2k', pmax: '0.25' }, { '1': 'CLKP', '2': 'GND' }, 1)
     .part('USQ4', 'comparator', 2500, 2120, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEH', '1': 'OI', '8': V, '4': 'GND' })
     .part('RPI', 'resistor', 2600, 2160, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
-    .part('RGI', 'resistor', 2680, 2200, { value: '1k' }, { '1': 'OI', '2': 'GI' })
-    .part('QI', 'nmos', 2760, 2280, { value: 'IRF540N' }, { '1': 'GI', '2': 'KID', '3': 'GND' })
+        // KI's driver above the mirror chain (the chain runs to ground): the chain's MOSFETs stay
+    // near ground when QI switches off (below it, the chain rode up with the coil's 62 V and their
+    // gates, driven from ground, saw −50 V: found in simulation); its own gate clamped to its source
+    .part('RGI', 'resistor', 2680, 2200, { value: '10k' }, { '1': 'OI', '2': 'GI' })
+    .part('QI', 'nmos', 2760, 2280, { value: 'IRF540N' }, { '1': 'GI', '2': 'KIC', '3': 'KIS' })
+    .part('ZGI', 'zener', 2680, 2340, { value: 'BZX55C13' }, { '1': 'GI', '2': 'KIS' }, 1)
     .part('DI', 'diode', 2840, 2160, { value: '1N4007' }, { '2': 'KIC', '1': 'DIZ' }, 3)
     .part('DZI', 'tvs', 2840, 2260, { value: '1.5KE27A' }, { '1': 'DIZ', '2': 'V24C' }, 3)
     // the input contactor: it makes and breaks the input current at every tap change (AC-1, about

@@ -73,18 +73,20 @@ describe.runIf(LONG)('contactor-switched stabiliser: sequence and faults (DFMEA 
   for (const [kva, to] of [[5, 215], [15, 215], [5, 245]] as const) it(`${kva} kVA, 230 → ${to} V under full load: no tap contactor makes or breaks current; the gap is under 0.4 s; the output contactor stays in`, () => {
     const s = run({ kva, vin: 230, step: { to: [to], at: 1.5 }, stop: '2.4' });
     for (let k = 1; k <= 7; k++) for (const t of s.cmds(k).filter((t) => t > 1.5)) expect(s.ipole(k, t - 0.005, t + 0.15), `K${k} at ${t.toFixed(3)} s`).toBeLessThan(2);
-    // the gap: the output below 50 V
-    const low = s.x.filter((t, k) => t > 1.5 && Math.abs(s.out[k]) < 50 && Math.abs(s.out[k - 1] ?? 0) < 50);
-    expect(low.length).toBeGreaterThan(0);
-    expect(low[low.length - 1] - low[0]).toBeLessThan(0.4);
+    // the gap: the output's r.m.s. over 10 ms windows below 50 V
+    const lowAt: number[] = [];
+    for (let t = 1.5; t < 2.4; t += 0.01) if (s.rms(s.out, t, t + 0.01) < 50) lowAt.push(t);
+    expect(lowAt.length).toBeGreaterThan(0);
+    expect(lowAt[lowAt.length - 1] + 0.01 - lowAt[0]).toBeLessThan(0.4);
     expect(Math.min(...s.r.v['KMC'].filter((_, k) => s.x[k] > 1.5))).toBeGreaterThan(18);
     const want = (to * 230) / tapFor(to), out = s.rms(s.out, 2.25);
     expect(out).toBeGreaterThan(want * 0.97);
     expect(out).toBeLessThan(want * 1.02);
   }, 1_200_000);
-  it('a sag from 230 to 195 V: two taps down, the output recovers', () => {
-    const s = run({ kva: 5, vin: 230, step: { to: [195], at: 1.5 }, stop: '2.6' });
-    const out = s.rms(s.out, 2.45), want = (195 * 230) / 190;
+  it('a sag from 230 to 195 V: two taps down (one change after the other), the output recovers', () => {
+    // two changes: the second after the sense hold of the first (about 1 s after KI recloses)
+    const s = run({ kva: 5, vin: 230, step: { to: [195], at: 1.5 }, stop: '4' });
+    const out = s.rms(s.out, 3.8), want = (195 * 230) / 190;
     expect(out).toBeGreaterThan(want * 0.97);
     expect(out).toBeLessThan(want * 1.02);
   }, 1_200_000);
@@ -103,7 +105,8 @@ describe.runIf(LONG)('contactor-switched stabiliser: sequence and faults (DFMEA 
   }, 1_200_000);
   it('the coil driver of K1 shorts while running on tap 5: K1 cannot pull in while KI is closed (seal-in), the output carries on', () => {
     const s = run({ kva: 5, vin: 230, driverShortsAt: { k: 1, at: 1.5 }, stop: '2.2' });
-    expect(Math.max(...s.r.v['CF1'].filter((_, k) => s.x[k] > 1.5).map(Math.abs))).toBeLessThan(3);
+    // no current in K1's coil once its driver has shorted (its feed is open while KI is closed)
+    expect(Math.max(...s.r.i['K1.A1'].filter((_, k) => s.x[k] > 1.52).map(Math.abs))).toBeLessThan(0.02);
     expect(s.ipole(1, 1.5, 2.2)).toBeLessThan(1);
     const out = s.rms(s.out, 2.0);
     expect(out).toBeGreaterThan(220);
