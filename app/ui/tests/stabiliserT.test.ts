@@ -73,11 +73,12 @@ describe.runIf(LONG)('contactor-switched stabiliser: sequence and faults (DFMEA 
   for (const [kva, to] of [[5, 215], [15, 215], [5, 245]] as const) it(`${kva} kVA, 230 → ${to} V under full load: no tap contactor makes or breaks current; the gap is under 0.4 s; the output contactor stays in`, () => {
     const s = run({ kva, vin: 230, step: { to: [to], at: 1.5 }, stop: '2.4' });
     for (let k = 1; k <= 7; k++) for (const t of s.cmds(k).filter((t) => t > 1.5)) expect(s.ipole(k, t - 0.005, t + 0.15), `K${k} at ${t.toFixed(3)} s`).toBeLessThan(2);
-    // the gap: the output's r.m.s. over 10 ms windows below 50 V
+    // the gap: the output's r.m.s. over one cycle (20 ms, the stored waveform is thinned) below
+    // 50 V; the windows step by 10 ms
     const lowAt: number[] = [];
-    for (let t = 1.5; t < 2.4; t += 0.01) if (s.rms(s.out, t, t + 0.01) < 50) lowAt.push(t);
+    for (let t = 1.5; t < 2.37; t += 0.01) if (s.rms(s.out, t, t + 0.02) < 50) lowAt.push(t);
     expect(lowAt.length).toBeGreaterThan(0);
-    expect(lowAt[lowAt.length - 1] + 0.01 - lowAt[0]).toBeLessThan(0.4);
+    expect(lowAt[lowAt.length - 1] + 0.02 - lowAt[0]).toBeLessThan(0.4);
     expect(Math.min(...s.r.v['KMC'].filter((_, k) => s.x[k] > 1.5))).toBeGreaterThan(18);
     const want = (to * 230) / tapFor(to), out = s.rms(s.out, 2.25);
     expect(out).toBeGreaterThan(want * 0.97);
@@ -93,20 +94,21 @@ describe.runIf(LONG)('contactor-switched stabiliser: sequence and faults (DFMEA 
   it('tap contactor K5 welded (held in), 230 → 215 V: KI never closes onto two taps; the output opens (FAULT)', () => {
     const s = run({ kva: 5, vin: 230, welded: 5, step: { to: [215], at: 1.5 }, stop: '2.6' });
     // K4 is commanded, K5 stays closed: KI's coil stays off after the change
-    const ki = s.r.v['KIC'].filter((_, k) => s.x[k] > 1.7);
-    expect(Math.min(...ki)).toBeGreaterThan(18);
+    // KI's coil carries no current after the change (its driver is above the mirror chain, so its
+    // low end floats when the chain is open: the current, not that voltage)
+    expect(Math.max(...s.r.i[`${s.nb.refOf(s.sheet, 'KI')}.A1`].filter((_, k) => s.x[k] > 1.75).map(Math.abs))).toBeLessThan(0.05);
     expect(Math.max(...s.r.i['K4.1'].filter((_, k) => s.x[k] > 1.7).map(Math.abs))).toBeLessThan(2);
     expect(s.rms(s.out, 2.4)).toBeLessThan(10);
   }, 1_200_000);
   it('tap contactor K5 welded and its NO auxiliary open all the same (only the NC is a mirror contact), 230 → 215 V: the match check sees only K4, the mirror chain keeps KI open', () => {
     const s = run({ kva: 5, vin: 230, welded: 5, noOpens: true, step: { to: [215], at: 1.5 }, stop: '2.4' });
-    expect(Math.min(...s.r.v['KIC'].filter((_, k) => s.x[k] > 1.7))).toBeGreaterThan(18);
+    expect(Math.max(...s.r.i[`${s.nb.refOf(s.sheet, 'KI')}.A1`].filter((_, k) => s.x[k] > 1.75).map(Math.abs))).toBeLessThan(0.05);
     expect(s.rms(s.out, 2.2)).toBeLessThan(10);
   }, 1_200_000);
   it('the coil driver of K1 shorts while running on tap 5: K1 cannot pull in while KI is closed (seal-in), the output carries on', () => {
     const s = run({ kva: 5, vin: 230, driverShortsAt: { k: 1, at: 1.5 }, stop: '2.2' });
     // no current in K1's coil once its driver has shorted (its feed is open while KI is closed)
-    expect(Math.max(...s.r.i['K1.A1'].filter((_, k) => s.x[k] > 1.52).map(Math.abs))).toBeLessThan(0.02);
+    expect(Math.max(...s.r.i[`${s.nb.refOf(s.sheet, 'K1')}.A1`].filter((_, k) => s.x[k] > 1.52).map(Math.abs))).toBeLessThan(0.02);
     expect(s.ipole(1, 1.5, 2.2)).toBeLessThan(1);
     const out = s.rms(s.out, 2.0);
     expect(out).toBeGreaterThan(220);
@@ -121,7 +123,7 @@ describe.runIf(LONG)('contactor-switched stabiliser: sequence and faults (DFMEA 
   }, 1_200_000);
   it('the coil driver of K1 shorted (K1 always closed) at 230 V: KI never closes, the output stays off', () => {
     const s = run({ kva: 5, vin: 230, driverShorted: 1, stop: '1.8' });
-    expect(Math.min(...s.r.v['KIC'].filter((_, k) => s.x[k] > 0.1))).toBeGreaterThan(18);
+    expect(Math.max(...s.r.i[`${s.nb.refOf(s.sheet, 'KI')}.A1`].filter((_, k) => s.x[k] > 0.1).map(Math.abs))).toBeLessThan(0.05);
     expect(Math.max(...s.out.map(Math.abs))).toBeLessThan(10);
   }, 1_200_000);
   it('the output relay\'s driver shorted (KO on from power-up), input raised to 330 V: the protection\'s own relay KP opens the output', () => {
