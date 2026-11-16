@@ -1,19 +1,20 @@
-// P4b (D27, D41): mains voltage stabilisers for 5, 10 and 15 kVA whose taps are switched by
-// anti-parallel thyristors at the current zero, not by relays: no contact wear, no interruption
-// beyond a fraction of a millisecond per tap change, and never two taps at once.
+// P4b (D27, D58): mains voltage stabilisers for 5, 10 and 15 kVA, step type, as the 1 kVA unit
+// (P4): the input feeds one tap of a tapped autotransformer, the output is taken from its 230 V
+// tap. D58 (revising D41, thyristor taps, after its independent review) switches the taps with
+// contactors that never make or break current: an input contactor KI opens for every tap change,
+// the tap contactors change while it is open, and it closes again only when exactly the commanded
+// tap contactor is closed and no other.
 //
-// The rule that makes the thyristors safe: a thyristor pair keeps conducting until its current
-// passes zero, whatever its gate. So a tap change is a break-before-make in three steps: (1) the
-// wanted tap (the comparators, latched input states O1 … O6) differs from the latched one: CHG
-// goes high and every gate is taken off; (2) every pair blocks: each pair's voltage lights the LED
-// of its own optocoupler (through a bridge, above about 25 V either way), and the seven
-// phototransistors in series pull OFFN low only when all seven block, for 0.15 ms; (3) the latch
-// takes the new states, CHG falls and the new pair's gate comes on. A pair that has failed short
-// never shows a voltage, so step 2 never comes: the unit stays on that tap and never closes a
-// second one onto it (a short of a winding section); after 0.12 s the stuck-change protection
-// opens the output. (A window on the input current, the first design, could not tell a pair that
-// had stopped from a slow zero crossing: with a shorted pair it fired a second tap and 1.5 kA
-// flowed in the section, found in simulation.)
+// What makes two taps at once impossible with a single fault: P4's tap relays form a chain of
+// changeover contacts, so one tap at most is connected by construction. Large contactors have no
+// changeover power poles, so here the check is made on their auxiliary contacts (mechanically
+// linked to the main poles: a welded pole keeps its NO auxiliary closed). Each tap contactor's NO
+// auxiliary joins its coil's switched end (0 V when commanded, 24 V when not) through 2.2k to the
+// node M, pulled up to 24 V through 2.2k: M sits at half the supply only when exactly the
+// commanded contactor is closed; none closed, a welded or slow one beside it, two commanded (a
+// decoder fault) or a wrong one give 24, 16, 8 or 24 V. A window on M is in the input contactor's
+// command. A tap change also waits for KI's own NC auxiliary (a mirror contact): the tap states are
+// clocked only once KI has opened.
 
 import { NB, SENSE_TR400, STAB_LADDER, type MainsStep } from './powerExamples';
 import type { Sheet } from './schematic';
@@ -23,39 +24,43 @@ export interface StabTOptions {
   /** Input r.m.s. voltage and a step of it during the run. */
   vin?: number; step?: MainsStep;
   stop?: string;
-  /** Tests: the restart delay's capacitor (product 4.7 µF: about 7.6 s). */
+  /** Tests: the restart delay's capacitor (product 4.7 µF: about 7.6 s); the power-good
+   *  capacitor follows it (220 nF instead of 470 nF when set). */
   delayC?: string;
   /** The test load: its power factor (1: resistive; below 1: R and L in series), its share of
    *  the rating (1: full load), or none. */
   pf?: number; share?: number; noLoad?: boolean;
-  /** Tests (DFMEA): the thyristor pair of tap k (1 … 7) failed short. */
-  shorted?: number;
-  /** Tests: the heatsink's temperature at its NTC (°C); its NTC open. */
-  theatsink?: number; ntcOpen?: boolean;
-  /** Tests (DFMEA): the gate driver of tap k shorted (its LED always on with the gates enabled). */
+  /** Tests (DFMEA): the tap contactor k (1 … 7) welded (its main pole and its NO auxiliary stay
+   *  closed). */
+  welded?: number;
+  /** Tests (DFMEA): the coil driver of tap k shorted (its contactor always closed). */
   driverShorted?: number;
   /** Tests (DFMEA): the output relay's driver shorted (KO closed from power-up). */
   koShorted?: boolean;
+  /** Tests: the autotransformer's thermal cut-out open. */
+  hot?: boolean;
 }
 
-/** Per rating: autotransformer, input breaker, aR fuse, output contactor, thyristor modules (D55:
- *  isolated base, two thyristors wired anti-parallel), the opto-triac's gate resistors, the
- *  heatsink per thyristor (K/W: half the fan-cooled shared heatsink plus the module's case to
- *  sink, D56; only the selected pair conducts), wire sizes (mm², PVC copper, IEC 60364-5-52
- *  method C at 30 °C, to be derated for the enclosure). The input current at the lowest input
- *  (140 V) is 36, 71 and 107 A; each thyristor of the conducting pair carries half of it. */
+/** Per rating: autotransformer, input breaker QF1, output breaker QF2, the tap contactors (24 V DC
+ *  coil; they only carry current, never make or break it: their three poles in parallel, AC-1
+ *  40 / 60 / 80 A × 2.25 (the makers' factor for three poles) = 90 / 135 / 180 A for at most
+ *  36 / 71 / 107 A, the lowest tap at 140 V in), the input and output contactors (24 V DC coil,
+ *  one pole for KI: it makes and breaks the input current at every tap change, AC-1 60 / 125 /
+ *  200 A for 36 / 71 / 107 A, about 0.55 of its rating; KM switches L and N of the output, 22 /
+ *  43 / 65 A), wire sizes (mm², PVC copper, IEC 60364-5-52 method C at 30 °C, to be derated for
+ *  the enclosure). */
 export const STABT_VARIANTS = {
-  5: { at: '5 kVA 230 V, taps 150–280 V', qf: '40', far: '50', km: '32 A, coil 200–277 V AC/DC', scr: 'SKKT 106/16E', rg: '470', heatsink: '1.0', win: '6', wout: '6', wpe: '6' },
-  10: { at: '10 kVA 230 V, taps 150–280 V', qf: '80', far: '100', km: '65 A, coil 200–277 V AC/DC', scr: 'SKKT 106/16E', rg: '470', heatsink: '0.6', win: '16', wout: '16', wpe: '16' },
-  15: { at: '15 kVA 230 V, taps 150–280 V', qf: '125', far: '160', km: '95 A, coil 200–277 V AC/DC', scr: 'SKKT 162/16E', rg: '470', heatsink: '0.4', win: '35', wout: '25', wpe: '16' },
+  5: { at: '5 kVA 230 V, taps 150–280 V', qf: '40', qfo: '25', kt: '25 A, coil 24 V DC', ki: '40 A, coil 24 V DC', win: '6', wout: '6', wpe: '6' },
+  10: { at: '10 kVA 230 V, taps 150–280 V', qf: '80', qfo: '50', kt: '40 A, coil 24 V DC', ki: '80 A, coil 24 V DC', win: '16', wout: '16', wpe: '16' },
+  15: { at: '15 kVA 230 V, taps 150–280 V', qf: '125', qfo: '80', kt: '50 A, coil 24 V DC', ki: '115 A, coil 24 V DC', win: '35', wout: '25', wpe: '16' },
 } as const;
 
 export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   const kva = o.kva ?? 5, vr = STABT_VARIANTS[kva], vin = o.vin ?? 230;
-  const nb = new NB().wireUp(['+12V']);
-  const V = '+12V';
-  nb.para(`MAINS VOLTAGE STABILISER ${kva} kVA, thyristor-switched taps (D41). The input is connected to one tap of a ${kva} kVA autotransformer (150 … 280 V) by one of seven anti-parallel thyristor pairs; the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in.`, -1250, -380)
-    .para('A tap change is a break-before-make at the current zero: all gates off, every pair blocking (a voltage across each, seen by its own optocoupler) for 0.15 ms, then the latch takes the new tap and its pair fires (opto-triac). A shorted pair never blocks, so no second tap ever closes onto it; the stuck-change protection then opens the output contactor. LM339 comparators against a TL431 ladder choose the tap (160 / 180 / 200 / 220 / 240 / 265 V); the output contactor closes after about 8 s; an independent protection opens it outside 190 … 255 V, on a stuck change, above 70 °C at the heatsink (or an open NTC), and through its own relay KP in the coil feed of the contactor. A priority decoder lights one tap at most whatever input sticks; a second lit gate LED (their common current) takes every gate off. The thermal cut-out in the winding takes the gates and the coils off. The control is treated as live (no PELV claim); its 0 V is bonded to PE at the PE stud.', -50, -380);
+  const nb = new NB().wireUp(['+12V', '+24V']);
+  const V = '+12V', V24 = '+24V';
+  nb.para(`MAINS VOLTAGE STABILISER ${kva} kVA, contactor-switched taps (D58). The input is connected to one tap of a ${kva} kVA autotransformer (150 … 280 V) by one of seven tap contactors, through the input contactor KI; the output is taken from its 230 V tap: V_out = V_in·230/tap, within about ±6 % for 140 … 300 V in.`, -1250, -380)
+    .para('A tap change never makes or breaks current at a tap: KI opens, the tap states are taken over once its NC auxiliary shows it open, the tap contactors change, and KI closes only when exactly the commanded tap contactor is closed (their NO auxiliaries against their coil commands: a welded, slow or second contactor keeps KI open). LM339 comparators against a TL431 ladder choose the tap (160 / 180 / 200 / 220 / 240 / 265 V, about 5 V of hysteresis); a priority decoder commands one tap at most. The output contactor KM closes after about 8 s; an independent protection opens it outside 190 … 255 V through its own relay KP. The thermal cut-out in the winding opens KI. The control is treated as live (no PELV claim); its 0 V is bonded to PE at the PE stud.', -50, -380);
 
   // ---- test bench: the supply (TN, neutral earthed at the transformer) — not part of the product
   nb.block('bench').note('TEST BENCH (not part of the product): mains supply with its neutral earthed at the transformer', -1250, -60);
@@ -64,21 +69,25 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
   nb.part('RE', 'resistor', -1050, 300, { value: '0.1' }, { '1': 'N_IN', '2': 'GND' }, 1);
 
   // ---- input: terminals (DIN-rail blocks sized for the input current), a 2-pole breaker (fixed
-  // wiring only), the thermally protected surge arrester, the thyristors' aR fuse (D55)
+  // wiring only), the thermally protected surge arrester
   nb.block('in')
     .part('X1', 'terminal', -900, 70, { value: 'L in', wire: vr.win }, { '1': 'L_IN' })
     .part('X2', 'terminal', -900, 130, { value: 'N in', wire: vr.win }, { '1': 'N_IN' })
     .part('X3', 'terminal', -900, 190, { value: 'PE', wire: vr.wpe }, { '1': 'GND' })
     .part('QF1', 'breaker2', -760, 70, { value: vr.qf, curve: 'C' }, { '1': 'L_IN', '2': 'VIN', N1: 'N_IN', N2: 'N' }, 3)
-    .part('RV1', 'mov', -640, 100, { value: 'TMOV14RP300E' }, { '1': 'VIN', '2': 'N' }, 1)
-    .part('FAR', 'fuse', -640, 0, { value: vr.far, r: '0.0005', fusetype: 'aR', wire: vr.win }, { '1': 'VIN', '2': 'VSW' });
+    .part('RV1', 'mov', -640, 100, { value: 'TMOV14RP300E' }, { '1': 'VIN', '2': 'N' }, 1);
 
-  // ---- 12 V control supply (D52, as the 1 kVA unit): a wide-range AC-DC module behind a ceramic
-  // fuse; the board's mains entry is fused for its tracks (1.5 kA breaking behind the large breaker)
+  // ---- control supplies from the input (before KI): 12 V for the control (D52, as the 1 kVA
+  // unit) and 24 V for the contactor coils (about 22 W each; four at most at once: a tap, KI, KM
+  // and, during a change, the next tap), both for 90 … 305 V AC, behind ceramic fuses (1.5 kA
+  // breaking behind the large breaker); the 24 V supply is a potted panel unit with leads
   nb.block('aux')
     .part('F1', 'fuse', -840, 400, { value: '1', r: '0.15', fusetype: 'H' }, { '1': 'VIN', '2': 'VF' })
     .part('PS1', 'acdc', -600, 420, { value: 'IRM-15-12' }, { L: 'VF', N: 'N', '+V': V, '-V': 'GND' })
-    .part('C6', 'capacitor_pol', -200, 440, { value: '100u', vmax: '25' }, { '1': V, '2': 'GND' }, 1);
+    .part('C6', 'capacitor_pol', -200, 440, { value: '100u', vmax: '25' }, { '1': V, '2': 'GND' }, 1)
+    .part('F2', 'fuse', -840, 560, { value: '2', r: '0.08', fusetype: 'H' }, { '1': 'VIN', '2': 'VF2' })
+    .part('PS2', 'acdc', -600, 580, { value: 'HLG-100H-24' }, { L: 'VF2', N: 'N', '+V': V24, '-V': 'GND' })
+    .part('C7', 'capacitor_pol', -200, 600, { value: '470u', vmax: '35' }, { '1': V24, '2': 'GND' }, 1);
 
   // ---- input sense (as the 1 kVA unit): a 400 V / 24 V transformer on the fused feed, bridge,
   // divider with a 25-turn trimmer (set at commissioning), mean (47 ms)
@@ -94,250 +103,212 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
     .part('R3', 'resistor', -560, 750, { value: '100k' }, { '1': 'SENSE', '2': 'SF' })
     .part('C2', 'capacitor', -490, 820, { value: '470n', vmax: '50' }, { '1': 'SF', '2': 'GND' }, 1);
 
-  // ---- reference and threshold ladder
+  // ---- reference and threshold ladder (as the 1 kVA unit)
   nb.block('ref')
     .part('R4', 'resistor', -1100, 1110, { value: '2.2k' }, { '1': V, '2': 'VREF' })
     .part('U1REF', 'tl431', -1000, 1200, { value: 'TL431' }, { '1': 'VREF', '2': 'GND', '3': 'VREF' }, 3);
   const lad = ['GND', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'VREF'];
   STAB_LADDER.forEach((r, k) => nb.part(`RL${k + 1}`, 'resistor', -880 + 90 * k, 1270, { value: r }, { '1': lad[k], '2': lad[k + 1] }));
 
-  // ---- the wanted tap: O_k high while the input is below threshold k (1 M of hysteresis)
+  // ---- the wanted tap: O_k high while the input is below threshold k; the hysteresis as the
+  // 1 kVA unit (2 MΩ from the output, which swings the whole rail: about 5 V of input per step,
+  // the thresholds where the ladder puts them); each output into the change detector (SUM)
   nb.block('compare');
   for (let k = 0; k < 6; k++) {
-    const n = k + 1, x = 200 * k;
+    const n = k + 1, x = 300 * k;
     nb.part(`UC${n}`, 'comparator', x, 1150, { value: 'LM339', pkg: k < 4 ? 'CMP1' : 'CMP2' }, { '3': `N${n}`, '2': 'SF', '1': `O${n}`, '8': V, '4': 'GND' })
-      .part(`RF${n}`, 'resistor', x, 1060, { value: '1M' }, { '1': `N${n}`, '2': `O${n}` })
-      .part(`RP${n}`, 'resistor', x + 90, 1090, { value: '2.2k' }, { '1': V, '2': `O${n}` }, 1);
+      .part(`RF${n}`, 'resistor', x, 1060, { value: '1M' }, { '1': `N${n}`, '2': `NF${n}` })
+      .part(`RG${n}`, 'resistor', x + 60, 1030, { value: '1M' }, { '1': `NF${n}`, '2': `O${n}` })
+      .part(`RP${n}`, 'resistor', x + 90, 1090, { value: '2.2k' }, { '1': V, '2': `O${n}` }, 1)
+      .part(`RSU${n}`, 'resistor', x + 150, 1150, { value: '100k' }, { '1': `O${n}`, '2': 'SUM' });
   }
-  nb.part('CD1', 'capacitor', 1250, 1150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+  nb.part('CD1', 'capacitor', 1850, 1150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  // ---- all pairs blocking: OFFN low (the seven phototransistors in series, 47k pull-up) → ALLOFF
-  // (a NOR as inverter) → ALLOFFD after 0.15 ms (10k, 22 nF; it falls at once through 1k)
-  nb.block('all off')
-    .part('ROFF', 'resistor', -400, 1420, { value: '47k' }, { '1': V, '2': 'OFFN' }, 1)
-    .part('UN8', 'xor2', -250, 1500, { value: V, pkg: 'XR2' }, { '1': 'OFFN', '2': V, '3': 'ALLOFF' })
-    .part('RZD', 'resistor', -100, 1500, { value: '10k' }, { '1': 'ALLOFF', '2': 'ZWD' })
-    .part('CZD', 'capacitor', 0, 1580, { value: '22n', vmax: '50' }, { '1': 'ZWD', '2': 'GND' }, 1)
-    .part('DZD', 'diode', -40, 1420, { value: '1N4148' }, { '2': 'ZWD', '1': 'ZDK' })
-    .part('RZK', 'resistor', 60, 1420, { value: '1k' }, { '1': 'ZDK', '2': 'ALLOFF' });
-
-  // ---- the latch (three CD4013), the change detector (six XOR, a diode OR), the clock CK =
-  // CHG · ZWD, the priority decoder and the gates. The decoder lights the lowest tap whose latched
-  // state is high and none other, whatever input sticks: B_k (some tap below k wanted) is an OR
-  // chain (CD4071), tap k = LO_k and not B_k (NOR), tap 7 = none (found in the P4b audit: the
-  // first decoder, tap k = LO_k and not LO_k−1, lit two taps when one input stuck)
+  // ---- the latch (three CD4013, clocked by CLK only while KI is open) and the priority decoder:
+  // it commands the lowest tap whose latched state is high and none other, whatever input sticks
+  // (B_k: some tap below k wanted, an OR chain; tap k = LO_k and not B_k; tap 7 = none)
   nb.block('logic');
   for (let k = 1; k <= 6; k++) {
     const x = 500 + 160 * (k - 1);
-    nb.part(`UL${k}`, 'dff', x, 1450, { value: V, pkg: `LT${Math.ceil(k / 2)}` }, { '1': `O${k}`, '2': 'CK', '3': `LO${k}`, '4': `LN${k}` })
-      .part(`UX${k}`, 'xor2', x, 1650, { value: V, pkg: k <= 4 ? 'XR1' : 'XR2' }, { '1': `O${k}`, '2': `LO${k}`, '3': `XC${k}` })
-      .part(`DX${k}`, 'diode', x + 60, 1750, { value: '1N4148' }, { '2': `XC${k}`, '1': 'CHG' }, 1)
-      .part(`UN${k}`, 'nor2', x, 1850, { value: V, pkg: k <= 4 ? 'NR1' : 'NR2' }, { '1': `LN${k}`, '2': k === 1 ? 'GND' : k === 2 ? 'LO1' : `B${k}`, '3': `S${k}` });
-    if (k >= 3) nb.part(`UB${k}`, 'or2', x, 1950, { value: V, pkg: 'OR1' }, { '1': k === 3 ? 'LO1' : `B${k - 1}`, '2': `LO${k - 1}`, '3': `B${k}` });
+    nb.part(`UL${k}`, 'dff', x, 1450, { value: V, pkg: `LT${Math.ceil(k / 2)}` }, { '1': `O${k}`, '2': 'CLK', '3': `LO${k}`, '4': `LN${k}` })
+      .part(`UN${k}`, 'nor2', x, 1650, { value: V, pkg: k <= 4 ? 'NR1' : 'NR2' }, { '1': `LN${k}`, '2': k === 1 ? 'GND' : k === 2 ? 'LO1' : `B${k}`, '3': `S${k}` });
+    if (k >= 3) nb.part(`UB${k}`, 'or2', x, 1850, { value: V, pkg: 'OR1' }, { '1': k === 3 ? 'LO1' : `B${k - 1}`, '2': `LO${k - 1}`, '3': `B${k}` });
   }
-  nb.part('UN9', 'nor2', 1500, 1950, { value: V, pkg: 'NR2' }, { '1': 'B6', '2': 'LO6', '3': 'S7' })
-    // the spare NOR: inputs to ground
-    .part('UNS', 'nor2', 1650, 1950, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'nc_NSP' })
-    .part('RCH', 'resistor', 1500, 1750, { value: '100k' }, { '1': 'CHG', '2': 'GND' }, 1)
-    .part('UN7', 'xor2', 1500, 1650, { value: V, pkg: 'XR2' }, { '1': 'CHG', '2': V, '3': 'NCHG' })
-    .part('UCK', 'and2', 1500, 1450, { value: V, pkg: 'AN2' }, { '1': 'CHG', '2': 'ZWD', '3': 'CK' })
+  nb.part('UN7', 'nor2', 1500, 1650, { value: V, pkg: 'NR2' }, { '1': 'B6', '2': 'LO6', '3': 'S7' })
+    // the spare NOR and the spare OR: inputs to ground
+    .part('UNS', 'nor2', 1650, 1650, { value: V, pkg: 'NR2' }, { '1': 'GND', '2': 'GND', '3': 'nc_NSP' })
     .part('CD2', 'capacitor', 1650, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD3', 'capacitor', 1750, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  // ---- per tap: the gate (S_k · NCHG), its driver, the opto-triac (LED and a yellow indicator
-  // in series, 13 mA) and the thyristor pair between the input and tap k with its snubber.
-  // The opto-triac fires whichever thyristor is forward biased: VIN → RA → MT2–MT1 → DA → gate
-  // of QA (cathode at the tap), or tap → RB → MT1–MT2 → DB → gate of QB (cathode at the input).
-  // RA/RB: 470 Ω keep the opto-triac (FOD4218, 800 V) within its 1 A peak when it fires at up to
-  // 470 V (300 V in on the highest tap: with 330 Ω and a 600 V MOC3052 both ratings were exceeded,
-  // found in simulation).
+  // ---- per tap: the coil driver (a logic-level gate from the decoder), the contactor's coil with
+  // its suppressor (a diode and a 24 V Zener: it opens in a few tens of ms), an indicator, and the
+  // NO auxiliary into the match node M. The three main poles, in parallel, join the switched
+  // input VCH to tap k
   nb.block('taps');
   for (let k = 1; k <= 7; k++) {
-    const x = 400 * (k - 1), t = `T${k}`, s = `S${k}`, sw = `SW${k}`, tk = `TK${k}`;
-    nb.part(`UG${k}`, 'and2', x, 150, { value: V, pkg: k <= 4 ? 'AN1' : 'AN2' }, { '1': s, '2': 'NCHG', '3': `G${k}` })
-      .part(`RBG${k}`, 'resistor', x + 80, 150, { value: '10k' }, { '1': `G${k}`, '2': `BG${k}` })
-      .part(`QG${k}`, 'npn', x + 160, 230, { value: 'BC547B' }, { '1': `BG${k}`, '2': `LK${k}`, '3': 'EG' })
-      // the pair board's two mains entries, each fused for its tracks (ceramic, 1.5 kA)
-      .part(`FA${k}`, 'fuse', x + 440, 20, { value: '0.5', r: '0.6', fusetype: 'H' }, { '1': 'VSW', '2': sw })
-      .part(`FB${k}`, 'fuse', x + 440, 220, { value: '0.5', r: '0.6', fusetype: 'H' }, { '1': t, '2': tk })
-      .part(`RLD${k}`, 'resistor', x + 160, -20, { value: '680' }, { '1': V, '2': `LY${k}` }, 1)
-      .part(`LT${k}`, 'led', x + 160, 60, { colour: 'yellow' }, { '2': `LY${k}`, '1': `LO${k}A` }, 1)
-      .part(`UO${k}`, 'optotriac', x + 260, 120, { value: 'FOD4218' }, { '1': `LO${k}A`, '2': `LK${k}`, '6': `XA${k}`, '4': `YB${k}` })
-      .part(`RA${k}`, 'resistor', x + 360, 20, { value: vr.rg, pmax: '0.5' }, { '1': sw, '2': `XA${k}` })
-      .part(`RB${k}`, 'resistor', x + 360, 220, { value: vr.rg, pmax: '0.5' }, { '1': tk, '2': `YB${k}` })
-      .part(`DA${k}`, 'diode', x + 300, 300, { value: '1N4007' }, { '2': `YB${k}`, '1': `GA${k}` })
-      .part(`DB${k}`, 'diode', x + 300, -60, { value: '1N4007' }, { '2': `XA${k}`, '1': `GB${k}` })
-      // the module's two thyristors (one package: pkg), anti-parallel between the fused input and tap k
-      .part(`QA${k}`, 'scr', x + 200, 400, { value: vr.scr, heatsink: vr.heatsink, pkg: `M${k}` }, { '1': 'VSW', '2': t, '3': `GA${k}` })
-      .part(`QB${k}`, 'scr', x + 200, 520, { value: vr.scr, heatsink: vr.heatsink, pkg: `M${k}` }, { '1': t, '2': 'VSW', '3': `GB${k}` })
-      .part(`RGA${k}`, 'resistor', x + 320, 400, { value: '1k' }, { '1': `GA${k}`, '2': tk })
-      .part(`RGB${k}`, 'resistor', x + 320, 520, { value: '1k' }, { '1': `GB${k}`, '2': sw })
-      // the pair's voltage: 2 × 22k 1 W (0.54 W each at 300 V in), a bridge and the LED of US_k (on above about 25 V)
-      .part(`RVA${k}`, 'resistor', x + 20, 820, { value: '22k', pmax: '1' }, { '1': sw, '2': `VSA${k}` })
-      .part(`RVB${k}`, 'resistor', x + 20, 920, { value: '22k', pmax: '1' }, { '1': tk, '2': `VSB${k}` })
-      .part(`BV${k}`, 'bridge', x + 140, 860, { value: 'DB107' }, { '1': `VSA${k}`, '2': `VSB${k}`, '3': `VSP${k}`, '4': `VSN${k}` })
-      .part(`US${k}`, 'opto', x + 260, 860, { value: 'PC817' }, { '1': `VSP${k}`, '2': `VSN${k}`, '4': k === 1 ? 'OFFN' : `OC${k - 1}`, '3': k === 7 ? 'GND' : `OC${k}` })
-      .part(`RSN${k}`, 'resistor', x + 100, 620, { value: '47', pmax: '2' }, { '1': sw, '2': `SNB${k}` }, 1)
-      .part(`CSN${k}`, 'capacitor', x + 100, 720, { value: '100n', vmax: '1000' }, { '1': `SNB${k}`, '2': tk }, 1);
-    if (o.shorted === k) nb.block('bench').part('RSHORT', 'resistor', x + 200, 620, { value: '0.005' }, { '1': 'VSW', '2': t }).block('taps');
-    if (o.driverShorted === k) nb.block('bench').part('RQSH', 'resistor', x + 220, 230, { value: '1' }, { '1': `LK${k}`, '2': 'EG' }).block('taps');
+    const x = 400 * (k - 1), kt = `KT${k}`;
+    nb.part(`RGT${k}`, 'resistor', x, 150, { value: '1k' }, { '1': `S${k}`, '2': `GT${k}` })
+      .part(`RGD${k}`, 'resistor', x + 60, 240, { value: '100k' }, { '1': `GT${k}`, '2': 'GND' }, 1)
+      .part(`QT${k}`, 'nmos', x + 120, 300, { value: 'IRF540N' }, { '1': `GT${k}`, '2': kt, '3': 'GND' })
+      .part(`DT${k}`, 'diode', x + 200, 120, { value: '1N4007' }, { '2': kt, '1': `DZT${k}` }, 3)
+      .part(`ZT${k}`, 'zener', x + 200, 220, { value: 'BZX85C24' }, { '1': `DZT${k}`, '2': V24 }, 3)
+      .part(`LT${k}`, 'led', x + 280, 60, { colour: 'yellow' }, { '2': V24, '1': `LTA${k}` }, 1)
+      .part(`RLT${k}`, 'resistor', x + 280, 150, { value: '4.7k' }, { '1': `LTA${k}`, '2': kt }, 1)
+      .part(`K${k}`, 'contactor', x + 320, 300, { value: vr.kt, opsday: '200', life: '10000000', land: 'A1 A2 13 14' }, { A1: V24, A2: kt, '1': 'VCH', '2': `T${k}`, '3': 'VCH', '4': `T${k}`, '5': 'VCH', '6': `T${k}`, '13': kt, '14': `AX${k}` })
+      .part(`RAX${k}`, 'resistor', x + 320, 420, { value: '2.2k' }, { '1': `AX${k}`, '2': 'M' });
+    if (o.welded === k) nb.block('bench').part('RWP', 'resistor', x + 380, 360, { value: '0.002' }, { '1': 'VCH', '2': `T${k}` }).part('RWX', 'resistor', x + 380, 440, { value: '1' }, { '1': kt, '2': `AX${k}` }).block('taps');
+    if (o.driverShorted === k) nb.block('bench').part('RQSH', 'resistor', x + 160, 380, { value: '1' }, { '1': kt, '2': 'GND' }).block('taps');
   }
-  // power-up hold: the drivers' emitters reach ground through QPE only once CPE (47k, 47 µF, fed
-  // through the thermal cut-out) has passed VREF, about 0.5 s after the rail: the input sense has
-  // settled by then. A comparator (1 M of hysteresis) switches QPE: a slow RC driving it directly
-  // would ramp the opto LEDs through their trigger current (found in the P4b audit). Without the
-  // hold the comparators' outputs, pulled up before the comparators work, chose tap 1 (150 V) at
-  // 230 V in and the winding rang to 1 kV at its top (found in simulation). An open cut-out
-  // empties CPE through DPE: no gate, the transformer is off
-  nb.part('RPE', 'resistor', 2900, 300, { value: '47k' }, { '1': 'VTC', '2': 'CPE' })
-    .part('CPE', 'capacitor_pol', 2900, 420, { value: '47u', vmax: '25' }, { '1': 'CPE', '2': 'GND' }, 1)
-    .part('DPE', 'diode', 2980, 300, { value: '1N4148' }, { '2': 'CPE', '1': 'VTC' }, 3)
-    .part('UCS', 'comparator', 3000, 420, { value: 'LM339', pkg: 'CMP2' }, { '3': 'CPE', '2': 'VREF', '1': 'OPE', '8': V, '4': 'GND' })
-    .part('RHPE', 'resistor', 3000, 560, { value: '1M' }, { '1': 'OPE', '2': 'CPE' }, 1)
-    .part('RPU', 'resistor', 3080, 300, { value: '2.2k' }, { '1': V, '2': 'OPE' }, 1)
-    .part('RPB', 'resistor', 3080, 420, { value: '2.2k' }, { '1': 'OPE', '2': 'BPE' })
-    .part('RPB2', 'resistor', 3080, 520, { value: '47k' }, { '1': 'BPE', '2': 'GND' }, 1)
-    .part('QPE', 'npn', 3160, 420, { value: 'BC547B' }, { '1': 'BPE', '2': 'EG', '3': 'ESE' })
-    // one gate at most: the LEDs' common current through 33 Ω (one LED about 0.5 V, two about
-    // 0.9 V) against 0.70 V: a second lit gate sets a latch (UL), which holds CPE empty (every gate
-    // off) and FLTS low (the output open, FAULT on) until the unit is switched off. A pair already
-    // fired conducts to its current zero; a resulting short clears the aR fuse. (Without the
-    // latch the enable hunted at its threshold, firing again and again: found in simulation)
-    .part('RSE', 'resistor', 3160, 560, { value: '33' }, { '1': 'ESE', '2': 'GND' }, 1)
-    .part('ROHA', 'resistor', 3260, 300, { value: '25.5k' }, { '1': 'VREF', '2': 'VOH' }, 1)
-    .part('ROHB', 'resistor', 3260, 420, { value: '10k' }, { '1': 'VOH', '2': 'GND' }, 1)
-    .part('UOH', 'comparator', 3360, 420, { value: 'LM393', pkg: 'PROT3' }, { '3': 'VOH', '2': 'ESE', '1': 'OOH', '8': V, '4': 'GND' })
-    .part('DLS', 'diode', 3460, 420, { value: '1N4148' }, { '2': 'LAT', '1': 'OOH' })
-    .part('RLAT', 'resistor', 3560, 300, { value: '10k' }, { '1': V, '2': 'LAT' }, 1)
-    // a trip of a fraction of a microsecond empties CLAT at once; it recovers through 10k (1 ms),
-    // long enough for the latch to set (without it the check fired and released again within one
-    // step, and the enable hunted at its threshold: found in simulation)
-    .part('CLAT', 'capacitor', 3460, 780, { value: '100n', vmax: '50' }, { '1': 'LAT', '2': 'GND' }, 1)
-    // the latch's threshold rises slower than LAT at power-up (10k, 10k, 1 µF): it never sets then
-    .part('RLTA', 'resistor', 3660, 300, { value: '10k' }, { '1': 'VREF', '2': 'LTH' }, 1)
-    .part('RLTB', 'resistor', 3660, 420, { value: '10k' }, { '1': 'LTH', '2': 'GND' }, 1)
-    .part('CLTH', 'capacitor', 3740, 420, { value: '1u', vmax: '50' }, { '1': 'LTH', '2': 'GND' }, 1)
-    .part('UL', 'comparator', 3560, 520, { value: 'LM393', pkg: 'PROT3' }, { '3': 'LAT', '2': 'LTH', '1': 'OL', '8': V, '4': 'GND' })
-    .part('DLH', 'diode', 3460, 640, { value: '1N4148' }, { '2': 'LAT', '1': 'OL' })
-    // through 1k: emptying the 47 µF at once through a bare diode took more than the comparator
-    // can sink, its output stayed at 1.7 V and the latch let go (found in simulation)
-    .part('DOH1', 'diode', 3560, 640, { value: '1N4148' }, { '2': 'CPE', '1': 'CPD' })
-    .part('RDOH', 'resistor', 3560, 740, { value: '1k' }, { '1': 'CPD', '2': 'OL' }, 1)
-    .part('DOH2', 'diode', 3660, 640, { value: '1N4148' }, { '2': 'FLTS', '1': 'OL' })
-    .part('CD4', 'capacitor', 2900, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
-  nb.part('T1', 'autotransformer', 2700, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
+  nb.part('T1', 'autotransformer', 3100, 900, { value: vr.at }, { N: 'N', T1: 'T1', T2: 'T2', T3: 'T3', T4: 'T4', T5: 'T5', T6: 'T6', T7: 'T7' }, 0, true);
 
-  // ---- output: restart delay, the relay that switches the contactor's coil, the protection's own
-  // relay in series with it, the contactor, the terminals. Each relay's unused NC pin is joined to
-  // its COM (no change at rest, where they touch anyway): an open pad has no net, and the board's
-  // insulation rules cannot keep the mains copper 3.2 mm from it (found on the routed board). The coil (200–277 V) is on the 250 V
-  // tap, fused for the board: 233 V at 140 V in, 268 V at 300 V in (on the 230 V tap a 230 V
-  // coil saw only 213 V at 140 V in). The relay coils are fed through the thermal cut-out (VTC)
+  // ---- the match check: M (2.2k to 24 V, and 2.2k per closed auxiliary to its coil's switched
+  // end) is about 12 V only when exactly the commanded tap contactor is closed. Divided (100k,
+  // 47k) and filtered (15 ms: auxiliary contact bounce) to MS against the window 3.17 … 4.48 V
+  // (VWL, VWH from the 12 V rail): MS is about 3.8 V then; none closed or a wrong one 7.6 V, one
+  // beside it 5.1 V, two commanded 2.6 V
+  nb.block('match')
+    .part('RMP', 'resistor', 2850, 1250, { value: '2.2k' }, { '1': V24, '2': 'M' }, 1)
+    .part('RMA', 'resistor', 2950, 1250, { value: '100k' }, { '1': 'M', '2': 'MS' })
+    .part('RMB', 'resistor', 3050, 1350, { value: '47k' }, { '1': 'MS', '2': 'GND' }, 1)
+    .part('CMS', 'capacitor', 3130, 1350, { value: '470n', vmax: '50' }, { '1': 'MS', '2': 'GND' }, 1)
+    .part('RWA', 'resistor', 3250, 1150, { value: '10k' }, { '1': V, '2': 'VWH' }, 1)
+    .part('RWB', 'resistor', 3250, 1250, { value: '1.74k' }, { '1': 'VWH', '2': 'VWL' }, 1)
+    .part('RWC', 'resistor', 3250, 1350, { value: '4.22k' }, { '1': 'VWL', '2': 'GND' }, 1)
+    .part('UW1', 'comparator', 3400, 1200, { value: 'LM393', pkg: 'WIN' }, { '3': 'MS', '2': 'VWL', '1': 'OI', '8': V, '4': 'GND' })
+    .part('UW2', 'comparator', 3400, 1360, { value: 'LM393', pkg: 'WIN' }, { '3': 'VWH', '2': 'MS', '1': 'OI', '8': V, '4': 'GND' })
+    .part('CD8', 'capacitor', 3500, 1450, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
+
+  // ---- tap-change sequencer (as the 1 kVA unit, D51): any change of a tap comparator steps SUM;
+  // the step, coupled into E (biased at half the rail), crosses the window VEL … VEH and empties
+  // the timer MT. While MT is below VEH, KI is open; the latch is clocked when MT passes VEL and
+  // KI's NC auxiliary shows it open (CLK's pull-up runs through it); KI closes again once MT has
+  // passed VEH and the match check holds
+  nb.block('sequencer')
+    .part('RSUM', 'resistor', 1700, 2120, { value: '100k' }, { '1': 'SUM', '2': 'GND' }, 1)
+    .part('CE', 'capacitor', 1800, 2060, { value: '100n', vmax: '50' }, { '1': 'SUM', '2': 'E' })
+    .part('RE1', 'resistor', 1900, 1980, { value: '100k' }, { '1': V, '2': 'E' }, 1)
+    .part('RE2', 'resistor', 1900, 2140, { value: '100k' }, { '1': 'E', '2': 'GND' }, 1)
+    .part('RW1', 'resistor', 2000, 1900, { value: '100k' }, { '1': V, '2': 'VEH' }, 1)
+    .part('RW2', 'resistor', 2000, 2000, { value: '10k' }, { '1': 'VEH', '2': 'VEL' }, 1)
+    .part('RW3', 'resistor', 2000, 2100, { value: '100k' }, { '1': 'VEL', '2': 'GND' }, 1)
+    .part('USQ1', 'comparator', 2150, 1940, { value: 'LM339', pkg: 'SEQ' }, { '3': 'VEH', '2': 'E', '1': 'TRG', '8': V, '4': 'GND' })
+    .part('USQ2', 'comparator', 2150, 2100, { value: 'LM339', pkg: 'SEQ' }, { '3': 'E', '2': 'VEL', '1': 'TRG', '8': V, '4': 'GND' })
+    .part('RTRG', 'resistor', 2280, 2020, { value: '1k' }, { '1': 'MT', '2': 'TRG' })
+    .part('RMT', 'resistor', 2380, 1920, { value: '61.9k' }, { '1': V, '2': 'MT' }, 1)
+    .part('CMT', 'capacitor', 2380, 2120, { value: '1u', vmax: '50' }, { '1': 'MT', '2': 'GND' }, 1)
+    .part('USQ3', 'comparator', 2500, 1940, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEL', '1': 'CLK', '8': V, '4': 'GND' })
+    .part('RCLK', 'resistor', 2600, 1880, { value: '10k' }, { '1': 'CLKP', '2': 'CLK' }, 1)
+    .part('RCLD', 'resistor', 2600, 2040, { value: '100k' }, { '1': 'CLK', '2': 'GND' }, 1)
+    .part('USQ4', 'comparator', 2500, 2120, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEH', '1': 'OI', '8': V, '4': 'GND' })
+    .part('RPI', 'resistor', 2600, 2160, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
+    .part('RGI', 'resistor', 2680, 2200, { value: '1k' }, { '1': 'OI', '2': 'GI' })
+    .part('QI', 'nmos', 2760, 2280, { value: 'IRF540N' }, { '1': 'GI', '2': 'KIC', '3': 'GND' })
+    .part('DI', 'diode', 2840, 2160, { value: '1N4007' }, { '2': 'KIC', '1': 'DIZ' }, 3)
+    .part('DZI', 'zener', 2840, 2260, { value: 'BZX85C24' }, { '1': 'DIZ', '2': 'V24C' }, 3)
+    // the input contactor: it makes and breaks the input current at every tap change (AC-1, about
+    // 0.55 of its rating). Its coil is fed through the thermal cut-out (V24C): a hot transformer
+    // is switched off. Its NC auxiliary feeds CLK's pull-up
+    .part('KI', 'contactor', 2950, 2200, { value: vr.ki, opsday: '200', life: '1500000', land: 'A1 A2 21 22' }, { A1: 'V24C', A2: 'KIC', '1': 'VIN', '2': 'VCH', '21': V, '22': 'CLKP' })
+    // the switched input's snubber, to N (not across the contact): opening KI interrupts the
+    // autotransformer's magnetising current, which rings into it. Across the open contact it fed
+    // the winding from the input through 220 nF while KI was open, and the winding rang up to
+    // 380 V (found in simulation)
+    .part('RSKI', 'resistor', 3050, 2300, { value: '100', pmax: '2' }, { '1': 'VCH', '2': 'SNKI' }, 1)
+    .part('CSKI', 'capacitor', 3050, 2390, { value: '220n', vmax: '1000' }, { '1': 'SNKI', '2': 'N' }, 1)
+    .part('CDS', 'capacitor', 2380, 2260, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
+    .part('XT1', 'terminal', 3150, 2000, { value: 'thermal cut-out of T (NC)' }, { '1': V24 })
+    .part('XT2', 'terminal', 3150, 2060, { value: 'thermal cut-out of T, return' }, { '1': 'V24C' });
+  nb.block('in the autotransformer').part('STC', 'switch', 3300, 2030, { closed: String(!o.hot) }, { '1': V24, '2': 'V24C' }, 1);
+
+  // ---- output: restart delay, power good, the relay KO and the protection's relay KP in series
+  // in the coil feed of the output contactor KM, the output breaker QF2, the terminals. Each
+  // relay's unused NC pin is joined to its COM (an open pad has no net, and the board's insulation
+  // rules cannot keep the mains copper away from it)
   nb.block('out')
-    .part('FT6', 'fuse', 3330, 700, { value: '1', r: '0.15', fusetype: 'H' }, { '1': 'T6', '2': 'T6F' })
-    .part('XT1', 'terminal', 3540, 60, { value: 'thermal cut-out of T (NC)' }, { '1': V })
-    .part('XT2', 'terminal', 3540, 120, { value: 'thermal cut-out of T, return' }, { '1': 'VTC' })
-    .part('XPE', 'terminal', 3780, 740, { value: 'PE stud (control ground)' }, { '1': 'GND' }, 2)
-    .part('RD1', 'resistor', 3030, 150, { value: '1M' }, { '1': V, '2': 'DLY' }, 1)
-    .part('DDIS', 'diode', 2950, 240, { value: '1N4148' }, { '2': 'DLY', '1': V }, 3)
-    .part('CD', 'capacitor', 3030, 360, { value: o.delayC ?? '4.7u', vmax: '63' }, { '1': 'DLY', '2': 'GND' }, 1)
-    .part('RT1', 'resistor', 3180, 60, { value: '2.49k' }, { '1': V, '2': 'DTH' }, 1)
-    .part('RT2', 'resistor', 3180, 150, { value: '10k' }, { '1': 'DTH', '2': 'GND' }, 1)
-    .part('U8', 'comparator', 3180, 280, { value: 'LM339', pkg: 'CMP2' }, { '3': 'DLY', '2': 'DTH', '1': 'OD', '8': V, '4': 'GND' })
-    .part('RPD', 'resistor', 3270, 230, { value: '2.2k' }, { '1': V, '2': 'OD' }, 1)
-    .part('RBD', 'resistor', 3270, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
-    .part('QD', 'npn', 3300, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
-    .part('DD', 'diode', 3350, 470, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': 'VTC' }, 3)
-    .part('KO', 'relay', 3400, 410, { value: '12 V 30 A', life: '100000' }, { '1': 'VTC', '2': 'KD', '3': 'T6F', '4': 'T6F', '5': 'KMC1' })
-    .part('LKO', 'led', 3490, 280, { colour: 'green' }, { '2': 'VTC', '1': 'LKOA' }, 1)
-    .part('RLKO', 'resistor', 3490, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
-    .part('KM', 'contactor', 3600, 600, { value: vr.km }, { A1: 'KMC', A2: 'N', '1': 'T5', '2': 'OUT', '3': 'N', '4': 'NOUT' })
-    .part('X4', 'terminal', 3780, 560, { value: 'L out', wire: vr.wout }, { '1': 'OUT' }, 2)
-    .part('X5', 'terminal', 3780, 620, { value: 'N out', wire: vr.wout }, { '1': 'NOUT' }, 2)
-    .part('X6', 'terminal', 3780, 680, { value: 'PE', wire: vr.wpe }, { '1': 'GND' }, 2);
-  nb.block('in the autotransformer').part('STC', 'switch', 3640, 90, { closed: 'true' }, { '1': V, '2': 'VTC' }, 1);
-  if (o.koShorted) nb.block('bench').part('RKOSH', 'resistor', 3330, 560, { value: '1' }, { '1': 'KD', '2': 'GND' });
-  nb.block('out');
+    .part('RD1', 'resistor', 3530, 150, { value: '1M' }, { '1': V, '2': 'DLY' }, 1)
+    .part('DDIS', 'diode', 3450, 240, { value: '1N4148' }, { '2': 'DLY', '1': V }, 3)
+    .part('CD', 'capacitor', 3530, 360, { value: o.delayC ?? '4.7u', vmax: '63' }, { '1': 'DLY', '2': 'GND' }, 1)
+    .part('RT1', 'resistor', 3680, 60, { value: '2.49k' }, { '1': V, '2': 'DTH' }, 1)
+    .part('RT2', 'resistor', 3680, 150, { value: '10k' }, { '1': 'DTH', '2': 'GND' }, 1)
+    .part('U8', 'comparator', 3680, 280, { value: 'LM339', pkg: 'CMP2' }, { '3': 'DLY', '2': 'DTH', '1': 'OD', '8': V, '4': 'GND' })
+    .part('RPD', 'resistor', 3770, 230, { value: '2.2k' }, { '1': V, '2': 'OD' }, 1)
+    .part('RBD', 'resistor', 3770, 380, { value: '2.2k' }, { '1': 'OD', '2': 'BD' }, 1)
+    .part('QD', 'npn', 3800, 500, { value: 'BD139' }, { '1': 'BD', '2': 'KD', '3': 'GND' })
+    .part('DD', 'diode', 3850, 470, { value: '1N4148', labels: 'left' }, { '2': 'KD', '1': V }, 3)
+    .part('KO', 'relay', 3900, 410, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KD', '3': V24, '4': V24, '5': 'KMC1' })
+    .part('LKO', 'led', 3990, 280, { colour: 'green' }, { '2': V, '1': 'LKOA' }, 1)
+    .part('RLKO', 'resistor', 3990, 370, { value: '2.2k' }, { '1': 'LKOA', '2': 'KD' }, 1)
+    // power good (CMP2's fourth comparator): low until the sense filter has settled (1M·470n
+    // against 80 % of the rail: about 0.76 s); meanwhile the change timer is held, so KI stays
+    // open and no tap is connected at power-up
+    .part('RPG', 'resistor', 3280, 620, { value: '1M' }, { '1': V, '2': 'PGC' }, 1)
+    .part('CPG', 'capacitor', 3280, 760, { value: o.delayC ? '220n' : '470n', vmax: '50' }, { '1': 'PGC', '2': 'GND' }, 1)
+    .part('DPGD', 'diode', 3200, 700, { value: '1N4148' }, { '2': 'PGC', '1': V }, 3)
+    .part('U8S', 'comparator', 3380, 700, { value: 'LM339', pkg: 'CMP2' }, { '3': 'PGC', '2': 'DTH', '1': 'PGN', '8': V, '4': 'GND' })
+    .part('DPG', 'diode', 3480, 760, { value: '1N4148' }, { '2': 'MT', '1': 'PGN' })
+    .part('QF2', 'breaker2', 4100, 560, { value: vr.qfo, curve: 'C' }, { '1': 'T5', '2': 'T5Q', N1: 'N', N2: 'NQ' }, 3)
+    .part('KM', 'contactor', 4250, 600, { value: vr.ki, land: 'A1 A2' }, { A1: 'KMC', A2: 'GND', '1': 'T5Q', '2': 'OUT', '3': 'NQ', '4': 'NOUT' })
+    .part('DKM', 'diode', 4180, 700, { value: '1N4007' }, { '2': 'GND', '1': 'DKZ' }, 3)
+    .part('ZKM', 'zener', 4180, 800, { value: 'BZX85C24' }, { '1': 'DKZ', '2': 'KMC' }, 3)
+    .part('X4', 'terminal', 4400, 560, { value: 'L out', wire: vr.wout }, { '1': 'OUT' }, 2)
+    .part('X5', 'terminal', 4400, 620, { value: 'N out', wire: vr.wout }, { '1': 'NOUT' }, 2)
+    .part('X6', 'terminal', 4400, 680, { value: 'PE', wire: vr.wpe }, { '1': 'GND' }, 2)
+    .part('XPE', 'terminal', 4400, 760, { value: 'PE stud (control ground)' }, { '1': 'GND' }, 2);
+  if (o.koShorted) nb.block('bench').part('RKOSH', 'resistor', 3830, 560, { value: '1' }, { '1': 'KD', '2': 'GND' });
   if (!o.noLoad) {
     const r = (230 * 230) / (kva * 1000 * (o.share ?? 1)), pf = o.pf ?? 1;
-    nb.block('load').note('TEST LOAD (not part of the product)', 3880, 540);
-    if (pf >= 1) nb.part('RLOAD', 'resistor', 3930, 640, { value: String(r), pmax: '20k' }, { '1': 'OUT', '2': 'NOUT' }, 1);
-    else nb.part('RLOAD', 'resistor', 3930, 640, { value: String(r * pf), pmax: '20k' }, { '1': 'OUT', '2': 'LDM' }, 1)
-      .part('LLOAD', 'inductor', 3930, 760, { value: String((r * Math.sqrt(1 - pf * pf)) / (2 * Math.PI * 50)), imax: '200' }, { '1': 'LDM', '2': 'NOUT' }, 1);
+    nb.block('load').note('TEST LOAD (not part of the product)', 4500, 540);
+    if (pf >= 1) nb.part('RLOAD', 'resistor', 4550, 640, { value: String(r), pmax: '20k' }, { '1': 'OUT', '2': 'NOUT' }, 1);
+    else nb.part('RLOAD', 'resistor', 4550, 640, { value: String(r * pf), pmax: '20k' }, { '1': 'OUT', '2': 'LDM' }, 1)
+      .part('LLOAD', 'inductor', 4550, 760, { value: String((r * Math.sqrt(1 - pf * pf)) / (2 * Math.PI * 50)), imax: '200' }, { '1': 'LDM', '2': 'NOUT' }, 1);
   }
 
-  // ---- independent protection (own sense transformer, reference, LM393s): outside 190 …
-  // 255 V at the 230 V tap, a tap change stuck for 0.12 s, or the heatsink above 85 °C pulls
-  // FLTS low: the contactor opens and the restart delay starts again
-  nb.block('prot').note('OUTPUT PROTECTION (independent of the control)', 0, 2150)
-    .part('FT5', 'fuse', -80, 2270, { value: '0.5', r: '0.6', fusetype: 'H' }, { '1': 'T5', '2': 'T5F' })
-    .part('TR2', 'transformer', 50, 2270, SENSE_TR400, { '1': 'T5F', '2': 'N', '3': 'SA2', '4': 'SB2' })
-    .part('RS2', 'resistor', 160, 2350, { value: '220' }, { '1': 'SA2', '2': 'SN2' }, 1)
-    .part('CS2', 'capacitor', 160, 2440, { value: '100n', vmax: '63' }, { '1': 'SN2', '2': 'SB2' }, 1)
-    .part('BR2', 'bridge', 270, 2290, { value: 'DB107' }, { '1': 'SA2', '2': 'SB2', '3': 'VSR2', '4': 'GND' })
-    .part('C3', 'capacitor_pol', 370, 2290, { value: '4.7u', vmax: '50' }, { '1': 'VSR2', '2': 'GND' }, 1)
-    .part('R5', 'resistor', 450, 2220, { value: '80.6k' }, { '1': 'VSR2', '2': 'SEN2' })
-    .part('R6', 'resistor', 520, 2290, { value: '6.8k' }, { '1': 'SEN2', '2': 'STR2' }, 1)
-    .part('RT2C', 'potentiometer', 520, 2390, { value: '5k', pmax: '0.5', position: '64' }, { '1': 'STR2', '2': 'GND', '3': 'GND' }, 1)
-    .part('R7', 'resistor', 590, 2220, { value: '100k' }, { '1': 'SEN2', '2': 'SF2' })
-    .part('C4', 'capacitor', 660, 2290, { value: '470n', vmax: '50' }, { '1': 'SF2', '2': 'GND' }, 1)
-    .part('R8', 'resistor', 50, 2550, { value: '2.2k' }, { '1': V, '2': 'VREF2' })
-    .part('U9', 'tl431', 150, 2640, { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' }, 3)
-    .part('R9', 'resistor', 250, 2610, { value: '1.82k' }, { '1': 'VREF2', '2': 'VOV' }, 1)
-    .part('R10', 'resistor', 250, 2700, { value: '3.65k' }, { '1': 'VOV', '2': 'VUV' }, 1)
-    .part('R11', 'resistor', 250, 2790, { value: '10k' }, { '1': 'VUV', '2': 'GND' }, 1)
-    .part('U10', 'comparator', 500, 2520, { value: 'LM393', pkg: 'PROT' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': V, '4': 'GND' })
-    .part('U11', 'comparator', 500, 2700, { value: 'LM393', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
-    // stuck change: CHG high charges CST (1 MΩ, 470 nF: past VREF2 after 0.12 s); DST empties it
-    // when CHG falls. A normal change takes at most a half cycle and a bit
-    .part('RST', 'resistor', 800, 2520, { value: '1M' }, { '1': 'CHG', '2': 'CST' })
-    .part('CST', 'capacitor', 900, 2600, { value: '470n', vmax: '50' }, { '1': 'CST', '2': 'GND' }, 1)
-    .part('DST', 'diode', 850, 2440, { value: '1N4148' }, { '2': 'CST', '1': 'CHG' })
-    .part('UST', 'comparator', 1000, 2520, { value: 'LM393', pkg: 'PROT2' }, { '3': 'VREF2', '2': 'CST', '1': 'FLTS', '8': V, '4': 'GND' })
-    // the heatsink (D56): a ring-lug NTC 10k (B 3950) on the heatsink, on two terminals, against
-    // 10k: 2.12 V at 70 °C (trip); an open NTC or wire reads 0 V and trips too (below 0.1 V, colder
-    // than about −30 °C)
-    .part('XN1', 'terminal', 700, 2700, { value: 'heatsink NTC' }, { '1': 'VREF2' })
-    .part('XN2', 'terminal', 700, 2780, { value: 'heatsink NTC, return' }, { '1': 'NHS' })
-    .part('RTHB', 'resistor', 800, 2870, { value: '10k' }, { '1': 'NHS', '2': 'GND' }, 1)
-    .part('RT70A', 'resistor', 900, 2750, { value: '1.74k' }, { '1': 'VREF2', '2': 'VT70' }, 1)
-    .part('RT70B', 'resistor', 900, 2870, { value: '10k' }, { '1': 'VT70', '2': 'GND' }, 1)
-    .part('UTH', 'comparator', 1000, 2750, { value: 'LM393', pkg: 'PROT2' }, { '3': 'VT70', '2': 'NHS', '1': 'FLTS', '8': V, '4': 'GND' })
-    .part('RNOA', 'resistor', 1100, 2750, { value: '240k' }, { '1': 'VREF2', '2': 'VNO' }, 1)
-    .part('RNOB', 'resistor', 1100, 2870, { value: '10k' }, { '1': 'VNO', '2': 'GND' }, 1)
-    .part('UNO', 'comparator', 1200, 2750, { value: 'LM393', pkg: 'PROT4' }, { '3': 'NHS', '2': 'VNO', '1': 'FLTS', '8': V, '4': 'GND' })
-    // the fan (D56) on the heatsink, 230 V AC, switched by a 50 °C thermostat there: fed from the
-    // 230 V tap, fused for the board
-    .part('XF1', 'terminal', 1300, 2700, { value: 'heatsink fan (via its 50 °C thermostat)' }, { '1': 'T5F' })
-    .part('XF2', 'terminal', 1300, 2780, { value: 'heatsink fan, return' }, { '1': 'N' })
-    // the protection's own output relay KP (B2 of the P4 review, as the 1 kVA unit): in series
-    // with KO in the contactor's coil feed; it closes about 0.24 s after the protection finds the
-    // output in range (a comparator: never a slow RC on a coil) and opens at once on a fault
-    .part('RBP', 'resistor', 1300, 2400, { value: '47k' }, { '1': V, '2': 'BPP' }, 1)
-    .part('CBP', 'capacitor_pol', 1240, 2500, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
-    .part('DPP', 'diode', 1300, 2510, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
-    .part('UKP', 'comparator', 1400, 2460, { value: 'LM393', pkg: 'PROT4' }, { '3': 'BPP', '2': 'VREF2', '1': 'OKP', '8': V, '4': 'GND' })
-    .part('RPKP', 'resistor', 1460, 2370, { value: '2.2k' }, { '1': V, '2': 'OKP' }, 1)
-    .part('RBKP', 'resistor', 1460, 2550, { value: '2.2k' }, { '1': 'OKP', '2': 'BP' }, 1)
-    .part('QP', 'npn', 1520, 2460, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
-    .part('DKP', 'diode', 1580, 2380, { value: '1N4148' }, { '2': 'KPC', '1': V }, 3)
-    .part('KP', 'relay', 1650, 2380, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KPC', '3': 'KMC1', '4': 'KMC1', '5': 'KMC' })
-    .part('CD7', 'capacitor', 1650, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
-    .part('R12', 'resistor', 620, 2460, { value: '10k' }, { '1': V, '2': 'FLTS' }, 1)
-    .part('DF1', 'diode', 750, 2570, { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })
-    .part('DF2', 'diode', 750, 2720, { value: '1N4148' }, { '2': 'DLY', '1': 'DF2K' })
-    .part('RDF2', 'resistor', 860, 2720, { value: '2.2k' }, { '1': 'DF2K', '2': 'FLTS' })
-    .part('LF', 'led', 1150, 2470, { colour: 'red' }, { '2': V, '1': 'LFA' }, 1)
-    .part('RLF', 'resistor', 1150, 2570, { value: '4.7k' }, { '1': 'LFA', '2': 'FLTS' }, 1)
-    .part('CD5', 'capacitor', 650, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
-    .part('CD6', 'capacitor', 1150, 2890, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
-  // on the heatsink (bought with it): the NTC, and the fan behind its thermostat
-  nb.block('on the heatsink')
-    .part('RTH', 'ntc', 600, 2740, { value: '10k', temp: String(o.theatsink ?? 50) }, { '1': 'VREF2', '2': o.ntcOpen ? 'nc_NTC' : 'NHS' }, 1)
-    .part('STH', 'switch', 1800, 2700, { closed: String((o.theatsink ?? 50) >= 50) }, { '1': 'T5F', '2': 'FANL' }, 1)
-    .part('RFAN', 'resistor', 1800, 2800, { value: '2.7k', pmax: '25' }, { '1': 'FANL', '2': 'N' }, 1);
+  // ---- independent protection (as the 1 kVA unit: own sense transformer on the 230 V tap, own
+  // reference, LM393s): outside 190 … 255 V FLTS goes low, KP and KO open, the output contactor
+  // opens and the restart delay starts again. The divider (806k; 68k and a 50k trimmer) holds C3's
+  // peak for about 4 s, so the gap of a tap change does not trip it
+  nb.block('prot').note('OUTPUT PROTECTION (independent of the control)', 0, 2450)
+    .part('FT5', 'fuse', -80, 2570, { value: '0.5', r: '0.6', fusetype: 'H' }, { '1': 'T5', '2': 'T5F' })
+    .part('TR2', 'transformer', 50, 2570, SENSE_TR400, { '1': 'T5F', '2': 'N', '3': 'SA2', '4': 'SB2' })
+    .part('RS2', 'resistor', 160, 2650, { value: '220' }, { '1': 'SA2', '2': 'SN2' }, 1)
+    .part('CS2', 'capacitor', 160, 2740, { value: '100n', vmax: '63' }, { '1': 'SN2', '2': 'SB2' }, 1)
+    .part('BR2', 'bridge', 270, 2590, { value: 'DB107' }, { '1': 'SA2', '2': 'SB2', '3': 'VSR2', '4': 'GND' })
+    .part('C3', 'capacitor_pol', 370, 2590, { value: '4.7u', vmax: '50' }, { '1': 'VSR2', '2': 'GND' }, 1)
+    .part('R5', 'resistor', 450, 2520, { value: '806k' }, { '1': 'VSR2', '2': 'SEN2' })
+    .part('R6', 'resistor', 520, 2590, { value: '68k' }, { '1': 'SEN2', '2': 'STR2' }, 1)
+    .part('RT2C', 'potentiometer', 580, 2680, { value: '50k', pmax: '0.5', position: '64' }, { '1': 'STR2', '2': 'GND', '3': 'GND' })
+    .part('R7', 'resistor', 590, 2520, { value: '100k' }, { '1': 'SEN2', '2': 'SF2' })
+    .part('C4', 'capacitor', 660, 2590, { value: '470n', vmax: '50' }, { '1': 'SF2', '2': 'GND' }, 1)
+    .part('R8', 'resistor', 50, 2850, { value: '2.2k' }, { '1': V, '2': 'VREF2' })
+    .part('U9', 'tl431', 150, 2940, { value: 'TL431' }, { '1': 'VREF2', '2': 'GND', '3': 'VREF2' }, 3)
+    .part('R9', 'resistor', 250, 2910, { value: '1.82k' }, { '1': 'VREF2', '2': 'VOV' }, 1)
+    .part('R10', 'resistor', 250, 3000, { value: '3.65k' }, { '1': 'VOV', '2': 'VUV' }, 1)
+    .part('R11', 'resistor', 250, 3090, { value: '10k' }, { '1': 'VUV', '2': 'GND' }, 1)
+    .part('U10', 'comparator', 500, 2820, { value: 'LM393', pkg: 'PROT' }, { '3': 'VOV', '2': 'SF2', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('U11', 'comparator', 500, 3000, { value: 'LM393', pkg: 'PROT' }, { '3': 'SF2', '2': 'VUV', '1': 'FLTS', '8': V, '4': 'GND' })
+    .part('R12', 'resistor', 620, 2760, { value: '10k' }, { '1': V, '2': 'FLTS' }, 1)
+    .part('DF1', 'diode', 750, 2870, { value: '1N4148' }, { '2': 'OD', '1': 'FLTS' })
+    .part('DF2', 'diode', 750, 3020, { value: '1N4148' }, { '2': 'DLY', '1': 'DF2K' })
+    .part('RDF2', 'resistor', 860, 3020, { value: '2.2k' }, { '1': 'DF2K', '2': 'FLTS' })
+    .part('LF', 'led', 880, 2770, { colour: 'red' }, { '2': V, '1': 'LFA' }, 1)
+    .part('RLF', 'resistor', 880, 2870, { value: '4.7k' }, { '1': 'LFA', '2': 'FLTS' }, 1)
+    // the protection's own relay KP in series with KO in KM's coil feed: it closes about 0.24 s
+    // after the protection finds the output in range (a comparator: never a slow RC on a coil)
+    // and opens at once on a fault
+    .part('RBP', 'resistor', 1000, 2760, { value: '47k' }, { '1': V, '2': 'BPP' }, 1)
+    .part('CBP', 'capacitor_pol', 940, 2860, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
+    .part('DPP', 'diode', 1000, 2870, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
+    .part('UKP', 'comparator', 1100, 2820, { value: 'LM393', pkg: 'PROT2' }, { '3': 'BPP', '2': 'VREF2', '1': 'OKP', '8': V, '4': 'GND' })
+    .part('UKPS', 'comparator', 1250, 3090, { value: 'LM393', pkg: 'PROT2' }, { '3': 'GND', '2': 'VREF2', '1': 'GND', '8': V, '4': 'GND' })
+    .part('RPKP', 'resistor', 1160, 2730, { value: '2.2k' }, { '1': V, '2': 'OKP' }, 1)
+    .part('RBKP', 'resistor', 1160, 2910, { value: '2.2k' }, { '1': 'OKP', '2': 'BP' }, 1)
+    .part('QP', 'npn', 1220, 2820, { value: 'BD139' }, { '1': 'BP', '2': 'KPC', '3': 'GND' })
+    .part('DKP', 'diode', 1300, 2730, { value: '1N4148' }, { '2': 'KPC', '1': V }, 3)
+    .part('KP', 'relay', 1400, 2730, { value: '12 V 30 A', life: '100000' }, { '1': V, '2': 'KPC', '3': 'KMC1', '4': 'KMC1', '5': 'KMC' })
+    .part('CD4', 'capacitor', 1120, 3110, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
+    .part('CD5', 'capacitor', 650, 3190, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
 
-  nb.v('VIN').v('OUT').v('SF').v('CHG').v('OFFN');
-  nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '50u', start: 'zero', thin: true });
+  nb.v('VIN').v('OUT').v('SF').v('SF2').v('MS').v('MT');
+  nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '200u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }

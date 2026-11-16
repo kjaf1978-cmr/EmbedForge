@@ -97,7 +97,7 @@ describe('every worked product is a real circuit diagram (D28, owner review of 1
   // the designs entered with net labels on their pins are drawn with wires: the placement spread,
   // every connection wired, the nets that run between blocks named by a label in each block
   const designs: [string, () => { sheet: Sheet; nb: NB }, number][] = [
-    ['stabiliser 10 kVA (thyristor taps)', () => stabiliserT({ kva: 10 }), 4], ['surge protection, house on the mains', () => mainsHouse('lightning'), 0],
+    ['stabiliser 10 kVA (contactor taps)', () => stabiliserT({ kva: 10 }), 4], ['surge protection, house on the mains', () => mainsHouse('lightning'), 0],
     ['surge protection, PV array and charger', () => pvHouse(), 0], ['pump controller', pumpControl, 4], ['irrigation main board', irrigationMain, 2],
     ['irrigation 8-zone module', irrigationModule, 4], ['irrigation field interface', irrigationFront, 2], ['gate controller', gateController, 4],
     ['trimmer drive', trimmer, 4], ['block machine', blockMachine, 4], ['grinder 240 V', () => grinder({ supply: '240' }), 4], ['grinder 24 V', () => grinder({ supply: '24' }), 4],

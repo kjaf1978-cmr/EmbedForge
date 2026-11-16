@@ -176,8 +176,11 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'breaker2': return [map('TerminalBlock_1x4', { 1: '1', 2: '2', N1: '3', N2: '4' }, { note: 'DIN-rail device: L in, L out, N in, N out' })];
     case 'breaker3': return [same('TerminalBlock_1x6', pins, 'DIN-rail device: L1 in/out, L2 in/out, L3 in/out')];
     case 'breaker4': return [map('TerminalBlock_1x8', { 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', N1: '7', N2: '8' }, { note: 'DIN-rail device: L1, L2, L3, N in/out' })];
-    // one pole used (the stabiliser's input contactor): its landing block takes only the coil and that pole
-    case 'contactor': return p.props.poles === '1' ? [map('TerminalBlock_1x4', { A1: '1', A2: '2', 1: '3', 2: '4' }, { note: 'DIN-rail contactor, one pole used: A1, A2 (coil), 1, 2 (pole)' })] : [map('TerminalBlock_1x14', Object.fromEntries(['A1', 'A2', '1', '2', '3', '4', '5', '6', '7', '8', '13', '14', '21', '22'].map((x, k) => [x, String(k + 1)])), { note: 'DIN-rail contactor: A1 A2 1 2 3 4 5 6 7 8 13 14 21 22' })];
+    // `land`: only these pins come to the board (a large contactor's power poles are wired on the
+    // DIN rail, never through the board): coil and auxiliary contacts
+    case 'contactor': if (p.props.land) { const ps = p.props.land.split(' '); return [map(`TerminalBlock_1x${ps.length}`, Object.fromEntries(ps.map((x, k) => [x, String(k + 1)])), { note: `DIN-rail contactor, on the board: ${ps.join(' ')} (power poles wired on the rail)` })]; }
+      // one pole used (the stabiliser's input contactor): its landing block takes only the coil and that pole
+      return p.props.poles === '1' ? [map('TerminalBlock_1x4', { A1: '1', A2: '2', 1: '3', 2: '4' }, { note: 'DIN-rail contactor, one pole used: A1, A2 (coil), 1, 2 (pole)' })] : [map('TerminalBlock_1x14', Object.fromEntries(['A1', 'A2', '1', '2', '3', '4', '5', '6', '7', '8', '13', '14', '21', '22'].map((x, k) => [x, String(k + 1)])), { note: 'DIN-rail contactor: A1 A2 1 2 3 4 5 6 7 8 13 14 21 22' })];
     case 'terminal': return [same('TerminalBlock_1x1', pins, 'one pole; poles of one function group sit side by side in one block')];
     case 'hc595': return [same('DIP-16', pins, '74HC595: VCC 16, GND 8'), same('SOIC-16', pins, '74HC595D: VCC 16, GND 8')];
     case 'hc4051': return [same('DIP-16', pins, '74HC4051: VCC 16, VEE 7, GND 8'), same('SOIC-16', pins, '74HC4051D: VCC 16, VEE 7, GND 8')];

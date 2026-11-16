@@ -714,7 +714,9 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       out.push(
         { kind: 'D', name: `${ref}_D1`, a: pin.L, k: hp, model: bm }, { kind: 'D', name: `${ref}_D2`, a: pin.N, k: hp, model: bm },
         { kind: 'D', name: `${ref}_D3`, a: hn, k: pin.L, model: bm }, { kind: 'D', name: `${ref}_D4`, a: hn, k: pin.N, model: bm },
-        { kind: 'C', name: `${ref}_CB`, a: hp, b: hn, c: 10e-6 },
+        // the bulk capacitor: 10 µF for a 15 W module, scaled with the rating (a 90 W module's
+        // 10 µF sagged its 24 V output to 17 V at full load: found in simulation)
+        { kind: 'C', name: `${ref}_CB`, a: hp, b: hn, c: 10e-6 * Math.max(1, m.pout / 15) },
         { kind: 'R', name: `${ref}_RIN`, a: hp, b: hn, r: (325 * 325) / (m.pout / 0.75) },
         { kind: 'E', name: `${ref}_ISO`, p: raw, n: g, cp: hp, cn: hn, gain: 0.1 },
         { kind: 'V', name: `${ref}_VREF`, p: r, n: g, dc: m.vout },

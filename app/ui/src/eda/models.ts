@@ -230,6 +230,7 @@ export const varistorAlpha = (m: VaristorModel) => Math.log(m.ic / 1e-3) / Math.
 export interface AcDcModel { vout: number; imax: number; vacMin: number; vacMax: number; pout: number }
 export const ACDC_MODULES: NamedModel<AcDcModel>[] = [
   { name: 'IRM-15-12', note: 'Mean Well IRM-15-12: 12 V 1.25 A (15 W), 85 … 305 V AC (120 … 430 V DC), I/P–O/P 4.2 kV AC, inrush 40 A at 230 V cold start, 52.4 × 27.2 × 24 mm (data sheet IRM-15-SPEC 2025-11-21)', model: { vout: 12, imax: 1.25, vacMin: 85, vacMax: 305, pout: 15 } },
+  { name: 'HLG-100H-24', note: 'Mean Well HLG-100H-24: 24 V 4 A (96 W) constant-voltage supply, 90 … 305 V AC, potted metal case IP67 with leads, panel mount (the 5, 10 and 15 kVA stabilisers\' contactor coils)', model: { vout: 24, imax: 4, vacMin: 90, vacMax: 305, pout: 96 } },
 ];
 
 export const VARISTORS: NamedModel<VaristorModel>[] = [
@@ -283,6 +284,13 @@ export const CONTACTORS: NamedModel<ContactorModel>[] = [
   ctr(9, 'ac', 230, 600, 20), ctr(18, 'ac', 230, 450, 16), ctr(32, 'ac', 230, 300, 12), ctr(65, 'ac', 230, 150, 6), ctr(95, 'ac', 230, 100, 4),
   // a 12 V DC low-consumption coil (2.4 W, 60 Ω); 1.5 H: it closes in about 55 ms, as the maker's 53 … 72 ms
   ctr(9, 'dc', 12, 60, 1.5), ctr(9, 'dc', 24, 190, 0.6), ctr(18, 'dc', 24, 120, 0.4), ctr(32, 'dc', 24, 80, 0.3),
+  // the 5, 10 and 15 kVA stabilisers' tap, input and output contactors (D58): 24 V DC coils of
+  // about 22 W (26 Ω); 1.4 H: they close in about 100 ms, as the makers' 95 … 130 ms for DC coils
+  // of these frames (confirm on the chosen maker's data sheet)
+  ctr(40, 'dc', 24, 26, 1.4), ctr(50, 'dc', 24, 26, 1.4), ctr(80, 'dc', 24, 26, 1.4), ctr(115, 'dc', 24, 26, 1.4),
+  // the 5 kVA stabiliser's tap contactors: a 25 A frame's 24 V DC coil (5.4 W, 107 Ω); 3.4 H: it
+  // closes in about 60 ms, as the maker's 53 … 72 ms
+  ctr(25, 'dc', 24, 107, 3.4),
   // DC power contactor for battery circuits (pole 1–2 only; rated current on DC, not AC-3)
   { name: '150 A DC, coil 48 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation of 48 V inverters); coil 48 V DC, 190 Ω (12 W), fed from the battery itself', model: { ac3: 150, coil: 'dc', vcoil: 48, rcoil: 190, lcoil: 0.8 } },
   { name: '150 A DC, coil 24 V', note: 'single-pole DC contactor 150 A continuous, 80 V DC (battery isolation of 24 V inverters); coil 24 V DC, 48 Ω (12 W), fed from the battery itself', model: { ac3: 150, coil: 'dc', vcoil: 24, rcoil: 48, lcoil: 0.2 } },
