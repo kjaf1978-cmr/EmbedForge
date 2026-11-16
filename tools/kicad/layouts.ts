@@ -566,6 +566,9 @@ export const DESIGNS: Record<string, Design> = {
   // relays KO and KP). Off the board: the DIN-rail parts (breakers, contactors, terminals), the
   // potted 24 V supply, the autotransformer
   'stabiliser-t': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, contactor taps: control board', revision: 'B',
+    // the mains block's spare pole on its last net (VIN): an open pad has no net, and the 3.2 mm rule
+    // cannot keep N's track from it (found on the routed board)
+    bondSpare: true,
     classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || !!p.props.wire || p.sym === 'autotransformer' || (p.sym === 'acdc' && p.props.value === 'HLG-100H-24') },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
