@@ -406,9 +406,11 @@ const STABT_PAIR_PLAN: [string, number, number, Placed['rot']][] = [
   ['RVA1', 15, 44, 0], ['RVB1', 38, 44, 0],
   ['BV1', 57, 56, 0],
   ['UO1', 75, 15, 180], ['US1', 75, 44, 0],
+  // the board's two mains entries, each behind its ceramic fuse (P4b audit), beside the connector
+  ['FA1', 18, 58, 0], ['FB1', 40, 58, 0],
 ];
 // the P4b pair drivers' parts (by schematic key): pair 1 and all seven
-const STABT_PAIR = ['UO', 'RA', 'RB', 'DA', 'DB', 'RGA', 'RGB', 'RVA', 'RVB', 'BV', 'US', 'RSN', 'CSN'];
+const STABT_PAIR = ['UO', 'RA', 'RB', 'DA', 'DB', 'RGA', 'RGB', 'RVA', 'RVB', 'BV', 'US', 'RSN', 'CSN', 'FA', 'FB'];
 let stabTCache: { pair1: Set<string>; pairs: Set<string>; ref: (k: string) => string } | undefined;
 const stabTRefs = () => stabTCache ??= (() => {
   const { sheet, nb } = stabiliserT({ kva: 10 }), ref = (k: string) => nb.refOf(sheet, k);
@@ -588,18 +590,11 @@ export const DESIGNS: Record<string, Design> = {
   'stabiliser-t-pair': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA: thyristor pair driver (7 per unit)', revision: 'A',
     classes: mains(['L_IN', 'N'], 0.5), panel: (p) => !stabTRefs().pair1.has(p.ref), w: 120, h: 80,
     plan: () => [...STABT_PAIR_PLAN.map(([k, x, y, rot]) => ({ ref: stabTRefs().ref(k), x, y, rot })), { ref: 'J_MAINS', x: 25, y: 70, rot: 0 }, { ref: 'J_PANEL', x: 100, y: 30, rot: 0 }],
-    region: { x0: 78, x1: 120 },
-    // the bridge's two outputs to the optocoupler, which Freerouting left (paths checked through
-    // route.py --post-only: VSN1 straight on F.Cu; VSP1 below the bridge, a via, up on B.Cu)
-    post: { tracks: [{ net: 'VSN1', layer: 'F.Cu', width: 0.5, pts: [[64.62, 56], [64.62, 45.27], [71.19, 45.27]] },
-      { net: 'VSP1', layer: 'F.Cu', width: 0.5, pts: [[49.38, 56], [49.38, 61], [68, 61]] },
-      { net: 'VSP1', layer: 'B.Cu', width: 0.5, pts: [[68, 61], [68, 42.73], [71.19, 42.73]] }],
-      vias: [{ net: 'VSP1', at: [68, 61] }] } },
+    region: { x0: 78, x1: 120 } },
   'stabiliser-t-logic': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, thyristor taps: logic board', revision: 'A',
-    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || p.sym === 'scr' || p.sym === 'autotransformer' || stabTRefs().pairs.has(p.ref),
-    // the one connection Freerouting left: the output relay's contact to the 230 V tap terminal,
-    // round below the terminal row and up between the relay's pads (3.2 mm kept from each)
-    post: { tracks: [{ net: 'T5', layer: 'F.Cu', width: 0.5, pts: [[20.81, 82], [20.81, 88], [41, 88], [41, 64.5], [48.75, 64.5]] }] } },
+    // off the board: the DIN-rail and heatsink parts, the power parts with a wire size (the aR fuse),
+    // the thyristor modules, the autotransformer and the seven pair drivers
+    classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || !!p.props.wire || p.sym === 'scr' || p.sym === 'autotransformer' || stabTRefs().pairs.has(p.ref) },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail

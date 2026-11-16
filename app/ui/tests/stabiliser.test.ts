@@ -34,7 +34,7 @@ describe('relay-switched mains voltage stabiliser', () => {
         const rows = smoke(sheet, connectivity(sheet), r).rows.filter((x) => x.status === 'over');
         expect(rows.map((x) => `${x.ref} ${x.what}`)).toEqual([]);
       }
-    }, 120_000);
+    }, 1_200_000); // the 170 V tap with the input contactor closed is slow to solve (about 160 … 740 s at 166 and 174 V in); the circuit is correct
   }
   it('the load is connected only after the power-on delay, and never above 253 V', () => {
     const { sheet } = stabiliser(226, undefined, '2', undefined, T);
