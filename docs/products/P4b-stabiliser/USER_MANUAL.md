@@ -1,4 +1,4 @@
-# Mains voltage stabilisers 5, 10 and 15 kVA, thyristor taps (P4b): user manual
+# Mains voltage stabilisers 5, 10 and 15 kVA, contactor-switched taps (P4b): user manual
 
 Step-type automatic voltage regulators (AVR) for a house, a workshop or a small business on a
 grid whose voltage wanders. Three sizes:
@@ -17,8 +17,8 @@ grid whose voltage wanders. Three sizes:
 ## 1. What it does
 
 The input is connected to one of seven taps of an autotransformer (150, 170, 190, 210, 230, 250
-and 280 V). The output is taken from its 230 V tap. Each tap is switched by a pair of thyristors
-(electronic switches without contacts), chosen from the measured input voltage:
+and 280 V). The output is taken from its 230 V tap. Each tap is switched by a contactor, chosen
+from the measured input voltage:
 
 | Input voltage | Tap used | Output (calculated, V_in · 230 / tap) |
 |---|---|---|
@@ -37,42 +37,45 @@ Behaviour:
 
 - **Output range.** Over 140 … 300 V of input, the output stays within 230 V ± 10 %. At full load
   and the lowest input, the voltage drop in the unit takes up to about 2 %.
-- **Tap changes without interruption.** A tap changes when the current passes zero: the old pair
-  stops, the unit checks that every pair has stopped, and then the new pair starts, all within
-  a fraction of a millisecond. Lamps do not blink, and computers are not disturbed.
-- **Start-up.** At switch-on the unit first measures the input (about 0.5 s), then switches the
-  tap on, and connects the load through the output contactor after a restart delay of about
+- **Tap changes with a short gap.** Before a tap changes, the input contactor opens; the tap
+  contactors change while no current flows, and the input contactor closes again once the unit
+  has checked that exactly the right tap contactor is closed. The load sees a gap of about a
+  quarter of a second. Lamps blink once; most appliances ride through it, but a computer without
+  a UPS may restart. The tap contactors never switch current, so they do not wear.
+- **Start-up.** At switch-on the unit first measures the input (about 0.8 s), then closes the
+  tap and the input contactor, and connects the load through the output contactor after a restart delay of about
   8.5 s. The same delay runs after every cut-off. Fridge compressors need longer: give them their
   own 3-minute restart-delay relay (INSTALLATION.md).
 - **Independent protection.** A second circuit, with its own sense transformer, reference and its
   own relay in the contactor's coil feed, watches the output. If the output leaves 190 … 255 V,
   the contactor opens. This happens if the input is outside about 124 … 310 V, or if the control
   has failed. The restart delay then starts again.
-- **Faults that lock the unit off.** Some faults keep the output off until the unit is switched
-  off and on again:
-  - two taps commanded at once (an electronic fault);
-  - a tap change that cannot finish (a thyristor pair failed short).
-- **Overheating.** The thyristors' heatsink has a fan, which runs when the heatsink is warm. Above
-  70 °C at the heatsink, or with its temperature sensor disconnected, the output is cut off. A
-  thermal cut-out in the transformer winding switches the thyristors off: the transformer is
-  switched off, not only its load.
+- **Faults.**
+  - none: every fault the unit detects opens the output, and the output returns by itself once the
+    fault has gone. A tap contactor that does not open or close as commanded (welded, or its
+    drive failed) keeps the input contactor open: the output stays off (FAULT) until it is
+    repaired.
+- **Overheating.** A thermal cut-out in the transformer winding opens the input contactor: the
+  transformer is switched off, not only its load. It resets itself when the winding has cooled.
+- **Overload.** An output breaker protects the output cables; the input breaker protects the
+  input.
 - **Surges.** A thermally protected varistor limits surges between L and N.
 
 ## 2. Indicators
 
 | LED | Colour | Meaning |
 |---|---|---|
-| TAP 1 … TAP 7 | yellow | the tap in use (one at a time; none while a tap changes) |
+| TAP 1 … TAP 7 | yellow | the tap contactor commanded (one at a time) |
 | OUTPUT | green | the restart delay has run and the output relay is closed |
-| FAULT | red | the protection does not find the output within 190 … 255 V, or the heatsink is too hot, or a locking fault |
+| FAULT | red | the protection does not find the 230 V tap within 190 … 255 V |
 
 | What you see | Meaning | What to do |
 |---|---|---|
 | One yellow, green on | normal | nothing |
 | Red for about 1 s, then green after about 8.5 s, at switch-on | start-up and restart delay | wait |
-| Green off, red on, one yellow on | the output out of range, the heatsink too hot, or its sensor disconnected | let it cool; check the fan; if it repeats, call the electrician |
-| Green off, red on, no yellow | a locking fault (two taps commanded, a tap change that cannot finish), or the transformer too hot | switch off, wait a minute, switch on. If it repeats, call the electrician |
-| Nothing on | no input, the breaker has tripped, or the control's fuse has blown | check the breaker; then the electrician |
+| Lamps blink once now and then | a tap change (about 0.25 s) | nothing; many changes a day mean a very unsteady grid |
+| Green off, red on, one yellow on, for a long time | the input out of range (below about 124 V or above about 310 V), the transformer too hot (its cut-out open), or a tap contactor that did not follow its command | if the input is normal, call the electrician |
+| Nothing on | no input, the breaker has tripped, or the control's fuse has blown | check the breakers; then the electrician |
 
 ## 3. Use
 
@@ -87,14 +90,15 @@ The stabiliser draws more current from a low grid than it delivers: up to 36 / 7
 **Every year (electrician):**
 
 - Check the terminal and power-cable screws to the torques in INSTALLATION.md.
-- Clean the heatsink fins and the fan; check that the fan turns when the heatsink is warm.
-- Look for heat discolouration at the transformer, the thyristor modules and the boards.
+- Look for heat discolouration at the transformer, the contactors, the links between the tap
+  contactors' poles and the board.
 - Repeat the protection checks (COMMISSIONING.md, section 5).
 
-**Varistor:** check it after a known lightning event, or every 5 years (COMMISSIONING.md).
+**Input contactor KI:** it makes and breaks the input current at every tap change. Count about
+1.5 million operations; at 200 changes a day that is about 20 years. Replace it when its contacts
+show wear (it is the one part that wears), or after a known short circuit.
 
-There are no contacts that wear in the tap switching. The output contactor switches only at
-start-up and on a fault.
+**Varistor:** check it after a known lightning event, or every 5 years (COMMISSIONING.md).
 
 ## 5. Technical data
 
@@ -103,21 +107,19 @@ start-up and on a fault.
 | Rated output | 5 kVA, 22 A | 10 kVA, 43 A | 15 kVA, 65 A |
 | Input range | 140 … 300 V, 50 Hz | same | same |
 | Input current at 140 V | 36 A | 71 A | 107 A |
-| Input breaker (2-pole, C) | 40 A | 80 A | 125 A |
-| Thyristor fuse (aR) | 50 A | 100 A | 160 A |
-| Thyristor modules | SKKT 106/16E | SKKT 106/16E | SKKT 162/16E |
-| Output contactor | 32 A AC-3 | 65 A AC-3 | 95 A AC-3 |
-| Heat in the thyristors at 140 V, full load | about 30 W | about 65 W | about 150 W |
+| Input breaker QF1 (2-pole, C) | 40 A | 80 A | 125 A |
+| Output breaker QF2 (C) | 25 A | 50 A | 80 A |
+| Tap contactors (7, three poles in parallel) | 25 A frame | 40 A frame | 50 A frame |
+| Input and output contactors | 40 A frame | 80 A frame | 115 A frame |
 
 All sizes:
 
 | | |
 |---|---|
-| Tap change | 6 steps at the current zero, no interruption |
-| Protection window | output 190 … 255 V, else the contactor opens |
+| Tap change | 6 steps; the input contactor open for about 0.25 s per change |
+| Protection window | output 190 … 255 V, else the output contactor opens |
 | Start-up, restart delay | load supplied about 8.5 s after switch-on and after each cut-off |
-| Control supply | AC-DC module 85 … 305 V AC to 12 V, 15 W |
+| Control supplies | 12 V, 15 W (control); 24 V, 96 W (contactor coils); both 90 … 305 V AC |
 | Transformer | autotransformer, 7 taps, class F, thermal cut-out 115 °C, self-resetting |
-| Heatsink | fan on above about 50 °C; output cut off above 70 °C or with the sensor open |
-| Insulation | protection class I; the control boards are not isolated from the mains |
+| Insulation | protection class I; the control board is not isolated from the mains |
 | Ambient | designed and simulated at 25 °C; the range is set by the type tests |

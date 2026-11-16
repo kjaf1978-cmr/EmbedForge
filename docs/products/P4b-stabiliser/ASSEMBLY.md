@@ -1,29 +1,44 @@
-# Mains voltage stabilisers 5, 10 and 15 kVA (P4b): assembly guide
+# Mains voltage stabilisers 5, 10 and 15 kVA, contactor-switched taps (P4b): assembly guide
 
 Each unit is made of:
 
-- **The logic board** (235 × 160 mm, 2 layers, 2 oz): sense, tap logic, the protection, the
-  restart delay, the output relay and the protection's relay, the 12 V supply module.
-- **Seven pair-driver boards** (120 × 80 mm each), one per tap: the opto-triac firing, the pair's
-  voltage sense for the break-before-make, the snubber, two entry fuses.
-- **The heatsink assembly:** seven thyristor modules, the fan with its 50 °C thermostat, the NTC.
-- **The DIN rail:** the 2-pole breaker QF1, the aR fuse FAR, the output contactor KM, the power
-  terminals X1 … X6.
+- **The control board** (2 layers, 2 oz; its size in `3-pcb/`): the supplies' fuses, the 12 V
+  supply module, the sense and the comparators, the latch and the priority decoder, the coil
+  drivers, the match check, the tap-change sequencer, the restart delay, the independent
+  protection, the relays KO and KP. The same board for all three sizes.
+- **The DIN rail:** the 2-pole input breaker QF1, the output breaker QF2, the seven tap contactors
+  K1 … K7, the input contactor KI, the output contactor KM, the 24 V supply PS2 (a potted unit
+  with leads, mounted beside the rail), the power terminals X1 … X6.
 - **The autotransformer,** with its built-in thermal cut-out, and **the enclosure** with its PE
   stud.
 
-Read USER_MANUAL.md first (safety). The boards are at mains potential.
+Read USER_MANUAL.md first (safety). The board is at mains potential.
 
 ## 1. What you need
 
 | File | Use |
 |---|---|
-| `3-pcb/stabiliser-t-logic/…-fabrication.zip` | order the logic board (Gerber, drill) |
-| `3-pcb/stabiliser-t-pair/…-fabrication.zip` | order seven pair-driver boards |
-| `…-bom.csv` of each board | the parts on each board, and the parts wired to it |
-| `…-assembly.pdf` of each board | where each part goes |
-| `…/panel.csv` of each board | the wiring list: each wire, its ends and its size |
+| `3-pcb/stabiliser-t/…-fabrication.zip` | order the control board (Gerber, drill) |
+| `…-bom.csv` | the parts on the board, and the parts wired to it |
+| `…-assembly.pdf` | where each part goes |
+| `…/panel.csv` | the wiring list: each wire between the board's panel connector and the DIN-rail parts, its ends and its size |
 | `1-schematics/stabiliser-t-*kva-schematic.pdf` | the circuit of each size |
+| `4-parts-list/` | the costed parts list of each size |
+
+The DIN-rail parts per size:
+
+| | 5 kVA | 10 kVA | 15 kVA |
+|---|---|---|---|
+| QF1 | ABB S201-C40NA (1P+N) | ABB S802C-C80 | ABB S802C-C125 |
+| QF2 | ABB S201-C25NA (1P+N) | ABB S201-C50NA (1P+N) | ABB S802C-C80 |
+| K1 … K7 | 7 × Schneider LC1D25BD | 7 × LC1D40ABD | 7 × LC1D50ABD |
+| KI, KM | 2 × LC1D40ABD | 2 × LC1D80BD | 2 × LC1D115BD |
+| PS2 | Mean Well HLG-100H-24 | same | same |
+
+Every contactor has a 24 V DC coil and 1 NO + 1 NC auxiliary contacts that are mechanically linked
+to the main poles (TeSys D built-in auxiliaries). The match check runs about 5 mA through the
+auxiliary contacts: if the chosen maker states a higher minimum for its auxiliaries, fit its
+low-level (gold-plated) auxiliary block.
 
 The autotransformer is made to specification:
 
@@ -37,50 +52,49 @@ Order it also with:
 
 - no saturation at 1.1 × rated volts per turn on any tap;
 - class F;
-- the no-load loss stated;
-- a thermal cut-out in the winding: NC, opens at 115 °C ± 5 °C, self-resetting, 250 V AC 2 A,
-  double-insulated leads;
+- the no-load loss and the magnetising current stated;
+- a thermal cut-out in the winding: NC, opens at 115 °C ± 5 °C, self-resetting, rated 24 V DC 2 A
+  (it carries KI's coil current), double-insulated leads;
 - a routine test certificate: insulation 2.5 kV and the ratio of each tap.
 
-## 2. The heatsink assembly
+## 2. The board
 
-1. **Heatsink.** One shared heatsink for the seven modules, with a fan. Its thermal resistance to
-   the air, with the fan running, at most 1.0 / 0.45 / 0.2 K/W (5 / 10 / 15 kVA): only the
-   selected pair conducts, about 30 / 65 / 150 W at full load and 140 V, so the heatsink stays
-   below about 70 °C at 40 °C ambient. Type test TT-1 confirms it.
-2. **Modules.** Seven SKKT 106/16E (5, 10 kVA) or SKKT 162/16E (15 kVA), isolated base, with
-   thermal paste or pad and the maker's mounting torque. Each module is wired anti-parallel as the
-   module's datasheet shows: the two thyristors' opposite terminals joined.
-   - One side goes to the common input bar (after the aR fuse).
-   - The other side goes to its tap.
-   - Each thyristor's gate and auxiliary cathode go to its pair-driver board, as twisted pairs.
-3. **Fan and thermostat.** A 230 V AC fan, switched by a normally open 50 °C
-   bimetal thermostat on the heatsink (it closes as the heatsink warms), wired to the logic board's fan terminals XF1, XF2.
-4. **NTC.** A ring-lug NTC 10 kΩ (B 3950) on the heatsink, next to the hottest module, wired to
-   XN1, XN2. An open sensor trips the unit (it reads as below −30 °C).
+1. **Fit the parts in order of height** (the assembly drawing): resistors and diodes, ICs,
+   capacitors, trimmers (do not turn them yet: section 4 of the commissioning sets them to the
+   middle first), LEDs, transistors and MOSFETs, bridges, the fuse holders with their ceramic
+   fuses (F1 T 1 A H, F2 T 2 A H, FT5 T 0.5 A H), the supply module PS1, the sense transformers,
+   the relays KO and KP (Song Chuan 832A: check which fixed contact is NC on the first one by
+   continuity), the terminal blocks and the panel connector.
+2. **Clean and check:** no solder bridges; the resistance between +12 V and ground above 1 kΩ,
+   between +24 V and ground above 1 kΩ.
+3. **Conformal coating:** everything except terminals, connectors, fuse holders, relays, trimmers
+   and LEDs.
 
-## 3. The boards
+## 3. The DIN rail and wiring
 
-1. **Fit the parts in order of height** (each board's assembly drawing): resistors and diodes,
-   ICs, capacitors, trimmers (do not turn them: set at commissioning), LEDs, transistors,
-   bridges, the fuse holders with their ceramic fuses (logic: F1 T 1 A H, FT5 T 0.5 A H, FT6 T 1 A
-   H; pair boards: FA, FB T 0.5 A H), the supply module PS1, the sense transformers, the relays
-   KO and KP (Song Chuan 832A: check which fixed contact is NC on the first one by continuity), the
-   terminal blocks.
-2. **Clean and check:** no solder bridges; the resistance between +12 V and ground above 1 kΩ.
-3. **Conformal coating:** everything except terminals, fuse holders, relays, trimmers and LEDs.
+1. **Mount** QF1, KI, K1 … K7 (in tap order), KM, QF2 and the terminals; PS2 beside the rail.
+2. **Link the three poles of each tap contactor** on both sides (1-3-5 together, 2-4-6 together),
+   with the size in INSTALLATION.md section 3 or the maker's paralleling links. KI uses one pole
+   (1-2); KM two (1-2 for L, 3-4 for N).
+3. **Power wiring:** X1 → QF1 → KI pole 1; KI pole 2 → the common bar of K1 … K7 (their 1-3-5
+   sides); each K_k's 2-4-6 side → tap k of the transformer; the 230 V tap → QF2 → KM → X4, X5; N
+   from QF1 to the transformer's N, to QF2 and to the board's N terminal. Sizes in INSTALLATION.md
+   section 3.
+4. **Control wiring** by panel.csv: the coils (A1, A2) of K1 … K7, KI and KM; the NO auxiliaries
+   (13, 14) of K1 … K7; KI's NC auxiliary (21, 22); PS2's input and output; the thermal cut-out
+   (XT1, XT2); the board's mains feeds (VIN, N) and the 230 V tap feed of the protection. Every
+   wire labelled with its net name at both ends.
+5. **PE** from X3 and X6 to the PE stud; the board's XPE to the stud with one conductor; the
+   enclosure, door, DIN rail and transformer core bonded to the stud.
 
-## 4. Wiring
-
-Wire each unit by the panel.csv wiring lists: the sizes in INSTALLATION.md section 3 for the power
-circuits, 1.5 mm² for the board feeds behind their fuses, twisted pairs for the gates. PE from X3
-and X6 to the PE stud; the logic board's XPE to the stud with one conductor; the enclosure,
-door, heatsink and transformer core bonded to the stud.
-
-**Check the taps** before connecting the transformer to the modules: feed 23.0 V AC (from a
+**Check the taps** before connecting the transformer to the contactors: feed 23.0 V AC (from a
 safety isolating transformer) between N and the 230 V tap, and measure each tap to N. Expected:
 15.0, 17.0, 19.0, 21.0, 23.0, 25.0 and 28.0 V (± 2 %).
 
-## 5. Next step
+**Check the auxiliaries** with the supply off and the board's panel connector unplugged: press each
+tap contactor's armature by hand (with the maker's test tool, if any) and check that its 13-14
+closes; check that KI's 21-22 is closed at rest and opens when its armature is pressed.
+
+## 4. Next step
 
 Fit the rating plate (INSTALLATION.md section 5), then commission (COMMISSIONING.md).

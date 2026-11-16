@@ -249,63 +249,52 @@ per IC; RC snubbers at transformer secondaries and relay contacts; two 750k in s
 transformers and references of the independent protections. Every new design is audited the
 same way before release, and the tests count the spare units.
 
-### P4b — stabilisers 5, 10 and 15 kVA with thyristor taps (D27, D41; DFMEA section 3b)
+### P4b — stabilisers 5, 10 and 15 kVA with contactor taps (D27, D58; DFMEA section 3b)
+
+History: designed with anti-parallel thyristor taps (D41), audited (D55, D56), then reviewed
+independently on 16 November 2026: three blockers in the approach itself (the "every pair
+blocking" check could be stale, so two pairs could conduct; the two-gates latch took about 0.1 s
+in service; a winding-section short bypassed the aR fuse). The owner chose D58: contactor taps,
+the P4 way.
 
 `src/eda/stabiliserT.ts` (`stabiliserT({ kva })`). The 1 kVA unit's sense, reference ladder,
-comparators, restart delay and independent protection; the taps of a 5 / 10 / 15 kVA
-autotransformer (150 … 280 V) switched by seven anti-parallel thyristor pairs (VS-40TPS12 at
-5 kVA, VS-70TPS16 at 10 and 15 kVA, on a heatsink of 0.6 / 0.3 / 0.2 K/W) instead of relays.
+comparators (same hysteresis), change detector and sequencer, power good, restart delay and
+independent protection with its relay KP; per size:
 
-- Firing: per pair an opto-triac (FOD4218, 800 V, random phase) between 470 Ω from each side,
-  through a diode to each thyristor's gate: whichever thyristor is forward biased fires each
-  half cycle while the LED is on. A yellow LED in series shows the tap.
-- Tap logic (CMOS at 12 V): the comparators' states O1 … O6 are latched (three CD4013); the
-  decoder (CD4001) gives one tap; six XOR (CD4070) and a diode OR give CHG, "a change is
-  pending", which takes every gate off (CD4081).
-- Break-before-make: each pair's voltage lights its own PC817 through two 22k 1 W and a bridge;
-  the seven phototransistors in series pull OFFN low only when every pair blocks. After
-  0.15 ms of that the latch takes the new tap and its pair fires. A pair that has failed short
-  never blocks, so no second tap is fired onto it.
-- Power-up hold 0.3 s; output contactor (32 / 65 / 95 A, Siemens 3RT2027/2037/2046-1NP30)
-  after the restart delay. Its coil is on the 230 V tap through the output relay and is a
-  wide-range 200–277 V AC/DC type. At the lowest input (140 V) that tap gives only 213 V,
-  93 % of a 230 V coil and close to its 85 % pull-in, and the 10 and 15 kVA outputs never closed
-  in simulation; protection: 190 … 255 V, a change stuck for 0.12 s,
-  heatsink above 85 °C. Input: breaker 40 / 80 / 125 A C, 20D471K.
+| | 5 kVA | 10 kVA | 15 kVA |
+|---|---|---|---|
+| Input current at 140 V, output current | 36 A, 22 A | 71 A, 43 A | 107 A, 65 A |
+| QF1 (2-pole), QF2 (output, 1P+N or 2-pole) | C 40 A, C 25 A | C 80 A, C 50 A | C 125 A, C 80 A |
+| Tap contactors K1 … K7, three poles in parallel | LC1D25BD (AC-1 40 A × 2.25) | LC1D40ABD (60 A × 2.25) | LC1D50ABD (80 A × 2.25) |
+| Input contactor KI (one pole), output contactor KM (L and N) | LC1D40ABD | LC1D80BD | LC1D115BD |
+| Cables in / out / PE (mm²) | 6 / 6 / 6 | 16 / 16 / 16 | 35 / 25 / 16 |
 
-Verification: `tests/stabiliserT.test.ts` (TEST_REPORT.md section 3m).
+- **Coils:** 24 V DC from a Mean Well HLG-100H-24 (90 … 305 V AC, 4 A, potted, panel mount) on
+  the input before KI, behind a 2 A ceramic fuse; IRF540N drivers from the decoder's CMOS outputs;
+  a diode and a 24 V Zener on each coil (fast opening). KM's coil is fed through KO and KP (832A
+  relays), so the output contactor stays closed through a tap change.
+- **Sequence of a tap change:** a comparator changes; the timer empties and KI's driver turns off;
+  the tap states are clocked once the timer passes VEL **and** KI's NC auxiliary (a mirror contact)
+  shows it open; the decoder commands the new tap; the old tap contactor opens, the new one
+  closes (about 60 … 100 ms); KI closes once the timer passes VEH **and** the match check holds.
+  The load sees a gap of about 0.25 s (P4: under 0.1 s; these frames close in about 100 ms).
+- **Match check:** each tap contactor's NO auxiliary from its coil's switched end through 2.2k to
+  node M (2.2k to 24 V). Exactly the commanded contactor closed puts M at about 12 V (MS about
+  3.8 V after the 100k / 47k divider and a 15 ms filter); none closed, a wrong one, one more beside
+  it or two commanded give 24, 24, 16 or 8 V. A window comparator (LM393, 3.17 … 4.48 V from the
+  12 V rail) is wired into KI's command with the timer. The auxiliary contacts carry about 5 mA at
+  12 V, inside the makers' minimum (17 V, 5 mA for the whole circuit) — confirm on the chosen
+  auxiliary block; a gold-plated low-level auxiliary block is the alternative.
+- **Snubber of the switched input to N,** not across KI: across the open contact it fed the
+  winding through 220 nF and it rang up to 380 V (found in simulation; P4 has a 100 nF RC across
+  its input contactor: the linear model shows 8 V there, but see the note to the owner).
+- **No thyristors, aR fuse, heatsink, fan or pair boards;** one control board.
 
-### P4b — after the audit (D55, D56, 15–16 November 2026)
-
-An audit against the checklist (P3 and P4) found 4 blockers and 9 major issues; the circuit now:
-
-- **One tap at most:** the decoder is a priority chain (B_k = some lower tap wanted, an OR chain;
-  tap k = LO_k and not B_k); the first decoder lit two taps if one input stuck.
-- **A second lit gate locks the unit off:** the gate LEDs' common current through 33 Ω against
-  0.70 V sets a latch (LM393, 100 nF on its input: a trip of a microsecond released before the
-  latch set; the dump of the 47 µF enable capacitor goes through 1k: through a bare diode the
-  comparator could not pull its output low) that holds every gate off and FLTS low until the unit
-  is switched off. Simulated with a gate driver shorted.
-- **Gate enable by a comparator** (47k, 47 µF against VREF, 1 M of hysteresis: about 0.5 s),
-  fed through the transformer's thermal cut-out: an open cut-out removes every gate.
-- **The protection's own relay KP** in series with KO in the contactor's coil feed (as P4); KO's
-  coil feed from the 250 V tap, fused (233 … 268 V at the coil over 140 … 300 V in).
-- **Thyristor protection (D55):** an aR fuse (50 / 100 / 160 A) before the thyristors; isolated
-  modules SKKT 106/16E (5, 10 kVA) and SKKT 162/16E (15 kVA). Only the selected pair conducts:
-  about 30 / 65 / 150 W at full load and 140 V.
-- **Cooling (D56):** a fan behind a 50 °C thermostat; the heatsink trip at 70 °C, its NTC in a
-  fail-safe divider (an open NTC reads 0 V and trips through a second comparator).
-- **Installation:** 2-pole breaker, TMOV14RP300E, ceramic 1.5 kA fuses at every board's mains
-  entry (logic: 1 A supply, 0.5 A protection sense and fan, 1 A coil feed; pair boards: 0.5 A on
-  each entry), wire sizes on the power terminals (6 / 16 / 35 mm² in), PE stud, IRM-15-12 supply,
-  400/24 V sense transformers with 25-turn trimmers.
-- **Relays' unused NC joined to COM:** an open pad has no net, and the board's insulation rules
-  could not keep mains copper 3.2 mm from it.
-
-Verified (LONG=1): steady state at 140 / 230 / 300 V for each size (at 15 kVA and 140 V the series
-drop is 2.2 %: 210.0 V); tap changes under load (sag, swell, power factor 0.8) and at no load; a
-shorted pair; a shorted gate driver; the heatsink hot and its NTC open; two faults (KO's driver
-shorted and 330 V in); power-up with the product's timing.
+Verified (LONG=1, `tests/stabiliserT.test.ts`): steady state at full load at 140 / 230 / 300 V
+for each size, every step ± 6 V (5 kVA, half load), power-up, tap changes under full load at 5
+and 15 kVA (no tap contactor carries current while it moves; gap under 0.4 s; KM stays closed), a
+sag to 195 V, a welded tap contactor, a shorted coil driver, KO's driver shorted with 330 V in,
+the thermal cut-out open, power factor 0.8 at 140 V.
 
 ### P5 — surge and lightning protection (D20; DFMEA section 3c)
 
