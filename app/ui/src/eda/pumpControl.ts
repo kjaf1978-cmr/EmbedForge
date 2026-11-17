@@ -48,6 +48,8 @@ export interface PumpOptions {
   /** Test bench: each electrode cable's capacitance between its rod core and its COM core (F). */
   cableC?: string;
   stop?: string;
+  /** Tests: the simulation's time step (default 1 ms). */
+  step?: string;
 }
 
 export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
@@ -312,6 +314,6 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RWN', 'resistor', 1700, 1600, { value: '0.002' }, { '1': 'NQ2', '2': 'NM' })
     .part('RWA', 'resistor', 1700, 1650, { value: '1' }, { '1': 'VF', '2': 'VFM' });
   nb.v('LVL').v('RUNQ').v('PERMIT').v('FLTQ').v('DOKE').v('DSQ').v('RDY');
-  nb.sim({ type: 'tran', stop: o.stop ?? '30', step: '1m', start: 'zero', thin: true });
+  nb.sim({ type: 'tran', stop: o.stop ?? '30', step: o.step ?? '1m', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }

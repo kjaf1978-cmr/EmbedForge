@@ -322,8 +322,12 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       // smoothed (pull-in 5 ms, drop-out time constant 20 ms): 10 V at the rated current
       const c = `${ref}#c`, ep = `${ref}#ep`, em = `${ref}#em`, arm = `${ref}#arm`, ar = `${ref}#ar`;
       const w = 2 * Math.PI * 50, ipk = m.coil === 'ac' ? (Math.SQRT2 * m.vcoil) / Math.hypot(m.rcoil, w * m.lcoil) : m.vcoil / m.rcoil;
-      // 12.5 V before the 5 kΩ / 20 kΩ divider of the armature filter: 10 V on it at the rated current
-      const g = 12.5 / (ipk * m.rcoil);
+      // 12.5 V before the 5 kΩ / 20 kΩ divider of the armature filter: 10 V on it at the rated current.
+      // An AC coil's full-wave peaks droop between half cycles in the 20 ms filter: about 8.6 V at
+      // the rated voltage, at the 8.5 V pull-in, so a coil switched on in steady state at its rated
+      // voltage did not pull in (found in the pump controller's simulation). Scaled by 1.2 for AC:
+      // pull-in from about 80 %, drop-out below about 37 % of the rated voltage, as real contactors
+      const g = (12.5 / (ipk * m.rcoil)) * (m.coil === 'ac' ? 1.2 : 1);
       const dm = { is: 1e-15, n: 0.1, rs: 0 };
       out.push(
         { kind: 'R', name: `${ref}_RC`, a: pin.A1, b: c, r: m.rcoil },
