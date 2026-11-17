@@ -78,11 +78,19 @@
       },
       {
         "netclass": "Mains",
+        "pattern": "^NQ2$"
+      },
+      {
+        "netclass": "Mains",
         "pattern": "^NM$"
       },
       {
         "netclass": "Mains",
         "pattern": "^LQ$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^LQ2$"
       },
       {
         "netclass": "Mains",
@@ -94,7 +102,7 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^LK2$"
+        "pattern": "^KM2A$"
       },
       {
         "netclass": "Mains",
