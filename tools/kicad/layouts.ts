@@ -132,7 +132,7 @@ const STAB_PLAN = (): Placed[] => (() => {
     // the input contactor's landing block (D57) across the boundary, turned: its pole's pads (VIN,
     // VCH) at x 95.2 and 87.6 in the mains zone, its coil's at 102.8 and 110.4
     { ref: r('KI'), x: 99, y: 70, rot: 180 },
-    // the input contactor's snubber (across its pole, VIN–VCH) below the varistor
+    // the switched input's snubber (VCH to N, D60) below the varistor
     { ref: r('CSKI'), x: 24, y: 56, rot: 180 }, { ref: r('RSKI'), x: 40, y: 56, rot: 180 },
     // the autotransformer's tap block
     { ref: r('T1'), x: 14, y: STAB_TAPC, rot: 270 },

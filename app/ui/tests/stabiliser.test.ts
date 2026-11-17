@@ -73,6 +73,10 @@ describe('relay-switched mains voltage stabiliser', () => {
     // the first clock); with the input relay closed it is never set
     const bad = r.x.filter((_, k) => r.v['KIC'][k] < 2 && r.v['+12V'][k] > 10 && r.v['QF1'][k] > 6);
     expect(bad).toEqual([]);
+    // the winding is not fed while the input contactor is open (D60: the snubber goes to N, not
+    // across the open contact)
+    const open = r.x.map((_, k) => k).filter((k) => r.x[k] > 0.1 && r.x[k] < kiOn);
+    expect(Math.max(...open.map((k) => Math.abs(r.v['VCH'][k] - r.v['N'][k])))).toBeLessThan(30);
   }, 180_000);
   it('a tap changes only while the input relay is open (no current made or broken by a tap relay)', async () => {
     await new Promise((r) => setTimeout(r, 500));

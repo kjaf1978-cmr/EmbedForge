@@ -249,6 +249,15 @@ per IC; RC snubbers at transformer secondaries and relay contacts; two 750k in s
 transformers and references of the independent protections. Every new design is audited the
 same way before release, and the tests count the spare units.
 
+### P4 — the input snubber to N (D60, 17 November 2026)
+
+The input contactor's RC snubber (100 Ω, 100 nF X2) went across its contact (VIN–VCH). With the
+contactor open and a tap connected, it fed the winding from the input through 100 nF: P4's linear
+model shows only about 8 V there, but the same arrangement rang the P4b winding to 380 V, and a
+real core at low flux is more inductive (ferroresonance). It now goes from the switched input to
+N: it still takes the magnetising current when the contactor opens, and the winding is dead while
+the contactor is open (stabiliser.test: the power-up test checks it).
+
 ### P4b — stabilisers 5, 10 and 15 kVA with contactor taps (D27, D58; DFMEA section 3b)
 
 History: designed with anti-parallel thyristor taps (D41), audited (D55, D56), then reviewed

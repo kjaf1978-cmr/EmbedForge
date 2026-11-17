@@ -16,7 +16,7 @@ safety note, and the type tests.
 | 5 | Costed parts list | About €363 (`4-parts-list/`), of which €185 is the autotransformer made to specification and €55 the input contactor (D57). Every part has a manufacturer part number or a specification, and a price. Prices marked "estimate" are catalogue estimates. |
 | 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, design notes, DFMEA, and the design document (PDF and Word). |
 | 7 | Independent review | Done 15 November 2026: 3 blockers, 9 major and 8 minor findings, all resolved; the relay footprint (major 4) resolved on 16 November with the 832A datasheet you supplied (D57) (`8-review/REVIEW.md`). |
-| 8 | Package and sign-off | Signed off on 15 November 2026 (D54, package 6df257f). This package (D57) carries the input contactor, the 832A board and the updated documents; your D54 sign-off stands for the rest. |
+| 8 | Package and sign-off | Signed off on 15 November 2026 (D54, package 6df257f). This package (D57) carries the input contactor, the 832A board and the updated documents; your D54 sign-off stands for the rest. D60 (17 November): the input contactor's snubber moved to N (VCH–N), re-simulated, the board re-routed. |
 
 Open, for the prototype stage:
 

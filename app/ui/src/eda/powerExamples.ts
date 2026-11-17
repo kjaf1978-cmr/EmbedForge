@@ -633,10 +633,12 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     // thermal cut-out (VTC), as the output relay's: a hot transformer is switched off, not only
     // its load
     .part('KI', 'contactor', 2850, 900, { value: '9 A, coil 12 V DC', opsday: '200', life: '1500000', poles: '1' }, { A1: 'VTC', A2: 'KIC', '1': 'VIN', '2': 'VCH' })
-    // its contact snubber, as the tap relays': opening it interrupts the autotransformer's
-    // magnetising current, which would otherwise ring up to a spike (found in simulation)
-    .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VIN', '2': 'SNKI' }, 1)
-    .part('CSKI', 'capacitor', 2950, 1090, { value: '100n', vmax: '630' }, { '1': 'SNKI', '2': 'VCH' }, 1)
+    // the switched input's snubber, to N (D60, as P4b): opening KI interrupts the
+    // autotransformer's magnetising current, which would otherwise ring up to a spike (found in
+    // simulation). Across the open contact it fed the winding through the capacitor while KI was
+    // open (a ferroresonance risk: 380 V in the P4b simulation)
+    .part('RSKI', 'resistor', 2950, 1000, { value: '100', pmax: '1' }, { '1': 'VCH', '2': 'SNKI' }, 1)
+    .part('CSKI', 'capacitor', 2950, 1090, { value: '100n', vmax: '630' }, { '1': 'SNKI', '2': 'N' }, 1)
     .part('CDS', 'capacitor', 2380, 960, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
   nb.block('load').note('TEST LOAD (not part of the product)', 3480, 540)
     .part('RLOAD', 'resistor', 3530, 640, { value: '56', pmax: '1.5k' }, { '1': 'OUT', '2': 'N' }, 1);
