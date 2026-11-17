@@ -11,7 +11,7 @@ been built**: see the user manual's safety note, and the type tests.
 | # | Element | State |
 |---|---|---|
 | 1 | Schematic | Final, one per size (5, 10, 15 kVA; they differ only in the DIN-rail parts and cable sizes). Wired circuit diagrams; inputs and outputs labelled. ERC clean. The board matches it part by part and pad by pad. |
-| 2 | DFMEA verified by simulation | The product's 37 simulation tests pass on this commit (`7-simulation-tests/`, LONG=1): full load at 140 / 230 / 300 V for each size; every step ± 6 V; power-up; tap changes under full load at 5 and 15 kVA (no tap contactor carries current while it moves; the gap under 0.4 s, about 0.3 s; the output contactor stays in); a sag to 195 V; a welded tap contactor, also with its NO auxiliary open; a coil driver shorted from power-up and shorting while running; KO's driver shorted with 330 V in; the thermal cut-out open; power factor 0.8; 15 kVA on a 0.3 Ω line (no hunting). The DFMEA (section 3b) is closed by design; what only a prototype can verify is assigned to the type tests. |
+| 2 | DFMEA verified by simulation | The product's 37 simulation tests pass on this commit (`7-simulation-tests/`, LONG=1): full load at 140 / 230 / 300 V for each size; every step ± 6 V; power-up; tap changes under full load at 5 and 15 kVA (no tap contactor carries current while it moves; the gap under 0.4 s, about 0.3 s; the output contactor stays in); a sag to 195 V; a welded tap contactor, also with its NO auxiliary open; a coil driver shorted from power-up and shorting while running; K8's driver shorted with 330 V in; the thermal cut-out open; power factor 0.8; 15 kVA on a 0.3 Ω line (no hunting). The DFMEA (section 3b) is closed by design; what only a prototype can verify is assigned to the type tests. |
 | 3 | Firmware | None: the product has no microcontroller. |
 | 4 | Board | One control board for all sizes, 270 × 185 mm, 2 layers, 2 oz. DRC 0 errors and 0 unconnected; mains nets 3.2 mm from the control; the power poles never pass through the board. Fabrication files, assembly drawing, parts list and wiring list (`panel.csv`). |
 | 5 | Costed parts list | About €1 660 / €3 114 / €4 304 (5 / 10 / 15 kVA, single-unit prices; `4-parts-list/`), of which the nine contactors are €1 012 / €1 962 / €2 622 and the autotransformer made to specification €420 / €750 / €1 050. Every part has a manufacturer part number or a specification, and a price; prices marked "estimate" are catalogue estimates (contactors are often 40–60 % cheaper at wholesale). |
@@ -23,7 +23,7 @@ Open, for the prototype stage:
 
 - The LC1D115BD's coil data (15 kVA): if it is an electronic coil with a large pull-in power, a
   240 W 24 V supply (ASSEMBLY.md section 1).
-- KI's life and its reclosing current into the transformer (type tests TT-4, TT-9).
+- K10's life and its reclosing current into the transformer (type tests TT-4, TT-9).
 - Order the autotransformer to the specification in ASSEMBLY.md section 1, with its inrush stated.
 - Run the type tests.
 

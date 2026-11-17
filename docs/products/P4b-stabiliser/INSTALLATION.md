@@ -8,20 +8,20 @@ For the electrician. National wiring rules take precedence. Read USER_MANUAL.md 
 supply ── breaker (upstream) ── X1 L in / X2 N in / X3 PE ── stabiliser ── X4 L out / X5 N out / X6 PE ── distribution board of the loads
 ```
 
-- **Fixed wiring only**, to its own circuit. The unit's breaker QF1 switches L and N together
+- **Fixed wiring only**, to its own circuit. The unit's breaker Q1 switches L and N together
   (2-pole) and protects its internal wiring.
 - **Upstream protection and supply.** The supply must deliver the input current at the lowest
   input voltage: 36 / 71 / 107 A at 140 V. Size the supply cable and its upstream protection for
-  that. The output breaker QF2 (C 25 / 50 / 80 A) protects the output cables: at the buck taps
-  the output current is larger than the input current, so QF1 alone would not.
-- **Short-circuit rating.** QF1 breaks 6 kA (40 A, 1P+N) or 25 kA (80 A, 125 A, S800C). The
+  that. The output breaker Q17 (C 25 / 50 / 80 A) protects the output cables: at the buck taps
+  the output current is larger than the input current, so Q1 alone would not.
+- **Short-circuit rating.** Q1 breaks 6 kA (40 A, 1P+N) or 25 kA (80 A, 125 A, S800C). The
   prospective short-circuit current at the unit must not exceed it.
 
 ## 2. Earthing and RCD
 
 - **Earthing.** PE runs through the PE stud on the chassis: input PE (X3) → PE stud → output PE
   (X6). The enclosure, its door, the DIN rail and the transformer core are bonded to the stud.
-  The control board's ground is bonded to the stud by one conductor (terminal XPE).
+  The control board's ground is bonded to the stud by one conductor (terminal X7).
 - **The control is live.** The control board and the contactor coil circuits are not isolated
   from the mains (no PELV claim): treat them as live.
 - **RCD protection.** The stabiliser is an autotransformer: the output is not separated from the
@@ -52,11 +52,11 @@ The power terminals X1 … X6 are DIN-rail terminal blocks sized for these cable
   enclosure's base or floor-standing. Mount the unit upright, out of the sun, with free air above
   and on the sides.
 - **Heat.** The transformer's losses (a few percent of the rating at full boost), the contacts and
-  four coils of about 22 W each (a tap, KI, KM; a second tap during a change). Ventilation slots at
+  four coils of about 22 W each (a tap, K10, K9; a second tap during a change). Ventilation slots at
   the bottom and the top; keep 20 cm free above. Type test TT-1 measures the temperature rise.
 - **Contactors on the DIN rail,** in the order of the tap leads; the three poles of each tap
   contactor linked on both sides (paralleled poles, so each carries a third). Their auxiliary
-  contacts (NO 13-14 of each tap contactor, NC 21-22 of KI) wired to the board's panel connector
+  contacts (NO 13-14 of each tap contactor, NC 21-22 of K10) wired to the board's panel connector
   as panel.csv lists: these wires carry the check that keeps two taps from ever being connected,
   so do not swap them.
 - **Torques.** The values printed on each device or in its datasheet. Mark each tightened screw.
@@ -77,7 +77,7 @@ The power terminals X1 … X6 are DIN-rail terminal blocks sized for these cable
   the loads (about 20 ms drop-out) may drop out and must restart by themselves or be held by
   their own control. Equipment that cannot tolerate it needs a UPS.
 - **No backfeeding source on the output.** An inverter, a generator or a PV system on the
-  output side would keep the winding live while KI is open, and the tap contactors would then
+  output side would keep the winding live while K10 is open, and the tap contactors would then
   switch current. Connect such sources only on the supply side of the stabiliser, or through a
   change-over that disconnects the stabiliser.
 - **Restart delay.** About 8.5 s. A refrigeration compressor without its own restart protection
@@ -87,4 +87,4 @@ The power terminals X1 … X6 are DIN-rail terminal blocks sized for these cable
 ## 7. Before handing over
 
 Commissioning (COMMISSIONING.md), including the calibration of both sense circuits, with the
-loads disconnected (QF2 off) until the protection checks are done.
+loads disconnected (Q17 off) until the protection checks are done.

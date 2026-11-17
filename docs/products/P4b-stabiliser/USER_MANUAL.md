@@ -93,7 +93,7 @@ The stabiliser draws more current from a low grid than it delivers: up to 36 / 7
   contactors' poles and the board.
 - Repeat the protection checks (COMMISSIONING.md, section 5).
 
-**Input contactor KI:** it makes and breaks the input current at every tap change. Count about
+**Input contactor K10:** it makes and breaks the input current at every tap change. Count about
 1.5 million operations; at 200 changes a day that is about 20 years. Replace it when its contacts
 show wear (it is the one part that wears), or after a known short circuit.
 
@@ -106,8 +106,8 @@ show wear (it is the one part that wears), or after a known short circuit.
 | Rated output | 5 kVA, 22 A | 10 kVA, 43 A | 15 kVA, 65 A |
 | Input range | 140 … 300 V, 50 Hz | same | same |
 | Input current at 140 V | 36 A | 71 A | 107 A |
-| Input breaker QF1 (2-pole, C) | 40 A | 80 A | 125 A |
-| Output breaker QF2 (C) | 25 A | 50 A | 80 A |
+| Input breaker Q1 (2-pole, C) | 40 A | 80 A | 125 A |
+| Output breaker Q17 (C) | 25 A | 50 A | 80 A |
 | Tap contactors (7, three poles in parallel) | 25 A frame | 40 A frame | 50 A frame |
 | Input and output contactors | 40 A frame | 80 A frame | 115 A frame |
 

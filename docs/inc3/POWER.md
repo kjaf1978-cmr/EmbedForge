@@ -268,47 +268,47 @@ the P4 way.
 
 `src/eda/stabiliserT.ts` (`stabiliserT({ kva })`). The 1 kVA unit's sense, reference ladder,
 comparators (same hysteresis), change detector and sequencer, power good, restart delay and
-independent protection with its relay KP; per size:
+independent protection with its relay K11; per size:
 
 | | 5 kVA | 10 kVA | 15 kVA |
 |---|---|---|---|
 | Input current at 140 V, output current | 36 A, 22 A | 71 A, 43 A | 107 A, 65 A |
-| QF1 (2-pole), QF2 (output, 1P+N or 2-pole) | C 40 A, C 25 A | C 80 A, C 50 A | C 125 A, C 80 A |
+| Q1 (2-pole), Q17 (output, 1P+N or 2-pole) | C 40 A, C 25 A | C 80 A, C 50 A | C 125 A, C 80 A |
 | Tap contactors K1 … K7, three poles in parallel | LC1D25BD (AC-1 40 A × 2.25) | LC1D40ABD (60 A × 2.25) | LC1D50ABD (80 A × 2.25) |
-| Input contactor KI (one pole), output contactor KM (L and N) | LC1D40ABD | LC1D80BD | LC1D115BD |
+| Input contactor K10 (one pole), output contactor K9 (L and N) | LC1D40ABD | LC1D80BD | LC1D115BD |
 | Cables in / out / PE (mm²) | 6 / 6 / 6 | 16 / 16 / 16 | 35 / 25 / 16 |
 
 - **Coils:** 24 V DC from a Mean Well HLG-100H-24 (90 … 305 V AC, 4 A, potted, panel mount) on
-  the input before KI, behind a 2 A ceramic fuse; IRF540N drivers from the decoder's CMOS outputs;
-  a diode and a 24 V Zener on each coil (fast opening). KM's coil is fed through KO and KP (832A
+  the input before K10, behind a 2 A ceramic fuse; IRF540N drivers from the decoder's CMOS outputs;
+  a diode and a 24 V Zener on each coil (fast opening). K9's coil is fed through K8 and K11 (832A
   relays), so the output contactor stays closed through a tap change.
-- **Sequence of a tap change:** a comparator changes; the timer empties and KI's driver turns off;
-  the tap states are clocked once the timer passes VEL **and** KI's NC auxiliary (a mirror contact)
+- **Sequence of a tap change:** a comparator changes; the timer empties and K10's driver turns off;
+  the tap states are clocked once the timer passes VEL **and** K10's NC auxiliary (a mirror contact)
   shows it open; the decoder commands the new tap; the old tap contactor opens, the new one
-  closes (about 60 … 100 ms); KI closes once the timer passes VEH **and** the match check holds.
+  closes (about 60 … 100 ms); K10 closes once the timer passes VEH **and** the match check holds.
   The load sees a gap of about 0.3 s (P4: under 0.1 s; these frames close in about 100 ms).
 - **Match check:** each tap contactor's NO auxiliary from its coil's switched end through 2.2k to
   node M (2.2k to 24 V). Exactly the commanded contactor closed puts M at about 12 V (MS about
   3.8 V after the 100k / 47k divider and a 15 ms filter); none closed, a wrong one, one more beside
   it or two commanded give 24, 24, 16 or 8 V. A window comparator (LM393, 3.17 … 4.48 V from the
-  12 V rail) is wired into KI's command with the timer. The auxiliary contacts carry about 5 mA at
-  24 V; KI's NC loop is loaded to 5 mA at 12 V — the gold-plated low-level block LADN11P where
+  12 V rail) is wired into K10's command with the timer. The auxiliary contacts carry about 5 mA at
+  24 V; K10's NC loop is loaded to 5 mA at 12 V — the gold-plated low-level block LADN11P where
   the maker's minimum is not met.
-- **Snubber of the switched input to N,** not across KI: across the open contact it fed the
+- **Snubber of the switched input to N,** not across K10: across the open contact it fed the
   winding through 220 nF and it rang up to 380 V (found in simulation; P4 has a 100 nF RC across
   its input contactor: the linear model shows 8 V there, but see the note to the owner).
 - **After the independent review (16 November, `docs/products/P4b-stabiliser/REVIEW.md`):** a
-  seal-in on each tap coil (fed only from KI's second NC, or its own NO once in); a mirror chain
-  (KI's coil through all seven tap NC mirror contacts, each bridged by a MOSFET for the
-  commanded tap); the timer charged through KI's NC; the match window ratiometric to 24 V; the
-  sense held through each change (weak lines); TVS suppressors; D-curve QF1; the protection's
-  overvoltage also opens KI.
+  seal-in on each tap coil (fed only from K10's second NC, or its own NO once in); a mirror chain
+  (K10's coil through all seven tap NC mirror contacts, each bridged by a MOSFET for the
+  commanded tap); the timer charged through K10's NC; the match window ratiometric to 24 V; the
+  sense held through each change (weak lines); TVS suppressors; D-curve Q1; the protection's
+  overvoltage also opens K10.
 - **No thyristors, aR fuse, heatsink, fan or pair boards;** one control board.
 
 Verified (LONG=1, `tests/stabiliserT.test.ts`): steady state at full load at 140 / 230 / 300 V
 for each size, every step ± 6 V (5 kVA, half load), power-up, tap changes under full load at 5
-and 15 kVA (no tap contactor carries current while it moves; gap under 0.4 s; KM stays closed), a
-sag to 195 V, a welded tap contactor, a shorted coil driver, KO's driver shorted with 330 V in,
+and 15 kVA (no tap contactor carries current while it moves; gap under 0.4 s; K9 stays closed), a
+sag to 195 V, a welded tap contactor, a shorted coil driver, K8's driver shorted with 330 V in,
 the thermal cut-out open, power factor 0.8 at 140 V.
 
 ### P5 — surge and lightning protection (D20; DFMEA section 3c)
