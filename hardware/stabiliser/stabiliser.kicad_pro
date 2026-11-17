@@ -70,107 +70,11 @@
       },
       {
         "netclass": "Mains",
-        "pattern": "^T7$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNC6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^C6N$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNA6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T6$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNC5$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^C5N$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNA5$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T5$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^OUTK$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^OUT$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNC4$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^C4N$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNA4$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T4$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNC3$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^C3N$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNA3$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T3$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNC2$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^C2N$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNA2$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^T2$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNC1$"
+        "pattern": "^SNKI$"
       },
       {
         "netclass": "Mains",
         "pattern": "^VCH$"
-      },
-      {
-        "netclass": "Mains",
-        "pattern": "^SNKI$"
       },
       {
         "netclass": "Mains",
@@ -195,6 +99,102 @@
       {
         "netclass": "Mains",
         "pattern": "^T1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNC1$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^C2N$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNA2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNC2$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^C3N$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNA3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNC3$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^C4N$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNA4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNC4$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^C5N$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNA5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^OUTK$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^OUT$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNC5$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^C6N$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNA6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^SNC6$"
+      },
+      {
+        "netclass": "Mains",
+        "pattern": "^T7$"
       }
     ]
   }
