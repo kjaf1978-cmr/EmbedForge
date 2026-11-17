@@ -6,8 +6,8 @@ type 1+2 at the main board, type 2 in the sub-board, type 3 at the sockets of se
 equipment) and for the DC side of a house with the 48 V MPPT charger (P6): a certified type 2 PV
 SPD at the array and at the charger (D49), with decoupling chokes before the charger. All
 SPDs are DEHN products. Verified by simulation with the surges of the standards (10/350 µs,
-8/20 µs, 1.2/50 µs). **Reviewed** (16 November 2026, `REVIEW.md`); not yet signed off; two
-changes are required in P6.
+8/20 µs, 1.2/50 µs). **Reviewed** (16 November 2026, `REVIEW.md`) and packaged; waiting for your
+sign-off; two changes are required in P6.
 
 Design notes: `docs/inc3/POWER.md`, section P5. DFMEA: `docs/inc3/DFMEA.md`, section 3c.
 Simulation: `app/ui/src/eda/surge.ts`, `app/ui/tests/surge.test.ts`; results in
@@ -22,9 +22,9 @@ Simulation: `app/ui/src/eda/surge.ts`, `app/ui/tests/surge.test.ts`; results in
 | 3 | Firmware | None. |
 | 4 | Board | None: DIN-rail devices in the distribution boards and the PV enclosures. |
 | 5 | Costed parts list | At DEHN list prices (EUR, without VAT) and estimates: mains **€874.50** (941205 €473.90, 942220 €260.10, 953200 €138.30, PEN feed-through terminal €2.20 estimate); PV **€964.00** (952518 €391.10, 952513 €332.90, two 68 µH chokes made to specification, €120 each estimate). Cables, enclosures and earthing are the electrician's installation material. |
-| 6 | Documents | Installation guide, commissioning procedure with record sheet, user manual with maintenance and FAQ, review with resolutions (this folder); design notes (POWER.md P5) and DFMEA (3c). Design document (PDF, Word) still to do. |
+| 6 | Documents | Installation guide, commissioning procedure with record sheet, user manual with maintenance and FAQ, review with resolutions (this folder); design notes (POWER.md P5), DFMEA (3c), and the design document of each installation (PDF, Word). |
 | 7 | Independent review | Done 16 November 2026: 2 blockers, 8 major, 10 minor findings, all resolved or listed as open (`REVIEW.md`). |
-| 8 | Package and sign-off | Not yet. |
+| 8 | Package and sign-off | Packaged 17 November 2026; waiting for your sign-off. |
 
 ## Open
 
@@ -37,4 +37,18 @@ Simulation: `app/ui/src/eda/surge.ts`, `app/ui/tests/surge.test.ts`; results in
    derived 1 kV); the DEHNshield's arc voltage (400 V, an assumption standing for its
    follow-current limitation).
 3. The PV modules' rated impulse voltage against 2.3 kV at their frame.
-4. Design document, package, your sign-off.
+4. Your sign-off.
+
+## Folders (package)
+
+| Folder | Contents |
+|---|---|
+| `1-schematics/` | The two installations' circuit diagrams (PDF, SVG) |
+| `2-design-document/` | The design document of each installation (PDF, Word) |
+| `4-parts-list/` | The costed parts list of each installation (CSV) |
+| `5-documentation/` | Installation guide, commissioning, user manual, DFMEA (Markdown and PDF) |
+| `6-app-project/` | The app's project files |
+| `7-simulation-tests/` | The tests that verify the installations by simulation, and their result |
+| `8-review/` | The independent review with its resolutions |
+
+There is no `3-pcb/`: the product is DIN-rail devices, not a board.
