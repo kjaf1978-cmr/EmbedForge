@@ -24,7 +24,7 @@ current product's own long runs. One session works on the branch.
 |---|---|---|---|
 | 1 | P3 change-over (1P, 3P+N) | 2–3 days | **signed off 15 November 2026** (package c6ddfd3; open for the prototype: interlock kit fit, TMOV body, type tests) |
 | 2 | P4 stabiliser 1 kVA | 1–2 days | **signed off 15 November 2026** (package 6df257f; open for the prototype: relay footprint and TMOV body against the datasheets, autotransformer to specification, type tests) |
-| 3 | P4b stabilisers 5/10/15 kVA | 2 days | |
+| 3 | P4b stabilisers 5/10/15 kVA | 2 days | **signed off 17 November 2026** (D59, package 14a4c41; contactor taps per D58; open for the prototype: the 15 kVA coil data, KI's life and reclosing current, autotransformer to specification, type tests) |
 | 4 | P5 surge protection | 1 day | D49 and the DEHN mains SPDs done, reviewed 16 November (`docs/products/P5-surge`); open: design document, package, sign-off; two P6 changes recorded |
 | 5 | P9 pump controller | 1 day | |
 | 6 | P9 gate controller (Nano) | 4–5 days | firmware framework (D48) |
@@ -78,6 +78,19 @@ Added from P4 (D51–D54), checked from P4b on:
 - Isolation claims (PELV) only where creepage, clearance and the parts' own insulation prove
   them; otherwise the control is treated as live.
 - Switching that a plug could reverse: 1P+N breaker and fixed wiring.
+
+Added from P4b (D58–D60), checked from P5 on:
+
+- An interlock that must hold under a single fault relies only on mirror (NC) contacts, which
+  IEC 60947-4-1 Annex F guarantees under a weld; NO auxiliaries show only that a part is closed.
+- Every fault that matters is also simulated arising while running, not only from power-up.
+- MOSFETs or transistors on a floating node: their drive is referenced to that node, and their
+  gate voltages are checked in every state, including a coil's turn-off.
+- A snubber goes where it cannot feed a de-energised winding (to N, not across an open switch).
+- A check whose levels follow one rail takes its thresholds from the same rail.
+- A sense that sees a different load during a switching gap is held through the gap (weak lines).
+- Coil and contact suppressors are sized for the energy of each operation (TVS, not a 1 W Zener).
+- Spare mains connector poles are bonded to a net (bondSpare).
 - Commissioning load tests at both ends of the input range, where the windings carry current;
   an overvoltage check in the field.
 - A slowly charging RC never drives a relay coil or a gate directly: a comparator switches it.
