@@ -25,7 +25,7 @@ current product's own long runs. One session works on the branch.
 | 1 | P3 change-over (1P, 3P+N) | 2–3 days | **signed off 15 November 2026** (package c6ddfd3; open for the prototype: interlock kit fit, TMOV body, type tests) |
 | 2 | P4 stabiliser 1 kVA | 1–2 days | **signed off 15 November 2026** (package 6df257f; open for the prototype: relay footprint and TMOV body against the datasheets, autotransformer to specification, type tests) |
 | 3 | P4b stabilisers 5/10/15 kVA | 2 days | **signed off 17 November 2026** (D59, package 14a4c41; contactor taps per D58; open for the prototype: the 15 kVA coil data, KI's life and reclosing current, autotransformer to specification, type tests) |
-| 4 | P5 surge protection | 1 day | D49 and the DEHN mains SPDs done, reviewed 16 November (`docs/products/P5-surge`); open: design document, package, sign-off; two P6 changes recorded |
+| 4 | P5 surge protection | 1 day | **signed off 17 November 2026** (D61, package 037f847; the two P6 changes go into P6; DEHN data-sheet checks and the modules' impulse voltage open for the installation) |
 | 5 | P9 pump controller | 1 day | |
 | 6 | P9 gate controller (Nano) | 4–5 days | firmware framework (D48) |
 | 7 | P9 block machine (Nano) | 2–3 days | |
