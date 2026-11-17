@@ -123,7 +123,7 @@ const BY_VALUE: Record<string, Record<string, CatalogueEntry>> = {
   },
   gdt: { 'DSH TN 255 FM': e('941205 (DSH TN 255 FM)', 'DEHN', 'type 1+2 SPD (IEC 61643-11), spark-gap based, L–PE and N–PE: Uc 255 V, Iimp 12.5 kA per pole (10/350 µs), Itotal 25 kA, Up ≤ 1.5 kV, Ifi 25 kA with follow-current limitation, backup ≤ 160 A gG, status window and remote contact, 2 DIN modules: one module for its two spark gaps', 473.9, undefined, 'live', [{ distributor: 'DEHN online store (list price)', url: 'https://www.dehn-international.com/en-INT/store/f/295189/dehnshield-7f113d65' }, { distributor: 'electrical wholesale' }], 'list price; without the remote contact 941200 (€434.80)'), 'GDT 600 V': e('2036-60-SM (or SL1002A600)', 'Bourns / Littelfuse', 'gas discharge tube 600 V, 10 kA 8/20 µs (N–PE in the SPD modules)', 2.5, 1.6, 'estimate', [{ distributor: 'Mouser' }], 'in an installation: the N–PE module of the SPD (e.g. Phoenix VAL-MS-T1/T2 1+1)') },
   spdt: { jumper: e('3-pin header 2.54 mm with a shorting jumper', 'various', 'pin header 1 × 3, 2.54 mm, with one 2.54 mm shorting jumper (the link selector of a linked inverter unit)', 0.3, 0.15, 'estimate', any('pin header')) },
-  button: { '22 mm, 1 NO': e('22 mm push button, 1 NO (e.g. Schneider XB5AA31)', 'Schneider Electric', 'push button 22 mm, 1 NO, flush, black', 9, 7, 'estimate', [{ distributor: 'RS' }]) },
+  button: { 'tactile 6 mm': e('tactile switch 6 × 6 mm, THT (e.g. Omron B3F-1000)', 'Omron', 'tactile switch 6 × 6 mm, 1 NO, through-hole (on the board)', 0.3, 0.1, 'estimate', any('tactile')), '22 mm, 1 NO': e('22 mm push button, 1 NO (e.g. Schneider XB5AA31)', 'Schneider Electric', 'push button 22 mm, 1 NO, flush, black', 9, 7, 'estimate', [{ distributor: 'RS' }]) },
   tl431: { TL431: e('TL431ACLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 1 %, TO-92', 0.3, 0.1, 'estimate', any('TO-92')), TL431B: e('TL431BCLP', 'Texas Instruments', 'adjustable shunt reference 2.495 V 0.5 %, TO-92', 0.45, 0.15, 'estimate', any('TO-92')) },
   // logic by family (the footprint's): CD4000 on a rail above 6 V, 74HC on 5 V and 3.3 V
   cd4020: {
@@ -319,7 +319,9 @@ export function catalogueFor(line: BomLine): CatalogueEntry | null {
     case 'contactor': return BY_VALUE.contactor?.[line.value] ?? BY_VALUE.contactor?.[v] ?? null;
     case 'inductor': return BY_VALUE.inductor[line.value.replace(/\s/g, ' ')] ?? BY_VALUE.inductor['56 µH'];
     case 'terminal': return BY_VALUE.terminal[line.value] ?? BY_VALUE.terminal['5.08 mm, 1 pole'];
-    case 'button': return BY_VALUE.button['22 mm, 1 NO']; // its value is its state in a test
+    // its value is its state in a test; a button on the board (no panel prop) is a tactile switch
+    // its value is its state in a test; a button on the board is a tactile switch (bom.ts)
+    case 'button': return BY_VALUE.button[line.value === 'tactile 6 mm' ? 'tactile 6 mm' : '22 mm, 1 NO'];
     case 'spdt': return BY_VALUE.spdt.jumper; // the designs' changeover switches are jumpers; its value is its position
     case 'dff': case 'cd4020': case 'nor2': case 'and2': case 'nand2': case 'or2': case 'xor2': case 'not': case 'schmitt':
       return BY_VALUE[line.sym][logicFamily(v)]; // its value is the supply rail

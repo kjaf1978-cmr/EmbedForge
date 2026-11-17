@@ -42,6 +42,8 @@ export function buildBom(sheet: Sheet, withTest = false): BomLine[] {
     if (p.sym.startsWith('breaker')) value = `${p.props.curve ?? 'C'}${p.props.value ?? ''} A`;
     // a contactor with a front-mounted auxiliary block (aux2: 43-44 NO, 31-32 NC) is bought with it
     if (p.sym === 'contactor' && p.props.aux2 === 'true') value = `${raw}, + aux block 1 NO + 1 NC`;
+    // a button on the board is a tactile switch; one with panel: 'true' a 22 mm door button
+    if (p.sym === 'button') value = p.props.panel === 'true' ? '22 mm, 1 NO' : 'tactile 6 mm';
     const card = p.props.spice?.trim() ? importModel(p.sym, p.props.spice) : null;
     // ratings are always listed (what to buy); other parameters when they differ from the default
     const RATING = new Set(['vmax', 'pmax', 'imax']);
