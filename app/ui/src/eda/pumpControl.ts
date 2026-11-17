@@ -141,7 +141,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
       // 100 nF with the 10k: a low-pass that passes the 100 Hz of a wet rod and takes the square
       // wave's edges out of a rod in air (through a long cable's capacitance they were peak-detected
       // as a wet reading: found in simulation)
-      .part(`CPF${k}`, 'capacitor', x - 30, 1360, { value: '100n', vmax: '50' }, { '1': `P${k}`, '2': 'GND' }, 1)
+      .part(`CPF${k}`, 'capacitor', x - 70, 1300, { value: '100n', vmax: '50' }, { '1': `P${k}`, '2': 'GND' }, 1)
       .part(`DK${k}`, 'diode', x + 100, 1250, { value: '1N4148' }, { '2': `P${k}`, '1': `H${k}` })
       .part(`CH${k}`, 'capacitor', x + 160, 1350, { value: '1u', vmax: '50' }, { '1': `H${k}`, '2': 'GND' }, 1)
       .part(`RH${k}`, 'resistor', x + 200, 1350, { value: '220k' }, { '1': `H${k}`, '2': 'GND' }, 1)
