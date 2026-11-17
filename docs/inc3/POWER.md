@@ -474,7 +474,7 @@ a borehole or transfer pump (230 V, up to 1.5 kW) filling an elevated tank.
   earthed 0 V), a safety isolating transformer of 4.5 VA, DIN-rail interface relays with
   reinforced insulation; an **independent protection** with its own sensing chains (OVERFLOW, DRY
   and each COM rod's return core), two LM393, relay K8 and its own contactor K5 in series with the
-  pump contactor K7; 100 Hz excitation with a 22k load on every sensing input (long cables);
+  pump contactor K7; 100 Hz excitation with a 22k load and a 100 nF low-pass on every sensing input (long cables);
   hysteresis everywhere; the maximum-run counter cleared whenever the pump is off and at power-up;
   PERMIT and RUN as two transistors in series; a TEST button on the SELV side; Q1 GV2ME16 and 18 A
   contactors for up to 11 A.

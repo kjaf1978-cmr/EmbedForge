@@ -126,8 +126,8 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('DTC1', 'tvs', -850, 1250, { value: 'SMAJ12CA' }, { '1': 'EC1', '2': 'GND' }, 1)
     .part('DTC2', 'tvs', -850, 1350, { value: 'SMAJ12CA' }, { '1': 'EC2', '2': 'GND' }, 1);
 
-  // ---- per sensing electrode: 10k in, 22k to 0 V (a rod in air on a long cable reads below the
-  // threshold through the cable's capacitance), clamps to the rails, peak detector, comparator
+  // ---- per sensing electrode: 10k in, 22k and 100 nF to 0 V (a rod in air on a long cable reads
+  // below the threshold through the cable's capacitance), clamps to the rails, peak detector, comparator
   // against 1.2 V (VREF 2.5 V divided) with 10 M of hysteresis: output high = wet
   nb.block('electrodes')
     .part('RTH1', 'resistor', -800, 1450, { value: '10k' }, { '1': 'VREF', '2': 'VTH' }, 1)
@@ -138,6 +138,10 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`DPH${k}`, 'diode', x + 60, 1180, { value: '1N4148' }, { '2': `P${k}`, '1': V }, 3)
       .part(`DPL${k}`, 'diode', x + 60, 1320, { value: '1N4148' }, { '2': 'GND', '1': `P${k}` }, 3)
       .part(`RG${k}`, 'resistor', x + 20, 1360, { value: '22k' }, { '1': `P${k}`, '2': 'GND' }, 1)
+      // 100 nF with the 10k: a low-pass that passes the 100 Hz of a wet rod and takes the square
+      // wave's edges out of a rod in air (through a long cable's capacitance they were peak-detected
+      // as a wet reading: found in simulation)
+      .part(`CPF${k}`, 'capacitor', x - 30, 1360, { value: '100n', vmax: '50' }, { '1': `P${k}`, '2': 'GND' }, 1)
       .part(`DK${k}`, 'diode', x + 100, 1250, { value: '1N4148' }, { '2': `P${k}`, '1': `H${k}` })
       .part(`CH${k}`, 'capacitor', x + 160, 1350, { value: '1u', vmax: '50' }, { '1': `H${k}`, '2': 'GND' }, 1)
       .part(`RH${k}`, 'resistor', x + 200, 1350, { value: '220k' }, { '1': `H${k}`, '2': 'GND' }, 1)
@@ -154,6 +158,7 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     const x = 300 + 260 * j;
     nb.part(`RQ${k}`, 'resistor', x, 2600, { value: '10k' }, { '1': e, '2': `Q${k}` })
       .part(`RQG${k}`, 'resistor', x + 20, 2710, { value: '22k' }, { '1': `Q${k}`, '2': 'GND' }, 1)
+      .part(`CQF${k}`, 'capacitor', x - 30, 2710, { value: '100n', vmax: '50' }, { '1': `Q${k}`, '2': 'GND' }, 1)
       .part(`DQH${k}`, 'diode', x + 60, 2530, { value: '1N4148' }, { '2': `Q${k}`, '1': V }, 3)
       .part(`DQL${k}`, 'diode', x + 60, 2670, { value: '1N4148' }, { '2': 'GND', '1': `Q${k}` }, 3)
       .part(`DJ${k}`, 'diode', x + 100, 2600, { value: '1N4148' }, { '2': `Q${k}`, '1': `J${k}` })
