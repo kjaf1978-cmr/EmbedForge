@@ -10,18 +10,20 @@ user manual's safety note, and the type tests.
 | # | Element | State |
 |---|---|---|
 | 1 | Schematic | Final. Wired circuit diagram; ERC clean; the board matches it part by part and pad by pad. |
-| 2 | DFMEA verified by simulation | `tests/pumpcontrol.test.ts` (LONG=1): the normal cycle (starts below LOW, stops at HIGH, never near OVERFLOW, no part over its ratings); a broken HIGH cable (OVERFLOW stops and latches FAULT); the source running dry (stop, lockout); a burst pipe (maximum run, FAULT); the start delay; two faults: the pilot relay's driver shorted with a broken HIGH cable, and with the source dry (the independent protection's relay K2 stops the pump). DFMEA section 3d, PC-1 … PC-8. |
+| 2 | DFMEA verified by simulation | `tests/pumpcontrol.test.ts`, 11 of 11 pass (LONG=1): the normal cycle (starts below LOW, stops at HIGH, never near OVERFLOW, no part over its ratings); a broken HIGH cable; the source running dry; a burst pipe (maximum run, FAULT); the start delay; long electrode cables (10 nF); the tank's COM rod disconnected; two faults: the pilot relay's driver shorted with a broken HIGH cable, and with the source dry; the pump contactor welded with a broken HIGH cable. DFMEA section 3d, PC-1 … PC-12. |
 | 3 | Firmware | None. |
-| 4 | Board | 165 × 110 mm, 2 layers, 2 oz, revision B. DRC 0 errors and 0 unconnected; the only mains on the board is the safety transformer's fused primary, 5.5 mm (reinforced) from the PELV control. Fabrication files, assembly drawing, parts list and wiring list (`panel.csv`). |
-| 5 | Costed parts list | About €161 (single-unit prices; `4-parts-list/`): the motor-protective breaker €48, the contactor €35, the two interface relays €28, the rest the board and its parts. |
-| 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, DFMEA, design notes (docs/inc3/POWER.md, section P9), design document (PDF and Word). |
-| 7 | Independent review | See `REVIEW.md`. |
-| 8 | Package and sign-off | See the decision log (docs/phase0/STATUS.md). |
+| 4 | Board | Revision C, 165 × 110 mm, 2 layers, 2 oz. DRC 0 errors and 0 unconnected; the only mains on the board is the safety transformer's fused primary, 5.5 mm (reinforced) from the SELV control. Fabrication files, assembly drawing, parts list and wiring list (`panel.csv`). |
+| 5 | Costed parts list | About €234 (single-unit prices; `4-parts-list/`): the two 18 A contactors €96, the motor-protective breaker €50, the two interface relays €28, the rest the board and its parts. |
+| 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, DFMEA, design notes (docs/inc3/POWER.md, section P9), design document (PDF and Word). All with the schematic's designators. |
+| 7 | Independent review | Done 17 November 2026: 2 blockers, 7 major and 4 minor findings, all resolved (`REVIEW.md`). |
+| 8 | Package and sign-off | Packaged 17 November 2026; waiting for your sign-off. |
 
-What changed in the P9 audit (17 November 2026, the D47 checklist): the control made PELV (the
-electrodes are in water that people touch); an independent protection with its own relay; a
-motor-protective breaker; the contactor and breaker on L and N; fuses, wire sizes, PE stud; the
-drawing note's times corrected.
+What changed in the P9 audit and review (17 November 2026): the control made SELV (the electrodes
+are in water that people touch; not earthed, so earthed metal in the water does not short the
+rods); an independent protection with its own sensing, a COM-rod continuity check and its own
+contactor; long-cable immunity; hysteresis; the maximum-run counter fixed; switchgear for 1.5 kW;
+a 4.5 VA transformer; a TEST button on the SELV side; the documents with the schematic's
+designators.
 
 ## Folders (package)
 
