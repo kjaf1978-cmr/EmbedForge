@@ -465,9 +465,17 @@ a borehole or transfer pump (230 V, up to 1.5 kW) filling an elevated tank.
 - Logic: CD4001 NOR gates as the RUN latch (set below LOW, reset at HIGH or when the permit
   goes) and the FAULT latch (set by OVERFLOW or the maximum run, reset by the RESET button and
   at power-up); the permit is a diode AND of the start delay, the dry lockout and no fault.
-- Output: BC547B driving a 12 V relay, which drives a 9 A (AC-3) contactor with a 230 V coil;
-  breaker 10 A (motor curve) for the pump. Supply: a small 230/15 V transformer, LM317HV to 12 V,
-  TL431 reference.
+- Output: BC547B driving a 12 V DIN-rail interface relay K1, which drives a 9 A (AC-3) contactor
+  with a 230 V coil (switching L and N) through a gG 2 A fuse; a motor-protective circuit breaker
+  (GV2ME14, 6 … 10 A, set to the pump's rated current) on L and N. Supply: a safety isolating
+  230/15 V transformer (IEC 61558-2-6), LM317HV to 12 V, TL431 reference.
+- After the P9 audit (17 November 2026, D47 checklist): the electrodes are in water that people
+  touch, so the control is **PELV**: the relays are interface relays with reinforced coil–contact
+  insulation (Finder 38.51, 6 kV, 8 mm) on the DIN rail, the only mains on the board is the
+  transformer's fused primary (ceramic 0.2 A), 5.5 mm from the control. An **independent
+  protection**: its own LM393 on the OVERFLOW and DRY electrodes' peak detectors drives its own
+  relay K2 in series with K1, so a stuck K1 or a failed logic cannot run the pump into an overflow
+  or dry. PE stud, wire sizes on the power terminals.
 - Verified (TEST_REPORT.md section 3o): the normal cycle (starts below LOW, stops at HIGH, never
   near OVERFLOW), a broken HIGH cable, the source running dry, a burst pipe and the start delay
   after power-up; the tests run the clock 1000× faster (its capacitor), the counts unchanged.

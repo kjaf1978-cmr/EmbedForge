@@ -217,6 +217,9 @@ export const RELAYS: NamedModel<RelayModel>[] = [
   { name: '5 V', note: '5 V coil, 70 Ω (about 70 mA), changeover contact', model: { vcoil: 5, rcoil: 70, lcoil: 0.14 } },
   { name: '12 V', note: '12 V coil, 400 Ω (30 mA), changeover contact', model: { vcoil: 12, rcoil: 400, lcoil: 0.8 } },
   { name: '24 V', note: '24 V coil, 1.6 kΩ (15 mA), changeover contact', model: { vcoil: 24, rcoil: 1600, lcoil: 3.2 } },
+  // a DIN-rail interface relay with reinforced coil–contact insulation (Finder 38.51: 6 kV 1.2/50 µs,
+  // 8 mm): it keeps a control that touches water (PELV) apart from the mains it switches
+  { name: '12 V interface', note: 'DIN-rail relay interface module, 12 V DC coil (about 17 mA), 1 changeover 6 A 250 V AC, reinforced insulation coil–contact (6 kV, 8 mm)', model: { vcoil: 12, rcoil: 700, lcoil: 1.4 } },
   { name: '24 V 30 A', note: '24 V coil, 640 Ω (37 mA, 0.9 W), changeover contact 30 A / 250 V AC (power relay, AgSnO2): DC motors with their stall current', model: { vcoil: 24, rcoil: 640, lcoil: 1.6 } },
   { name: '12 V 30 A', note: '12 V coil, 160 Ω (75 mA, 0.9 W), changeover contact 30 A / 250 V AC (power relay, AgSnO2): mains loads with inrush', model: { vcoil: 12, rcoil: 160, lcoil: 0.4 } },
 ];
@@ -268,7 +271,8 @@ export const GDTS: NamedModel<GdtModel>[] = [
 /** Miniature circuit breakers (IEC 60898): rated current; the curve sets the magnetic trip. */
 export const BREAKER_A = [2, 4, 6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250];
 /** Instantaneous (magnetic) trip in multiples of In: the guaranteed value of each curve (B 3–5, C 5–10, D 10–20). */
-export const CURVE_MAG: Record<string, number> = { B: 5, C: 10, D: 20 };
+// M: a motor-protective circuit breaker (thermal set to the motor's rated current, magnetic at 13 × its setting)
+export const CURVE_MAG: Record<string, number> = { B: 5, C: 10, D: 20, M: 13 };
 
 /** Contactors: AC-3 rated current (IEC 60947-4-1) and coil. Pull-in at 85 %, drop-out at 40 %
  *  of the coil's rated current (peak-detected over ~20 ms, as the armature's inertia does). */

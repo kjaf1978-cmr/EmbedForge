@@ -63,6 +63,16 @@ describe.runIf(LONG)('pump control: cycle and DFMEA faults', () => {
     expect(s.on(1.5)).toBe(false);
     expect(s.at('FLTQ', 1.5)).toBeGreaterThan(6);
   }, 3_600_000);
+  it('two faults: the pilot relay\'s driver shorted (K1 on from power-up) and the HIGH cable broken: the independent protection\'s relay K2 stops the pump at OVERFLOW, the tank never overflows, FAULT lit', () => {
+    const s = run({ stop: '4', highBroken: true, k1Shorted: true });
+    expect(Math.max(...s.lvl)).toBeLessThan(9.9);
+    expect(s.r.v['FLTQ'].some((v) => v > 6)).toBe(true);
+  }, 3_600_000);
+  it('the pilot relay\'s driver shorted and the source running dry: K2 stops the pump within about 0.3 s, whatever the logic', () => {
+    const s = run({ stop: '2.2', k1Shorted: true, dryAt: 1.2, dryFor: 0.8, level0: 2 });
+    expect(s.motor(1.0, 1.15)).toBeGreaterThan(300);
+    expect(s.motor(1.6, 1.95)).toBeLessThan(30);
+  }, 3_600_000);
   it('after power-up the pump waits for the start delay (8 clocks) even with the tank empty', () => {
     const s = run({ stop: '0.3', clkC: '10n', level0: 1 });
     expect(s.on(0.05)).toBe(false); // 8 clocks of 105 Hz = 76 ms

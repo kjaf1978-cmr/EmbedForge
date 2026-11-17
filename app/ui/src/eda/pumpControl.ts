@@ -12,6 +12,14 @@
 // sensing electrode is peak-detected and compared with 2 V: about 25 kΩ of water still reads
 // wet, a broken cable reads dry, so a broken LOW cable starts the pump (it then stops at HIGH)
 // and a broken HIGH cable lets the OVERFLOW electrode stop it (fault, alarm).
+//
+// After the P9 audit against the checklist (D47; 17 November 2026): the electrodes are in water
+// that people can touch, so the control is PELV: a safety isolating transformer (IEC 61558-2-6)
+// and DIN-rail interface relays with reinforced coil–contact insulation switch the mains (no mains
+// switching on the board; the transformer's primary kept 5.5 mm from the control). An independent
+// protection (its own comparators on the OVERFLOW and DRY electrodes, its own relay K2 in series
+// with K1) stops the pump whatever the logic or K1 do. The pump is protected by a
+// motor-protective circuit breaker (L and N), the contactor switches L and N.
 
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
@@ -27,13 +35,15 @@ export interface PumpOptions {
   level0?: number; dryAt?: number; dryFor?: number; highBroken?: boolean; reset?: boolean;
   /** Test bench: no water reaches the tank (a burst pipe). */
   noFlow?: boolean;
+  /** Tests (DFMEA): the pilot relay's driver shorted (K1 on from power-up). */
+  k1Shorted?: boolean;
   stop?: string;
 }
 
 export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
   const nb = new NB().wireUp(['+12V']);
   const V = '+12V';
-  nb.para('PUMP CONTROL (borehole or transfer pump, 230 V, up to 1.5 kW): start below LOW, stop at HIGH; OVERFLOW stops and latches FAULT; DRY (source empty) stops and holds off 10 min; more than 2 h of running latches FAULT; 10 s delay after a power cut. AC-excited stainless electrodes (200 Hz, no electrolysis). Reset: button RESET.', -1300, -300);
+  nb.para('PUMP CONTROL (borehole or transfer pump, 230 V, up to 1.5 kW): start below LOW, stop at HIGH; OVERFLOW stops and latches FAULT; DRY (source empty) stops and holds off 8.5 min after the water returns; more than 2.3 h of running latches FAULT; 8 s delay after a power cut. AC-excited stainless electrodes (200 Hz, no electrolysis). The control and the electrodes are PELV (safety isolating transformer, interface relays with reinforced insulation); an independent protection (OVERFLOW, DRY) opens its own relay K2. Reset: button RESET.', -1300, -300);
 
   // ---- test bench: the mains, the tank (a capacitor: 10 V = full), its fill and consumption, the
   // electrodes as relays that close through 2 kΩ of water when the level passes them
@@ -68,10 +78,12 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- terminals and the 12 V control supply (transformer, bridge, LM317)
   nb.block('supply')
-    .part('X1', 'terminal', -1250, 900, { value: 'L' }, { '1': 'L' })
-    .part('X2', 'terminal', -1250, 960, { value: 'N' }, { '1': 'N' })
-    .part('X3', 'terminal', -1250, 1020, { value: 'PE' }, { '1': 'GND' })
-    .part('F1', 'fuse', -1150, 900, { value: '0.2', r: '2' }, { '1': 'L', '2': 'LF' })
+    .part('X1', 'terminal', -1250, 900, { value: 'L', wire: '2.5' }, { '1': 'L' })
+    .part('X2', 'terminal', -1250, 960, { value: 'N', wire: '2.5' }, { '1': 'N' })
+    .part('X3', 'terminal', -1250, 1020, { value: 'PE', wire: '2.5' }, { '1': 'GND' })
+    // the board's mains entry fused for its tracks (ceramic, 1.5 kA); the transformer a safety
+    // isolating type (IEC 61558-2-6, short-circuit proof): the control and the electrodes are PELV
+    .part('F1', 'fuse', -1150, 900, { value: '0.2', r: '2', fusetype: 'H' }, { '1': 'L', '2': 'LF' })
     .part('TR1', 'transformer', -1000, 950, { value: '0.075', lp: '20', rp: '200', rs: '1.5', k: '0.995' }, { '1': 'LF', '2': 'N', '3': 'SA', '4': 'SB' })
     .part('BR1', 'bridge', -880, 950, { value: 'DB107' }, { '1': 'SA', '2': 'SB', '3': 'VRAW', '4': 'GND' })
     .part('C1', 'capacitor_pol', -780, 1000, { value: '1000u', vmax: '35' }, { '1': 'VRAW', '2': 'GND' }, 1)
@@ -186,13 +198,30 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RB2', 'resistor', 1180, 1750, { value: '47k' }, { '1': 'BQ', '2': 'GND' }, 1)
     .part('Q1', 'npn', 1250, 1650, { value: 'BC547B' }, { '1': 'BQ', '2': 'KP', '3': 'GND' })
     .part('DQ1', 'diode', 1350, 1580, { value: '1N4148' }, { '2': 'KP', '1': V }, 3)
-    .part('K1', 'relay', 1400, 1650, { value: '12 V' }, { '1': V, '2': 'KP', '3': 'LF2', '5': 'KMA' })
-    .part('F2', 'fuse', 1500, 1500, { value: '1', r: '0.2' }, { '1': 'L', '2': 'LF2' })
-    .part('KM', 'contactor', 1600, 1650, { value: '9 A, coil 230 V AC' }, { A1: 'KMA', A2: 'N', '1': 'LQ', '2': 'LM', '13': 'VF', '14': 'VFC' })
-    .part('QF1', 'breaker1', 1500, 1350, { value: '10', curve: 'D' }, { '1': 'L', '2': 'LQ' }, 3)
-    .part('X4', 'terminal', 1750, 1600, { value: 'pump L' }, { '1': 'LM' })
-    .part('X5', 'terminal', 1750, 1660, { value: 'pump N' }, { '1': 'N' })
-    .part('X6', 'terminal', 1750, 1720, { value: 'PE' }, { '1': 'GND' })
+    // the pilot relay and the protection's relay K2: DIN-rail interface relays (reinforced
+    // insulation coil–contact), their contacts in series in the contactor's coil feed (gG 2 A)
+    .part('K1', 'relay', 1400, 1650, { value: '12 V interface', din: 'true' }, { '1': V, '2': 'KP', '3': 'LK2', '4': 'LK2', '5': 'KMA' })
+    .part('F2', 'fuse', 1500, 1500, { value: '2', r: '0.05', din: '1' }, { '1': 'L', '2': 'LF2' })
+    .part('KM', 'contactor', 1600, 1650, { value: '9 A, coil 230 V AC' }, { A1: 'KMA', A2: 'N', '1': 'LQ', '2': 'LM', '3': 'NQ', '4': 'NM', '13': 'VF', '14': 'VFC' })
+    // the pump's motor-protective circuit breaker (set to its rated current), L and N
+    .part('QF1', 'breaker2', 1500, 1350, { value: '10', curve: 'M' }, { '1': 'L', '2': 'LQ', N1: 'N', N2: 'NQ' }, 3)
+    .part('X4', 'terminal', 1750, 1600, { value: 'pump L', wire: '2.5' }, { '1': 'LM' })
+    .part('X5', 'terminal', 1750, 1660, { value: 'pump N', wire: '2.5' }, { '1': 'NM' })
+    .part('X6', 'terminal', 1750, 1720, { value: 'PE', wire: '2.5' }, { '1': 'GND' })
+    // the board's control ground to the PE stud by one conductor (PE in and out through the stud)
+    .part('XPE', 'terminal', 1750, 1790, { value: 'PE stud (control ground)' }, { '1': 'GND' })
+    // the independent protection: its own comparators (LM393) on the OVERFLOW and DRY electrodes'
+    // peak detectors, its own driver and relay K2 in series with K1: OVERFLOW wet or the source
+    // dry opens K2 at once, whatever the logic, its counters or K1 do
+    .part('UIO', 'comparator', 1150, 2050, { value: 'LM393', pkg: 'PROT' }, { '3': 'VTH', '2': 'HO', '1': 'OK2', '8': V, '4': 'GND' })
+    .part('UID', 'comparator', 1150, 2200, { value: 'LM393', pkg: 'PROT' }, { '3': 'HD', '2': 'VTH', '1': 'OK2', '8': V, '4': 'GND' })
+    .part('RK2', 'resistor', 1250, 1980, { value: '10k' }, { '1': V, '2': 'OK2' }, 1)
+    .part('RB3', 'resistor', 1300, 2100, { value: '22k' }, { '1': 'OK2', '2': 'BQ2' })
+    .part('RB4', 'resistor', 1350, 2200, { value: '47k' }, { '1': 'BQ2', '2': 'GND' }, 1)
+    .part('Q2', 'npn', 1420, 2100, { value: 'BC547B' }, { '1': 'BQ2', '2': 'KP2', '3': 'GND' })
+    .part('DQ2', 'diode', 1500, 2030, { value: '1N4148' }, { '2': 'KP2', '1': V }, 3)
+    .part('K2', 'relay', 1580, 2100, { value: '12 V interface', din: 'true' }, { '1': V, '2': 'KP2', '3': 'LF2', '4': 'LF2', '5': 'LK2' })
+    .part('CD7', 'capacitor', 1250, 2300, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     // LEDs: RUN (green, on the relay), FAULT (red), SOURCE DRY (yellow)
     .part('LRUN', 'led', 1300, 1800, { colour: 'green' }, { '2': V, '1': 'LRA' }, 1)
     .part('RLR', 'resistor', 1300, 1900, { value: '2.2k' }, { '1': 'LRA', '2': 'KP' }, 1)
@@ -208,7 +237,8 @@ export function pumpControl(o: PumpOptions = {}): { sheet: Sheet; nb: NB } {
     .part('X11', 'terminal', -1250, 1790, { value: 'source COM' }, { '1': 'EC2' })
     .part('X12', 'terminal', -1250, 1850, { value: 'source DRY' }, { '1': 'ED' });
   // the pump (test load): a 1.1 kW single-phase motor at its rated slip
-  nb.block('load').part('MP', 'motor1', 1850, 1650, { value: '0.05' }, { '1': 'LM', '2': 'N' });
+  nb.block('load').part('MP', 'motor1', 1850, 1650, { value: '0.05' }, { '1': 'LM', '2': 'NM' });
+  if (o.k1Shorted) nb.block('bench').part('RK1SH', 'resistor', 1300, 1600, { value: '1' }, { '1': 'KP', '2': 'GND' });
   nb.v('LVL').v('RUNQ').v('PERMIT').v('FLTQ').v('DOKE').v('DSQ').v('RDY');
   nb.sim({ type: 'tran', stop: o.stop ?? '30', step: '1m', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
