@@ -91,6 +91,15 @@ Added from P4b (D58–D60), checked from P5 on:
 - A sense that sees a different load during a switching gap is held through the gap (weak lines).
 - Coil and contact suppressors are sized for the energy of each operation (TVS, not a 1 W Zener).
 - Spare mains connector poles are bonded to a net (bondSpare).
+
+Added from P9 (pump controller review, 17 November 2026):
+
+- Documents use the designators of the schematic, the board and the parts list (the design's
+  internal keys are renumbered when the sheet is drawn).
+- A control that measures in water decides SELV or PELV from the installation: earthed metal in
+  the water shorts a measurement referenced to PE.
+- An independent protection has its own sensing, not only its own switching element, and acts
+  through its own contactor where a welded contactor would defeat it.
 - Commissioning load tests at both ends of the input range, where the windings carry current;
   an overvoltage check in the field.
 - A slowly charging RC never drives a relay coil or a gate directly: a comparator switches it.

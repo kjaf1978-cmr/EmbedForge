@@ -550,13 +550,13 @@ export const DESIGNS: Record<string, Design> = {
   // two connectors to the panel
   // P9: the pump controller's board (supply, electrodes, timers, logic, the pilot relay); the
   // contactor, breaker and terminals on the DIN rail
-  // revision B (P9 audit, 17 November 2026): the control is PELV (the electrodes are in water): the
+  // revision C (P9 audit and review, 17 November 2026): the control is SELV (the electrodes are in water): the
   // only mains on the board is the safety transformer's primary and its fuse, 5.5 mm (reinforced)
   // from the control; the pilot and protection relays (reinforced DIN-rail interface relays), the
   // coil circuit's fuse, the contactor and the breaker on the DIN rail
-  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'B',
+  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'C',
     classes: (s) => [{ ...classFor('Mains', potentialGroup(s, ['L', 'N']), 0.5, 1.5), apart: 5.5 }],
-    panel: (p) => PANEL.has(p.sym) || p.props.din === 'true' || (p.sym === 'fuse' && !!p.props.din) },
+    panel: (p) => PANEL.has(p.sym) || p.props.din === 'true' || p.props.panel === 'true' || (p.sym === 'fuse' && !!p.props.din) },
   // P9: the trimmer's drive, one board in the handle (the MOSFET and the diode on a small
   // heatsink at the edge); the motor current (40 A peaks) on 3 mm tracks in 4 oz copper
   'trimmer-drive': { sheet: () => trimmer().sheet, title: 'Cordless trimmer drive 36 V', revision: 'A',

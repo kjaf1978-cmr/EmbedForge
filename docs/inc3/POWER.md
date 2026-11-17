@@ -469,13 +469,15 @@ a borehole or transfer pump (230 V, up to 1.5 kW) filling an elevated tank.
   with a 230 V coil (switching L and N) through a gG 2 A fuse; a motor-protective circuit breaker
   (GV2ME14, 6 … 10 A, set to the pump's rated current) on L and N. Supply: a safety isolating
   230/15 V transformer (IEC 61558-2-6), LM317HV to 12 V, TL431 reference.
-- After the P9 audit (17 November 2026, D47 checklist): the electrodes are in water that people
-  touch, so the control is **PELV**: the relays are interface relays with reinforced coil–contact
-  insulation (Finder 38.51, 6 kV, 8 mm) on the DIN rail, the only mains on the board is the
-  transformer's fused primary (ceramic 0.2 A), 5.5 mm from the control. An **independent
-  protection**: its own LM393 on the OVERFLOW and DRY electrodes' peak detectors drives its own
-  relay K2 in series with K1, so a stuck K1 or a failed logic cannot run the pump into an overflow
-  or dry. PE stud, wire sizes on the power terminals.
+- After the P9 audit and its independent review (17 November 2026, `docs/products/P9-pump-control/REVIEW.md`):
+  the control is **SELV** (not earthed: earthed metal in the water would short every rod to an
+  earthed 0 V), a safety isolating transformer of 4.5 VA, DIN-rail interface relays with
+  reinforced insulation; an **independent protection** with its own sensing chains (OVERFLOW, DRY
+  and each COM rod's return core), two LM393, relay K8 and its own contactor K5 in series with the
+  pump contactor K7; 100 Hz excitation with a 22k load on every sensing input (long cables);
+  hysteresis everywhere; the maximum-run counter cleared whenever the pump is off and at power-up;
+  PERMIT and RUN as two transistors in series; a TEST button on the SELV side; Q1 GV2ME16 and 18 A
+  contactors for up to 11 A.
 - Verified (TEST_REPORT.md section 3o): the normal cycle (starts below LOW, stops at HIGH, never
   near OVERFLOW), a broken HIGH cable, the source running dry, a burst pipe and the start delay
   after power-up; the tests run the clock 1000× faster (its capacitor), the counts unchanged.

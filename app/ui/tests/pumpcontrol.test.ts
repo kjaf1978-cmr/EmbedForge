@@ -14,7 +14,8 @@ function run(o: PumpOptions) {
   expect('error' in r ? (r as unknown as { error: string }).error : '').toBe('');
   const x = r.x;
   const on = (t: number) => r.v['RUNQ'][x.findIndex((u) => u >= t)] > 6;
-  const motor = (t0: number, t1: number) => { let m = 0; for (let k = 0; k < x.length; k++) if (x[k] >= t0 && x[k] <= t1) m = Math.max(m, Math.abs(r.v['LM'][k])); return m; };
+  // the voltage across the pump (the contactor switches L and N: an open pole leaves its terminal floating)
+  const motor = (t0: number, t1: number) => { let m = 0; for (let k = 0; k < x.length; k++) if (x[k] >= t0 && x[k] <= t1) m = Math.max(m, Math.abs(r.v['LM'][k] - r.v['NM'][k])); return m; };
   const lvl = r.v['LVL'];
   const over = () => smoke(sheet, connectivity(sheet), r).rows.filter((q) => q.status === 'over').map((q) => `${q.ref} ${q.what}`);
   return { r, x, on, motor, lvl, over, at: (n: string, t: number) => r.v[n][x.findIndex((u) => u >= t)] };
@@ -69,9 +70,30 @@ describe.runIf(LONG)('pump control: cycle and DFMEA faults', () => {
     expect(s.r.v['FLTQ'].some((v) => v > 6)).toBe(true);
   }, 3_600_000);
   it('the pilot relay\'s driver shorted and the source running dry: K2 stops the pump within about 0.3 s, whatever the logic', () => {
-    const s = run({ stop: '2.2', k1Shorted: true, dryAt: 1.2, dryFor: 0.8, level0: 2 });
-    expect(s.motor(1.0, 1.15)).toBeGreaterThan(300);
-    expect(s.motor(1.6, 1.95)).toBeLessThan(30);
+    // K1 forced on: the pump runs from power-up and would reach OVERFLOW after about 0.9 s (the
+    // compressed tank), so the source runs dry before that; the DRY electrode's peak detector
+    // takes about 0.3 s to see it
+    const s = run({ stop: '1.0', k1Shorted: true, dryAt: 0.3, dryFor: 0.8, level0: 1 });
+    expect(s.motor(0.2, 0.28)).toBeGreaterThan(300);
+    expect(s.motor(0.75, 0.95)).toBeLessThan(30);
+    expect(Math.max(...s.lvl)).toBeLessThan(9.3);
+  }, 3_600_000);
+  it('the tank\'s COM rod disconnected (its return core sees no excitation): the independent protection keeps KM2 open, the pump never runs with the tank empty', () => {
+    const s = run({ stop: '1.0', comBroken: true, level0: 1 });
+    expect(s.motor(0.3, 1.0)).toBeLessThan(30);
+  }, 3_600_000);
+  it('two faults: the pump contactor KM welded and the HIGH cable broken: KM2 (worked by the independent protection) stops the pump at OVERFLOW, the tank never overflows', () => {
+    const s = run({ stop: '3', kmWelded: true, highBroken: true });
+    expect(Math.max(...s.lvl)).toBeLessThan(9.9);
+    expect(s.motor(0, 3)).toBeGreaterThan(300); // it did pump
+  }, 3_600_000);
+  it('long electrode cables (10 nF between each rod\'s core and its COM core): a rod in air still reads dry, the cycle is as normal', () => {
+    const s = run({ stop: '4', cableC: '10n' });
+    const starts: number[] = [], stops: number[] = [];
+    for (let k = 1; k < s.x.length; k++) { const a = s.r.v['RUNQ'][k - 1] > 6, b = s.r.v['RUNQ'][k] > 6; if (!a && b) starts.push(s.lvl[k]); if (a && !b) stops.push(s.lvl[k]); }
+    expect(starts.length).toBeGreaterThanOrEqual(2);
+    for (const v of starts) { expect(v).toBeLessThan(3.2); expect(v).toBeGreaterThan(2.2); }
+    for (const v of stops) { expect(v).toBeGreaterThan(7.6); expect(v).toBeLessThan(8.6); }
   }, 3_600_000);
   it('after power-up the pump waits for the start delay (8 clocks) even with the tank empty', () => {
     const s = run({ stop: '0.3', clkC: '10n', level0: 1 });
