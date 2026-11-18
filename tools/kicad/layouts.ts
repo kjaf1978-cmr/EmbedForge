@@ -590,7 +590,7 @@ export const DESIGNS: Record<string, Design> = {
     classes: () => [IRR_POWER], w: 130, h: 100,
     plan: irrMainPlan,
     region: { x0: 0, x1: 130, y0: 54, y1: 100 } },
-  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V: motor drive, protections, Arduino Nano and IR receiver', revision: 'C',
+  'gate-controller': { sheet: () => gateController().sheet, title: 'Gate controller 24 V: motor drive, protections, Arduino Nano and IR receiver', revision: 'D',
     classes: () => [{ name: 'Power', patterns: ['V24', 'V24F', 'MA', 'MB', 'SW', 'SRET', 'GND'].map((n) => `^${n}$`), track: 2, clearance: 0.6 }], copperOz: 2, w: 160, h: 110,
     // revision B: the motor relays on the 832A footprint (the part the schematic specifies, 24 V 30 A;
     // revision A had the SRD's)
