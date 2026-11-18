@@ -533,44 +533,64 @@ up to 64 zones with soil-moisture sensors.
   over its ratings in any of these.
 
 **Gate controller** (D25; `src/eda/gate.ts`, `tests/gate.test.ts`): a sliding or swing gate with
-one 24 V DC gear motor (up to about 100 W; the model: 2.6 A running, 12 A stalled) and an infrared
-remote. The microcontroller board decodes the remote (TSOP38238, 38 kHz) and sequences
-open / stop / close. Everything that keeps the gate safe is discrete and works whatever the
-firmware does.
+one 24 V DC gear motor (up to about 100 W; the model: 2.6 A running, 12 A stalled), an infrared
+remote and a push-button / key-switch input. The microcontroller board decodes the remote
+(TSOP38238, 38 kHz) and sequences open / stop / close. The end stops, the photo-beam, STOP and the
+current cut-off stop the motor in hardware; what the gate's safety still needs from the firmware
+is DFMEA GC-10 and the beam test (GC-13).
 - Direction: two SPDT power relays (Song Chuan 832A-1C-S, 24 V coil, 30 A), driven by BC547B
   from the microcontroller. Released, both motor terminals sit on the switch node: the motor is
   shorted and brakes. Both energised, both terminals sit on 24 V: no current, so no command can
   short the supply.
-- On/off: an IRLZ44N in the switch node's return (gate from RUN through 1 kΩ), a 0.01 Ω shunt, an
-  MBR20100CT freewheel diode to 24 V and an SMAJ33A at each motor terminal (long motor cables).
-- End stops: the open and close limit switches (NC, opened by the gate at its end) are in series
-  with their relay's coil, and the photo-beam's NC contact is in series with the close relay's
-  coil after the close limit. The end stops and the beam stop the motor in hardware; dividers
-  (47k/10k) report the open limit (A0), the whole close chain (A1) and the close limit alone (A2).
-  Since the P9 audit the close limit and the beam have their own terminals, so the firmware tells
-  a closed gate from a broken beam.
+- On/off: an IRLZ44N in the switch node's return (gate from RUN through 1 kΩ), a 0.01 Ω
+  four-terminal shunt, an MBR20100CT freewheel diode to 24 V and an SMAJ33A at each motor terminal
+  (long motor cables).
+- End stops and STOP: a STOP button (NC, or a link) feeds the limit switches; the open and close
+  limit switches (NC, opened by the gate at its end) are in series with their relay's coil, and
+  the photo-beam's NC contact is in series with the close relay's coil after the close limit.
+  Dividers (47k/10k) report the open limit (A0), the whole close chain (A1) and the close limit
+  alone (A2); STOP reads as both ends at once. The close limit and the beam have their own
+  terminals (P9 audit), so the firmware tells a closed gate from a broken beam.
 - Cut-off (LM393, latching): a short circuit above 25 A trips within microseconds; an obstacle
-  above 7 A for about 0.1 s trips it too, blanked for the first 0.5 s of a run (the motor's start).
-  It turns the MOSFET off (its gate clamped through a BAT54), interrupts the microcontroller
-  (FAULT), and stays tripped until the firmware clears it (CLR) and reverses briefly. It trips itself
-  at power-up, so the motor cannot move before the firmware runs.
-- Supply: 24 V 150 W DIN-rail supply, 10 A fuse, SMAJ33A, 470 µF; 7805 for the 5 V logic.
-- Microcontroller (on the board): an Arduino Nano on sockets (5 V I/O, the commands' level in the
-  simulation) and a TSOP38238 IR receiver on 100 Ω and 4.7 µF behind the enclosure's window.
-  FAULT on D2 and the receiver on D3 (the interrupt pins), LEARN (a button on the board) D4, OPEN
-  D5, CLOSE D6, CLR D7, RUN D9, the open limit, the close chain and the close limit on A0, A1, A2.
+  above 7 A through a 0.1 s filter (100k, 1 µF film: 0.1 s at 12 A, 0.27 s at 7.5 A; 6.1 … 7.9 A
+  with the comparator's offset) trips it too, blanked for about 0.1 s from RUN's rising edge (the
+  start current falls below 7 A within 65 ms; a stall from the start trips 0.24 s after it; the
+  blanking was 0.5 s and a stall from the start tripped after 0.82 s, found by the review). It turns the
+  MOSFET off (its gate clamped through a BAT54), drops both relays (BAT54 clamps on their drivers:
+  a shorted MOSFET cannot keep the motor running), lights the red CUT-OFF LED, interrupts the
+  microcontroller (FAULT), and stays tripped until the firmware clears it (CLR, through 100 nF: its
+  rising edge only, so a CLR stuck high cannot hold it released).
+- Power-on reset: a second LM393 holds FAULT low until an RC (470k, 100 nF) has followed the 5 V to
+  80 % of it, about 75 ms after the 5 V settles; it acts for any 5 V rise faster than about 0.25 s
+  (a 10 nF capacitor on the 5 V did this before the review, which only worked for a step).
+- Beam test: the photo-beam transmitter's supply (X14, up to 100 mA) from a BD140 switched by D8;
+  the firmware switches it off before each close and requires the receiver to report the beam
+  broken and then made again. Off whenever the program is not running.
+- Supply: 24 V DIN-rail supply of at least 10 A, delivering the 12 A stall current for 0.5 s
+  without folding back (a 150 W, 6.25 A supply could hold a stalled gate below the cut-off: the
+  review), 10 A fuse, SMAJ33A, 470 µF; 7805 for the 5 V logic.
+- Microcontroller (on the board): an Arduino Nano (the Optiboot bootloader) on sockets and a
+  TSOP38238 IR receiver on 100 Ω and 4.7 µF behind the enclosure's window. FAULT on D2 and the
+  receiver on D3 (the interrupt pins), LEARN (a button on the board) D4, OPEN D5, CLOSE D6, CLR D7,
+  the beam's transmitter D8, RUN D9, the LED D13; the open limit, the close chain, the close limit
+  and the key-switch on A0 … A3.
 - Firmware (D48; `firmware/gate-controller/`, Arduino C++): an NEC decoder (timings ±25 %, the
-  command checked against its inverse), up to four learnt remotes in EEPROM (paired by holding
-  LEARN; IR is a convenience, not a lock: DFMEA GC-7), one button for open / stop / close, RUN off
-  30 ms before a relay changes and 50 ms of relay settling before RUN, the cut-off cleared (CLR)
-  and the motor reversed 0.5 s after an obstacle while opening or reopened fully while closing, a
-  lockout after three obstacles, a 60 s travel limit, and the watchdog at 250 ms. The logic is plain
-  C++ tested on the host (`make test`, 16 tests); the Nano build is 5 kB of flash.
-- Verified (TEST_REPORT.md section 3o): opening (start peak 10 A, 2.5 A running) up to the open
-  limit, which stops and brakes the motor while the firmware still commands it; an obstacle while
-  closing (stall 10.5 A, the cut-off latches about 80 ms later); the motor cable shorted (29 A peak,
-  latched within microseconds); the beam broken while closing; both relays commanded; power-up
-  with RUN high. No part is over its ratings in any of these.
+  command checked against its inverse), up to four learnt remotes in EEPROM (the oldest replaced,
+  also after a power cut; erased by holding LEARN 10 s; IR is a convenience, not a lock: DFMEA
+  GC-7), one button for open / stop / close, the beam test before each close, RUN off 30 ms before
+  a relay changes and 50 ms of relay settling before RUN, the cut-off cleared (CLR) and the motor
+  reversed 0.5 s after an obstacle while opening or reopened fully while closing, at the third
+  obstacle a 0.5 s release and then a lockout, a 60 s travel limit, no command for 0.5 s after
+  start-up, the limit inputs debounced together as one word, the watchdog at 250 ms (stopped at
+  start-up), an LED for the state. The logic is plain C++ tested on the host (`make test`, 19
+  tests, 97 checks); the Nano build is 6.6 kB of flash.
+- Verified (14 simulations): opening (start peak 10 A, 2.5 A running) up to the open limit, and
+  closing up to the close limit, each stopping and braking the motor while the firmware still
+  commands it; an obstacle while closing (stall 10.9 A, the cut-off latches within 0.15 s); a stall
+  from the start (tripped within 0.3 s); the motor cable shorted (29 A peak, latched within
+  20 µs); the beam broken while closing; STOP while opening; both relays commanded; power-up with
+  RUN high, with a step and with a 100 ms supply rise; CLR stuck high; the MOSFET shorted; the beam
+  test output. No part is over its ratings in any of these.
 
 **Trimmer drive** (D24; `src/eda/trimmer.ts`, `tests/trimmer.test.ts`): a cordless grass and
 brush trimmer, 36 V Li-ion pack (10 cells, 25 … 42 V), brushed DC motor of about 500 W (13–16 A

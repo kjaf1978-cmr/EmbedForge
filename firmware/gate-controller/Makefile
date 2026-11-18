@@ -11,7 +11,7 @@ LOGIC := src/gate_logic.cpp src/nec.cpp
 
 .PHONY: test nano clean
 test: $(BUILD)/host_tests
-	./$(BUILD)/host_tests
+	$(BUILD)/host_tests
 
 $(BUILD)/host_tests: test/test_main.cpp $(LOGIC) src/*.h
 	@mkdir -p $(BUILD)

@@ -103,3 +103,21 @@ Added from P9 (pump controller review, 17 November 2026):
 - Commissioning load tests at both ends of the input range, where the windings carry current;
   an overvoltage check in the field.
 - A slowly charging RC never drives a relay coil or a gate directly: a comparator switches it.
+
+Added from P9 (gate controller review, 18 November 2026):
+
+- A part code in the parts list names the part's value (a single code for a range of values gave
+  1 mΩ shunts for 10 mΩ).
+- The supply can deliver every current a protection must see (a current cut-off at 7 A needs a
+  supply that does not fold back below the stall current).
+- A power-on reset is simulated with a real supply's rise, not a step; a reset of the
+  microcontroller alone does not reset the board.
+- After detecting an obstacle the drive always moves back before it locks out (the force is
+  removed).
+- A blanking or filter time is measured in simulation against the standard's limit (EN 12453:
+  0.75 s), and the trip time is stated, not the time constant.
+- A presence sensor (photo-beam) that the safety relies on is tested before each hazardous move.
+- A clear or reset input acts on its edge, so a stuck output cannot hold a protection released.
+- "Works whatever the firmware does" is claimed only for what is simulated with the firmware's
+  outputs stuck and pulsed; the rest is listed in the DFMEA.
+- The first powered move at commissioning checks the direction with the load uncoupled.

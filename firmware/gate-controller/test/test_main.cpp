@@ -13,15 +13,29 @@
 static int failures = 0, checks = 0;
 #define CHECK(c) do { ++checks; if (!(c)) { ++failures; std::printf("  FAIL %s:%d: %s\n", __FILE__, __LINE__, #c); } } while (0)
 
-// ---- a gate on the bench: steps the logic every ms and checks the invariants at every step
+// ---- a gate on the bench: steps the logic every ms and checks the invariants at every step. The
+// photo-beam's receiver follows its transmitter 20 ms late (unless bridged), the close chain is the
+// close limit and the beam in series, STOP cuts the feed of all three inputs.
 struct Bench {
   gate::Logic g;
   gate::Inputs in{false, true, true, true, false};
-  uint32_t t = 0;
-  bool lastOpen = false, lastClose = false;
+  bool openEnd = false, closedEnd = false, beamBroken = false, beamBridged = false, stopPressed = false;
+  uint32_t t = 0, txOffAt = 0, txOnAt = 0;
+  bool lastOpen = false, lastClose = false, lastTx = true, rxBeam = true;
   int invariantFailures = 0;
+  explicit Bench(const gate::Config& c = gate::Config()) : g(c) { step(600); }  // past start-up
+  void field() {
+    const bool tx = g.outputs().beamTx;
+    if (tx != lastTx) { (tx ? txOnAt : txOffAt) = t; lastTx = tx; }
+    if (t - (tx ? txOnAt : txOffAt) >= 20) rxBeam = tx;
+    const bool feed = !stopPressed;
+    in.openLimitOk = feed && !openEnd;
+    in.closeLimitOk = feed && !closedEnd;
+    in.closeChainOk = in.closeLimitOk && !beamBroken && (beamBridged || rxBeam);
+  }
   void step(int ms = 1) {
     for (int i = 0; i < ms; ++i, ++t) {
+      field();
       g.step(t, in);
       in.command = false;
       const auto& o = g.outputs();
@@ -29,27 +43,33 @@ struct Bench {
       if (o.open && o.close) ++invariantFailures;
       if (o.run && (o.open != lastOpen || o.close != lastClose)) ++invariantFailures;
       if (o.run && !(o.open || o.close)) ++invariantFailures;
+      // the motor never closes without a beam test just before (the transmitter off within 2 s)
+      if (o.run && o.close && t - txOffAt > 2000 && !g.trips()) ++invariantFailures;
       lastOpen = o.open; lastClose = o.close;
     }
   }
   void press() { in.command = true; step(); }
-  // runs until pred() or the time limit; returns whether pred() held
   bool until(const std::function<bool()>& pred, int ms) { for (int i = 0; i < ms; ++i) { if (pred()) return true; step(); } return pred(); }
+  bool opening() { return until([&] { return g.outputs().run && g.outputs().open; }, 200); }
+  bool closing() { return until([&] { return g.outputs().run && g.outputs().close; }, 1500); }
+  void toOpenEnd() { openEnd = true; press(); step(10); }  // a gate at its open end: Open
 };
 
 static void test(const char* name, const std::function<void()>& body) { std::printf("%s\n", name); body(); }
 
 int main() {
-  test("power-up: nothing moves; the first command opens: relay first, CLR pulse, then RUN", [] {
+  test("power-up: nothing moves; no command is taken in the first 0.5 s; then the first command opens: relay first, CLR pulse, then RUN", [] {
+    gate::Logic g; gate::Inputs in{false, true, true, true, false};
+    for (uint32_t t = 0; t < 400; ++t) { in.command = t == 300; g.step(t, in); }
+    CHECK(!g.outputs().run && !g.outputs().open && g.state() == gate::State::Unknown);
     Bench b;
-    b.step(500);
     CHECK(!b.g.outputs().run && !b.g.outputs().open && !b.g.outputs().close);
     CHECK(b.g.state() == gate::State::Unknown);
     b.press();
+    const uint32_t t0 = b.t;
     CHECK(b.g.outputs().open && !b.g.outputs().run);
     CHECK(b.until([&] { return b.g.outputs().clr; }, 100));
-    const uint32_t clrAt = b.t;
-    CHECK(clrAt >= 50);  // the relay settled first
+    CHECK(b.t - t0 >= 50);  // the relay settled first
     CHECK(b.until([&] { return b.g.outputs().run; }, 20));
     CHECK(!b.g.outputs().clr);
     CHECK(b.g.state() == gate::State::Opening);
@@ -58,93 +78,140 @@ int main() {
   test("the open limit ends the opening: RUN off, then the relay after 30 ms (braking); state Open", [] {
     Bench b; b.press(); b.step(200);
     CHECK(b.g.outputs().run);
-    b.in.openLimitOk = false; b.step();
+    b.openEnd = true; b.step();
     CHECK(!b.g.outputs().run && b.g.outputs().open);
     b.step(40);
     CHECK(!b.g.outputs().open);
     CHECK(b.g.state() == gate::State::Open);
     CHECK(b.invariantFailures == 0);
   });
-  test("open -> command closes; the close limit ends it; state Closed", [] {
-    Bench b; b.press(); b.step(200); b.in.openLimitOk = false; b.step(50);
-    b.in.openLimitOk = true;  // the gate leaves the open end when it moves
-    b.press();
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().close; }, 100));
+  test("open -> command: the beam test (transmitter off, the beam reported broken, on again), then the close; the close limit ends it; state Closed", [] {
+    Bench b; b.toOpenEnd();
+    b.openEnd = false; b.press();
+    CHECK(!b.g.outputs().beamTx && !b.g.outputs().close);  // the test first, no relay yet
+    CHECK(b.closing());
+    CHECK(b.g.outputs().beamTx && !b.g.beamFault());
     b.step(500);
-    b.in.closeLimitOk = false; b.in.closeChainOk = false; b.step(50);
+    b.closedEnd = true; b.step(50);
     CHECK(b.g.state() == gate::State::Closed);
     CHECK(!b.g.outputs().run && !b.g.outputs().close);
     CHECK(b.invariantFailures == 0);
+  });
+  test("the beam test: a bridged beam (it does not break) or one that does not come back: no close, beamFault; a good test clears it", [] {
+    Bench b; b.toOpenEnd(); b.openEnd = false;
+    b.beamBridged = true; b.press(); b.step(1500);
+    CHECK(!b.g.outputs().run && !b.g.outputs().close && b.g.outputs().beamTx);
+    CHECK(b.g.beamFault() && b.g.state() == gate::State::Open);
+    b.beamBridged = false; b.press();
+    CHECK(b.closing());
+    CHECK(!b.g.beamFault());
+    b.press(); b.step(50);  // stop
+    Bench c; c.toOpenEnd(); c.openEnd = false;
+    c.press(); c.step(10); c.beamBroken = true;  // breaks during its test and stays broken
+    c.step(1500);
+    CHECK(!c.g.outputs().run && c.g.beamFault() && c.g.state() == gate::State::Open);
+    CHECK(b.invariantFailures == 0 && c.invariantFailures == 0);
   });
   test("a command while moving stops; the next command moves the other way", [] {
     Bench b; b.press(); b.step(300);
     b.press(); b.step(50);
     CHECK(b.g.state() == gate::State::Stopped && !b.g.outputs().run);
     b.press();
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().close; }, 100));
+    CHECK(b.closing());
     CHECK(b.invariantFailures == 0);
   });
   test("the photo-beam broken while closing: stop, then reopen fully", [] {
-    Bench b; b.in.openLimitOk = false; b.press(); b.step(10);  // at the open end: Open
+    Bench b; b.toOpenEnd();
     CHECK(b.g.state() == gate::State::Open);
-    b.in.openLimitOk = true; b.press();
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().close; }, 100));
+    b.openEnd = false; b.press();
+    CHECK(b.closing());
     b.step(200);
-    b.in.closeChainOk = false; b.step();  // the beam (the close limit still closed)
+    b.beamBroken = true; b.step();
     CHECK(!b.g.outputs().run);
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().open; }, 200));
-    b.in.closeChainOk = true;
-    b.step(300); b.in.openLimitOk = false; b.step(50);
+    CHECK(b.opening());
+    b.beamBroken = false;
+    b.step(300); b.openEnd = true; b.step(50);
     CHECK(b.g.state() == gate::State::Open);
     CHECK(b.invariantFailures == 0);
   });
   test("a close is not started while the beam is broken", [] {
-    Bench b; b.in.openLimitOk = false; b.press(); b.step(10);
-    b.in.openLimitOk = true; b.in.closeChainOk = false;
-    b.press(); b.step(200);
+    Bench b; b.toOpenEnd();
+    b.openEnd = false; b.beamBroken = true;
+    b.press(); b.step(1500);
     CHECK(!b.g.outputs().run && !b.g.outputs().close);
     CHECK(b.g.state() == gate::State::Open);
   });
+  test("STOP while opening: RUN off, braked, state Stopped; nothing starts while it is held; released, a command moves the other way", [] {
+    Bench b; b.press(); b.step(300);
+    b.stopPressed = true; b.step();
+    CHECK(!b.g.outputs().run && b.g.stopPressed());
+    b.step(50);
+    CHECK(b.g.state() == gate::State::Stopped && !b.g.outputs().open);
+    b.press(); b.step(1500);
+    CHECK(!b.g.outputs().run);
+    b.stopPressed = false; b.step(10); b.press();
+    CHECK(b.closing());
+    CHECK(b.invariantFailures == 0);
+  });
   test("an obstacle (the cut-off) while closing: stop and reopen fully", [] {
-    Bench b; b.in.openLimitOk = false; b.press(); b.step(10);
-    b.in.openLimitOk = true; b.press(); b.step(500);
+    Bench b; b.toOpenEnd();
+    b.openEnd = false; b.press(); CHECK(b.closing()); b.step(500);
     b.in.fault = true; b.step();
     CHECK(!b.g.outputs().run);
     b.step(20); b.in.fault = false;  // the next start clears the latch (CLR)
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().open; }, 200));
+    CHECK(b.opening());
     CHECK(b.g.trips() == 1);
     CHECK(b.invariantFailures == 0);
   });
-  test("an obstacle while opening: stop, then close for about 0.5 s to release, then stopped", [] {
+  test("an obstacle while opening: stop, then close for about 0.5 s to release, then stopped; the next command closes (away from the obstacle)", [] {
     Bench b; b.press(); b.step(500);
     b.in.fault = true; b.step(); b.step(20); b.in.fault = false;
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().close; }, 200));
+    CHECK(b.closing());
     const uint32_t t0 = b.t;
     CHECK(b.until([&] { return !b.g.outputs().run; }, 1000));
     CHECK(b.t - t0 >= 490 && b.t - t0 <= 520);
     b.step(50);
     CHECK(b.g.state() == gate::State::Stopped);
+    b.press();
+    CHECK(b.closing());
     CHECK(b.invariantFailures == 0);
   });
-  test("three obstacles without reaching an end: lockout; the next command opens", [] {
-    Bench b; b.in.openLimitOk = false; b.press(); b.step(10); b.in.openLimitOk = true;
-    b.press(); b.step(300);
-    for (int k = 0; k < 3; ++k) {  // each closing obstacle reopens; obstruct the reopening too
-      CHECK(b.until([&] { return b.g.outputs().run; }, 300));
-      b.step(100); b.in.fault = true; b.step(); b.step(20); b.in.fault = false;
-    }
-    b.step(100);
+  test("the third obstacle without reaching an end: the gate moves back 0.5 s to release, then lockout; the next command opens", [] {
+    Bench b; b.toOpenEnd(); b.openEnd = false;
+    b.press(); CHECK(b.closing()); b.step(100);
+    b.in.fault = true; b.step(); b.step(20); b.in.fault = false;      // 1: closing -> reopens
+    CHECK(b.opening()); b.step(100);
+    b.in.fault = true; b.step(); b.step(20); b.in.fault = false;      // 2: opening -> releases
+    CHECK(b.closing());
+    CHECK(b.until([&] { return !b.g.outputs().run; }, 1000)); b.step(50);
+    CHECK(b.g.state() == gate::State::Stopped);
+    b.press(); CHECK(b.closing()); b.step(100);                       // the next press closes
+    b.in.fault = true; b.step(); b.step(20); b.in.fault = false;      // 3: the last trip
+    CHECK(b.opening());                                              // released: moves back
+    const uint32_t t0 = b.t;
+    CHECK(b.until([&] { return !b.g.outputs().run; }, 1000));
+    CHECK(b.t - t0 >= 490 && b.t - t0 <= 520);
+    b.step(50);
     CHECK(b.g.state() == gate::State::Lockout);
-    CHECK(!b.g.outputs().run);
     b.step(2000);
     CHECK(!b.g.outputs().run);  // stays off without a command
     b.press();
-    CHECK(b.until([&] { return b.g.outputs().run && b.g.outputs().open; }, 200));
+    CHECK(b.opening());
+    CHECK(b.invariantFailures == 0);
+  });
+  test("an obstacle during the release move: stop and lockout", [] {
+    Bench b; b.press(); b.step(500);
+    b.in.fault = true; b.step(); b.step(20); b.in.fault = false;
+    CHECK(b.closing()); b.step(100);
+    b.in.fault = true; b.step(); b.step(50); b.in.fault = false;
+    CHECK(!b.g.outputs().run && b.g.state() == gate::State::Lockout);
+    b.step(2000);
+    CHECK(!b.g.outputs().run);
     CHECK(b.invariantFailures == 0);
   });
   test("the maximum travel time stops a move that never reaches its end", [] {
     gate::Config c; c.maxTravelMs = 2000;
-    Bench b; b.g = gate::Logic(c);
+    Bench b(c);
     b.press();
     CHECK(b.until([&] { return b.g.outputs().run; }, 100));
     CHECK(b.until([&] { return !b.g.outputs().run; }, 2100));
@@ -157,10 +224,11 @@ int main() {
       const int r = std::rand() % 2000;
       if (r == 0) b.in.command = true;
       if (r == 1) b.in.fault = !b.in.fault;
-      if (r == 2) b.in.openLimitOk = !b.in.openLimitOk;
-      if (r == 3) b.in.closeLimitOk = !b.in.closeLimitOk;
-      if (r == 4) b.in.closeChainOk = !b.in.closeChainOk;
-      if (!b.in.closeLimitOk) b.in.closeChainOk = false;  // the chain includes the close limit
+      if (r == 2) b.openEnd = !b.openEnd;
+      if (r == 3) b.closedEnd = !b.closedEnd;
+      if (r == 4) b.beamBroken = !b.beamBroken;
+      if (r == 5) b.stopPressed = !b.stopPressed;
+      if (r == 6) b.beamBridged = !b.beamBridged;
       b.step();
     }
     CHECK(b.invariantFailures == 0);
@@ -206,12 +274,19 @@ int main() {
   });
 
   // ---- the paired remotes
-  test("remotes: four slots, the oldest replaced; one command per press", [] {
+  test("remotes: four slots, the oldest replaced (also after a power cut); erase; one command per press", [] {
     remotes::Table t;
     CHECK(t.learn(1) == 0); CHECK(t.learn(2) == 1); CHECK(t.learn(3) == 2); CHECK(t.learn(4) == 3);
     CHECK(t.learn(2) == remotes::kMax);  // already paired
     CHECK(t.learn(5) == 0);              // the oldest replaced
     CHECK(!t.contains(1) && t.contains(5) && t.contains(4));
+    // a power cut: the table reloaded from the slots and their sequence numbers
+    remotes::Table u;
+    for (uint8_t s = 0; s < remotes::kMax; ++s) u.load(s, t.code(s), t.used(s), t.seq(s));
+    CHECK(u.learn(6) == 1);              // the oldest is now slot 1 (code 2), not slot 0
+    CHECK(u.contains(5) && u.contains(6) && !u.contains(2));
+    u.clear();
+    CHECK(u.count() == 0 && !u.contains(5) && u.learn(7) == 0);
     remotes::Debounce d;
     CHECK(d.accept(1000)); CHECK(!d.accept(1100)); CHECK(!d.accept(1650)); CHECK(d.accept(2300));
   });

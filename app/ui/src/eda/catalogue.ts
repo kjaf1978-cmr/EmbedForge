@@ -277,7 +277,9 @@ function resistor(value: string, pmax: number, tol = 1): CatalogueEntry {
   // a precision divider (D32): thin film 0.1 %, 25 ppm/K
   if (tol <= 0.1 && pmax <= 0.6) return e(`thin film ${value}Ω 0.6 W, 0.1 %, 25 ppm/K, 350 V (e.g. Vishay MBB 0207 / Yageo MFP)`, 'Vishay / Yageo', `resistor ${value}Ω, 0207, 0.1 %`, 0.45, 0.25, 'estimate', any('0207 0.1 %'));
   if (r > 0 && r < 0.5e-3) return e(`busbar shunt ${value}Ω, 10 W, 1 % (e.g. Isabellenhütte BVR series)`, 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %, four-terminal`, 9, 6, 'estimate', [{ distributor: 'RS / Isabellenhütte' }]);
-  if (r > 0 && r <= 0.01) return e('BVN-M-R001-1.0', 'Isabellenhütte', `shunt ${value}Ω, 10 W, 1 %`, 4, 2.5, 'estimate', [{ distributor: 'RS', sku: '193-0103' }]);
+  // (the part's code names its value: order the code for this value, e.g. R010 for 10 mΩ, R005
+  // for 5 mΩ; a single code for every value gave 1 mΩ parts for 10 mΩ shunts: P9 gate review)
+  if (r > 0 && r <= 0.01) return e(`four-terminal shunt ${value}Ω, ${Math.max(3, pmax)} W, 1 % (e.g. Isabellenhütte BVR / Vishay WSR: the code for ${value}Ω)`, 'Isabellenhütte / Vishay', `shunt ${value}Ω, ${Math.max(3, pmax)} W, 1 %, four-terminal`, 4, 2.5, 'estimate', any('shunt'));
   if (pmax >= 25) return e(`aluminium-housed ${value}Ω ${pmax} W (e.g. Arcol HS50)`, 'Arcol / TE', `resistor ${value}Ω, ${pmax} W, on the chassis`, 4.5, 3, 'estimate', any('aluminium-housed'));
   if (pmax >= 5) return e(`ceramic wirewound ${value}Ω 10 W (e.g. TE SQP10)`, 'TE / Vishay', `resistor ${value}Ω, ${pmax} W`, 0.7, 0.35, 'estimate', any('10 W ceramic'));
   if (pmax > 1) return e(`metal oxide ${value}Ω 3 W (e.g. Vishay PR03)`, 'Vishay / Yageo', `resistor ${value}Ω, ${pmax} W`, 0.25, 0.08, 'estimate', any('axial 3 W'));
