@@ -63,7 +63,7 @@
 "no","1","Q6","NPN transistor","MJE340","heatsink (case to air) 1.5 K/W","","MJE340G","onsemi","Mouser 863-MJE340G; LCSC C898406; RS 046-4205","0.84","0.84","live"
 "no","1","R1","Resistor","220 Ω","power rating 1 W","","metal film 220Ω 1 W, 1 % (e.g. Vishay PR01)","Vishay / Yageo","any distributor (axial 1 W)","0.12","0.12","estimate"
 "no","2","R2 R4","Resistor","470 kΩ","power rating 250 mW","","metal film 470kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.16","estimate"
-"no","1","R3","Resistor","1 mΩ","power rating 10 W","","BVN-M-R001-1.0","Isabellenhütte","RS 193-0103","4.00","4.00","estimate"
+"no","1","R3","Resistor","1 mΩ","power rating 10 W","","four-terminal shunt 1mΩ, 10 W, 1 % (e.g. Isabellenhütte BVR / Vishay WSR: the code for 1mΩ)","Isabellenhütte / Vishay","any distributor (shunt)","4.00","4.00","estimate"
 "no","1","R8","Resistor","22 kΩ","power rating 1 W","","metal film 22kΩ 1 W, 1 % (e.g. Vishay PR01)","Vishay / Yageo","any distributor (axial 1 W)","0.12","0.12","estimate"
 "no","1","R9","Resistor","1 MΩ","power rating 250 mW","","metal film 1MΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "no","1","R14","Resistor","100 kΩ","power rating 250 mW","","metal film 100kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"

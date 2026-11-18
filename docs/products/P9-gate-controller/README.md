@@ -43,4 +43,4 @@ checked first at commissioning.
 | `6-app-project/` | The app's project files |
 | `7-simulation-tests/` | The tests that verify the product by simulation, and their result |
 | `8-review/` | The independent review with its resolutions |
-| `9-firmware/` | The Nano's program, its host unit tests and their result |
+| `9-firmware/` | The Nano's program (source and the built `gate-controller.hex`), its host unit tests and their result |

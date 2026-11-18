@@ -19,7 +19,7 @@
 "yes","2","Q6 Q8","NPN transistor","BC547B","","TO-92_Wide","BC547B","onsemi","any distributor (TO-92)","0.10","0.20","estimate"
 "yes","1","Q7","PNP transistor","BC557B","","TO-92_Wide","BC557B","onsemi","any distributor (TO-92)","0.10","0.10","estimate"
 "yes","9","R3 R14 R18 R22 R25 R28 R29 R31 R32","Resistor","10 kΩ","power rating 250 mW","R_Axial_0207","metal film 10kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.72","estimate"
-"yes","1","R4","Resistor","5 mΩ","power rating 3 W","R_Shunt_4T","BVN-M-R001-1.0","Isabellenhütte","RS 193-0103","4.00","4.00","estimate"
+"yes","1","R4","Resistor","5 mΩ","power rating 3 W","R_Shunt_4T","four-terminal shunt 0.005Ω, 3 W, 1 % (e.g. Isabellenhütte BVR / Vishay WSR: the code for 0.005Ω)","Isabellenhütte / Vishay","any distributor (shunt)","4.00","4.00","estimate"
 "yes","1","R5","Resistor","6.8 kΩ","power rating 250 mW","R_Axial_0207","metal film 6.8kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "yes","2","R6 R23","Resistor","2.2 kΩ","power rating 250 mW","R_Axial_0207","metal film 2.2kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.16","estimate"
 "yes","1","R7","Resistor","3.3 kΩ","power rating 250 mW","R_Axial_0207","metal film 3.3kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"

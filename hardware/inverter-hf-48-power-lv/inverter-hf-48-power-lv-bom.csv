@@ -69,7 +69,7 @@
 "no","37","R10 R12 R25 R27 R39 R49 R52 R55 R56 R57 R58 R59 R60 R74 R76 R79 R80 R81 R82 R85 R103 R107 R118 R121 R123 R126 R134 R147 R153 R158 R159 R161 R169 R170 R179 R183 R194","Resistor","10 kΩ","power rating 250 mW","","metal film 10kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","2.96","estimate"
 "no","1","R13","Resistor","470 Ω","power rating 10 W","","ceramic wirewound 470Ω 10 W (e.g. TE SQP10)","TE / Vishay","any distributor (10 W ceramic)","0.70","0.70","estimate"
 "no","2","R16 R17","Resistor","47 kΩ","power rating 3 W","","metal oxide 47kΩ 3 W (e.g. Vishay PR03)","Vishay / Yageo","any distributor (axial 3 W)","0.25","0.50","estimate"
-"no","1","R28","Resistor","1.5 mΩ","power rating 3 W","","BVN-M-R001-1.0","Isabellenhütte","RS 193-0103","4.00","4.00","estimate"
+"no","1","R28","Resistor","1.5 mΩ","power rating 3 W","","four-terminal shunt 1.5mΩ, 3 W, 1 % (e.g. Isabellenhütte BVR / Vishay WSR: the code for 1.5mΩ)","Isabellenhütte / Vishay","any distributor (shunt)","4.00","4.00","estimate"
 "no","1","R29","Resistor","2.2 Ω","power rating 250 mW","","metal film 2.2Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "no","8","R40 R45 R133 R135 R172 R175 R184 R185","Resistor","1 kΩ","power rating 250 mW","","metal film 1kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.64","estimate"
 "no","2","R33 R34","Resistor","220 Ω","power rating 2 W","","metal oxide 220Ω 3 W (e.g. Vishay PR03)","Vishay / Yageo","any distributor (axial 3 W)","0.25","0.50","estimate"

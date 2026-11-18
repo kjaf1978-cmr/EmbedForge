@@ -18,7 +18,7 @@
 "yes","4","R12 R14 R29 R31","Resistor","10 kΩ","power rating 250 mW","R_Axial_0207","metal film 10kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.32","estimate"
 "yes","1","R15","Resistor","470 Ω","power rating 10 W","R_Cement_10W","ceramic wirewound 470Ω 10 W (e.g. TE SQP10)","TE / Vishay","any distributor (10 W ceramic)","0.70","0.70","estimate"
 "yes","2","R18 R19","Resistor","47 kΩ","power rating 3 W","R_Axial_P20","metal oxide 47kΩ 3 W (e.g. Vishay PR03)","Vishay / Yageo","any distributor (axial 3 W)","0.25","0.50","estimate"
-"yes","1","R32","Resistor","4.99 mΩ","power rating 3 W","R_Shunt_4T","BVN-M-R001-1.0","Isabellenhütte","RS 193-0103","4.00","4.00","estimate"
+"yes","1","R32","Resistor","4.99 mΩ","power rating 3 W","R_Shunt_4T","four-terminal shunt 4.99mΩ, 3 W, 1 % (e.g. Isabellenhütte BVR / Vishay WSR: the code for 4.99mΩ)","Isabellenhütte / Vishay","any distributor (shunt)","4.00","4.00","estimate"
 "yes","1","R33","Resistor","2.2 Ω","power rating 250 mW","R_Axial_0207","metal film 2.2Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "yes","2","R37 R38","Resistor","220 Ω","power rating 2 W","R_Axial_P20","metal oxide 220Ω 3 W (e.g. Vishay PR03)","Vishay / Yageo","any distributor (axial 3 W)","0.25","0.50","estimate"
 "yes","2","U3 U4","Half-bridge gate driver","IR2184-type 600 V","","DIP-8","IR2184PBF","Infineon","RS 262-6254; Schukat 3021391","2.05","4.10","live"

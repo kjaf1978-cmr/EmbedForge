@@ -70,7 +70,7 @@
 "no","1","R5","Resistor","220 kΩ","power rating 1 W","","metal film 220kΩ 1 W, 1 % (e.g. Vishay PR01)","Vishay / Yageo","any distributor (axial 1 W)","0.12","0.12","estimate"
 "no","2","R8 R9","Resistor","100 kΩ","power rating 250 mW","","metal film 100kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.16","estimate"
 "no","1","R11","Resistor","1 Ω","power rating 250 mW","","metal film 1Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
-"no","1","R16","Resistor","10 mΩ","power rating 5 W","","BVN-M-R001-1.0","Isabellenhütte","RS 193-0103","4.00","4.00","estimate"
+"no","1","R16","Resistor","10 mΩ","power rating 5 W","","four-terminal shunt 0.01Ω, 5 W, 1 % (e.g. Isabellenhütte BVR / Vishay WSR: the code for 0.01Ω)","Isabellenhütte / Vishay","any distributor (shunt)","4.00","4.00","estimate"
 "no","1","R22","Resistor","3.9 kΩ","power rating 250 mW","","metal film 3.9kΩ 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
 "no","1","RT1","NTC thermistor","10 kΩ","power rating 500 mW; sensed temperature 40 °C","","NTCLE100E3103JB0","Vishay","Farnell 1434160; LCSC C141588; RS 754-6645","0.47","0.47","live"
 "no","1","RV2","Varistor (MOV)","14D471K","","","S14K300 (B72214S0301K101)","TDK","LCSC C125541; Digi-Key","0.30","0.30","live"
