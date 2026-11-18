@@ -16,7 +16,7 @@ user manual's safety note, and the type tests.
 | 5 | Costed parts list | About €234 (single-unit prices; `4-parts-list/`): the two 18 A contactors €96, the motor-protective breaker €50, the two interface relays €28, the rest the board and its parts. |
 | 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, DFMEA, design notes (docs/inc3/POWER.md, section P9), design document (PDF and Word). All with the schematic's designators. |
 | 7 | Independent review | Done 17 November 2026: 2 blockers, 7 major and 4 minor findings, all resolved (`REVIEW.md`). |
-| 8 | Package and sign-off | Packaged 17 November 2026; waiting for your sign-off. |
+| 8 | Package and sign-off | Signed off 18 November 2026 (D62, package fc8f3ab). |
 
 What changed in the P9 audit and review (17 November 2026): the control made SELV (the electrodes
 are in water that people touch; not earthed, so earthed metal in the water does not short the
