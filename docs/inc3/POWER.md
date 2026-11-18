@@ -545,8 +545,10 @@ firmware does.
   MBR20100CT freewheel diode to 24 V and an SMAJ33A at each motor terminal (long motor cables).
 - End stops: the open and close limit switches (NC, opened by the gate at its end) are in series
   with their relay's coil, and the photo-beam's NC contact is in series with the close relay's
-  coil. The end stops and the beam stop the motor in hardware; dividers (47k/10k) report them to
-  the microcontroller.
+  coil after the close limit. The end stops and the beam stop the motor in hardware; dividers
+  (47k/10k) report the open limit (A0), the whole close chain (A1) and the close limit alone (A2).
+  Since the P9 audit the close limit and the beam have their own terminals, so the firmware tells
+  a closed gate from a broken beam.
 - Cut-off (LM393, latching): a short circuit above 25 A trips within microseconds; an obstacle
   above 7 A for about 0.1 s trips it too, blanked for the first 0.5 s of a run (the motor's start).
   It turns the MOSFET off (its gate clamped through a BAT54), interrupts the microcontroller
@@ -555,10 +557,15 @@ firmware does.
 - Supply: 24 V 150 W DIN-rail supply, 10 A fuse, SMAJ33A, 470 µF; 7805 for the 5 V logic.
 - Microcontroller (on the board): an Arduino Nano on sockets (5 V I/O, the commands' level in the
   simulation) and a TSOP38238 IR receiver on 100 Ω and 4.7 µF behind the enclosure's window.
-  FAULT on D2 and the receiver on D3 (the interrupt pins), OPEN D5, CLOSE D6, CLR D7, RUN D9, the
-  limit and beam inputs on A0, A1. Firmware (D24, Increment 4's board emulation): decode the
-  remote (a code learnt per remote and a rolling counter, DFMEA GC-7), switch RUN off before a
-  relay changes, clear the cut-off (CLR) after a fault and reverse briefly.
+  FAULT on D2 and the receiver on D3 (the interrupt pins), LEARN (a button on the board) D4, OPEN
+  D5, CLOSE D6, CLR D7, RUN D9, the open limit, the close chain and the close limit on A0, A1, A2.
+- Firmware (D48; `firmware/gate-controller/`, Arduino C++): an NEC decoder (timings ±25 %, the
+  command checked against its inverse), up to four learnt remotes in EEPROM (paired by holding
+  LEARN; IR is a convenience, not a lock: DFMEA GC-7), one button for open / stop / close, RUN off
+  30 ms before a relay changes and 50 ms of relay settling before RUN, the cut-off cleared (CLR)
+  and the motor reversed 0.5 s after an obstacle while opening or reopened fully while closing, a
+  lockout after three obstacles, a 60 s travel limit, and the watchdog at 250 ms. The logic is plain
+  C++ tested on the host (`make test`, 16 tests); the Nano build is 5 kB of flash.
 - Verified (TEST_REPORT.md section 3o): opening (start peak 10 A, 2.5 A running) up to the open
   limit, which stops and brakes the motor while the firmware still commands it; an obstacle while
   closing (stall 10.5 A, the cut-off latches about 80 ms later); the motor cable shorted (29 A peak,
