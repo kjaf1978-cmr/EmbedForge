@@ -453,9 +453,10 @@ microcontroller board, D24; everything around it is discrete).
 **Pump control** (`src/eda/pumpControl.ts`, `tests/pumpcontrol.test.ts`): purely discrete, for
 a borehole or transfer pump (230 V, up to 1.5 kW) filling an elevated tank.
 - Electrodes: stainless rods, one common per tank (LOW, HIGH, OVERFLOW) and one in the source
-  (DRY). They are fed with a 200 Hz square (NE555) through capacitors, so no DC flows through
-  the water (no electrolysis, no scaling). Each sensing electrode is peak-detected and compared
-  with 2 V (LM339): up to about 25 kΩ of water reads wet, a broken cable reads dry. A broken LOW
+  (DRY), each COM rod on two cores. They are fed with a 100 Hz square (NE555) through capacitors,
+  so no DC flows through the water (no electrolysis, no scaling). Each sensing electrode is
+  low-pass filtered, peak-detected and compared with 1.2 V (LM339, with hysteresis): up to about
+  15 kΩ of water reads wet, a broken cable reads dry. A broken LOW
   cable therefore starts the pump (it still stops at HIGH); a broken HIGH cable lets OVERFLOW stop
   it and latch a fault.
 - Times from a 1 Hz NE555 clock and three CD4020 counters, each clock gated by the output that
