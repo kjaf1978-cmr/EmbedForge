@@ -16,6 +16,9 @@
 //   MOSFET off and tells the microcontroller, which clears it (CLR) and reverses briefly. It also
 //   trips itself at power-up: the motor cannot move until the firmware has cleared it.
 // Supply: 24 V 150 W DIN-rail supply (fused), a 7805 for the 5 V logic.
+// After the P9 audit (D47, 18 November 2026): the close limit and the photo-beam each on their own
+// terminals and their own input (in series to the close relay's coil as before), so the firmware
+// tells "closed" from "beam broken" and reopens on the beam; a LEARN button pairs the remotes.
 
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
@@ -52,9 +55,9 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
     // the limit switches and the beam's contact as MOSFETs (closed until they open)
     .part('VLO', 'vpulse', -1050, 200, opens(o.limitAt), { '1': 'GLO', '2': 'GND' })
     .part('SLO', 'nmos', -950, 200, { value: 'IRLZ44N' }, { '1': 'GLO', '2': 'V24F', '3': 'LSO' })
-    .part('SLC', 'switch', -850, 200, { closed: 'true' }, { '1': 'V24F', '2': 'LSC' })
+    .part('SLC', 'switch', -850, 200, { closed: 'true' }, { '1': 'V24F', '2': 'BML' })
     .part('VBM', 'vpulse', -1050, 350, opens(o.beamAt), { '1': 'GBM', '2': 'GND' })
-    .part('SBM', 'nmos', -950, 350, { value: 'IRLZ44N' }, { '1': 'GBM', '2': 'LSC', '3': 'BMC' })
+    .part('SBM', 'nmos', -950, 350, { value: 'IRLZ44N' }, { '1': 'GBM', '2': 'BML', '3': 'BMC' })
     // the motor: 24 V, 3000 rpm no load, 2 Ω, 2 mH; the gate's inertia and friction through the
     // gearbox (2.6 A running)
     .part('M1', 'dcmotor', -700, 400, { value: '0.07', ra: '2', la: '2m', j: '3e-4', b: '6.7e-4', ...(o.obstacleAt !== undefined ? { obstacle: String(o.obstacleAt) } : {}) }, { '1': 'MA', '2': 'MB', '3': 'SPD' });
@@ -76,9 +79,12 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
   // from the microcontroller; contacts: COM to the motor, NO to 24 V, NC to the switch node
   nb.block('relays')
     .part('XLO', 'terminal', 0, 200, { value: 'open limit (NC)' }, { '1': 'LSO' })
-    // the close limit and the beam's contact in series in the field: one return to the board
-    .part('XBM', 'terminal', 0, 400, { value: 'close limit and photo-beam (NC, in series)' }, { '1': 'BMC' })
-    .part('XLV', 'terminal', 0, 500, { value: 'limit / beam common +24 V' }, { '1': 'V24F' })
+    // the close limit returns to the board (BML); the board feeds it on to the photo-beam's NC
+    // contact (XBI) and takes the beam's return (XBO) to the close relay's coil
+    .part('XLC', 'terminal', 0, 350, { value: 'close limit (NC), return' }, { '1': 'BML' })
+    .part('XBI', 'terminal', 0, 400, { value: 'photo-beam contact (NC), feed' }, { '1': 'BML' })
+    .part('XBO', 'terminal', 0, 450, { value: 'photo-beam contact (NC), return' }, { '1': 'BMC' })
+    .part('XLV', 'terminal', 0, 520, { value: 'limit switches common +24 V' }, { '1': 'V24F' })
     .part('KO', 'relay', 200, 250, { value: '24 V 30 A' }, { '1': 'LSO', '2': 'KOC', '3': 'MA', '4': 'SW', '5': 'V24F' })
     .part('DKO', 'diode', 150, 350, { value: '1N4148' }, { '2': 'KOC', '1': 'LSO' }, 3)
     .part('RBO', 'resistor', 300, 450, { value: '10k' }, { '1': 'OPEN', '2': 'BO' })
@@ -94,6 +100,9 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
     .part('RLO2', 'resistor', 800, 300, { value: '10k' }, { '1': 'LOI', '2': 'GND' }, 1)
     .part('RLC1', 'resistor', 900, 200, { value: '47k' }, { '1': 'BMC', '2': 'LCI' })
     .part('RLC2', 'resistor', 900, 300, { value: '10k' }, { '1': 'LCI', '2': 'GND' }, 1)
+    // the close limit alone (before the beam): with LCI it tells closed from beam broken
+    .part('RLB1', 'resistor', 1000, 400, { value: '47k' }, { '1': 'BML', '2': 'LBI' })
+    .part('RLB2', 'resistor', 1000, 500, { value: '10k' }, { '1': 'LBI', '2': 'GND' }, 1)
     .part('XM1', 'terminal', 1000, 200, { value: 'motor 1' }, { '1': 'MA' })
     .part('XM2', 'terminal', 1000, 300, { value: 'motor 2' }, { '1': 'MB' })
     .part('DTA', 'tvs', 1100, 350, { value: 'SMAJ33A' }, { '1': 'MA', '2': 'GND' }, 1)
@@ -149,9 +158,12 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
   // simulated), on the board's 5 V; the IR receiver (TSOP38238, 38 kHz) on its own filtered 5 V
   // (100 Ω, 4.7 µF), behind the enclosure's window. Not simulated: the bench drives its outputs.
   // FAULT (FLTN) on D2 and the receiver on D3 (the two interrupt pins); OPEN D5, CLOSE D6, CLR D7,
-  // RUN D9; the limit and beam inputs on A0, A1
+  // RUN D9; the open limit A0, the close limit and beam chain A1, the close limit alone A2; the
+  // LEARN button D4 (pairs a remote: firmware/gate-controller)
   nb.block('microcontroller')
-    .part('UMC', 'nano', 1600, 500, { value: 'Arduino Nano' }, { '4': 'GND', '29': 'GND', '27': 'V5', '5': 'FLTN', '6': 'IRO', '8': 'OPEN', '9': 'CLOSE', '10': 'CLR', '12': 'RUN', '19': 'LOI', '20': 'LCI' })
+    .part('UMC', 'nano', 1600, 500, { value: 'Arduino Nano' }, { '4': 'GND', '29': 'GND', '27': 'V5', '5': 'FLTN', '6': 'IRO', '7': 'LRN', '8': 'OPEN', '9': 'CLOSE', '10': 'CLR', '12': 'RUN', '19': 'LOI', '20': 'LCI', '21': 'LBI' })
+    .part('SLRN', 'button', 1750, 650, { pressed: 'false' }, { '1': 'LRN', '2': 'GND' })
+    .part('RLRN', 'resistor', 1750, 560, { value: '10k' }, { '1': 'V5', '2': 'LRN' }, 1)
     .part('RIR', 'resistor', 1450, 900, { value: '100' }, { '1': 'V5', '2': 'VIR' })
     .part('CIR', 'capacitor_pol', 1500, 1000, { value: '4.7u', vmax: '16' }, { '1': 'VIR', '2': 'GND' }, 1)
     .part('UIR', 'irrx', 1650, 950, { value: 'TSOP38238' }, { '3': 'VIR', '2': 'GND', '1': 'IRO' })
