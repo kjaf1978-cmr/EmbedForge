@@ -18,7 +18,7 @@ safety note, and the type tests.
 | 5 | Costed parts list | About €51 (single-unit prices; `4-parts-list/`): the Nano €21, the two 30 A relays €6, the terminals €6, the shunt €4, the rest the board's parts. The 24 V supply of at least 10 A (about €45), the motor, limit switches, STOP, photo-beam and key-switch are the installation's. |
 | 6 | Documents | User manual, installation guide, assembly guide, commissioning procedure with record sheet, prototype type tests, DFMEA, design notes (docs/inc3/POWER.md, section P9). All with the schematic's designators. |
 | 7 | Independent review | Done 18 November 2026: 1 blocker, 8 major and 6 minor findings and a list of what was missing; all resolved but one, the shunt's sense connection, measured on built boards instead (`REVIEW.md`). |
-| 8 | Package and sign-off | Pending. |
+| 8 | Package and sign-off | Signed off 19 November 2026 (D63, package cb8e61f). |
 
 What changed in the P9 audit (18 November 2026): the close limit and the photo-beam on their own
 terminals and inputs (the firmware tells a closed gate from a broken beam, GC-9); a LEARN button
