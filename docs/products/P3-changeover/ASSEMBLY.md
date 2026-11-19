@@ -47,8 +47,9 @@ Tools:
 
    Each part's place and orientation is in `…-assembly.pdf`; pin 1 / the cathode / + are marked
    on the silkscreen.
-3. **Check the varistors' fit before soldering:** the footprint (TMOV_14) is drawn larger than
-   the part. Check the actual TMOV14RP300E against its drawing; the 7.5 mm pitch is fixed.
+3. **Fit each varistor with its body on the side marked on the silkscreen** (the outline): the
+   TMOV14RP300E's leads can sit up to 5.5 mm off the middle of its body, and the board keeps the
+   room for the body on that side only (revision B).
 4. **Clean off the flux,** then let the board dry.
 5. **Check before power:**
    - no solder bridges;

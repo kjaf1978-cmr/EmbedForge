@@ -8,8 +8,8 @@ from the app's schematics by `tools/kicad` and then checked with KiCad's design 
 | Design | Folder | Board | DRC (errors / unconnected) | Status |
 |---|---|---|---|---|
 | Mains voltage stabiliser 1 kVA (P4) | `stabiliser/` | 230 × 246 mm, 2 layers, 2 oz | 0 / 0 | re-routed after the review (input relay, protection relay, IRM-15 supply); the DRC report's warnings: footprint library not registered for the check (193), silkscreen overlaps (78), 4 coil stubs the router bypassed (a dangling end, no open connection); the relay footprint is provisional until checked against the 832A drawing |
-| Mains change-over 1P, 32 A (P3): control board + DIN-rail panel | `changeover-1p/` | 155 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
-| Mains change-over 3P+N, 32 A (P3): control board + DIN-rail panel | `changeover-3p/` | 225 × 150 mm, 2 layers, 2 oz | 0 / 0 | routed; panel wiring in `panel.csv` |
+| Mains change-over 1P, 32 A (P3): control board + DIN-rail panel | `changeover-1p/` | 165 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed (revision B, D64: the varistors' room for the TMOV14's datasheet body); panel wiring in `panel.csv` |
+| Mains change-over 3P+N, 32 A (P3): control board + DIN-rail panel | `changeover-3p/` | 235 × 155 mm, 2 layers, 2 oz | 0 / 0 | routed (revision B, D64: the varistors' room for the TMOV14's datasheet body); panel wiring in `panel.csv` |
 | MPPT solar charger 48 V, 80 A (P6): power board | `mppt-power/` | 280 × 160 mm, 2 layers, 4 oz | 0 / 0 | routed; copper bars and lugs below |
 | MPPT solar charger 48 V, 80 A (P6): control board | `mppt-control/` | 160 × 110 mm, 2 layers, 2 oz | 0 / 0 | routed; `link.csv`: the nets to the power board |
 | Inverter 48 V 5 kW, 50 Hz transformer (P7a): power board | `inverter-lf-48-power/` | 280 × 170 mm, 2 layers, 4 oz | 0 / 0 | routed; copper bars and lugs, bus and ground planes |

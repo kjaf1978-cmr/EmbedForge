@@ -47,7 +47,9 @@ and in the documents of this package.
 ## Open after the review
 
 - Confirm the mechanical interlock kit for the LC1DT32 pair with Schneider.
-- Confirm the TMOV14RP300E body size against Littelfuse's drawing. The board's footprint is drawn
-  larger than the part.
+- ~~Confirm the TMOV14RP300E body size against Littelfuse's drawing.~~ Done (19 November 2026,
+  D64): the datasheet showed the body can reach 11 mm to one side of the leads; revision A's
+  centred outline did not allow for it and two varistors would have touched a neighbour. Both
+  boards re-placed and re-routed as revision B with the body's room on the marked side.
 - The prototype type tests (TYPE_TESTS.md) and certification are, by their nature, after a
   prototype exists.
