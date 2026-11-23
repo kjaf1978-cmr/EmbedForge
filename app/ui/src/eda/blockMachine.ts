@@ -21,6 +21,11 @@
 //   IRLZ44Ns from the microcontroller, the valve's turn-off clamped at 38 V (SMAJ33A: it
 //   releases within a few ms; a plain diode would hold it for tens);
 // - a proximity sensor (PNP, 24 V) to the microcontroller through a PC817.
+// After the P9 audit (D47, 23 November 2026): the 400 V side in the design (the main breaker QS,
+// padlockable, and a motor-protective breaker per motor, so each motor's protection is in the
+// parts list and the wiring list); F1 8 A (4 A was below four valves and the coils); a STOP input
+// (NC: pressed or broken, the cycle stops); a READY / FAULT lamp output; the firmware
+// (firmware/block-machine).
 
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
@@ -34,6 +39,10 @@ export interface BlockOptions {
   k1Welded?: boolean; ch1Bridged?: boolean;
   /** K1 welds while running (its armature held from then on); a second RESET press. */
   k1WeldAt?: number; reset2?: number;
+  /** all four valves driven together from `valve` (each with its bench coil) */
+  allValves?: boolean;
+  /** the READY / FAULT lamp driven from `lamp`; STOP pressed (its NC contact open) */
+  lamp?: number; stopPressed?: boolean;
   stop?: string;
 }
 
@@ -59,7 +68,14 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
     // the valve: 24 V 26 W (22 Ω, 50 mH); the proximity sensor's output (PNP, on)
     .part('RSV', 'resistor', -750, 300, { value: '22', pmax: '50' }, { '1': 'V24S', '2': 'SVA' }, 1)
     .part('LSV', 'inductor', -750, 400, { value: '50m', imax: '3' }, { '1': 'SVA', '2': 'SVD' }, 1)
-    .part('VPX', 'battery', -650, 300, { value: '23', rint: '10' }, { '1': 'PX1', '2': 'GND' }, 1);
+    .part('VPX', 'battery', -650, 300, { value: '23', rint: '10' }, { '1': 'PX1', '2': 'GND' }, 1)
+    // STOP's NC contact (closed unless pressed) and a 24 V 2.4 W lamp
+    .part('SSTP', 'switch', -550, 300, { closed: o.stopPressed ? 'false' : 'true' }, { '1': 'V24F', '2': 'PX8' })
+    .part('VLA', 'vpulse', -850, 450, pulse(o.lamp, stop + 1), { '1': 'LAMP', '2': 'GND' })
+    .part('RLAM', 'resistor', -750, 550, { value: '240', pmax: '5' }, { '1': 'V24F', '2': 'LMP' }, 1);
+  if (o.allValves) for (const k of [2, 3, 4]) nb.part(`RSV${k}`, 'resistor', -750 + 100 * k, 650, { value: '22', pmax: '50' }, { '1': 'V24S', '2': `SVA${k}` }, 1)
+    .part(`LSV${k}`, 'inductor', -750 + 100 * k, 750, { value: '50m', imax: '3' }, { '1': `SVA${k}`, '2': `SVD${k}` }, 1)
+    .part(`VVA${k}`, 'vpulse', -750 + 100 * k, 850, pulse(o.valve, o.valveTo ?? stop + 1), { '1': `VALVE${k}`, '2': 'GND' });
   if (o.ch1Bridged) nb.part('SBR', 'switch', -850, 300, { closed: 'true' }, { '1': 'E1L', '2': 'GND' });
   // K1 welded: its armature held by the bench (a second coil supply that never drops)
   if (o.k1Welded) nb.part('RWK', 'resistor', -650, 450, { value: '1' }, { '1': 'V24', '2': 'C1' }).part('RWK2', 'resistor', -550, 450, { value: '1' }, { '1': 'E1L', '2': 'GND' });
@@ -73,7 +89,9 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
   nb.block('supply')
     .part('XP', 'terminal', 0, -100, { value: '+24 V (panel supply)' }, { '1': 'V24' })
     .part('XN', 'terminal', 0, 0, { value: '0 V' }, { '1': 'GND' })
-    .part('F1', 'fuse', 100, -100, { value: '4', r: '0.02' }, { '1': 'V24', '2': 'V24F' })
+    // 8 A time-lag: the coils (about 1.1 A) and up to four valves of 26 W (4.3 A); the firmware
+    // keeps at most two valves on (about 3.5 A in all)
+    .part('F1', 'fuse', 100, -100, { value: '8', r: '0.01' }, { '1': 'V24', '2': 'V24F' })
     .part('DT1', 'tvs', 200, 0, { value: 'SMAJ33A' }, { '1': 'V24F', '2': 'GND' }, 1)
     // 5 V for the microcontroller and the inputs' pull-ups (a switching regulator in a 7805's place)
     .part('U5', 'regulator', 300, -100, { value: 'R-78E5.0-1.0' }, { '1': 'V24F', '2': 'GND', '3': 'V5' })
@@ -115,7 +133,7 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- outputs on the safety rail: the pump's contactor and a solenoid valve
   nb.block('outputs')
-    .part('KMP', 'contactor', 300, 650, { value: '18 A, coil 24 V DC' }, { A1: 'V24S', A2: 'KPD', '1': 'L1', '2': 'U1', '3': 'L2', '4': 'V1', '5': 'L3', '6': 'W1', '21': 'FB2', '22': 'FBM' })
+    .part('KMP', 'contactor', 300, 650, { value: '18 A, coil 24 V DC' }, { A1: 'V24S', A2: 'KPD', '1': 'LP1', '2': 'U1', '3': 'LP2', '4': 'V1', '5': 'LP3', '6': 'W1', '21': 'FB2', '22': 'FBM' })
     .part('DKP', 'diode', 400, 650, { value: '1N4007' }, { '2': 'KPD', '1': 'V24S' }, 3)
     .part('RGP', 'resistor', 300, 800, { value: '100' }, { '1': 'PUMP', '2': 'GP' })
     .part('RGPD', 'resistor', 300, 900, { value: '10k' }, { '1': 'GP', '2': 'GND' }, 1)
@@ -142,7 +160,9 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
   const motors: [string, string, string][] = [['KMM', 'MIXER', 'mixer / feeder 3 kW'], ['KMV1', 'VIB1', 'vibrator 1, 1.5 kW'], ['KMV2', 'VIB2', 'vibrator 2, 1.5 kW']];
   motors.forEach(([k, cmd, what], i) => {
     const x = 1000 + 250 * i, fbIn = i === 0 ? 'FBM' : `FBM${i}`, fbOut = i === 2 ? 'FB3' : `FBM${i + 1}`;
-    nb.part(k, 'contactor', x, 1500, { value: '9 A, coil 24 V DC' }, { A1: 'V24S', A2: `${k}D`, '1': 'L1', '2': `${k}U`, '3': 'L2', '4': `${k}V`, '5': 'L3', '6': `${k}W`, '21': fbIn, '22': fbOut })
+    nb.part(k, 'contactor', x, 1500, { value: '9 A, coil 24 V DC' }, { A1: 'V24S', A2: `${k}D`, '1': `${k}L1`, '2': `${k}U`, '3': `${k}L2`, '4': `${k}V`, '5': `${k}L3`, '6': `${k}W`, '21': fbIn, '22': fbOut })
+      // its motor-protective breaker (thermal set to the motor's rated current)
+      .part(`Q${k}F`, 'breaker3', x, 2250, { value: i === 0 ? '10' : '4', curve: 'M' }, { '1': 'L1', '2': `${k}L1`, '3': 'L2', '4': `${k}L2`, '5': 'L3', '6': `${k}L3` })
       .part(`D${k}`, 'diode', x + 100, 1500, { value: '1N4007' }, { '2': `${k}D`, '1': 'V24S' }, 3)
       .part(`RG${k}`, 'resistor', x, 1650, { value: '100' }, { '1': cmd, '2': `G${k}` })
       .part(`RGD${k}`, 'resistor', x, 1750, { value: '10k' }, { '1': `G${k}`, '2': 'GND' }, 1)
@@ -155,14 +175,18 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`R${k}W`, 'resistor', x + 160, 2050, { value: '1M', scope: 'test' }, { '1': `${k}W`, '2': 'GND' }, 1);
   });
   nb.block('outputs')
-    // the motor terminals of the power circuit (400 V: not simulated)
-    .part('XL1', 'terminal', 200, 750, { value: 'L1 (from Q1, MPCB 14 … 20 A)' }, { '1': 'L1' })
-    .part('XL2', 'terminal', 200, 800, { value: 'L2' }, { '1': 'L2' })
-    .part('XL3', 'terminal', 200, 850, { value: 'L3' }, { '1': 'L3' })
+    // the power circuit (400 V: not simulated): the supply's terminals, the main breaker QS (the
+    // supply-disconnecting device, padlockable), the pump's motor-protective breaker
+    .part('XL1', 'terminal', 100, 750, { value: 'supply L1 (400 V, 3 phases)' }, { '1': 'LIN1' })
+    .part('XL2', 'terminal', 100, 800, { value: 'supply L2' }, { '1': 'LIN2' })
+    .part('XL3', 'terminal', 100, 850, { value: 'supply L3' }, { '1': 'LIN3' })
+    .part('QS', 'breaker3', 100, 1100, { value: '32', curve: 'C' }, { '1': 'LIN1', '2': 'L1', '3': 'LIN2', '4': 'L2', '5': 'LIN3', '6': 'L3' })
+    .part('QP1', 'breaker3', 250, 1100, { value: '16', curve: 'M' }, { '1': 'L1', '2': 'LP1', '3': 'L2', '4': 'LP2', '5': 'L3', '6': 'LP3' })
     .part('XU', 'terminal', 400, 950, { value: 'pump motor U' }, { '1': 'U1' })
     .part('XV', 'terminal', 450, 950, { value: 'pump motor V' }, { '1': 'V1' })
     .part('XW', 'terminal', 500, 950, { value: 'pump motor W' }, { '1': 'W1' })
     // the 400 V nets' 1 MΩ to ground: a DC path for the simulator only (scope test: not on the board)
+    .part('RLI', 'resistor', 150, 950, { value: '1M', scope: 'test' }, { '1': 'LIN1', '2': 'GND' }, 1)
     .part('RL1', 'resistor', 200, 950, { value: '1M', scope: 'test' }, { '1': 'L1', '2': 'GND' }, 1)
     .part('RL2', 'resistor', 250, 950, { value: '1M', scope: 'test' }, { '1': 'L2', '2': 'GND' }, 1)
     .part('RL3', 'resistor', 300, 950, { value: '1M', scope: 'test' }, { '1': 'L3', '2': 'GND' }, 1);
@@ -185,20 +209,35 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`DPX${k}`, 'diode', 2100, y + 100, { value: '1N4148' }, { '2': 'GND', '1': `PXA${k}` }, 1)
       .part(`RIN${k}`, 'resistor', 2300, y, { value: '10k' }, { '1': 'V5', '2': `IN${k}` }, 1);
   });
+  // STOP (NC, 24 V): the same input; pressed or its cable broken, IN8 is high (stop)
+  nb.part('XPX8', 'terminal', 2000, 1950, { value: 'STOP (NC, 24 V)' }, { '1': 'PX8' })
+    .part('RPX8', 'resistor', 2100, 1950, { value: '4.7k' }, { '1': 'PX8', '2': 'PXA8' })
+    .part('UPX8', 'opto', 2200, 2000, { value: 'PC817' }, { '1': 'PXA8', '2': 'GND', '4': 'IN8', '3': 'GND' })
+    .part('DPX8', 'diode', 2100, 2050, { value: '1N4148' }, { '2': 'GND', '1': 'PXA8' }, 1)
+    .part('RIN8', 'resistor', 2300, 1950, { value: '10k' }, { '1': 'V5', '2': 'IN8' }, 1);
+  // the READY / FAULT lamp (24 V, up to 0.5 A) on the panel's door, from D13; fed from V24F, so it
+  // shows a fault while the safety rail is off
+  nb.part('XLP1', 'terminal', 2400, 2150, { value: 'lamp READY / FAULT +24 V' }, { '1': 'V24F' })
+    .part('XLP2', 'terminal', 2450, 2150, { value: 'lamp READY / FAULT −' }, { '1': 'LMP' })
+    .part('RGL', 'resistor', 2400, 2250, { value: '100' }, { '1': 'LAMP', '2': 'GL' })
+    .part('RGLD', 'resistor', 2400, 2350, { value: '10k' }, { '1': 'GL', '2': 'GND' }, 1)
+    .part('QL', 'nmos', 2500, 2250, { value: 'IRLZ44N' }, { '1': 'GL', '2': 'LMP', '3': 'GND' })
+    .part('DTL', 'tvs', 2600, 2300, { value: 'SMAJ33A' }, { '1': 'LMP', '2': 'GND' }, 1);
   nb.part('XPS', 'terminal', 2000, 2050, { value: 'sensors +24 V' }, { '1': 'V24F' })
     .part('XPS0', 'terminal', 2050, 2050, { value: 'sensors 0 V' }, { '1': 'GND' });
   // ---- the microcontroller (D24): an Arduino Nano (5 V I/O) on sockets, the sequence's firmware
   // (fill, vibrate, press, demould, eject). Inputs IN1 … IN7 on D2 … D8 (low = target present /
   // START pressed); PUMP D9, valves D10, D11, D12, A3; MIXER A0, VIB1 A1, VIB2 A2; the safety rail's
-  // state on A4 (24 V → 4.2 V). Its outputs' gates have 10k pull-downs: all off while it resets.
+  // state on A4 (24 V → 4.2 V); STOP on A5 (high: pressed); the READY / FAULT lamp on D13. Its outputs' gates have 10k pull-downs: all off while it resets.
   // Not simulated: the bench drives PUMP and VALVE
   nb.block('microcontroller')
     .part('UMC', 'nano', 2600, 1200, { value: 'Arduino Nano' }, { '4': 'GND', '29': 'GND', '27': 'V5',
       '5': 'IN1', '6': 'IN2', '7': 'IN3', '8': 'IN4', '9': 'IN5', '10': 'IN6', '11': 'IN7',
-      '12': 'PUMP', '13': 'VALVE', '14': 'VALVE2', '15': 'VALVE3', '22': 'VALVE4', '19': 'MIXER', '20': 'VIB1', '21': 'VIB2', '23': 'SRS' })
+      '12': 'PUMP', '13': 'VALVE', '14': 'VALVE2', '15': 'VALVE3', '22': 'VALVE4', '19': 'MIXER', '20': 'VIB1', '21': 'VIB2', '23': 'SRS',
+      '24': 'IN8', '16': 'LAMP' })
     .part('RSR1', 'resistor', 2600, 1600, { value: '47k' }, { '1': 'V24S', '2': 'SRS' })
     .part('RSR2', 'resistor', 2700, 1700, { value: '10k' }, { '1': 'SRS', '2': 'GND' }, 1);
-  nb.v('V24S').v('C1').v('C2').v('RP').v('CRN').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
+  nb.v('V24F').v('LMP').v('IN8').v('V24S').v('C1').v('C2').v('RP').v('CRN').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
   nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '20u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }

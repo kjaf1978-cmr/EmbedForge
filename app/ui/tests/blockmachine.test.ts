@@ -1,5 +1,5 @@
 // P9 (D24): the block moulding machine's safety circuit and 24 V outputs (src/eda/blockMachine.ts).
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { blockMachine, type BlockOptions } from '../src/eda/blockMachine';
 import { simulate, type SimResult } from '../src/sim/run';
 import { smoke } from '../src/eda/smoke';
@@ -21,6 +21,8 @@ function run(o: BlockOptions) {
 }
 
 describe('block moulding machine: safety circuit and outputs', () => {
+  // each simulation runs for many seconds without yielding: let the worker report to vitest
+  beforeEach(() => new Promise<void>((r) => setTimeout(r, 0)));
   it('ERC clean', () => {
     expect(erc(blockMachine({ k1Welded: true, ch1Bridged: true }).sheet).filter((i) => i.severity === 'error').map((i) => i.message)).toEqual([]);
   }, 120_000);
@@ -63,5 +65,22 @@ describe('block moulding machine: safety circuit and outputs', () => {
     expect(s.v('V24S', 0.5)).toBeGreaterThan(22);
     expect(s.offAfter(0.6)).toBeLessThan(0.05);
     expect(s.v('V24S', 1.4)).toBeLessThan(3); // off: the lamp's knee at most
+  }, 600_000);
+  it('all four valves on together (more than the firmware ever commands) with the pump contactor: the 24 V stays above 22 V, F1 (8 A) holds, every valve releases within 5 ms; no part over its ratings', () => {
+    const s = run({ reset: 0.1, pump: 0.4, valve: 0.5, valveTo: 0.8, allValves: true, stop: '0.9' });
+    expect(s.v('V24F', 0.79)).toBeGreaterThan(22);
+    expect(s.v('V24S', 0.79)).toBeGreaterThan(21);
+    for (const n of ['SVD', 'SVD2', 'SVD3', 'SVD4']) expect(Math.max(...s.r.v[n])).toBeLessThan(45);
+    expect(Math.abs(s.iv[s.x.findIndex((t) => t >= 0.805)])).toBeLessThan(0.05);
+    expect(s.over).toEqual([]);
+  }, 600_000);
+  it('the READY / FAULT lamp follows its output (also with the safety rail off); STOP closed reads low, pressed reads high', () => {
+    const s = run({ lamp: 0.1, stop: '0.3' });
+    expect(s.v('V24F', 0.2) - s.v('LMP', 0.2)).toBeGreaterThan(22);
+    expect(s.v('V24F', 0.05) - s.v('LMP', 0.05)).toBeLessThan(1);
+    expect(s.v('IN8', 0.2)).toBeLessThan(0.8);
+    expect(s.over).toEqual([]);
+    const p = run({ stopPressed: true, stop: '0.1' });
+    expect(p.v('IN8', 0.1)).toBeGreaterThan(4);
   }, 600_000);
 });
