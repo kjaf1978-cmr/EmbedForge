@@ -678,6 +678,13 @@ K1 welding while running (the E-stop still stops, the next reset is refused). Fo
   mirror contacts and has its own charging path;
 - a capacitor on the safety rail kept the valves on after an E-stop: removed.
 
+**Block moulding machine, revision C** (after two independent reviews, D65–D67, 25 November 2026;
+`tests/blockmachine.test.ts`, 16 passed, LONG=1; firmware host tests 21, 504 checks): the
+certified safety relays K1 (E-stop), K4 (guards) with a monitored start on the release, the
+safety contactors K2, K3, high-side outputs with an enable and read-back, the Arduino Mega 2560.
+The earlier entry's designators (K1 a safety contactor, the reset relay K3) are those of
+revision A; the reset relay is gone. Details: `docs/products/P9-block-machine/REVIEW.md`.
+
 **P4b at 140 V input:** the 10 and 15 kVA output contactors never closed. Their 230 V coils got
 213 V there (93 %, close to the 85 % pull-in). All three ratings now use wide-range
 200–277 V AC/DC coils (Siemens 3RT2…-1NP30). All 18 long runs repeated and passed: steady
