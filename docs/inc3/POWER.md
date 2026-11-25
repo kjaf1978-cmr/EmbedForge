@@ -620,34 +620,48 @@ cutting). Purely discrete.
   from latching a fault. A red LED shows a latched stop.
 - Supply: LM317HV to 12 V, TL431 2.5 V reference.
 
-**Block moulding machine** (D24; `src/eda/blockMachine.ts`, `tests/blockmachine.test.ts`):
-hollow and solid concrete blocks.
+**Block moulding machine** (D24, D65 … D67; `src/eda/blockMachine.ts`, `tests/blockmachine.test.ts`,
+`firmware/block-machine/`): hollow and solid concrete blocks.
 - The machine: a 3 kW mixer/feeder, two 1.5 kW vibrator motors under the mould table, a 7.5 kW
-  hydraulic power pack with 4 solenoid valves (tamper head and mould lift), and the pallet pusher.
-  Each 400 V motor has a motor-protective circuit breaker and a contactor with a 24 V DC coil.
-  A microcontroller board runs the sequence (fill, vibrate and press, demould, eject) from the
-  proximity sensors' end positions and its timings.
-- Safety circuit (discrete, the part simulated):
-  - two-channel emergency stop: an E-stop with two NC contacts, and two safety contactors K1/K2
-    (9 A, 24 V DC, mirror contacts to IEC 60947-4-1 Annex F) whose main contacts in series feed the
-    safety rail V24S. Every contactor coil and valve of the machine is fed from it, so the E-stop
-    stops every motion whatever the microcontroller does;
-  - reset: RESET in series with the NC mirror contacts of K1, K2 and every motor contactor (pump,
-    mixer, both vibrators: a welded contact refuses the reset), then 100 µF into a reset relay K3. K3 gives K1 and K2 a pulse of
-    about 0.2 s, and they hold through their own auxiliary contacts. A held or jammed RESET cannot
-    restart the machine after an E-stop. (The capacitor straight into the contactors' coils decayed
-    before they pulled in, found in simulation.)
-- Outputs: the pump contactor's coil and the solenoid valves through IRLZ44Ns from the
-  microcontroller. Each valve is clamped at 38 V (SMAJ33A), so it releases within a few
-  milliseconds; a plain diode would hold it for tens.
-- Inputs: PNP proximity sensors through PC817s.
-- The board (`hardware/block-machine/`): the safety circuit, K3, the coil drivers for the pump,
-  mixer and both vibrators' contactors, the four valve channels, six proximity-sensor inputs and
-  START (each a PC817), an R-78E5.0-1.0 for 5 V, and an Arduino Nano on sockets (5 V I/O, as the
-  outputs are simulated): inputs on D2–D8, PUMP D9, valves D10–D12 and A3, MIXER A0, vibrators A1,
-  A2, the safety rail's state on A4 (47k/10k from V24S). The 400 V wiring, the contactors and the
-  motor-protective breakers are on the panel (`panel.csv`). Every output's gate has 10 kΩ to 0 V:
-  all off while the Nano resets, and nothing moves without V24S anyway.
+  hydraulic power pack with 4 solenoid valves (valve 1 tamper down, 2 tamper up, 3 mould up, 4
+  mould down; 4/3 tandem-centre, with load-holding valves on the tamper and the mould). 400 V: the
+  main breaker Q33 (padlockable, door-coupled), a Siemens 3RV2 motor-protective breaker per motor
+  (coordinated with the 3RT2 contactors; their auxiliary contacts to the controller), a contactor
+  with a 24 V DC coil per motor. A 24 V 10 A supply with its 0 V bonded to PE at one point.
+- Safety circuit (after the independent review, D65): the E-stop and the guards each on a
+  certified safety relay (Siemens 3SK1111, two channels, test pulses for cross shorts, monitored
+  start on RESET's release). Their enabling contacts in series drive the safety contactors K2 and
+  K3 (9 A, mirror contacts, two poles each in series for the DC breaking), which feed the safety
+  rail V24S: every contactor coil and valve. The start loops: RESET's two NO blocks in series with
+  the mirror contacts of K2, K3 and every motor contactor (a welded contact refuses the start).
+  The simulator models the relays' certified function (a 'safety' logic element: the outputs close
+  on the start loop's release after a press made with both channels closed, open when either
+  channel opens, and need both channels to have opened after only one did). The earlier design (a
+  reset relay K3 pulsed by a capacitor) restarted the machine with that relay welded or RESET
+  jammed at power-up, and started on the press: found by the review.
+- Outputs (D66): each on its +24 V side, an IRF9540N from the outputs' supply V24O with a 2 A
+  current limit (0.33 Ω and a BC557B), a BC547B level shift, a bidirectional SMAJ33CA across the
+  load (the valves and coils release in a few milliseconds; the earlier 1N4007s held the coils),
+  and a read-back (47k/10k). V24O comes from the rail through a common enable (IRF4905), given by
+  the controller only with every output off: an output read back on while commanded off drops it
+  within 3 ms, before its contactor or valve can pull in. Low-side switching (before the review)
+  switched a valve on when its wire touched the earthed frame.
+- Inputs: eleven PC817s from the field 24 V (its own 2 A fuse F2): six proximity sensors, START,
+  STOP (NC), the pressure switch, the oil temperature switch (NC), the motor breakers' auxiliary
+  contacts in series.
+- Controller (D67): an Arduino Mega 2560 (the inputs D22 … D32, the outputs D2 … D9, the enable D11,
+  the lamp D10, the read-backs A0 … A7, the rail A8, the enable's read-back A9). Firmware (D48):
+  homing, the cycle (fill with the vibrators, press to "tamper down" with the working pressure,
+  vibrate 4 s, demould with the tamper holding, tamper up, the pallet change, mould down), a time
+  limit on every step, STOP, the rail's loss, the interlocks (the feeder only with the tamper up,
+  the tamper down only with the feeder home, opposing valves never together, at most two valves),
+  the read-back checks, the breakers, the oil temperature; host tests 19, 487 checks; 8.5 kB.
+- Verified (16 simulations): the rail only at RESET's release; an E-stop and a guard (off within
+  50 ms, no restart on release); RESET held through an E-stop and jammed at power-up with a 100 ms
+  supply rise; one E-stop channel only; a channel bridged; K2 welded from power-up and while
+  running; an output MOSFET shorted (not fed without the enable, fed only while it is given); the
+  enable's read-back; a valve wire to the frame (limited below 3 A, read back low); all four
+  valves at once (F1 holds); the lamp and STOP. No part is over its ratings in any of these.
 
 **Grinder drive** (`src/eda/grinder.ts`, `tests/grinder.test.ts`; D26, D46): one 2.5 kW drive
 for every kind of grinding machine (angle and bench grinders, grain and maize mills, meat

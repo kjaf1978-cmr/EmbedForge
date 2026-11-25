@@ -11,7 +11,7 @@ board `hardware/block-machine`). Arduino C++ (D48), GPL-3.0-or-later.
 
 ## Build
 
-- **Host tests:** `make test` (g++). 18 tests, 484 checks, against a simulated machine whose loads
+- **Host tests:** `make test` (g++). 19 tests, 487 checks, against a simulated machine whose loads
   are fed only through the outputs' enable and act 20 ms after they are fed (a contactor's or a
   valve's pull-in): start-up, READY, homing from anywhere, a full cycle with its timings, one cycle
   per START, the pump's idle stop, a broken sensor, a stuck feeder, STOP, the safety rail lost, an
@@ -23,7 +23,7 @@ board `hardware/block-machine`). Arduino C++ (D48), GPL-3.0-or-later.
   tamper up, the tamper down only with the feeder home, nothing with the rail off or STOP pressed,
   no output without the enable, the vibrators only while filling, pressing and vibrating).
 - **The Mega:** `make mega` (avr-gcc with the Arduino AVR core: Ubuntu's `gcc-avr`, `avr-libc`,
-  `arduino-core-avr`), or `pio run -e mega` (PlatformIO, D48). It uses about 8.3 kB of the 248 kB
+  `arduino-core-avr`), or `pio run -e mega` (PlatformIO, D48). It uses about 8.5 kB of the 248 kB
   of flash and 1 kB of the 8 kB of RAM.
 - **Flash:** `pio run -e mega -t upload`, or `avrdude -p m2560 -c wiring -P /dev/ttyACM0 -b 115200
   -D -U flash:w:build/block-machine.hex`.

@@ -63,7 +63,8 @@ void Logic::step(uint32_t now, const Inputs& in) {
     out_ = before;
     if (state_ != State::Fault) {
       if (!checkOutputs(now, in)) {
-        if (!in.breakersOk) fault(now, state_, Cause::Breaker);
+        if ((in.tamperUp && in.tamperDown) || (in.mouldUp && in.mouldDown)) fault(now, state_, Cause::Sensor);
+        else if (!in.breakersOk) fault(now, state_, Cause::Breaker);
         else if (!in.oilOk) fault(now, state_, Cause::OilHot);
         else drive(now, in);
       }
@@ -183,6 +184,12 @@ void Logic::drive(uint32_t now, const Inputs& in) {
     case State::Fault:
     case State::Off:
       break;
+  }
+  // the end a move starts from must be left within leaveMs (a sensor stuck on)
+  if (state_ != State::Fault && timedOut(now, cfg_.leaveMs)) {
+    const bool stuck = ((state_ == State::Press) && in.tamperUp) || ((state_ == State::TamperUp || state_ == State::HomeTamper) && in.tamperDown) ||
+                       (state_ == State::Demould && in.mouldDown) || ((state_ == State::MouldDown || state_ == State::HomeMould) && in.mouldUp);
+    if (stuck) fault(now, state_, Cause::Sensor);
   }
   out_.out[Pump] = pumpOn_ && state_ != State::Fault;
 }

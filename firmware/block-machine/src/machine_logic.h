@@ -35,6 +35,8 @@
 // - STOP (its NC contact open, or its cable broken): every output off at once; the next START
 //   homes. The safety rail off (E-stop, a guard, the reset not given): every output off; when it
 //   returns nothing starts until START.
+// - Sensor plausibility: a cylinder's two end sensors both on, or the end a move starts from still
+//   seen 1 s after the move began (a sensor or its opto stuck on): FAULT (sensor).
 // - Interlocks, checked at every step: valves 1 and 2 never together, nor 3 and 4; at most two
 //   valves at once; the feeder only with the tamper up; the tamper down only with the feeder home
 //   (a sensor that changes against them: FAULT); the vibrators only in FILL, PRESS and VIBRATE.
@@ -68,7 +70,7 @@ struct Outputs {
   bool any() const { for (bool b : out) if (b) return true; return false; }
 };
 
-enum class Cause : uint8_t { None, Timeout, Interlock, OutputStuck, OutputShort, EnableFault, Breaker, OilHot, NoPressure };
+enum class Cause : uint8_t { None, Timeout, Interlock, OutputStuck, OutputShort, EnableFault, Breaker, OilHot, NoPressure, Sensor };
 
 enum class State : uint8_t {
   Off,          // the safety rail is off
@@ -89,6 +91,7 @@ struct Config {
   uint32_t tamperUpMs = 8000;
   uint32_t mouldDownMs = 8000;
   uint32_t pumpIdleMs = 60000;
+  uint32_t leaveMs = 1000;      // a cylinder leaves its end sensor within this
   uint32_t startupMs = 500;
 };
 

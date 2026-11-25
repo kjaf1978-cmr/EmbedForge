@@ -268,6 +268,19 @@ int main() {
     m.stopPressed = true; m.step(10); m.stopPressed = false; m.rail = true; m.step(100);
     CHECK(m.g.state() == State::Idle);
   });
+  test("sensor plausibility: a cylinder's two end sensors both on, or the end a move starts from still seen after 1 s (a stuck sensor): FAULT (sensor)", [] {
+    Machine m; m.start(); m.step(10);
+    m.tamper = 990;  // "tamper down" and, below, a stuck "tamper up" at once
+    bool both = false;
+    m.in.start = false;
+    for (int i = 0; i < 5 && !both; ++i) { m.sense(); m.in.tamperUp = true; m.g.step(m.t++, m.in); both = m.g.state() == State::Fault; }
+    CHECK(both && m.g.cause() == bm::Cause::Sensor);
+    Machine n; n.start(); n.step(10); n.start();
+    CHECK(n.reach(State::Press, 10000));
+    bool stuck = false;
+    for (int i = 0; i < 1500 && !stuck; ++i) { n.sense(); n.in.tamperUp = true; n.in.tamperDown = false; n.g.step(n.t++, n.in); stuck = n.g.state() == State::Fault; }
+    CHECK(stuck && n.g.cause() == bm::Cause::Sensor && n.g.faultAt() == State::Press);
+  });
   test("random sensors, faults, STOP, E-stops and presses for 10 minutes: the invariants always hold", [] {
     Machine m; std::srand(3);
     for (int i = 0; i < 600000; ++i) {
