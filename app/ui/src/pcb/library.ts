@@ -187,6 +187,7 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'mcu': return [same('ESP32_DevKitC', pins, 'the module on two 1 × 19 female headers, 2.54 mm')];
     case 'idc20': return [same('IDC_Header_2x10', pins, 'box header; the ribbon cable with IDC sockets between the boards')];
     case 'nano': return [same('Arduino_Nano', pins, 'the module on two 1 × 15 female headers, 2.54 mm')];
+    case 'mega': return [map('Arduino_Mega2560_Shield', Object.fromEntries(pins.map((p) => [p, p === 'GND' ? ['GND1', 'GND2', 'GND3', 'GND4', 'GND5'] : p === '5V' ? ['5V1', '5V2', '5V3'] : [p]])), { note: 'the Mega 2560 Rev3 under the board on its headers (male pins down) and six M3 stand-offs' })];
     case 'irrx': return [same('IR_Receiver_TSOP382', pins, 'TSOP38238: 1 OUT, 2 GND, 3 VS; lens towards the front panel window')];
     case 'pv': return [same('TerminalBlock_1x2', pins, 'PV cable (via MC4 connectors): + and −')];
     case 'autotransformer': return [map('TerminalBlock_1x8', { N: '1', T1: '2', T2: '3', T3: '4', T4: '5', T5: '6', T6: '7', T7: '8' }, { note: 'off-board autotransformer: N, T1 … T7' })];

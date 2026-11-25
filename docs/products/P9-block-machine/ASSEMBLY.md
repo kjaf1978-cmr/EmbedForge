@@ -18,10 +18,19 @@ The designators are those of the schematic, the board, the parts list and the wi
 1. **Fit the parts in order of height:** resistors and diodes, the TVS diodes, the PC817s,
    capacitors, transistors, the high-side MOSFETs (IRF9540N) and the enable MOSFET Q7 (IRF4905),
    the regulator U1, the fuse holders F1 (T 8 A) and F2 (T 2 A), the green LED D3, the terminal
-   blocks, the headers for the Mega U2.
+   blocks. Last, the **male headers for the Mega U2 on the board's underside** (pins pointing down,
+   soldered from the top): one 10-pin, four 8-pin and one 2 × 18 header at the positions on the
+   assembly drawing, long-tail headers (at least 6 mm of pin below the plastic).
 2. **Check:** no solder bridges; every polarised part the right way round; the resistance between
    +24 V and 0 V above 1 kΩ, between 5 V and 0 V above 1 kΩ.
-3. **Program the Mega** (`pio run -e mega -t upload`), then fit it to the board's headers.
+3. **Program the Mega** (`pio run -e mega -t upload`), then plug it onto the board's headers from
+   below, turned so that its USB and power jacks are at the board's right edge, and fix it with
+   six M3 stand-offs of 11 mm (the Mega's jacks stand about 11 mm high: a strip of insulating tape
+   on the USB jack's top keeps it off the board's copper). Its USB jack stays reachable at the
+   edge for a later update. The Mega's footprint is drawn from the dimensioned drawing of the
+   Mega 2560 R3 by Matthew Beckler (Wayne and Layne) and agrees with KiCad's Arduino Uno R3
+   footprint for the headers both share; **check one real Mega against the board before the first
+   order** (the six holes and the 2 × 18 header), TYPE_TESTS TT-4.
 
 ## 3. The panel
 

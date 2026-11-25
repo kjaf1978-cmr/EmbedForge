@@ -577,10 +577,12 @@ export const DESIGNS: Record<string, Design> = {
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
-  'block-machine': { sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit, 24 V outputs, inputs and Arduino Nano', revision: 'A',
-    classes: () => [POWER(['V24', 'V24F', 'V24S', 'KPD', 'SVD', 'SVD2', 'SVD3', 'SVD4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 170, h: 120,
-    // the coil-drive link Freerouting left (link.py, checked through route.py --post-only)
-    post: { tracks: [{ net: 'KMV1D', layer: 'B.Cu', width: 0.3, pts: [[79.02,  91.55],  [79.0,  91.5],  [80.5,  90.0],  [80.5,  89.75]] }, { net: 'KMV1D', layer: 'F.Cu', width: 0.3, pts: [[80.5,  89.75],  [83.5,  89.75]] }, { net: 'KMV1D', layer: 'B.Cu', width: 0.3, pts: [[83.5,  89.75],  [84.25,  90.5],  [84.25,  92.75],  [84.25,  92.75]] }], vias: [{ net: 'KMV1D', at: [80.5,  89.75] }, { net: 'KMV1D', at: [83.5,  89.75] }] } },
+  // the Mega 2560 turned 180° in the top-right corner: its USB and power jacks at the board's right
+  // edge (a cable plugs in from outside), its body under the board's top 54 mm; the rest below it
+  'block-machine': { plan: () => { const { sheet, nb } = blockMachine(); return [{ ref: nb.refOf(sheet, 'UMC'), x: 253, y: 4, rot: 180 }]; }, region: { x0: 0, x1: 260, y0: 64, y1: 180 },
+    sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit, high-side outputs, inputs and Arduino Mega 2560', revision: 'B',
+    // revision B (D65 … D67): the outputs' current paths (up to 5 A through the enable, 2 A each)
+    classes: () => [POWER(['V24', 'V24F', 'V24S', 'V24O', 'KPA', 'KMMA', 'KMV1A', 'KMV2A', 'SV1', 'SV2', 'SV3', 'SV4', 'HSP', 'HSM', 'HSV1', 'HSV2', 'HSS1', 'HSS2', 'HSS3', 'HSS4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 260, h: 180 },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper

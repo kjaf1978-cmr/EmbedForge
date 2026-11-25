@@ -241,6 +241,34 @@ add(make('TMOV_14', 'Thermally protected varistor 14 mm (TMOV14RP), 7.5 mm, body
   [tht('1', -3.75, 0, 2.0, 1.0, 'rect'), tht('2', 3.75, 0, 2.0, 1.0)], box(-8.95, -1.4, 8.95, 11.2), { x0: -8.75, y0: -1.2, x1: 8.75, y1: 11.0, h: 20 }));
 // P9 irrigation: the 74HC595 and 74HC4051 also in SOIC-16; the ribbon-cable bus; the ESP32 module
 add(soic('SOIC-16', 'SOIC-16', 16));
+// The Arduino Mega 2560 Rev3 (D67), seen from above with the Mega under the carrier board, the
+// carrier's pins down into the Mega's female headers (a shield). From the dimensioned drawing by
+// Matthew Beckler (Wayne and Layne, "Arduino Mega 2560 R3", v1.03, drawn from Arduino's reference
+// design; all in mils from the board's lower-left corner, y up): board 4000 × 2100; the top row at
+// y 2000: 10 pins 740 … 1640 (SCL, SDA, AREF, GND, D13 … D8), 8 pins 1800 … 2500 (D7 … D0), 8 pins
+// 2700 … 3400 (D14 … D21); the bottom row at y 100: the power header 1100 … 1800 (NC, IOREF, RESET,
+// 3V3, 5V, GND, GND, VIN), A0 … A7 2000 … 2700, A8 … A15 2900 … 3600; the 2 × 18 header at x 3800
+// and 3900 from y 2000 (5V, 5V) down to y 300 (GND, GND), D22 / D23 … D52 / D53 between; mounting
+// holes Ø 125 at (550, 100), (600, 2000), (2600, 1400), (2600, 300), (3550, 2000), (3800, 100) (the
+// last as in Arduino's own hole list, 96.5 mm / 2.5 mm: its label is not legible on the copy used).
+// The courtyard covers the Mega and its USB and power jacks (they stand out 250 / 75 mil to the
+// left and about 11 mm high, above the 8.5 mm sockets): nothing of the carrier over it.
+{
+  const mil = (v: number) => v * 0.0254;
+  const P = (id: string, x: number, y: number) => tht(id, mil(x), -mil(y), 1.7, 1.0);
+  const pads: Pad[] = [];
+  ['SCL', 'SDA', 'AREF', 'GND3', 'D13', 'D12', 'D11', 'D10', 'D9', 'D8'].forEach((id, k) => pads.push(P(id, 740 + 100 * k, 2000)));
+  ['D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'D1', 'D0'].forEach((id, k) => pads.push(P(id, 1800 + 100 * k, 2000)));
+  for (let k = 0; k < 8; k++) pads.push(P(`D${14 + k}`, 2700 + 100 * k, 2000));
+  ['NC', 'IOREF', 'RESET', '3V3', '5V1', 'GND1', 'GND2', 'VIN'].forEach((id, k) => pads.push(P(id, 1100 + 100 * k, 100)));
+  for (let k = 0; k < 8; k++) pads.push(P(`A${k}`, 2000 + 100 * k, 100), P(`A${k + 8}`, 2900 + 100 * k, 100));
+  pads.push(P('5V2', 3800, 2000), P('5V3', 3900, 2000), P('GND4', 3800, 300), P('GND5', 3900, 300));
+  for (let r = 0; r < 16; r++) pads.push(P(`D${22 + 2 * r}`, 3800, 1900 - 100 * r), P(`D${23 + 2 * r}`, 3900, 1900 - 100 * r));
+  [[550, 100], [600, 2000], [2600, 1400], [2600, 300], [3550, 2000], [3800, 100]].forEach(([x, y], k) => pads.push(tht(`MH${k + 1}`, mil(x), -mil(y), 5.5, 3.2)));
+  add(make('Arduino_Mega2560_Shield', 'Arduino Mega 2560 Rev3 under the board (shield headers)', 'the Mega 2560 Rev3 plugged under the carrier: the carrier\'s male pins (2.54 mm) into its female headers; six M3 stand-offs; nothing of the carrier over the Mega',
+    pads, [...box(0, -mil(2100), mil(4000), 0), ...box(-mil(250), -mil(1725), mil(375), -mil(1275)), ...box(-mil(75), -mil(475), mil(450), -mil(125))],
+    { x0: -mil(250), y0: -mil(2100), x1: mil(4000), y1: 0, h: 11 }));
+}
 add(dip('Arduino_Nano', 'Arduino Nano on two 1 × 15 sockets (DIP-30, 15.24 mm rows)', 30, 15.24));
 add(inline('IR_Receiver_TSOP382', 'IR receiver TSOP382xx, 3 pins 2.54 mm (OUT, GND, VS)', 3, 2.54, 0.8, 1.5, 1.5, { d: 5.8, back: 1.5, height: 12 }));
 add((() => {
