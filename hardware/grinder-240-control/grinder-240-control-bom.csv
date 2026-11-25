@@ -59,7 +59,7 @@
 "no","1","C10","Electrolytic capacitor","1 mF","voltage rating 50 V","","1000uF 50 V 105 °C low-ESR long life (series e.g. Nichicon UHW, Panasonic FC/FR)","Nichicon / Panasonic","Future Electronics / Mouser","3.20","3.20","estimate"
 "no","1","D1","Diode","UF4007","","","UF4007","various","any distributor (DO-41)","0.12","0.12","estimate"
 "no","1","D6","Diode","1N4007","","","1N4007","various","any distributor (DO-41)","0.10","0.10","estimate"
-"no","1","K1","Contactor","18 A, coil 24 V DC","","","3RT2026-1BB40","Siemens","RS; Automation24","75.00","75.00","estimate"
+"no","1","K1","Contactor","18 A, coil 24 V DC","","","3RT2026-1BB40 + 3RH2911-1HA11","Siemens","RS; Automation24","75.00","75.00","estimate"
 "no","1","K3","Contactor","9 A, coil 24 V DC","","","3RT2016-1BB42 + 3RH2911-1HA11","Siemens","RS; Automation24","55.00","55.00","estimate"
 "no","1","L1","Inductor","15 mH","current rating 32 A","","made to specification (or Hammond 195-series DC choke)","transformer winder / Hammond","Hammond distributors (Mouser, Digi-Key)","60.00","60.00","estimate"
 "no","2","Q1 Q3","IGBT","IKW50N60T","heatsink (case to air) 500 mK/W","","IKW50N60TFKSA1","Infineon","Mouser; Digi-Key","6.40","12.80","estimate"

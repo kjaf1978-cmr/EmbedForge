@@ -588,6 +588,8 @@ export const DESIGNS: Record<string, Design> = {
     classes: () => [POWER(['V24', 'V24F', 'V24S', 'V24O', 'KPA', 'KMMA', 'KMV1A', 'KMV2A', 'SV1', 'SV2', 'SV3', 'SV4', 'HSP', 'HSM', 'HSV1', 'HSV2', 'HSS1', 'HSS2', 'HSS3', 'HSS4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 260, h: 180,
     // P9 review: the raw, fused and field 24 V and the safety rail never on neighbouring poles, nor next to an output
     separate: ['V24', 'V24F', 'V24I', 'V24S'],
+    // the link the router left (revision C), drawn by tools/kicad/autolink.py at 0.8 mm (a valve output)
+    post: {tracks: [{net: 'SV3', layer: 'F.Cu', width: 0.8, pts: [[108.35, 96.9519], [108.25, 97.0], [110.5, 94.75]]}, {net: 'SV3', layer: 'B.Cu', width: 0.8, pts: [[110.5, 94.75], [112.25, 93.0], [112.25, 84.0], [107.0, 78.75]]}, {net: 'SV3', layer: 'F.Cu', width: 0.8, pts: [[107.0, 78.75], [107.0, 77.5], [106.0, 76.5], [96.5, 76.5], [91.0, 82.0], [48.75, 82.0], [45.25, 85.5], [45.25, 86.75], [52.75, 94.25]]}, {net: 'SV3', layer: 'B.Cu', width: 0.8, pts: [[52.75, 94.25], [52.75, 117.75], [46.5, 124.0]]}, {net: 'SV3', layer: 'F.Cu', width: 0.8, pts: [[46.5, 124.0], [42.25, 124.0], [39.75, 126.5], [39.87, 126.5]]}], vias: [{net: 'SV3', at: [110.5, 94.75]}, {net: 'SV3', at: [107.0, 78.75]}, {net: 'SV3', at: [52.75, 94.25]}, {net: 'SV3', at: [46.5, 124.0]}]},
     // the panel's wires (EN 60204-1 12.4; 13.2 colours: DC control blue, PE green-yellow)
     wire: (net) => /^(LIN[123]|L[123]|LG[123]|LP[123])$/.test(net) ? '4 mm² H07V-K black, ferrules (400 V supply and the pump)'
       : /^(U1|V1|W1)$/.test(net) ? '4 mm² motor cable (pump)' : /^KM[MV][12]?[UVWL]/.test(net) || /^KMM[UVW]$/.test(net) ? '2.5 mm² H07V-K black / motor cable'

@@ -1,83 +1,88 @@
 net;panel terminals;board connector;wire
-C1;K4:14 K2:A1;J_PANEL:1;
-C2;K4:24 K3:A1;J_PANEL:2;
-E14;K1:14 K4:13;;
-E24;K1:24 K4:23;;
-FB1;K2:22 NC K3:21;;
-FB2;K3:22 NC K5:21;;
-FBM;K5:22 NC K6:21;;
-FBM1;K6:22 NC K7:21;;
-FBM2;K7:22 NC K8:21;;
-GF1;K2:32 NC K3:31;;
-GND;X2:1 X3:1 K1:A2 K4:A2 K2:A2 K3:A2 X25:1 X27:1 X29:1 X31:1 K5:A2 K6:A2 K7:A2 K8:A2 X52:1;J_PANEL:3;
-KA;K2:2/T1 K2:3/L2;;
-KB;K3:2/T1 K3:3/L2;;
-KMMA;K6:A1;J_PANEL:4;
-KMML1;K6:1/L1 Q35:L1 out;;
-KMML2;K6:3/L2 Q35:L2 out;;
-KMML3;K6:5/L3 Q35:L3 out;;
-KMMU;K6:2/T1 X41:1;;
-KMMV;K6:4/T2 X42:1;;
-KMMW;K6:6/T3 X43:1;;
-KMV1A;K7:A1;J_PANEL:5;
-KMV1L1;K7:1/L1 Q36:L1 out;;
-KMV1L2;K7:3/L2 Q36:L2 out;;
-KMV1L3;K7:5/L3 Q36:L3 out;;
-KMV1U;K7:2/T1 X44:1;;
-KMV1V;K7:4/T2 X45:1;;
-KMV1W;K7:6/T3 X46:1;;
-KMV2A;K8:A1;J_PANEL:6;
-KMV2L1;K8:1/L1 Q37:L1 out;;
-KMV2L2;K8:3/L2 Q37:L2 out;;
-KMV2L3;K8:5/L3 Q37:L3 out;;
-KMV2U;K8:2/T1 X47:1;;
-KMV2V;K8:4/T2 X48:1;;
-KMV2W;K8:6/T3 X49:1;;
-KPA;K5:A1;J_PANEL:7;
-KS;K2:4/T2 K3:1/L1;;
-L1;Q35:L1 in Q36:L1 in Q37:L1 in Q33:L1 out Q34:L1 in;;
-L2;Q35:L2 in Q36:L2 in Q37:L2 in Q33:L2 out Q34:L2 in;;
-L3;Q35:L3 in Q36:L3 in Q37:L3 in Q33:L3 out Q34:L3 in;;
-LIN1;X33:1 Q33:L1 in;;
-LIN2;X34:1 Q33:L2 in;;
-LIN3;X36:1 Q33:L3 in;;
-LMP;X54:1;J_PANEL:8;
-LP1;K5:1/L1 Q34:L1 out;;
-LP2;K5:3/L2 Q34:L2 out;;
-LP3;K5:5/L3 Q34:L3 out;;
-PX1;X6:1;J_PANEL:9;
-PX10;X35:1;J_PANEL:10;
-PX11;X37:1;J_PANEL:11;
-PX2;X9:1;J_PANEL:12;
-PX3;X14:1;J_PANEL:13;
-PX4;X18:1;J_PANEL:14;
-PX5;X20:1;J_PANEL2:1;
-PX6;X21:1;J_PANEL2:2;
-PX7;X22:1;J_PANEL2:3;
-PX8;X23:1;J_PANEL2:4;
-PX9;X32:1;J_PANEL2:5;
-RSA;X16:1 K2:21;;
-RSB;X19:1 K2:31;;
-SE11;K1:S11 X4:1;;
-SE12;K1:S12 X5:1;;
-SE21;K1:S21 X7:1;;
-SE22;K1:S22 X8:1;;
-SE33;K1:S33 X15:1;;
-SE34;K1:S34 K8:22 NC;;
-SG11;K4:S11 X10:1;;
-SG12;K4:S12 X11:1;;
-SG21;K4:S21 X12:1;;
-SG22;K4:S22 X13:1;;
-SG33;K4:S33 X17:1;;
-SG34;K4:S34 K3:32 NC;;
-SV1;X24:1;J_PANEL2:6;
-SV2;X26:1;J_PANEL2:7;
-SV3;X28:1;J_PANEL2:8;
-SV4;X30:1;J_PANEL2:9;
-U1;K5:2/T1 X38:1;;
-V1;K5:4/T2 X39:1;;
-V24;X1:1;J_PANEL2:10;
-V24F;K1:A1 K1:13 K1:23 K4:A1 K2:1/L1 X53:1;J_PANEL2:11;
-V24I;X50:1 X51:1;J_PANEL2:12;
-V24S;K3:4/T2;J_PANEL2:13;
-W1;K5:6/T3 X40:1;;
+C1;K4:14 K2:A1;J_PANEL:1;0.75 mm² H05V-K blue, ferrules
+C2;K4:24 K3:A1;J_PANEL:2;0.75 mm² H05V-K blue, ferrules
+E14;K1:14 K4:13;;0.75 mm² H05V-K blue, ferrules
+E24;K1:24 K4:23;;0.75 mm² H05V-K blue, ferrules
+FB1;K2:22 NC K3:21;;0.75 mm² H05V-K blue, ferrules
+FB2;K3:22 NC K6:21;;0.75 mm² H05V-K blue, ferrules
+FBM;K6:22 NC K7:21;;0.75 mm² H05V-K blue, ferrules
+FBM1;K7:22 NC K8:21;;0.75 mm² H05V-K blue, ferrules
+FBM2;K8:22 NC K9:21;;0.75 mm² H05V-K blue, ferrules
+FBM3;K5:21 K9:22 NC;;0.75 mm² H05V-K blue, ferrules
+GF1;K2:32 NC K3:31;;0.75 mm² H05V-K blue, ferrules
+GND;X2:1 X3:1 K1:A2 K4:A2 K2:A2 K3:A2 X25:1 X27:1 X29:1 X31:1 K6:A2 K5:A2 K7:A2 K8:A2 K9:A2 X52:1;J_PANEL:3;1.5 mm² H07V-K blue-white (0 V); the 0 V–PE bond 2.5 mm² green-yellow at X3
+KA;K2:2/T1 K2:3/L2;;0.75 mm² H05V-K blue, ferrules
+KB;K3:2/T1 K3:3/L2;;0.75 mm² H05V-K blue, ferrules
+KMMA;K7:A1;J_PANEL:4;0.75 mm² H05V-K blue, ferrules
+KMML1;K7:1/L1 Q35:L1 out;;2.5 mm² H07V-K black / motor cable
+KMML2;K7:3/L2 Q35:L2 out;;2.5 mm² H07V-K black / motor cable
+KMML3;K7:5/L3 Q35:L3 out;;2.5 mm² H07V-K black / motor cable
+KMMU;K7:2/T1 X41:1;;2.5 mm² H07V-K black / motor cable
+KMMV;K7:4/T2 X42:1;;2.5 mm² H07V-K black / motor cable
+KMMW;K7:6/T3 X43:1;;2.5 mm² H07V-K black / motor cable
+KMV1A;K8:A1;J_PANEL:5;0.75 mm² H05V-K blue, ferrules
+KMV1L1;K8:1/L1 Q36:L1 out;;2.5 mm² H07V-K black / motor cable
+KMV1L2;K8:3/L2 Q36:L2 out;;2.5 mm² H07V-K black / motor cable
+KMV1L3;K8:5/L3 Q36:L3 out;;2.5 mm² H07V-K black / motor cable
+KMV1U;K8:2/T1 X44:1;;2.5 mm² H07V-K black / motor cable
+KMV1V;K8:4/T2 X45:1;;2.5 mm² H07V-K black / motor cable
+KMV1W;K8:6/T3 X46:1;;2.5 mm² H07V-K black / motor cable
+KMV2A;K9:A1;J_PANEL:6;0.75 mm² H05V-K blue, ferrules
+KMV2L1;K9:1/L1 Q37:L1 out;;2.5 mm² H07V-K black / motor cable
+KMV2L2;K9:3/L2 Q37:L2 out;;2.5 mm² H07V-K black / motor cable
+KMV2L3;K9:5/L3 Q37:L3 out;;2.5 mm² H07V-K black / motor cable
+KMV2U;K9:2/T1 X47:1;;2.5 mm² H07V-K black / motor cable
+KMV2V;K9:4/T2 X48:1;;2.5 mm² H07V-K black / motor cable
+KMV2W;K9:6/T3 X49:1;;2.5 mm² H07V-K black / motor cable
+KPA;K6:A1;J_PANEL:7;0.75 mm² H05V-K blue, ferrules
+KS;K2:4/T2 K3:1/L1;;0.75 mm² H05V-K blue, ferrules
+L1;K5:1/L1 Q33:L1 out Q34:L1 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+L2;K5:3/L2 Q33:L2 out Q34:L2 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+L3;K5:5/L3 Q33:L3 out Q34:L3 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LG1;K5:2/T1 Q35:L1 in Q36:L1 in Q37:L1 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LG2;K5:4/T2 Q35:L2 in Q36:L2 in Q37:L2 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LG3;K5:6/T3 Q35:L3 in Q36:L3 in Q37:L3 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LIN1;X33:1 Q33:L1 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LIN2;X34:1 Q33:L2 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LIN3;X36:1 Q33:L3 in;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LMP;X54:1;J_PANEL:8;0.75 mm² H05V-K blue, ferrules
+LP1;K6:1/L1 Q34:L1 out;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LP2;K6:3/L2 Q34:L2 out;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+LP3;K6:5/L3 Q34:L3 out;;4 mm² H07V-K black, ferrules (400 V supply and the pump)
+PX1;X6:1;J_PANEL:9;0.75 mm² H05V-K blue, ferrules
+PX10;X35:1;J_PANEL:10;0.75 mm² H05V-K blue, ferrules
+PX11;X37:1;J_PANEL:11;0.75 mm² H05V-K blue, ferrules
+PX2;X9:1;J_PANEL:12;0.75 mm² H05V-K blue, ferrules
+PX3;X14:1;J_PANEL:13;0.75 mm² H05V-K blue, ferrules
+PX4;X18:1;J_PANEL:14;0.75 mm² H05V-K blue, ferrules
+PX5;X20:1;J_PANEL2:1;0.75 mm² H05V-K blue, ferrules
+PX6;X21:1;J_PANEL2:2;0.75 mm² H05V-K blue, ferrules
+PX7;X22:1;J_PANEL2:3;0.75 mm² H05V-K blue, ferrules
+PX8;X23:1;J_PANEL2:4;0.75 mm² H05V-K blue, ferrules
+PX9;X32:1;J_PANEL2:5;0.75 mm² H05V-K blue, ferrules
+RSA;X16:1 K2:21;;0.75 mm² H05V-K blue, ferrules
+RSB;X19:1 K2:31;;0.75 mm² H05V-K blue, ferrules
+SE11;K1:S11 X4:1;;0.75 mm² H05V-K blue, ferrules
+SE12;K1:S12 X5:1;;0.75 mm² H05V-K blue, ferrules
+SE21;K1:S21 X7:1;;0.75 mm² H05V-K blue, ferrules
+SE22;K1:S22 X8:1;;0.75 mm² H05V-K blue, ferrules
+SE33;K1:S33 X15:1;;0.75 mm² H05V-K blue, ferrules
+SE34;K1:S34 K5:22 NC;;0.75 mm² H05V-K blue, ferrules
+SG11;K4:S11 X10:1;;0.75 mm² H05V-K blue, ferrules
+SG12;K4:S12 X11:1;;0.75 mm² H05V-K blue, ferrules
+SG21;K4:S21 X12:1;;0.75 mm² H05V-K blue, ferrules
+SG22;K4:S22 X13:1;;0.75 mm² H05V-K blue, ferrules
+SG33;K4:S33 X17:1;;0.75 mm² H05V-K blue, ferrules
+SG34;K4:S34 K3:32 NC;;0.75 mm² H05V-K blue, ferrules
+SV1;X24:1;J_PANEL2:6;0.75 mm² H05V-K blue, ferrules
+SV2;X26:1;J_PANEL2:7;0.75 mm² H05V-K blue, ferrules
+SV3;X28:1;J_PANEL2:8;0.75 mm² H05V-K blue, ferrules
+SV4;X30:1;J_PANEL2:9;0.75 mm² H05V-K blue, ferrules
+U1;K6:2/T1 X38:1;;4 mm² motor cable (pump)
+V1;K6:4/T2 X39:1;;4 mm² motor cable (pump)
+V24;X1:1;J_SUPPLY:1;1.5 mm² H07V-K blue, ferrules
+V24F;K1:A1 K4:A1 K2:1/L1 X53:1;J_SUPPLY:3;1.5 mm² H07V-K blue, ferrules
+V24I;X50:1 X51:1;J_SUPPLY:5;1.5 mm² H07V-K blue, ferrules
+V24K;K1:13 K1:23;J_PANEL2:10;1.5 mm² H07V-K blue, ferrules
+V24S;K3:4/T2 K5:A1;J_SUPPLY:7;1.5 mm² H07V-K blue, ferrules
+W1;K6:6/T3 X40:1;;4 mm² motor cable (pump)
