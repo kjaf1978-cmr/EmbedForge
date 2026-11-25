@@ -78,23 +78,71 @@
       },
       {
         "netclass": "Power",
-        "pattern": "^KPD$"
+        "pattern": "^V24O$"
       },
       {
         "netclass": "Power",
-        "pattern": "^SVD$"
+        "pattern": "^KPA$"
       },
       {
         "netclass": "Power",
-        "pattern": "^SVD2$"
+        "pattern": "^KMMA$"
       },
       {
         "netclass": "Power",
-        "pattern": "^SVD3$"
+        "pattern": "^KMV1A$"
       },
       {
         "netclass": "Power",
-        "pattern": "^SVD4$"
+        "pattern": "^KMV2A$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^SV1$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^SV2$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^SV3$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^SV4$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSP$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSM$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSV1$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSV2$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSS1$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSS2$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSS3$"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "^HSS4$"
       },
       {
         "netclass": "Power",
