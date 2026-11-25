@@ -302,6 +302,9 @@ function fuse(value: string, kind = ''): CatalogueEntry {
   if (kind.startsWith('T') && kind.includes(' H')) return e(`5×20 T ${value} A H ceramic (Schurter SPT 0001.25xx series) + PCB holder 0031.8201`, 'Schurter', `fuse 5 × 20 mm, ceramic, time-lag T ${value} A, 250 V, breaking capacity 1.5 kA, with PCB holder`, 1.6, 1.1, 'estimate', [{ distributor: 'Bürklin; Mouser' }]);
   if (kind.startsWith('gG')) return e(`gG ${value} A 10×38 cartridge + DIN-rail fuse holder 1-pole 32 A (e.g. ABB E 91/32)`, 'ABB / Mersen', `fuse gG ${value} A 10 × 38 mm, 500 V AC, 100 kA, in a DIN-rail holder`, 6, 4.5, 'estimate', [{ distributor: 'electrical wholesale' }]);
   if (a >= 50) return e(`JJN-${value} + holder`, 'Eaton Bussmann', `Class T fuse ${value} A, 160 V DC, with holder (battery: a 32 V automotive MEGA/MIDI fuse is not rated for a 58 V battery)`, 30, 20, 'estimate', [{ distributor: 'electrical wholesale' }]);
+  // up to 6.3 A the boards carry a TR5 fuse (footprint F_TR5, pcb/library.ts; D69): time-lag, the same
+  // low breaking capacity (35 A at 250 V) as the 5 × 20 glass fuse, behind a panel fuse or breaker
+  if (a > 0 && a <= 6.3) return e(`TR5 T ${value} A (Littelfuse 372 series), soldered, or in a TR5 socket`, 'Littelfuse', `fuse TR5, time-lag T ${value} A, 250 V, breaking capacity 35 A, radial 5.08 mm (IEC 60127-3)`, 0.6, 0.35, 'estimate', [{ distributor: 'Mouser' }, { distributor: 'TME' }]);
   // time-lag (T) 5 × 20 mm glass fuse, low breaking capacity (35 A at 250 V): behind a panel fuse or breaker
   return e(`FST 5×20 T ${value} A (Schurter 0034.31xx series) + PCB holder 0031.8201`, 'Schurter', `fuse 5 × 20 mm, time-lag T ${value} A, 250 V, breaking capacity 35 A, with PCB holder`, 1.2, 0.8, 'estimate', [{ distributor: 'Bürklin (holder)', sku: '46G6020' }]);
 }

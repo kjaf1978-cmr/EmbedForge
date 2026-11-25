@@ -9,7 +9,7 @@
 "yes","1","D2","TVS diode","SMAJ33A","","D_SMA","SMAJ33A","Littelfuse","LCSC; Mouser","0.20","0.20","estimate"
 "yes","2","D3 D5","Diode","1N4148","","D_DO-35","1N4148","various","any distributor (DO-35)","0.06","0.12","estimate"
 "yes","1","D4","LED","red","","LED_D5.0","5 mm red LED, 20 mA","Kingbright (e.g. L-53ID)","any distributor (5 mm LED)","0.12","0.12","estimate"
-"yes","1","F1","Fuse","3.15 A","","F_TR5","FST 5×20 T 3.15 A (Schurter 0034.31xx series) + PCB holder 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","1.20","estimate"
+"yes","1","F1","Fuse","3.15 A","","F_TR5","TR5 T 3.15 A (Littelfuse 372 series), soldered, or in a TR5 socket","Littelfuse","Mouser; TME","0.60","0.60","estimate"
 "yes","1","J1","Box header 2 × 10 (IDC ribbon cable)","IDC 2×10","","IDC_Header_2x10","61202021621 (WR-BHD)","Würth Elektronik","Mouser 710-61202021621; Digi-Key","0.60","0.60","estimate"
 "yes","1","Q1","P-channel MOSFET","AO3401","","SOT-23","AO3401A","Alpha & Omega","LCSC C15127; Mouser","0.12","0.12","estimate"
 "yes","1","Q2","NPN transistor","2N2222A","","TO-92_Wide","PN2222A","onsemi","Mouser","0.10","0.10","estimate"
@@ -28,4 +28,4 @@
 "yes","1","U4","Comparator (2 in one package)","LM393","","DIP-8","LM393P","Texas Instruments","any distributor (DIP-8)","0.40","0.40","estimate"
 "yes","2","X1 X2","Screw terminal","5.08 mm, 1 pole","functions: X1 24 V DC in +, X2 24 V DC in −","TerminalBlock_1x1","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","0.80","estimate"
 
-"Parts on this board: EUR 21.74 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
+"Parts on this board: EUR 21.14 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."

@@ -17,7 +17,7 @@ The designators are those of the schematic, the board, the parts list and the wi
 
 1. **Fit the parts in order of height:** resistors and diodes, the TVS diodes, the PC817s,
    capacitors, transistors, the high-side MOSFETs (IRF9540N) and the enable MOSFET Q7 (IRF4905),
-   the regulator U1, the fuse holders F1 (T 8 A) and F2 (T 2 A), the green LED D3, the terminal
+   the regulator U1, the fuse holder F1 (5 × 20, T 8 A), the TR5 fuses F2 (T 2 A) and F3 (T 1 A), soldered or in TR5 sockets, the green LED D3, the terminal
    blocks. Last, the **male headers for the Mega U2 on the board's underside** (pins pointing down,
    soldered from the top): one 10-pin, four 8-pin and one 2 × 18 header at the positions on the
    assembly drawing, long-tail headers (at least 6 mm of pin below the plastic).

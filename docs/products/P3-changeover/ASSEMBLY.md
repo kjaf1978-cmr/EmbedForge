@@ -40,7 +40,7 @@ Tools:
    - MOSFETs IRLZ44N;
    - LM317HV with its heatsink;
    - the trimmers (5 kΩ, 25 turns; RV3 in 1P, RV7 … RV9 in 3P+N): leave them as they are, they are set at commissioning;
-   - fuse holders with 200 mA time-lag (T) 5 × 20 mm fuses;
+   - the 200 mA time-lag (T) TR5 fuses, soldered or in TR5 sockets (D69: the parts list ordered 5 × 20 fuses and holders until 25 November 2026; the board takes TR5);
    - the transformers;
    - the varistors RV (TMOV14RP300E);
    - the board connectors J_MAINS and J_PANEL.

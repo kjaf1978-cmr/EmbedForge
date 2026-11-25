@@ -34,7 +34,7 @@
 "no","1","D6","Diode","1N4007","","","1N4007","various","any distributor (DO-41)","0.10","0.10","estimate"
 "no","1","D8","Zener diode","BZX55C5V1","","","BZX55C5V1","Vishay","Mouser","0.05","0.05","estimate"
 "no","1","D10","LED","red","","","5 mm red LED, 20 mA","Kingbright (e.g. L-53ID)","any distributor (5 mm LED)","0.12","0.12","estimate"
-"no","1","F1","Fuse","200 mA","","","FST 5×20 T 0.2 A (Schurter 0034.31xx series) + PCB holder 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","1.20","estimate"
+"no","1","F1","Fuse","200 mA","","","TR5 T 0.2 A (Littelfuse 372 series), soldered, or in a TR5 socket","Littelfuse","Mouser; TME","0.60","0.60","estimate"
 "no","1","K1","Contactor","18 A, coil 24 V DC","","","3RT2026-1BB40 + 3RH2911-1HA11","Siemens","RS; Automation24","75.00","75.00","estimate"
 "no","1","K3","Contactor","9 A, coil 24 V DC","","","3RT2016-1BB42 + 3RH2911-1HA11","Siemens","RS; Automation24","55.00","55.00","estimate"
 "no","1","L1","Inductor","15 mH","current rating 32 A","","made to specification (or Hammond 195-series DC choke)","transformer winder / Hammond","Hammond distributors (Mouser, Digi-Key)","60.00","60.00","estimate"

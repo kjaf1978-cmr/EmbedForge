@@ -16,7 +16,7 @@
 "yes","1","D6","Diode","1N4007","","D_DO-41","1N4007","various","any distributor (DO-41)","0.10","0.10","estimate"
 "yes","1","D8","Zener diode","BZX55C5V1","","D_DO-35","BZX55C5V1","Vishay","Mouser","0.05","0.05","estimate"
 "yes","1","D10","LED","red","","LED_D5.0","5 mm red LED, 20 mA","Kingbright (e.g. L-53ID)","any distributor (5 mm LED)","0.12","0.12","estimate"
-"yes","1","F2","Fuse","3.15 A","","F_TR5","FST 5×20 T 3.15 A (Schurter 0034.31xx series) + PCB holder 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","1.20","estimate"
+"yes","1","F2","Fuse","3.15 A","","F_TR5","TR5 T 3.15 A (Littelfuse 372 series), soldered, or in a TR5 socket","Littelfuse","Mouser; TME","0.60","0.60","estimate"
 "yes","2","Q11 Q13","N-channel MOSFET","2N7000","","TO-92_Wide","2N7000","onsemi","any distributor (TO-92)","0.20","0.40","estimate"
 "yes","1","Q12","N-channel MOSFET","IRLZ44N","","TO-220_Vertical","IRLZ44NPBF","Infineon","Mouser; LCSC C38774","1.85","1.85","live"
 "yes","1","Q14","PNP transistor","BC557B","","TO-92_Wide","BC557B","onsemi","any distributor (TO-92)","0.10","0.10","estimate"
@@ -68,4 +68,4 @@
 "no","1","U1","Half-bridge gate driver","IR2184-type 600 V","","","IR2184PBF","Infineon","RS 262-6254; Schukat 3021391","2.05","2.05","live"
 "no","4","X1 X2 X3 X4","Screw terminal","5.08 mm, 1 pole","functions: X1 battery + (through the 200 A fuse and KM), X2 battery −, X3 motor A+, X4 motor A−, X5 key switch (from battery +), X6 key switch (to the drive), X7 speed pot top, X8 E-STOP (NC) from +24 V, X9 speed pot wiper, X10 E-STOP (NC) return, X11 speed pot bottom, X12 STOP (NC), X13 STOP (NC) return, X14 motor thermal switch (NC), X15 motor thermal switch return, X16 START (NO), X17 START (NO) return","","MKDS 1,5/ 2-5,08 (2 poles per block)","Phoenix Contact","RS 193-0564","0.40","1.60","estimate"
 
-"Parts on this board: EUR 26.16 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
+"Parts on this board: EUR 25.56 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."

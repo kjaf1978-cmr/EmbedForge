@@ -29,7 +29,7 @@
 "no","1","D8","Zener diode","BZX55C5V1","","","BZX55C5V1","Vishay","Mouser","0.05","0.05","estimate"
 "no","1","D10","LED","red","","","5 mm red LED, 20 mA","Kingbright (e.g. L-53ID)","any distributor (5 mm LED)","0.12","0.12","estimate"
 "no","1","F1","Fuse","200 A","cold resistance 300 µΩ","","JJN-200 + holder","Eaton Bussmann","electrical wholesale","30.00","30.00","estimate"
-"no","1","F2","Fuse","3.15 A","","","FST 5×20 T 3.15 A (Schurter 0034.31xx series) + PCB holder 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","1.20","estimate"
+"no","1","F2","Fuse","3.15 A","","","TR5 T 3.15 A (Littelfuse 372 series), soldered, or in a TR5 socket","Littelfuse","Mouser; TME","0.60","0.60","estimate"
 "no","1","K1","Contactor","250 A DC, coil 24 V","","","DC contactor 250 A, 24 V DC coil, 1 NO auxiliary","Albright / TE Connectivity / Gigavac","battery-systems distributor","140.00","140.00","estimate"
 "no","1","K2","Contactor","9 A, coil 24 V DC","","","3RT2016-1BB42 + 3RH2911-1HA11","Siemens","RS; Automation24","55.00","55.00","estimate"
 "no","2","Q11 Q13","N-channel MOSFET","2N7000","","","2N7000","onsemi","any distributor (TO-92)","0.20","0.40","estimate"

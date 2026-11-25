@@ -46,7 +46,7 @@ The autotransformer is made to specification. Order it with:
    - transistors BD139;
    - the bridge rectifiers;
    - the electrolytic capacitors (polarity);
-   - the fuse holder with a T 1 A 5 × 20 fuse (F1);
+   - the T 1 A TR5 fuse F1, soldered or in a TR5 socket (D69: the parts list ordered a 5 × 20 fuse and holder until 25 November 2026; the board takes TR5);
    - the sense transformers T1 and T3 (400 V / 24 V);
    - the AC-DC module PS1 (IRM-15-12);
    - the varistor RV1 (TMOV14RP300E);

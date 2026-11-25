@@ -15,7 +15,7 @@
 "yes","1","D11","LED","green","","LED_D5.0","5 mm green LED, 20 mA","Kingbright (e.g. L-53GD)","any distributor (5 mm LED)","0.12","0.12","estimate"
 "yes","1","D12","LED","yellow","","LED_D5.0","5 mm yellow LED, 20 mA","Kingbright (e.g. L-53YD)","any distributor (5 mm LED)","0.12","0.12","estimate"
 "yes","2","D13 D14","LED","red","","LED_D5.0","5 mm red LED, 20 mA","Kingbright (e.g. L-53ID)","any distributor (5 mm LED)","0.12","0.24","estimate"
-"yes","2","F2 F4","Fuse","200 mA","cold resistance 2 Ω","F_TR5","FST 5×20 T 0.2 A (Schurter 0034.31xx series) + PCB holder 0031.8201","Schurter","Bürklin (holder) 46G6020","1.20","2.40","estimate"
+"yes","2","F2 F4","Fuse","200 mA","cold resistance 2 Ω","F_TR5","TR5 T 0.2 A (Littelfuse 372 series), soldered, or in a TR5 socket","Littelfuse","Mouser; TME","0.60","1.20","estimate"
 "yes","2","Q3 Q4","N-channel MOSFET","IRLZ44N","","TO-220_Vertical","IRLZ44NPBF","Infineon","Mouser; LCSC C38774","1.85","3.70","live"
 "yes","2","R1 R7","Resistor","47 Ω","power rating 500 mW","R_Axial_0309","metal film 47Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.16","estimate"
 "yes","1","R3","Resistor","240 Ω","power rating 250 mW","R_Axial_0207","metal film 240Ω 0.6 W, 1 %, 50 ppm/K (e.g. Vishay MBB0207)","Vishay / Yageo","any distributor (0207 1 %)","0.08","0.08","estimate"
@@ -46,4 +46,4 @@
 "no","6","X1 X2 X3 X4 X5 X7","Screw terminal","DIN rail, 6 mm²","functions: X1 L mains, X2 N mains, X3 L load, X4 N load, X5 L back-up, X7 N back-up","","PT 6","Phoenix Contact","RS; electrical wholesale","1.20","7.20","estimate"
 "no","2","X6 X8","Screw terminal","DIN rail, 6 mm², PE","functions: X6 PE, X8 PE","","PT 6-PE","Phoenix Contact","RS; electrical wholesale","3.50","7.00","estimate"
 
-"Parts on this board: EUR 77.34 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
+"Parts on this board: EUR 76.14 (unit quantity). Indicative prices, October 2026, EUR without VAT (converted at USD × 0.9, GBP × 1.15): ""live"" from a distributor page or snapshot, ""estimate"" a typical price. Check prices, stock and lead times when ordering; wholesale prices of contactors and breakers are often 40–60 % below distributor list prices."
