@@ -17,6 +17,8 @@ export interface Pad {
   h: number;
   /** Plated drill diameter for a through-hole pad; absent for a surface-mount pad (top layer). */
   drill?: number;
+  /** An unplated mounting hole: the drill only, no copper (pad size = drill), no net. */
+  npth?: boolean;
 }
 
 /** A silkscreen stroke: a line or a circle. */
@@ -264,8 +266,9 @@ add(soic('SOIC-16', 'SOIC-16', 16));
   for (let k = 0; k < 8; k++) pads.push(P(`A${k}`, 2000 + 100 * k, 100), P(`A${k + 8}`, 2900 + 100 * k, 100));
   pads.push(P('5V2', 3800, 2000), P('5V3', 3900, 2000), P('GND4', 3800, 300), P('GND5', 3900, 300));
   for (let r = 0; r < 16; r++) pads.push(P(`D${22 + 2 * r}`, 3800, 1900 - 100 * r), P(`D${23 + 2 * r}`, 3900, 1900 - 100 * r));
-  [[550, 100], [600, 2000], [2600, 1400], [2600, 300], [3550, 2000], [3800, 100]].forEach(([x, y], k) => pads.push(tht(`MH${k + 1}`, mil(x), -mil(y), 5.5, 3.2)));
-  add(make('Arduino_Mega2560_Shield', 'Arduino Mega 2560 Rev3 under the board (shield headers)', 'the Mega 2560 Rev3 plugged under the carrier: the carrier\'s male pins (2.54 mm) into its female headers; six M3 stand-offs; nothing of the carrier over the Mega',
+  // unplated, as on the Mega (the hole at (600, 2000) is 3.56 mm from SCL: a copper ring would touch it)
+  [[550, 100], [600, 2000], [2600, 1400], [2600, 300], [3550, 2000], [3800, 100]].forEach(([x, y], k) => pads.push({ ...tht(`MH${k + 1}`, mil(x), -mil(y), 3.2, 3.2), npth: true }));
+  add(make('Arduino_Mega2560_Shield', 'Arduino Mega 2560 Rev3 under the board (shield headers)', 'the Mega 2560 Rev3 plugged under the carrier: the carrier\'s male pins (2.54 mm) into its female headers; six unplated Ø 3.2 holes for M3 stand-offs (nylon washers); nothing of the carrier over the Mega',
     pads, [...box(0, -mil(2100), mil(4000), 0), ...box(-mil(250), -mil(1725), mil(375), -mil(1275)), ...box(-mil(75), -mil(475), mil(450), -mil(125))],
     { x0: -mil(250), y0: -mil(2100), x1: mil(4000), y1: 0, h: 11 }));
 }

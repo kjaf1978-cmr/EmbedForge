@@ -259,6 +259,7 @@ let uuidN = 0;
 const uuid = () => { uuidN++; const h = uuidN.toString(16).padStart(12, '0'); return `00000000-0000-4000-8000-${h}`; };
 
 function padSexpr(p: Pad, netNo: Map<string, number>, net?: string): string {
+  if (p.npth) return `    (pad "" np_thru_hole circle (at ${f3(p.x)} ${f3(p.y)}) (size ${f3(p.drill ?? p.w)} ${f3(p.drill ?? p.w)}) (drill ${f3(p.drill ?? p.w)}) (layers "*.Cu" "*.Mask") (tstamp ${uuid()}))`;
   const shape = p.shape === 'rect' ? 'rect' : p.shape === 'oval' ? 'oval' : 'circle';
   const kind = p.drill ? 'thru_hole' : 'smd';
   const layers = p.drill ? '"*.Cu" "*.Mask"' : '"F.Cu" "F.Paste" "F.Mask"';
