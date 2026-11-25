@@ -17,7 +17,7 @@ for (const [name, d] of Object.entries(DESIGNS)) {
   if (!existsSync(pcbFile)) { console.log(`${name}: no board in hardware/`); continue; }
   const sheet = d.sheet(), classes = d.classes(sheet);
   const mains = new Set(classes.filter((c) => ['Mains', 'Backup', 'HV'].includes(c.name)).flatMap((c) => c.patterns.map((p) => p.slice(1, -1).replace(/\\(.)/g, '$1'))));
-  const nl = boardNetlist(sheet, { mains, panel: d.panel, heavy: new Set(d.heavy ?? []), bolted: d.bolted, block: d.block, bondSpare: d.bondSpare });
+  const nl = boardNetlist(sheet, { mains, panel: d.panel, heavy: new Set(d.heavy ?? []), bolted: d.bolted, block: d.block, bondSpare: d.bondSpare, separate: d.separate });
   // the board: each footprint's reference and its pads' nets
   const pcb = readFileSync(pcbFile, 'utf8');
   const onBoard = new Map<string, Record<string, string>>(), fpOf = new Map<string, string>();

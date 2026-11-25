@@ -25,7 +25,7 @@ struct Machine {
   int tamper = 0, mould = 0, feeder = 0;  // tamper 0 up … 1000 down; mould 0 down … 1000 up; feeder 0 … 4000 (home near 0)
   bool rail = true, stopPressed = false, pallet = true;
   bool tamperSensorBroken = false, feederStuck = false, pressureBroken = false;
-  bool stuckOn[bm::NOut] = {}, shorted[bm::NOut] = {}, enableStuck = false;
+  bool stuckOn[bm::NOut] = {}, shorted[bm::NOut] = {}, partial[bm::NOut] = {}, enableStuck = false;
   uint32_t t = 0, fedSince[bm::NOut] = {}, maxFedWhileOff[bm::NOut] = {};
   bool fedWas[bm::NOut] = {};
   int invariantFailures = 0;
@@ -42,8 +42,10 @@ struct Machine {
     in.feederHome = feeder <= 50 || feeder >= 3950;
     in.palletIn = pallet;
     in.pressureOk = !pressureBroken && tamper >= 980 && acting(Out::TamperDown) && acting(Out::Pump);
-    for (int k = 0; k < bm::NOut; ++k) in.fed[k] = fed(k);
-    in.enableFed = rail && (g.outputs().enable || enableStuck);
+    const bool en = rail && (g.outputs().enable || enableStuck);
+    in.enableMv = en ? 23900 : 0;
+    // an output: at its supply less its 0.5 V drop, a partial short in its current limit at 15 V
+    for (int k = 0; k < bm::NOut; ++k) in.fedMv[k] = fed(k) ? (partial[k] ? 15000 : 23400) : 0;
   }
   void move() {
     for (int k = 0; k < bm::NOut; ++k) {
@@ -281,6 +283,28 @@ int main() {
     for (int i = 0; i < 1500 && !stuck; ++i) { n.sense(); n.in.tamperUp = true; n.in.tamperDown = false; n.g.step(n.t++, n.in); stuck = n.g.state() == State::Fault; }
     CHECK(stuck && n.g.cause() == bm::Cause::Sensor && n.g.faultAt() == State::Press);
   });
+  test("STOP held with an output stuck on (or STOP's cable broken): the enable stays off, nothing fed; STOP released: the stuck output is found before it acts; a fault is cleared only on STOP's release", [] {
+    Machine m; m.rail = false; m.stopPressed = true; m.step(100);
+    m.stuckOn[Out::MouldDown] = true;
+    m.rail = true; m.step(1400);
+    CHECK(!m.g.outputs().enable && m.maxFedWhileOff[Out::MouldDown] == 0);
+    m.stopPressed = false; m.step(200);
+    CHECK(m.g.state() == State::Fault && m.g.cause() == bm::Cause::OutputStuck);
+    CHECK(m.maxFedWhileOff[Out::MouldDown] < 20);
+    m.stopPressed = true; m.step(1000);   // STOP held: the fault stays, the enable off
+    CHECK(m.g.state() == State::Fault && !m.g.outputs().enable);
+    m.stopPressed = false; m.step(200);   // released: cleared, the enable tried again, found again
+    CHECK(m.g.state() == State::Fault && m.maxFedWhileOff[Out::MouldDown] < 20);
+    CHECK(m.invariantFailures == 0);
+  });
+  test("a partial short holding an output in its current limit (15 V instead of 23 V): FAULT (output short) within about 6 ms", [] {
+    Machine m; m.start(); m.step(10); m.start();
+    CHECK(m.reach(State::Fill, 3000)); m.step(300);
+    m.partial[Out::Vib1] = true;
+    const uint32_t t0 = m.t;
+    CHECK(m.reach(State::Fault, 50));
+    CHECK(m.t - t0 <= 7 && m.g.cause() == bm::Cause::OutputShort);
+  });
   test("random sensors, faults, STOP, E-stops and presses for 10 minutes: the invariants always hold", [] {
     Machine m; std::srand(3);
     for (int i = 0; i < 600000; ++i) {
@@ -296,9 +320,12 @@ int main() {
       if (r == 9) m.in.breakersOk = !m.in.breakersOk;
       if (r == 10) m.pressureBroken = !m.pressureBroken;
       if (r == 11) m.shorted[std::rand() % bm::NOut] ^= true;
+      if (r == 12) m.stuckOn[std::rand() % bm::NOut] ^= true;
+      if (r == 13) m.partial[std::rand() % bm::NOut] ^= true;
       m.step();
     }
     CHECK(m.invariantFailures == 0);
+    for (int k = 0; k < bm::NOut; ++k) CHECK(m.maxFedWhileOff[k] < 20);  // no load acted uncommanded
   });
 
   std::printf("\n%d checks, %d failed\n", checks, failures);

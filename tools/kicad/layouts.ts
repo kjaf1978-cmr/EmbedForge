@@ -41,6 +41,8 @@ export interface Design {
   block?: number;
   /** A mains block's spare poles on its last net (no floating screw in a reinforced gap). */
   bondSpare?: boolean;
+  /** Supply nets that leave the board on their own block, an empty pole between each (BoardOptions.separate). */
+  separate?: string[];
   /** Route in one pass with the insulation rules (a board almost all high voltage: the staged
    *  routing, without the class-to-class rules, left 74 clearance errors). */
   oneStage?: boolean;
@@ -577,12 +579,20 @@ export const DESIGNS: Record<string, Design> = {
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
   // terminals on the DIN rail
-  // the Mega 2560 turned 180° in the top-right corner: its USB and power jacks at the board's right
-  // edge (a cable plugs in from outside), its body under the board's top 54 mm; the rest below it
-  'block-machine': { plan: () => { const { sheet, nb } = blockMachine(); return [{ ref: nb.refOf(sheet, 'UMC'), x: 253, y: 4, rot: 180 }]; }, region: { x0: 0, x1: 260, y0: 64, y1: 180 },
-    sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit, high-side outputs, inputs and Arduino Mega 2560', revision: 'B',
+  // the Mega 2560 turned 180° in the top-right corner: its USB and power jacks 2.3 mm past the
+  // board's right edge (a USB plug's moulding clears the board), its body under the board's top
+  // 54 mm; the rest below it
+  'block-machine': { plan: () => { const { sheet, nb } = blockMachine(); return [{ ref: nb.refOf(sheet, 'UMC'), x: 256, y: 4, rot: 180 }]; }, region: { x0: 0, x1: 260, y0: 64, y1: 180 },
+    sheet: () => blockMachine().sheet, title: 'Block moulding machine: safety circuit, high-side outputs, inputs and Arduino Mega 2560', revision: 'C',
     // revision B (D65 … D67): the outputs' current paths (up to 5 A through the enable, 2 A each)
-    classes: () => [POWER(['V24', 'V24F', 'V24S', 'V24O', 'KPA', 'KMMA', 'KMV1A', 'KMV2A', 'SV1', 'SV2', 'SV3', 'SV4', 'HSP', 'HSM', 'HSV1', 'HSV2', 'HSS1', 'HSS2', 'HSS3', 'HSS4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 260, h: 180 },
+    classes: () => [POWER(['V24', 'V24F', 'V24S', 'V24O', 'KPA', 'KMMA', 'KMV1A', 'KMV2A', 'SV1', 'SV2', 'SV3', 'SV4', 'HSP', 'HSM', 'HSV1', 'HSV2', 'HSS1', 'HSS2', 'HSS3', 'HSS4', 'GND'])], panel: (p) => PANEL.has(p.sym), w: 260, h: 180,
+    // P9 review: the raw, fused and field 24 V and the safety rail never on neighbouring poles, nor next to an output
+    separate: ['V24', 'V24F', 'V24I', 'V24S'],
+    // the panel's wires (EN 60204-1 12.4; 13.2 colours: DC control blue, PE green-yellow)
+    wire: (net) => /^(LIN[123]|L[123]|LG[123]|LP[123])$/.test(net) ? '4 mm² H07V-K black, ferrules (400 V supply and the pump)'
+      : /^(U1|V1|W1)$/.test(net) ? '4 mm² motor cable (pump)' : /^KM[MV][12]?[UVWL]/.test(net) || /^KMM[UVW]$/.test(net) ? '2.5 mm² H07V-K black / motor cable'
+      : net === 'GND' ? '1.5 mm² H07V-K blue-white (0 V); the 0 V–PE bond 2.5 mm² green-yellow at X3'
+      : /^V24/.test(net) ? '1.5 mm² H07V-K blue, ferrules' : '0.75 mm² H05V-K blue, ferrules' },
   // P9 (D25): the gate controller, one board (the relays, the MOSFET and the cut-off; the motor,
   // limit switches, beam and the microcontroller board on terminals). The motor's 12 A stall on
   // 2 mm tracks in 2 oz copper

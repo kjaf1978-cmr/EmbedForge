@@ -85,6 +85,10 @@ export interface BoardOptions {
   /** Mains nets: a terminal block or an off-board transformer with one of them on a pad takes
    *  the 7.62 mm variant of its footprint (the pads 5 mm apart). */
   mains?: Set<string>;
+  /** Supply nets that must never be bridged to each other or to an output by one stray strand
+   *  (the block machine's raw 24 V, the fused 24 V, the field 24 V and the safety rail: P9 review):
+   *  they leave the board on a block of their own (J_SUPPLY), an empty pole between each. */
+  separate?: string[];
   /** High-current nets (D45): a terminal on one becomes an M5 bolt lug, and each that leaves the
    *  board gets a lug of its own instead of a pole on a terminal block. */
   heavy?: Set<string>;
@@ -174,7 +178,8 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
     const shared = allShared.filter((m) => touches(m, false));
     // two connectors: the mains nets on their own (7.62 mm), the control nets on another, so the
     // panel's mains and low-voltage wiring never share a terminal block
-    const groups: [string, string[], boolean][] = [['J_MAINS', shared.filter((n) => o.mains?.has(n)), true], ['J_PANEL', shared.filter((n) => !o.mains?.has(n)), false]];
+    const sep = shared.filter((n) => o.separate?.includes(n) && !o.mains?.has(n));
+    const groups: [string, string[], boolean][] = [['J_MAINS', shared.filter((n) => o.mains?.has(n)), true], ['J_PANEL', shared.filter((n) => !o.mains?.has(n) && !sep.includes(n)), false]];
     const poleOf = new Map<string, string>();
     const sx = Math.min(...product.map((p) => p.x)), sy = product.reduce((a, p) => a + p.y, 0) / Math.max(product.length, 1);
     // blocks of up to 14 poles (J_PANEL, J_PANEL2, …): one block used to drop every net past the
@@ -191,6 +196,13 @@ export function boardNetlist(sheet: Sheet, o: BoardOptions = {}): BoardNetlist {
         if (isMains && o.bondSpare) for (let k = nets.length; k < poles; k++) pads[String(k + 1)] = nets[nets.length - 1];
         parts.push({ ref, value: isMains ? 'mains to the panel' : 'to the panel', footprint: fp, pads, sx, sy, note: 'screw terminals to the panel wiring' });
       }
+    }
+    // the separated supplies: poles 1, 3, 5 …, the even poles empty
+    if (sep.length) {
+      const poles = [2, 3, 4, 6, 8, 12, 14].find((k) => k >= 2 * sep.length - 1) ?? 14;
+      const pads: Record<string, string> = {};
+      sep.forEach((n, k) => { pads[String(2 * k + 1)] = n; poleOf.set(n, `J_SUPPLY:${2 * k + 1}`); });
+      parts.push({ ref: 'J_SUPPLY', value: 'supplies to the panel', footprint: FOOTPRINTS[`TerminalBlock_1x${poles}`], pads, sx, sy, note: 'screw terminals to the panel wiring: the 24 V supplies, an empty pole between each' });
     }
     for (const [n, e] of [...ends].sort(([a], [b]) => a.localeCompare(b))) {
       const pole = [poleOf.get(n), lugNets.includes(n) ? `J_${n}:1` : undefined].filter(Boolean).join(' ') || undefined;

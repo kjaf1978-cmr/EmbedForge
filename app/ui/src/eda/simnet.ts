@@ -360,7 +360,10 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
         { kind: 'R', name: `${ref}_RI2`, a: pin.S22, b: pin.A2, r: 10e3 },
         { kind: 'R', name: `${ref}_RI3`, a: pin.S34, b: pin.A2, r: 10e3 },
         { kind: 'R', name: `${ref}_RP`, a: pin.A1, b: pin.A2, r: 570 },
-        { kind: 'X', name: ref, fn: 'safety', ins: [pin.S12, pin.S22, pin.S34], outs: [en], vcc: pin.A1 },
+        // its power-on delay: the inputs count once A1 has been on for about 35 ms (100k, 0.5 µF)
+        { kind: 'R', name: `${ref}_ROK`, a: pin.A1, b: `${ref}#ok`, r: 100e3 },
+        { kind: 'C', name: `${ref}_COK`, a: `${ref}#ok`, b: pin.A2, c: 0.5e-6 },
+        { kind: 'X', name: ref, fn: 'safety', ins: [pin.S12, pin.S22, pin.S34, `${ref}#ok`], outs: [en], vcc: pin.A1 },
         { kind: 'R', name: `${ref}_RF`, a: en, b: enf, r: 10e3 },
         { kind: 'C', name: `${ref}_CF`, a: enf, b: pin.A2, c: 2e-6 },
         { kind: 'S', name: `${ref}_K13`, p: pin['13'], n: pin['14'], cp: enf, cn: pin.A2, vt: 12, vh: 2, ron: 0.05, roff: 1e9 },

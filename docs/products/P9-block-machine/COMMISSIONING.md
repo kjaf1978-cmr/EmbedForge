@@ -17,6 +17,7 @@ stopwatch or a stop-time meter, and the hydraulic unit's gauge.
 | 1.4 | The 0 V–PE bond: X3 to the PE bar, and nowhere else (lift X3: 0 V to PE open) | one bond |
 | 1.5 | The motor breakers set: Q34 to the pump's, Q35 to the mixer's, Q36, Q37 to the vibrators' nameplate current | the settings recorded |
 | 1.6 | The hydraulics to INSTALLATION section 3: tandem-centre valves, the load-holding valves on the tamper and the mould, the relief valve, the manual lowering; the oil level | — |
+| 1.7 | **The safety relays' settings** (K1, K4): two-channel input with cross-circuit detection, monitored manual start; their terminal use as the data sheet; recorded | as INSTALLATION section 1 |
 
 ## 2. Power and the 24 V
 
@@ -46,10 +47,10 @@ stopwatch or a stop-time meter, and the hydraulic unit's gauge.
 | 4.3 | **Each guard**, opened while a cycle runs | the same as 4.1 and 4.2 |
 | 4.4 | RESET held down, then an E-stop pressed and released | no restart while RESET is held, nor when it is released afterwards |
 | 4.5 | Power cut (main switch off and on) while running | nothing restarts; RESET needed |
-| 4.6 | **The contactors' feedback:** with the main switch off, wedge K5's armature closed (a test tool, or a jumper across its NC contact 21–22 removed so that it reads open) | RESET does not switch the control on. Restore it |
+| 4.6 | **The contactors' feedback:** with the main switch off, lift one wire of the pump contactor K6's mirror contact (21 or 22: it then reads as a welded contact), switch on and press RESET; refit it. Repeat for K5, K7, K8, K9, K2 and K3 | RESET does not switch the control on while a wire is lifted; it does once refitted |
 | 4.7 | **One E-stop channel:** lift one wire of channel 1 (X4) while running, then refit it | the machine stops; RESET does not restart it until both channels have opened (press and release the E-stop) |
 | 4.8 | **A cross short:** bridge X5 to X8 (channel 1 to channel 2) | the safety relay K1 goes to its fault state (its LED) and the control stays off. Remove the bridge |
-| 4.9 | **An output stuck on:** with RESET given, bridge valve 1's output (X24) to X1 (+24 V) through a 10 Ω resistor, then press START | FAULT at once; the outputs' enable off |
+| 4.9 | **An output stuck on:** main switch off; valve 1's plug off its valve (nothing can move), and a clip lead across its high-side MOSFET Q21's drain and source (pads 2 and 3) on the board; switch on, press RESET | FAULT within 5 ms of the outputs' enable, the lamp flashing fast; the enable off. Main switch off, remove the clip lead, refit the plug |
 | 4.10 | **A short to the frame:** while valve 1 is on in a cycle, short X24 to PE | FAULT within a few milliseconds; the output off |
 
 ## 5. Stopping, hydraulics and run-down

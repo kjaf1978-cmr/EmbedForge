@@ -23,7 +23,7 @@
 //   commanded on (a short, a wire to the frame) is switched off. A wire to the frame now short-
 //   circuits an output (limited, read back) instead of switching its load on. The eight outputs
 //   take their supply V24O from the rail through a common enable switch (IRF4905) that the
-//   controller turns on only with every output off and drops within 3 ms when an output reads on
+//   controller turns on only with every output off and drops within 5 ms when an output reads on
 //   uncommanded: a shorted output switch is found before its contactor or valve pulls in
 //   (15 … 40 ms), also at the RESET that brings the rail back;
 // - D67 an Arduino Mega 2560: inputs for the hydraulic pressure, the oil temperature and the
@@ -143,7 +143,10 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- the safety circuit: the E-stop relay KSE and the guard relay KSG
   nb.block('safety')
-    .part('KSE', 'safetyrelay', 300, 300, { value: '3SK1111-1AB30' }, { A1: 'V24F', A2: 'GND', S11: 'SE11', S12: 'SE12', S21: 'SE21', S22: 'SE22', S33: 'SE33', S34: 'SE34', '13': 'V24F', '14': 'E14', '23': 'V24F', '24': 'E24' })
+    // F3 (1 A) in the relays' enabling circuits: a coil wire on the frame (0 V on PE) blows it
+    // before both relays' contacts can weld (second review)
+    .part('F3', 'fuse', 200, 200, { value: '1', r: '0.2' }, { '1': 'V24F', '2': 'V24K' })
+    .part('KSE', 'safetyrelay', 300, 300, { value: '3SK1111-1AB30' }, { A1: 'V24F', A2: 'GND', S11: 'SE11', S12: 'SE12', S21: 'SE21', S22: 'SE22', S33: 'SE33', S34: 'SE34', '13': 'V24K', '14': 'E14', '23': 'V24K', '24': 'E24' })
     .part('KSG', 'safetyrelay', 300, 500, { value: '3SK1111-1AB30' }, { A1: 'V24F', A2: 'GND', S11: 'SG11', S12: 'SG12', S21: 'SG21', S22: 'SG22', S33: 'SG33', S34: 'SG34', '13': 'E14', '14': 'C1', '23': 'E24', '24': 'C2' })
     // the nodes between the two relays' enabling contacts: a DC path for the simulator only
     .part('RE14', 'resistor', 450, 250, { value: '1M', scope: 'test' }, { '1': 'E14', '2': 'GND' }, 1)
@@ -188,7 +191,7 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
   nb.block('outputs');
   OUTPUTS.forEach(([k, cmd, out, rb, what], i) => {
     const x = 1300 + 200 * i, y = 700;
-    nb.part(`RS${k}`, 'resistor', x, y, { value: '0.33', pmax: '1' }, { '1': 'V24O', '2': `HS${k}` })
+    nb.part(`RS${k}`, 'resistor', x, y, { value: '0.33', pmax: '2' }, { '1': 'V24O', '2': `HS${k}` })
       .part(`QI${k}`, 'pnp', x + 60, y + 60, { value: 'BC557B' }, { '1': `BI${k}`, '2': `G${k}`, '3': 'V24O' })
       .part(`RI${k}`, 'resistor', x + 30, y + 120, { value: '100' }, { '1': `HS${k}`, '2': `BI${k}` })
       .part(`QH${k}`, 'pmos', x, y + 180, { value: 'IRF9540N' }, { '1': `G${k}`, '2': out, '3': `HS${k}` })
@@ -209,11 +212,17 @@ export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
   // motor-protective breaker (thermal set to its rated current); the main breaker QS
   nb.block('motors')
     .part('KMP', 'contactor', 300, 1500, { value: '18 A, coil 24 V DC' }, { A1: 'KPA', A2: 'GND', '1': 'LP1', '2': 'U1', '3': 'LP2', '4': 'V1', '5': 'LP3', '6': 'W1', '21': 'FB2', '22': 'FBM' });
-  const motors: [string, string, string, string, string][] = [['KMM', 'KMMA', 'FBM', 'FBM1', 'mixer / feeder 3 kW'], ['KMV1', 'KMV1A', 'FBM1', 'FBM2', 'vibrator 1, 1.5 kW'], ['KMV2', 'KMV2A', 'FBM2', 'SE34', 'vibrator 2, 1.5 kW']];
+  const motors: [string, string, string, string, string][] = [['KMM', 'KMMA', 'FBM', 'FBM1', 'mixer / feeder 3 kW'], ['KMV1', 'KMV1A', 'FBM1', 'FBM2', 'vibrator 1, 1.5 kW'], ['KMV2', 'KMV2A', 'FBM2', 'FBM3', 'vibrator 2, 1.5 kW']];
+  // the feeder's and the vibrators' second contactor (second review): KMS in their common 400 V
+  // feed, its coil on the safety rail itself, its mirror contact in the E-stop relay's start loop:
+  // a welded feeder or vibrator contactor no longer keeps its motor running after an E-stop
+  nb.part('KMS', 'contactor', 1500, 1350, { value: '18 A, coil 24 V DC' }, { A1: 'V24S', A2: 'GND', '1': 'L1', '2': 'LG1', '3': 'L2', '4': 'LG2', '5': 'L3', '6': 'LG3', '21': 'FBM3', '22': 'SE34' })
+    .part('DKS', 'tvs', 1600, 1450, { value: 'SMAJ33CA' }, { '1': 'V24S', '2': 'GND' }, 1)
+    .part('RLG1', 'resistor', 1650, 1450, { value: '1M', scope: 'test' }, { '1': 'LG1', '2': 'GND' }, 1);
   motors.forEach(([k, a1, fbIn, fbOut, what], i) => {
     const x = 600 + 300 * i;
     nb.part(k, 'contactor', x, 1500, { value: '9 A, coil 24 V DC' }, { A1: a1, A2: 'GND', '1': `${k}L1`, '2': `${k}U`, '3': `${k}L2`, '4': `${k}V`, '5': `${k}L3`, '6': `${k}W`, '21': fbIn, '22': fbOut })
-      .part(`Q${k}F`, 'breaker3', x, 1350, { value: i === 0 ? '6' : '4', curve: 'M' }, { '1': 'L1', '2': `${k}L1`, '3': 'L2', '4': `${k}L2`, '5': 'L3', '6': `${k}L3` })
+      .part(`Q${k}F`, 'breaker3', x, 1350, { value: i === 0 ? '6' : '4', curve: 'M' }, { '1': 'LG1', '2': `${k}L1`, '3': 'LG2', '4': `${k}L2`, '5': 'LG3', '6': `${k}L3` })
       .part(`X${k}U`, 'terminal', x, 1650, { value: `${what}: U` }, { '1': `${k}U` })
       .part(`X${k}V`, 'terminal', x + 50, 1650, { value: `${what}: V` }, { '1': `${k}V` })
       .part(`X${k}W`, 'terminal', x + 100, 1650, { value: `${what}: W` }, { '1': `${k}W` })

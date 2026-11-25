@@ -28,5 +28,26 @@ part the first one's probes and designator lookup (the bench's valve coil and a 
 here; also in P3, P4b and the inverters, where no test or document used the keys concerned). It
 now refuses a reused key, and a test checks every design.
 
-Verified after the fixes: `tests/blockmachine.test.ts`, 16 of 16 (the result in the package's
+Verified after the first review's fixes: `tests/blockmachine.test.ts`, 16 of 16 (the result in the package's
 `7-simulation-tests/`), and the firmware's host tests, 19 tests and 487 checks.
+
+## Second review (25 November 2026), of revision B
+
+By a second independent reviewer, with the redesign, its simulator model of the safety relays,
+the firmware, the routed board and the documents. 3 blockers, 6 major and 3 minor findings, all
+resolved. Designators: those of revision C.
+
+| # | Severity | Finding | Resolution |
+|---|---|---|---|
+| 1 | Blocker | STOP turned the outputs' enable on without checking the outputs, and cleared a fault on its level: with an output's switch shorted, pressing STOP (or a broken STOP cable) fed the load | While STOP is held the enable stays off (its own read-back still checked); a fault is cleared only on STOP's release, and the enable is then tried with every output checked. Host tests: STOP held with an output stuck; the random test now also injects stuck outputs and checks that no load is fed long enough to act |
+| 2 | Blocker | The panel connector put the safety rail next to the field 24 V and an output next to the raw 24 V: one strand bypassed both safety contactors | The four 24 V supplies (raw, fused, field, rail) leave the board on their own terminal block, J_SUPPLY, an empty pole between each (a new layout rule, `separate`); no output is next to a supply |
+| 3 | Blocker | The enable MOSFET (IRF4905, TO-220) was on a TO-92 footprint with the wrong pinout: the library's default for a MOSFET it did not list | Its TO-220 G-D-S entry added; a MOSFET or a transistor missing from the library is now an error, not a silent TO-92 (every part of every design has its entry) |
+| 4 | Major | The safety relay model started when a RESET held from power-up was released; the test claiming otherwise never released it | The model has the unit's power-on delay: a start loop closed from power-up must be seen open before a press counts. The test releases RESET inside its window and then shows that a later press does start; the bridged-channel test is named for what it is (a short between the channels is the unit's certified test-pulse function, not modelled) |
+| 5 | Major | The pump contactor's catalogue part had no auxiliary contact, but its mirror NC is in the start loop | The pump contactor K6 with a 3RH2911 auxiliary block (mirror contact) |
+| 6 | Major | PL d claimed for the feeder and the vibrators, each on one contactor: a weld kept the motor running after an E-stop | K5, a second contactor in their common 400 V feed, its coil on the safety rail and its mirror contact in the start loop: two contactors in series for every hazardous motor |
+| 7 | Major | The safety relays' terminals, settings and contact fusing were not specified | INSTALLATION: the settings (two channels with cross-circuit detection, monitored manual start), the terminals from the unit's data sheet (the schematic's names are generic), recorded at commissioning (1.7); F3 (1 A) in their enabling circuits |
+| 8 | Major | A partial short held an output in its current limit while reading "on": its MOSFET overheated | The read-back in volts: an output more than 1.2 V below the outputs' supply 5 ms after it was switched on is a FAULT. Host test: a partial short. The sense resistors 2 W |
+| 9 | Major | Commissioning 4.9 bridged an output to the raw 24 V (the tamper could move); 4.6 was unclear | 4.9: the valve's plug off, a clip lead across its MOSFET; 4.6: a wire of each contactor's mirror contact lifted in turn |
+| 10 | Minor | Parts list and wiring list: the pump breaker's range; the wire column empty; the 5 × 20 fuse holders ordered for TR5 footprints | The breaker 3RV2021-4AA10 is 11 … 16 A (corrected); the wiring list gives each wire's size and colour. **The fuse holders: a fault of the catalogue that affects several boards (also signed-off ones): put to the owner** |
+| 11 | Minor | "3 ms" was 2 … 4 ms of millis() ticks plus a loop | Stated as within 5 ms, the pull-in of a contactor or valve being 15 … 40 ms |
+| 12 | Minor | The Mega's fit: a hex stand-off at the hole next to SCL touches the header; a USB plug's moulding hit the carrier; 5 V back-feed into a computer | A round nylon spacer there; the Mega placed so its jacks stand 2.3 mm past the board's edge; unplug the 24 V (or use a cable without 5 V) for an update |

@@ -121,3 +121,16 @@ Added from P9 (gate controller review, 18 November 2026):
 - "Works whatever the firmware does" is claimed only for what is simulated with the firmware's
   outputs stuck and pulsed; the rest is listed in the DFMEA.
 - The first powered move at commissioning checks the direction with the load uncoupled.
+
+Added from P9 (block machine, second review, 25 November 2026):
+
+- A part the footprint library does not list is an error, never a default package (an IRF4905
+  landed on a TO-92 footprint).
+- Supply nets that must not be bridged (a safety rail, the field 24 V, the raw supply) leave the
+  board on their own block with an empty pole between each, and never next to an output.
+- A clear or stop input acts on its release edge, and a protective enable stays off while it is
+  held; the tests inject the faults the check exists for (an output stuck on) in every state.
+- A behavioural model of a certified device reproduces its power-on behaviour, and its test
+  releases what it claims to release.
+- Every hazardous motion has two independent stopping means; a single contactor needs a second
+  one in series, both monitored.

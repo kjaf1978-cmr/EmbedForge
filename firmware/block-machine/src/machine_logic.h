@@ -5,11 +5,12 @@
 // relay) drop the safety contactors K1 and K2, which feed every contactor coil and valve (the
 // safety rail); a welded contactor refuses the reset. This logic runs the cycle on top of them,
 // and checks the outputs (D66):
-// - the outputs' common enable switch is turned on only with every output off; each output is
-//   read back: one that reads on while commanded off (a shorted switch) drops the enable within
-//   3 ms, before its contactor or valve can pull in (15 … 40 ms), and is a FAULT; one that reads
-//   off 30 ms after it was commanded on (a short, a wire to the frame) is a FAULT; the enable is
-//   read back the same way;
+// - the outputs' common enable switch is turned on only with every output off, and never while
+//   STOP is held or in FAULT; each output is read back in volts: one above 5 V while commanded off
+//   (a shorted switch) drops the enable within 5 ms, before its contactor or valve can pull in
+//   (15 … 40 ms), and is a FAULT; one more than 1.2 V below the outputs' supply 5 ms after it was
+//   commanded on (a short, a wire to the frame, a partial short holding it in its current limit:
+//   its MOSFET would overheat) is a FAULT; the enable is read back the same way;
 // - the motor breakers' auxiliary contacts (a trip), the oil temperature switch (hot): FAULT;
 // - PRESS ends at "tamper down" with the working pressure (the pressure switch).
 //
@@ -31,7 +32,7 @@
 //   8. MOULD DOWN (valve 4) until "mould down" (within 8 s): READY again.
 // - A step that does not reach its sensor in time: FAULT (every output off, the lamp flashing
 //   fast; the step and the cause are kept, also while the safety rail is off). STOP clears a
-//   fault; the next START homes.
+//   fault on its release (a STOP held or its cable broken does not); the next START homes.
 // - STOP (its NC contact open, or its cable broken): every output off at once; the next START
 //   homes. The safety rail off (E-stop, a guard, the reset not given): every output off; when it
 //   returns nothing starts until START.
@@ -59,8 +60,8 @@ struct Inputs {
   bool pressureOk = true;   // the pressure switch: the working pressure reached
   bool oilOk = true;        // the oil temperature switch closed (not hot)
   bool breakersOk = true;   // every motor breaker on (their auxiliary contacts)
-  bool fed[NOut] = {};      // the outputs read back: on
-  bool enableFed = false;   // the outputs' supply (after the enable switch) read back: on
+  uint16_t fedMv[NOut] = {};  // the outputs read back (mV at the output, from the 47k / 10k divider)
+  uint16_t enableMv = 0;      // the outputs' supply after the enable switch (mV)
 };
 
 struct Outputs {
@@ -128,7 +129,7 @@ class Logic {
   Outputs last_;
   uint32_t onAt_[NOut] = {}, enableAt_ = 0, wrongAt_[NOut + 1] = {};
   bool wrong_[NOut + 1] = {};
-  bool lastRail_ = false;
+  bool lastRail_ = false, lastStop_ = false;
   uint32_t railOnAt_ = 0;  // the enable waits 10 ms after the rail comes on (its own check first)
 };
 

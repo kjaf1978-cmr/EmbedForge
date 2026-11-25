@@ -40,7 +40,7 @@ const BJT: Record<string, FootprintChoice> = {
 // MOSFETs: symbol pins 1 G, 2 D, 3 S
 const FET: Record<string, FootprintChoice> = {
   '2N7000': legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D'), BS170: legs('TO-92_Wide', ['2', '1', '3'], 'D-G-S'), BS250: legs('TO-92_Wide', ['2', '1', '3'], 'D-G-S'),
-  IRLZ44N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF9540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
+  IRLZ44N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF9540N: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRF4905: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'),
   AO3400: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), IRLML0060: legs('SOT-23', ['1', '3', '2'], 'G-S-D'), AO3401: legs('SOT-23', ['1', '3', '2'], 'G-S-D'),
   IRFP4468: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4110: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'), IPW65R041: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
   IRFB4115: legs('TO-220_Vertical', ['1', '2', '3'], 'G-D-S'), IRFP4668: legs('TO-247_Vertical', ['1', '2', '3'], 'G-D-S'),
@@ -165,8 +165,10 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'led': return [map('LED_D5.0', { 1: '1', 2: '2' }, { note: 'pad 1 (square) is the cathode, the short leg' })];
     case 'tvs': return [map(v.startsWith('5KP') ? 'D_P600' : v.startsWith('1.5KE') ? 'D_DO-201AD' : 'D_SMA', { 1: '1', 2: '2' }, { note: v.endsWith('CA') ? 'bidirectional: either way round' : 'pad 1 (band) is the cathode, on the protected line' })];
     case 'bridge': return [map('Bridge_Inline_4', { 3: '1', 1: '2', 2: '3', 4: '4' }, { note: 'inline + ~ ~ −: check the marking on the body' })];
-    case 'npn': case 'pnp': return [BJT[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'E-B-C')];
-    case 'nmos': case 'pmos': return [FET[v] ?? legs('TO-92_Wide', ['3', '1', '2'], 'S-G-D')];
+    case 'npn': case 'pnp': { const f = BJT[v]; if (!f) throw new Error(`no footprint for the transistor ${v}: add it to BJT (library.ts)`); return [f]; }
+    // every MOSFET by its own pinout: a missing one silently took a TO-92 S-G-D footprint (the
+    // block machine's IRF4905, a TO-220 G-D-S: found by the second P9 review)
+    case 'nmos': case 'pmos': { const f = FET[v]; if (!f) throw new Error(`no footprint for the MOSFET ${v}: add it to FET (library.ts)`); return [f]; }
     // thyristors: TO-247AC (1 K, 2 A and tab, 3 G); the SKKT modules sit on the heatsink, wired
     case 'scr': return v.startsWith('SKKT') ? [same('TerminalBlock_1x3', pins, 'thyristor module on its heatsink: A, K, G wired to the board')] : [legs('TO-247_Vertical', ['2', '1', '3'], 'K-A-G')];
     case 'igbt': return v.startsWith('Module') ? [same('TerminalBlock_1x3', pins, 'module on its heatsink: G, C, E wired to the board')] : [legs('TO-247_Vertical', ['1', '2', '3'], 'G-C-E')];

@@ -644,7 +644,7 @@ cutting). Purely discrete.
   load (the valves and coils release in a few milliseconds; the earlier 1N4007s held the coils),
   and a read-back (47k/10k). V24O comes from the rail through a common enable (IRF4905), given by
   the controller only with every output off: an output read back on while commanded off drops it
-  within 3 ms, before its contactor or valve can pull in. Low-side switching (before the review)
+  within 5 ms, before its contactor or valve can pull in. Low-side switching (before the review)
   switched a valve on when its wire touched the earthed frame.
 - Inputs: eleven PC817s from the field 24 V (its own 2 A fuse F2): six proximity sensors, START,
   STOP (NC), the pressure switch, the oil temperature switch (NC), the motor breakers' auxiliary
@@ -655,10 +655,18 @@ cutting). Purely discrete.
   vibrate 4 s, demould with the tamper holding, tamper up, the pallet change, mould down), a time
   limit on every step, STOP, the rail's loss, the interlocks (the feeder only with the tamper up,
   the tamper down only with the feeder home, opposing valves never together, at most two valves),
-  the read-back checks, the breakers, the oil temperature; host tests 19, 487 checks; 8.5 kB.
+  the read-back checks, the breakers, the oil temperature; host tests 21, 504 checks.
+- After the second review (25 November 2026): the feeder's and the vibrators' second contactor
+  K5 in their common 400 V feed (on the rail, its mirror contact in the start loop); the pump
+  contactor with its auxiliary block; F3 (1 A) in the safety relays' enabling circuits; the four
+  24 V supplies on their own terminal block, an empty pole between each (one strand bridged the
+  rail to the field 24 V before); the enable MOSFET on its TO-220 footprint (the library's TO-92
+  default for an unlisted MOSFET removed: now an error); the read-back in volts (a partial short
+  in the current limit faults); STOP keeps the enable off and clears a fault only on its release;
+  the relay model's power-on delay (a RESET held from power-up no longer starts on release).
 - Verified (16 simulations): the rail only at RESET's release; an E-stop and a guard (off within
-  50 ms, no restart on release); RESET held through an E-stop and jammed at power-up with a 100 ms
-  supply rise; one E-stop channel only; a channel bridged; K2 welded from power-up and while
+  50 ms, no restart on release); RESET held through an E-stop, and held from power-up (step and 100 ms
+  supply rise) then released: no start; one E-stop channel only; a channel bridged; K2 welded from power-up and while
   running; an output MOSFET shorted (not fed without the enable, fed only while it is given); the
   enable's read-back; a valve wire to the frame (limited below 3 A, read back low); all four
   valves at once (F1 holds); the lamp and STOP. No part is over its ratings in any of these.

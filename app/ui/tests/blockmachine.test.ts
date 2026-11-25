@@ -61,9 +61,12 @@ describe('block moulding machine: safety circuit, outputs and inputs', () => {
     expect(t.v('V24S', 0.75)).toBeGreaterThan(22);
     expect(t.v('V24S', 1.5)).toBeLessThan(3);
   }, 600_000);
-  it('RESET jammed closed at power-up, with a supply that rises over 100 ms: no start', () => {
-    const s = run({ rampMs: 100, reset: 0, resetFor: 2, stop: '0.8' });
-    expect(s.v('V24S', 0.8)).toBeLessThan(3);
+  it('RESET held closed from power-up (a supply that rises over 100 ms, and a step) and then released: no start; a later press and release starts', () => {
+    const s = run({ rampMs: 100, reset: 0, resetFor: 0.3, reset2: 0.7, stop: '1.1' });
+    expect(s.v('V24S', 0.65)).toBeLessThan(3);    // released at 0.3 s: no start
+    expect(s.v('V24S', 1.1)).toBeGreaterThan(22); // pressed and released at 0.7 … 0.9 s: starts
+    const t = run({ reset: 0, resetFor: 0.3, stop: '0.65' });
+    expect(t.v('V24S', 0.65)).toBeLessThan(3);
   }, 600_000);
   it('the guard opened while running: the rail falls within 50 ms; closed again, nothing restarts until RESET', () => {
     const s = run({ reset: 0.1, guard: 0.6, guardTo: 0.8, reset2: 1.0, stop: '1.4' });
@@ -76,7 +79,7 @@ describe('block moulding machine: safety circuit, outputs and inputs', () => {
     expect(s.offAfter(0.6)).toBeLessThan(0.05);
     expect(s.v('V24S', 1.4)).toBeLessThan(3);
   }, 600_000);
-  it('one E-stop channel bridged (a cross short): the other channel still stops the machine, and the next RESET is refused', () => {
+  it('one E-stop channel bridged (its contact shorted; a short between the two channels is the relay\'s certified test-pulse function, not modelled): the other channel still stops the machine, and the next RESET is refused', () => {
     const s = run({ ch1Bridged: true, reset: 0.1, estop: 0.6, estopTo: 0.8, reset2: 1.0, stop: '1.4' });
     expect(s.v('V24S', 0.5)).toBeGreaterThan(22);
     expect(s.offAfter(0.6)).toBeLessThan(0.05);

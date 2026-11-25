@@ -1052,8 +1052,11 @@ class Logic implements Device {
         break;
       }
       case 'safety': {
-        const [c1, c2, rst] = a, sf = { ...this.sf };
+        const [c1, c2, rst, ok] = a, sf = { ...this.sf };
         const on = this.out[0] === 1;
+        // the unit's own supply not yet valid (its power-on delay): nothing counts, and a start
+        // loop closed through it is not a press (it must be seen open afterwards)
+        if (!ok) { out = [0]; this.nextSf = { armed: false, seenLow: false, lastRst: rst, needBoth: false }; break; }
         if (!c1 && !c2) sf.needBoth = false;
         if (on && !(c1 && c2)) { out = [0]; sf.needBoth = c1 || c2; sf.armed = false; }
         else if (!on && c1 && c2 && !sf.needBoth) {

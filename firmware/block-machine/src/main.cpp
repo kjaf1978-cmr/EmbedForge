@@ -12,8 +12,8 @@
 // Mega resets): D2 pump, D3 mixer / feeder, D4 vibrator 1, D5 vibrator 2, D6 valve 1 tamper down,
 // D7 valve 2 tamper up, D8 valve 3 mould up, D9 valve 4 mould down; D11 the outputs' enable;
 // D10 the READY / FAULT lamp.
-// Read-backs (47k / 10k: 24 V → 4.2 V): A0 … A7 the outputs in the order above, A8 the safety
-// rail, A9 the outputs' supply after the enable.
+// Read-backs (47k / 10k: 24 V → 4.2 V), read as analogue values: A0 … A7 the outputs in the order
+// above, A9 the outputs' supply after the enable; A8 the safety rail (digital).
 // The watchdog (250 ms) resets a hung program; at any reset every output and the enable are off.
 
 #include <Arduino.h>
@@ -83,9 +83,11 @@ void loop() {
   in.pressureOk = v[Pressure];
   in.oilOk = v[Oil];
   in.breakersOk = v[Breakers];
-  // the read-backs undebounced: an output on while commanded off must be seen within 3 ms
-  for (uint8_t k = 0; k < bm::NOut; ++k) in.fed[k] = digitalRead(kRb[k]) == HIGH;
-  in.enableFed = digitalRead(kEnableRb) == HIGH;
+  // the read-backs in volts, undebounced (an output on while commanded off must be seen within
+  // 5 ms): 47k / 10k, so 5 V at the pin is 28.5 V; nine conversions take about 1 ms
+  auto mv = [](uint8_t pin) -> uint16_t { return (uint16_t)((uint32_t)analogRead(pin) * 28500UL / 1023UL); };
+  for (uint8_t k = 0; k < bm::NOut; ++k) in.fedMv[k] = mv(kRb[k]);
+  in.enableMv = mv(kEnableRb);
   logic.step(now, in);
 
   const bm::Outputs& o = logic.outputs();

@@ -26,8 +26,11 @@ The designators are those of the schematic, the board, the parts list and the wi
 3. **Program the Mega** (`pio run -e mega -t upload`), then plug it onto the board's headers from
    below, turned so that its USB and power jacks are at the board's right edge, and fix it with
    six M3 stand-offs of 11 mm (the Mega's jacks stand about 11 mm high: a strip of insulating tape
-   on the USB jack's top keeps it off the board's copper). Its USB jack stays reachable at the
-   edge for a later update. The Mega's footprint is drawn from the dimensioned drawing of the
+   on the USB jack's top keeps it off the board's copper). At the hole next to the SCL / SDA
+   header use a round nylon spacer of at most 5 mm diameter (a hex stand-off touches the header).
+   Its USB and power jacks stand 2.3 mm past the board's right edge, reachable for a later update;
+   **for an update, unplug the board's 24 V first** (or use a USB cable without its 5 V wire):
+   with both, the board's 5 V would feed the computer's USB port. The Mega's footprint is drawn from the dimensioned drawing of the
    Mega 2560 R3 by Matthew Beckler (Wayne and Layne) and agrees with KiCad's Arduino Uno R3
    footprint for the headers both share; **check one real Mega against the board before the first
    order** (the six holes and the 2 × 18 header), TYPE_TESTS TT-4.
@@ -35,12 +38,12 @@ The designators are those of the schematic, the board, the parts list and the wi
 ## 3. The panel
 
 1. The DIN-rail parts (`…-bom.csv`, the panel lines): the main breaker Q33 with its door-coupled
-   handle, the motor breakers Q34 … Q37 with their auxiliary contacts, the contactors K5 … K8,
+   handle, the motor breakers Q34 … Q37 with their auxiliary contacts, the contactors K5 … K9,
    the safety contactors K2, K3 with their auxiliary blocks, the safety relays K1, K4, the 24 V
    supply with its 2-pole breaker, the PE bar, the terminal blocks for the field.
 2. The board on stand-offs on the mounting plate, away from the 400 V wiring (at least 50 mm, or
    a partition).
-3. The wiring by `panel.csv`: 400 V in 2.5 mm² (the pump: 4 mm² from Q34 to K5 and to the
+3. The wiring by `panel.csv`: 400 V in 2.5 mm² (the pump: 4 mm² from Q34 to K6 and to the
    motor), the 24 V coils and valves in 1 mm², the field in 0.5 mm²; PE green-yellow; the E-stop's
    and the guards' two channels in separate cores or cables.
 4. The door: the main switch's handle, the READY / FAULT lamp, the operator's buttons where they

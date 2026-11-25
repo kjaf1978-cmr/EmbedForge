@@ -4,8 +4,11 @@
 namespace bm {
 
 namespace {
-constexpr uint32_t kStuckMs = 3;    // an output on while commanded off: before a coil pulls in
-constexpr uint32_t kShortMs = 30;   // an output still off 30 ms after it was commanded on
+constexpr uint32_t kStuckMs = 2;     // an output on while commanded off: 2 … 3 ms of millis() ticks,
+                                     // with a loop and the enable's turn-off within 5 ms
+constexpr uint32_t kSettleMs = 5;    // an output below its supply 5 ms after it was commanded on
+constexpr uint16_t kOnMv = 5000;     // above this an output (or the enable) counts as fed
+constexpr uint16_t kDropMv = 1200;   // an output this far below its supply is short or limited
 }
 
 bool Logic::hydraulic(State s) const {
@@ -22,12 +25,14 @@ bool Logic::hydraulic(State s) const {
 bool Logic::checkOutputs(uint32_t now, const Inputs& in) {
   for (uint8_t k = 0; k <= NOut; ++k) {
     const bool cmd = k < NOut ? last_.out[k] : last_.enable;
-    const bool fed = k < NOut ? in.fed[k] : in.enableFed;
+    const uint16_t mv = k < NOut ? in.fedMv[k] : in.enableMv;
     const uint32_t since = k < NOut ? onAt_[k] : enableAt_;
-    // an output's read-back needs the enable on; the enable's needs the rail (checked by the caller)
-    const bool supplied = k == NOut || (last_.enable && in.enableFed);
-    const bool stuck = supplied && !cmd && fed;
-    const bool dead = supplied && cmd && !fed && now - since >= kShortMs;
+    // the enable is checked against the rail (the caller's condition); an output against the
+    // enable's output: off, a stuck output switch reads nothing, which the enable's check covers
+    const bool supplied = k == NOut || in.enableMv > kOnMv;
+    const uint16_t full = k < NOut ? in.enableMv : 20000;  // the enable on: at least 20 V
+    const bool stuck = supplied && !cmd && mv > kOnMv;
+    const bool dead = supplied && cmd && mv + kDropMv < full && now - since >= kSettleMs;
     const bool bad = stuck || dead;
     if (bad && !wrong_[k]) { wrong_[k] = true; wrongAt_[k] = now; }
     if (!bad) wrong_[k] = false;
@@ -46,18 +51,22 @@ void Logic::step(uint32_t now, const Inputs& in) {
   if (now - bootAt_ < cfg_.startupMs) { last_ = out_; return; }
   if (in.railOn && !lastRail_) railOnAt_ = now;
   lastRail_ = in.railOn;
+  // STOP clears a fault on its release only: a STOP held, or its cable broken, never does
+  const bool stopReleased = lastStop_ && !in.stop;
+  lastStop_ = in.stop;
+  if (state_ == State::Fault && stopReleased) enter(now, in.railOn ? State::Idle : State::Off);
 
   // the safety rail off: everything off; a fault is kept (shown); nothing starts without START
   if (!in.railOn) {
     pumpOn_ = false;
-    if (state_ != State::Off && (state_ != State::Fault || in.stop)) enter(now, State::Off);  // STOP clears a fault here too
+    if (state_ != State::Off && state_ != State::Fault) enter(now, State::Off);
     clearMotion();
   } else if (in.stop) {
-    // STOP: everything off at once; it also clears a fault
+    // STOP: everything off at once, the outputs' enable too; the enable's read-back still checked
     pumpOn_ = false;
-    if (state_ != State::Idle) enter(now, State::Idle);
+    if (state_ != State::Idle && state_ != State::Fault) enter(now, State::Idle);
     clearMotion();
-    out_.enable = now - railOnAt_ >= 10;
+    if (state_ != State::Fault) checkOutputs(now, in);
   } else {
     if (state_ == State::Off) enter(now, State::Idle);
     out_ = before;
