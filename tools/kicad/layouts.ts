@@ -146,7 +146,7 @@ const STAB_PLAN = (): Placed[] => (() => {
 })();
 
 /** DIN-rail and chassis parts: on the panel, wired, not on the board. */
-const PANEL = new Set(['contactor', 'breaker1', 'breaker2', 'breaker3', 'breaker4', 'terminal']);
+const PANEL = new Set(['contactor', 'safetyrelay', 'breaker1', 'breaker2', 'breaker3', 'breaker4', 'terminal']);
 // the change-overs' panel wiring: the 32 A circuits in 6 mm² (IEC 60364-5-52, method B2, 30 °C,
 // two loaded conductors: 36 A; derate in a hot enclosure), the board's mains feeds (behind the
 // breakers, its fuses at 0.2 A) in 1.5 mm², the control in 0.75 mm²; PE green-yellow

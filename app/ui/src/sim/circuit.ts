@@ -84,7 +84,13 @@ export type Element =
    *  stages). It has no SPICE primitive; the export says so. */
   | { kind: 'T'; name: string; gnd: string; trig: string; out: string; rst: string; ctrl: string; thr: string; dis: string; vcc: string };
 
-export type LogicFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'schmitt' | 'dff' | 'ctr';
+/** 'safety': a safety relay's logic (ins: channel 1, channel 2, the start loop; out: the enabling
+ *  contacts' drive), a behavioural model of a certified unit with a monitored start: the outputs
+ *  close only on the start loop's release (falling edge) after a press that began with both
+ *  channels closed; they open when either channel opens; after only one channel opened, both must
+ *  open before a new start (a bridged channel is found); a start loop closed at power-up or held
+ *  does not start. The units' cross-short detection (test pulses) is not modelled. */
+export type LogicFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'schmitt' | 'dff' | 'ctr' | 'safety';
 
 export interface Circuit {
   title?: string;

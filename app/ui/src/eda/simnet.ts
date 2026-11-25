@@ -347,6 +347,27 @@ function partElements(p: Part, pin: Record<string, string>, out: Element[], erro
       if (p.props.aux2 === 'true') { sw('NO2', pin['43'], pin['44']); sw('NC2', pin['31'], pin['32'], true); }
       break;
     }
+    case 'safetyrelay': {
+      // a behavioural model (LogicFn 'safety'): the channels and the start loop fed from A1 through
+      // 100 Ω (the unit's outputs S11, S21, S33), read against half of A1; the enabling contacts on
+      // a 20 ms RC (the unit's switching time); the unit's own draw about 1 W (570 Ω)
+      const en = `${ref}#en`, enf = `${ref}#enf`;
+      out.push(
+        { kind: 'R', name: `${ref}_RS11`, a: pin.A1, b: pin.S11, r: 100 },
+        { kind: 'R', name: `${ref}_RS21`, a: pin.A1, b: pin.S21, r: 100 },
+        { kind: 'R', name: `${ref}_RS33`, a: pin.A1, b: pin.S33, r: 100 },
+        { kind: 'R', name: `${ref}_RI1`, a: pin.S12, b: pin.A2, r: 10e3 },
+        { kind: 'R', name: `${ref}_RI2`, a: pin.S22, b: pin.A2, r: 10e3 },
+        { kind: 'R', name: `${ref}_RI3`, a: pin.S34, b: pin.A2, r: 10e3 },
+        { kind: 'R', name: `${ref}_RP`, a: pin.A1, b: pin.A2, r: 570 },
+        { kind: 'X', name: ref, fn: 'safety', ins: [pin.S12, pin.S22, pin.S34], outs: [en], vcc: pin.A1 },
+        { kind: 'R', name: `${ref}_RF`, a: en, b: enf, r: 10e3 },
+        { kind: 'C', name: `${ref}_CF`, a: enf, b: pin.A2, c: 2e-6 },
+        { kind: 'S', name: `${ref}_K13`, p: pin['13'], n: pin['14'], cp: enf, cn: pin.A2, vt: 12, vh: 2, ron: 0.05, roff: 1e9 },
+        { kind: 'S', name: `${ref}_K23`, p: pin['23'], n: pin['24'], cp: enf, cn: pin.A2, vt: 12, vh: 2, ron: 0.05, roff: 1e9 },
+      );
+      break;
+    }
     case 'comparator': {
       const m = findModel(COMPARATORS, p.props.value).model;
       const [inp, inn, o, vp, g] = [pin['3'], pin['2'], pin['1'], pin['8'], pin['4']];

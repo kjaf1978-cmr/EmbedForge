@@ -11,19 +11,27 @@ static int failures = 0, checks = 0;
 
 using bm::State;
 
-// ---- the machine on the bench: the cylinders move while their valve is on and the pump has run
-// 1 s (positions 0 … 1000, a full stroke in 2 s); the feeder runs out and back in 4 s while its
-// motor runs; the operator changes pallets. The invariants are checked at every millisecond.
+// ---- the machine on the bench: the outputs reach their loads only through the enable switch
+// (with the rail on); a load acts once it has been fed for 20 ms (a contactor's or a valve's pull-in);
+// the cylinders move while their valve is fed and the pump has run 1 s (positions 0 … 1000, a full
+// stroke in 2 s); the feeder runs out and back in 4 s while its motor runs; the pressure switch
+// closes while the tamper presses at its end; the operator changes pallets. Faults: an output
+// stuck on (its switch shorted) or shorted to the frame, the enable switch stuck on, a sensor
+// broken, the feeder stuck. The invariants are checked at every millisecond.
+using bm::Out;
 struct Machine {
   bm::Logic g;
-  bm::Inputs in{true, false, false, false, true, true, false, true, true};
+  bm::Inputs in{};
   int tamper = 0, mould = 0, feeder = 0;  // tamper 0 up … 1000 down; mould 0 down … 1000 up; feeder 0 … 4000 (home near 0)
   bool rail = true, stopPressed = false, pallet = true;
-  bool tamperSensorBroken = false, feederStuck = false;
-  uint32_t t = 0, pumpSince = 0;
-  bool pumpWas = false;
+  bool tamperSensorBroken = false, feederStuck = false, pressureBroken = false;
+  bool stuckOn[bm::NOut] = {}, shorted[bm::NOut] = {}, enableStuck = false;
+  uint32_t t = 0, fedSince[bm::NOut] = {}, maxFedWhileOff[bm::NOut] = {};
+  bool fedWas[bm::NOut] = {};
   int invariantFailures = 0;
   explicit Machine(const bm::Config& c = bm::Config()) : g(c) { step(600); }
+  bool fed(int k) const { const auto& o = g.outputs(); return rail && (o.enable || enableStuck) && (o.out[k] || stuckOn[k]) && !shorted[k]; }
+  bool acting(int k) const { return fed(k) && t - fedSince[k] >= 20; }
   void sense() {
     in.railOn = rail;
     in.stop = stopPressed;
@@ -33,17 +41,23 @@ struct Machine {
     in.mouldUp = mould >= 980;
     in.feederHome = feeder <= 50 || feeder >= 3950;
     in.palletIn = pallet;
+    in.pressureOk = !pressureBroken && tamper >= 980 && acting(Out::TamperDown) && acting(Out::Pump);
+    for (int k = 0; k < bm::NOut; ++k) in.fed[k] = fed(k);
+    in.enableFed = rail && (g.outputs().enable || enableStuck);
   }
   void move() {
-    const auto& o = g.outputs();
-    if (o.pump && !pumpWas) pumpSince = t;
-    pumpWas = o.pump;
-    const bool pressure = o.pump && t - pumpSince >= 1000 && rail;
-    if (pressure && o.tamperDown && tamper < 1000) tamper += 1;
-    if (pressure && o.tamperUp && tamper > 0) tamper -= 1;
-    if (pressure && o.mouldUp && mould < 1000) mould += 1;
-    if (pressure && o.mouldDown && mould > 0) mould -= 1;
-    if (o.feeder && rail && !feederStuck) feeder = (feeder + 1) % 4000;
+    for (int k = 0; k < bm::NOut; ++k) {
+      const bool f = fed(k);
+      if (f && !fedWas[k]) fedSince[k] = t;
+      fedWas[k] = f;
+      if (f && !g.outputs().out[k]) maxFedWhileOff[k] = t - fedSince[k] + 1 > maxFedWhileOff[k] ? t - fedSince[k] + 1 : maxFedWhileOff[k];
+    }
+    const bool pressure = acting(Out::Pump) && t - fedSince[Out::Pump] >= 1000;
+    if (pressure && acting(Out::TamperDown) && tamper < 1000) tamper += 1;
+    if (pressure && acting(Out::TamperUp) && tamper > 0) tamper -= 1;
+    if (pressure && acting(Out::MouldUp) && mould < 1000) mould += 1;
+    if (pressure && acting(Out::MouldDown) && mould > 0) mould -= 1;
+    if (acting(Out::Feeder) && !feederStuck) feeder = (feeder + 1) % 4000;
   }
   void step(int ms = 1) {
     for (int i = 0; i < ms; ++i, ++t) {
@@ -51,14 +65,16 @@ struct Machine {
       g.step(t, in);
       in.start = false;
       const auto& o = g.outputs();
-      const int valves = o.tamperDown + o.tamperUp + o.mouldUp + o.mouldDown;
-      if (o.tamperDown && o.tamperUp) ++invariantFailures;
-      if (o.mouldUp && o.mouldDown) ++invariantFailures;
+      const bool* q = o.out;
+      const int valves = q[Out::TamperDown] + q[Out::TamperUp] + q[Out::MouldUp] + q[Out::MouldDown];
+      if (q[Out::TamperDown] && q[Out::TamperUp]) ++invariantFailures;
+      if (q[Out::MouldUp] && q[Out::MouldDown]) ++invariantFailures;
       if (valves > 2) ++invariantFailures;
-      if (o.feeder && !in.tamperUp) ++invariantFailures;
-      if (o.tamperDown && !in.feederHome) ++invariantFailures;
-      if ((!rail || stopPressed) && (o.pump || valves || o.feeder || o.vibrators)) ++invariantFailures;
-      if (o.vibrators && !(g.state() == State::Fill || g.state() == State::Press || g.state() == State::Vibrate)) ++invariantFailures;
+      if (q[Out::Feeder] && !in.tamperUp) ++invariantFailures;
+      if (q[Out::TamperDown] && !in.feederHome) ++invariantFailures;
+      if ((!rail || stopPressed) && o.any()) ++invariantFailures;
+      if (o.any() && !o.enable) ++invariantFailures;
+      if ((q[Out::Vib1] || q[Out::Vib2]) && !(g.state() == State::Fill || g.state() == State::Press || g.state() == State::Vibrate)) ++invariantFailures;
       move();
     }
   }
@@ -72,19 +88,19 @@ static void test(const char* name, const std::function<void()>& body) { std::pri
 
 int main() {
   test("power-up: nothing for 0.5 s; with the safety rail off nothing at all, START ignored", [] {
-    bm::Logic g; bm::Inputs in{true, false, true, false, true, true, false, true, true};
-    for (uint32_t t = 0; t < 400; ++t) { g.step(t, in); CHECK(!g.outputs().pump && g.state() == State::Off); }
+    bm::Logic g; bm::Inputs in{}; in.railOn = true;
+    for (uint32_t t = 0; t < 400; ++t) { g.step(t, in); CHECK(!g.outputs().any() && g.state() == State::Off); }
     Machine m; m.rail = false; m.step(100); m.start(); m.step(3000);
-    CHECK(m.g.state() == State::Off && !m.g.outputs().pump && !m.g.outputs().lamp);
+    CHECK(m.g.state() == State::Off && !m.g.outputs().out[Out::Pump] && !m.g.outputs().lamp);
     m.rail = true; m.step(100);
     CHECK(m.g.state() == State::Idle);  // the rail back: nothing until START
     m.step(3000);
-    CHECK(!m.g.outputs().pump && !m.g.outputs().feeder);
+    CHECK(!m.g.outputs().out[Out::Pump] && !m.g.outputs().out[Out::Feeder]);
     CHECK(m.invariantFailures == 0);
   });
   test("START at home: READY (the lamp on) without moving anything", [] {
     Machine m; m.start(); m.step(10);
-    CHECK(m.g.state() == State::Ready && m.g.outputs().lamp && !m.g.outputs().pump);
+    CHECK(m.g.state() == State::Ready && m.g.outputs().lamp && !m.g.outputs().out[Out::Pump]);
   });
   test("homing from anywhere: the tamper up first, then the feeder home, then the mould down onto a pallet", [] {
     Machine m; m.tamper = 600; m.feeder = 1500; m.mould = 1000; m.pallet = false;
@@ -105,7 +121,7 @@ int main() {
     m.start();
     CHECK(m.reach(State::Fill, 3000));
     m.step();
-    CHECK(m.g.outputs().vibrators && m.g.outputs().feeder);
+    CHECK(m.g.outputs().out[Out::Vib1] && m.g.outputs().out[Out::Feeder]);
     CHECK(m.reach(State::Press, 6000));
     CHECK(m.feeder <= 50 || m.feeder >= 3950);
     CHECK(m.reach(State::Vibrate, 3000));
@@ -113,7 +129,7 @@ int main() {
     CHECK(m.reach(State::Demould, 5000));
     CHECK(m.t - t0 >= 3990 && m.t - t0 <= 4010);
     m.step();
-    CHECK(m.g.outputs().tamperDown && m.g.outputs().mouldUp && !m.g.outputs().vibrators);
+    CHECK(m.g.outputs().out[Out::TamperDown] && m.g.outputs().out[Out::MouldUp] && !m.g.outputs().out[Out::Vib1]);
     CHECK(m.reach(State::TamperUp, 3000));
     CHECK(m.reach(State::Pallet, 3000));
     m.step(2000);
@@ -129,9 +145,9 @@ int main() {
     m.changePallet();
     CHECK(m.reach(State::Ready, 3000));
     m.step(10000);
-    CHECK(m.g.state() == State::Ready && m.g.outputs().pump);
+    CHECK(m.g.state() == State::Ready && m.g.outputs().out[Out::Pump]);
     m.step(51000);
-    CHECK(!m.g.outputs().pump);
+    CHECK(!m.g.outputs().out[Out::Pump]);
     CHECK(m.g.cycles() == 1);
   });
   test("the tamper's sensor broken: FAULT 10 s into PRESS, every output off, the lamp flashing; STOP clears it, START homes", [] {
@@ -143,7 +159,7 @@ int main() {
     CHECK(m.g.faultAt() == State::Press);
     m.step(1);
     const auto& o = m.g.outputs();
-    CHECK(!o.pump && !o.tamperDown && !o.vibrators && !o.feeder);
+    CHECK(!o.out[Out::Pump] && !o.out[Out::TamperDown] && !o.out[Out::Vib1] && !o.out[Out::Feeder]);
     bool on = false, off = false;
     for (int i = 0; i < 300; ++i) { m.step(); (m.g.outputs().lamp ? on : off) = true; }
     CHECK(on && off);
@@ -167,9 +183,9 @@ int main() {
     CHECK(m.reach(State::Press, 10000)); m.step(300);
     m.stopPressed = true; m.step();
     const auto& o = m.g.outputs();
-    CHECK(!o.pump && !o.tamperDown && !o.vibrators && m.g.state() == State::Idle);
+    CHECK(!o.out[Out::Pump] && !o.out[Out::TamperDown] && !o.out[Out::Vib1] && m.g.state() == State::Idle);
     m.start(); m.step(2000);
-    CHECK(!m.g.outputs().pump);
+    CHECK(!m.g.outputs().out[Out::Pump]);
     m.stopPressed = false; m.step(10); m.start();
     CHECK(m.reach(State::HomeTamper, 100));
     CHECK(m.reach(State::Ready, 20000));
@@ -179,9 +195,9 @@ int main() {
     Machine m; m.start(); m.step(10); m.start();
     CHECK(m.reach(State::Fill, 3000)); m.step(500);
     m.rail = false; m.step();
-    CHECK(m.g.state() == State::Off && !m.g.outputs().feeder && !m.g.outputs().vibrators && !m.g.outputs().pump);
+    CHECK(m.g.state() == State::Off && !m.g.outputs().out[Out::Feeder] && !m.g.outputs().out[Out::Vib1] && !m.g.outputs().out[Out::Pump]);
     m.step(1000); m.rail = true; m.step(5000);
-    CHECK(m.g.state() == State::Idle && !m.g.outputs().feeder && !m.g.outputs().pump);
+    CHECK(m.g.state() == State::Idle && !m.g.outputs().out[Out::Feeder] && !m.g.outputs().out[Out::Pump]);
     m.start();
     CHECK(m.reach(State::Ready, 20000));  // homes: the feeder back first (the tamper is up)
     CHECK(m.invariantFailures == 0);
@@ -190,16 +206,67 @@ int main() {
     Machine m; m.start(); m.step(10); m.start();
     CHECK(m.reach(State::Fill, 3000)); m.step(300);
     m.tamper = 500; m.step();  // (a sagging tamper)
-    CHECK(m.g.state() == State::Fault && m.g.faultAt() == State::Fill && !m.g.outputs().feeder);
+    CHECK(m.g.state() == State::Fault && m.g.faultAt() == State::Fill && !m.g.outputs().out[Out::Feeder]);
   });
   test("a pallet taken away while the mould comes down: the mould stops and waits", [] {
     Machine m; m.start(); m.step(10); m.start();
     CHECK(m.reach(State::Pallet, 30000)); m.changePallet();
     CHECK(m.reach(State::MouldDown, 100)); m.step(300);
     m.pallet = false; m.step();
-    CHECK(m.g.state() == State::Pallet && !m.g.outputs().mouldDown);
+    CHECK(m.g.state() == State::Pallet && !m.g.outputs().out[Out::MouldDown]);
     m.pallet = true;
     CHECK(m.reach(State::Ready, 5000));
+  });
+  test("an output stuck on (its switch shorted) when the rail comes on: the enable is never given (or dropped within 3 ms): its contactor never pulls in; FAULT (output stuck)", [] {
+    Machine m; m.rail = false; m.step(100);
+    m.stuckOn[Out::Feeder] = true;
+    m.rail = true; m.step(200);
+    CHECK(m.g.state() == State::Fault && m.g.cause() == bm::Cause::OutputStuck);
+    CHECK(m.maxFedWhileOff[Out::Feeder] < 20);  // fed for less than a contactor's pull-in
+    CHECK(!m.g.outputs().enable);
+    CHECK(m.feeder == 0);
+    m.start(); m.step(2000);
+    CHECK(m.g.state() == State::Fault);   // no start
+    CHECK(m.invariantFailures == 0);
+  });
+  test("an output shorts during the fill (its wire to the frame): FAULT (output short) within about 30 ms, every output off", [] {
+    Machine m; m.start(); m.step(10); m.start();
+    CHECK(m.reach(State::Fill, 3000)); m.step(200);
+    m.shorted[Out::Feeder] = true;
+    const uint32_t t0 = m.t;
+    CHECK(m.reach(State::Fault, 100));
+    CHECK(m.t - t0 <= 35 && m.g.cause() == bm::Cause::OutputShort);
+    m.step();
+    CHECK(!m.g.outputs().any() && !m.g.outputs().enable);
+  });
+  test("the enable switch stuck on: found before it is commanded, FAULT; no output given", [] {
+    Machine m; m.rail = false; m.step(100);
+    m.enableStuck = true; m.rail = true; m.step(50);
+    CHECK(m.g.state() == State::Fault && m.g.cause() == bm::Cause::EnableFault);
+    m.start(); m.step(1000);
+    CHECK(!m.g.outputs().any());
+  });
+  test("a motor breaker trips, or the oil is hot: FAULT with its cause, every output off", [] {
+    Machine m; m.start(); m.step(10); m.start();
+    CHECK(m.reach(State::Fill, 3000)); m.step(100);
+    m.in.breakersOk = false; m.step(2);
+    CHECK(m.g.state() == State::Fault && m.g.cause() == bm::Cause::Breaker && !m.g.outputs().any());
+    Machine n; n.in.oilOk = false; n.step(5);
+    CHECK(n.g.state() == State::Fault && n.g.cause() == bm::Cause::OilHot);
+  });
+  test("the tamper reaches its end without the working pressure (the pump weak, the switch broken): FAULT (no pressure) 10 s into PRESS", [] {
+    Machine m; m.pressureBroken = true; m.start(); m.step(10); m.start();
+    CHECK(m.reach(State::Press, 10000));
+    CHECK(m.reach(State::Fault, 11000));
+    CHECK(m.g.faultAt() == State::Press && m.g.cause() == bm::Cause::NoPressure);
+  });
+  test("a fault is kept (and shown) while the safety rail is off; STOP clears it", [] {
+    Machine m; m.tamperSensorBroken = true; m.start(); m.step(10); m.start();
+    CHECK(m.reach(State::Fault, 25000));
+    m.rail = false; m.step(500);
+    CHECK(m.g.state() == State::Fault);
+    m.stopPressed = true; m.step(10); m.stopPressed = false; m.rail = true; m.step(100);
+    CHECK(m.g.state() == State::Idle);
   });
   test("random sensors, faults, STOP, E-stops and presses for 10 minutes: the invariants always hold", [] {
     Machine m; std::srand(3);
@@ -213,6 +280,9 @@ int main() {
       if (r == 6) m.feederStuck = !m.feederStuck;
       if (r == 7) m.tamper = std::rand() % 1001;
       if (r == 8) m.mould = std::rand() % 1001;
+      if (r == 9) m.in.breakersOk = !m.in.breakersOk;
+      if (r == 10) m.pressureBroken = !m.pressureBroken;
+      if (r == 11) m.shorted[std::rand() % bm::NOut] ^= true;
       m.step();
     }
     CHECK(m.invariantFailures == 0);

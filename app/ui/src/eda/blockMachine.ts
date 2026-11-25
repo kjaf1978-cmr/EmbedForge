@@ -2,242 +2,273 @@
 // control and safety circuits. The machine: a feeder box (3 kW mixer / feeder motor) fills the
 // mould, two 1.5 kW vibrator motors on the mould table compact the concrete while the hydraulic
 // tamper head presses (7.5 kW hydraulic power pack, 4 solenoid valves), the mould lifts
-// (demoulding) and the pallet with the fresh blocks is pushed out. 400 V 3-phase: each motor
-// through its motor-protective circuit breaker and a contactor (24 V DC coils), the panel's
-// 24 V 10 A supply, a microcontroller board (D24: the sequence: fill, vibrate, press, demould,
-// eject, with its timings and the proximity sensors' end positions).
+// (demoulding) and the pallet with the fresh blocks is changed. 400 V 3-phase: the main breaker
+// QS, each motor through its motor-protective breaker and a contactor (24 V DC coils); a 24 V
+// DIN-rail supply; an Arduino Mega 2560 runs the cycle (firmware/block-machine).
 //
-// Simulated here: the safety circuit and the 24 V outputs (the 400 V power circuit is
-// contactors and breakers by their ratings, listed in the parts list and the wiring list):
-// - the emergency stop: two channels (an E-stop with two NC contacts) and two safety contactors
-//   K1 and K2 (9 A, 24 V DC coil, mirror contacts to IEC 60947-4-1 Annex F) whose main contacts
-//   in series feed the safety rail V24S: every contactor coil and valve of the machine is fed from
-//   it, so the E-stop stops every motion whatever the microcontroller does;
-// - reset: RESET (NO) in series with the NC mirror contacts of K1, K2 and the pump's contactor
-//   (a welded contact prevents the reset) into a reset relay K3 through a 100 µF capacitor: K1 and
-//   K2 get a pulse of about 0.2 s only, so a held or jammed button cannot restart the machine
-//   after an E-stop; K1 and K2 then hold through their own NO auxiliary contacts;
-// - the hydraulic pump's contactor (18 A, 24 V DC) and a solenoid valve (24 V 26 W) switched by
-//   IRLZ44Ns from the microcontroller, the valve's turn-off clamped at 38 V (SMAJ33A: it
-//   releases within a few ms; a plain diode would hold it for tens);
-// - a proximity sensor (PNP, 24 V) to the microcontroller through a PC817.
-// After the P9 audit (D47, 23 November 2026): the 400 V side in the design (the main breaker QS,
-// padlockable, and a motor-protective breaker per motor, so each motor's protection is in the
-// parts list and the wiring list); F1 8 A (4 A was below four valves and the coils); a STOP input
-// (NC: pressed or broken, the cycle stops); a READY / FAULT lamp output; the firmware
-// (firmware/block-machine).
+// After the independent review (25 November 2026, D65 … D67):
+// - D65 the E-stop and the guards on two certified safety relays (KSE, KSG: two channels each,
+//   monitored start on the release, cross-short detection by their test pulses). Their enabling
+//   contacts in series drive the safety contactors K1 and K2 (9 A, 24 V DC, mirror contacts to IEC
+//   60947-4-1 Annex F), whose main contacts (two poles each in series) feed the safety rail V24S:
+//   every contactor coil and valve of the machine is fed from it. The start loops: RESET (two NO
+//   blocks) in series with the mirror (NC) contacts of K1, K2 and every motor contactor (E-stop
+//   relay) and with K1's and K2's second mirror contacts (guard relay): a welded contactor
+//   refuses the start;
+// - D66 the 0 V bonded to PE at one point (X: 0 V – PE) and every output switched on its +24 V
+//   side: an IRF9540N from the safety rail with a current limit (0.33 Ω and a BC557B: about 2 A),
+//   a BC547B level shift from the controller, a bidirectional SMAJ33CA across the load (a fast
+//   release of the valves and coils, which a freewheel diode would hold), and a read-back of the
+//   output to the controller: an output on while commanded off refuses the start, one off while
+//   commanded on (a short, a wire to the frame) is switched off. A wire to the frame now short-
+//   circuits an output (limited, read back) instead of switching its load on. The eight outputs
+//   take their supply V24O from the rail through a common enable switch (IRF4905) that the
+//   controller turns on only with every output off and drops within 3 ms when an output reads on
+//   uncommanded: a shorted output switch is found before its contactor or valve pulls in
+//   (15 … 40 ms), also at the RESET that brings the rail back;
+// - D67 an Arduino Mega 2560: inputs for the hydraulic pressure, the oil temperature and the
+//   motor-protective breakers' auxiliary contacts, the eight read-backs, the safety rail;
+// - the field 24 V (sensors, buttons, the pressure and temperature switches) behind its own 2 A
+//   fuse F2; F1 8 A for the coils and the valves.
+// Simulated: the safety circuit (the safety relays as a behavioural model of their certified
+// function), the 24 V outputs and their faults, the inputs. The 400 V circuit is the breakers and
+// contactors by their ratings (in the parts list and the wiring list).
 
 import { NB } from './powerExamples';
 import type { Sheet } from './schematic';
 
 export interface BlockOptions {
-  /** The operator: RESET pressed from `reset` for `resetFor` s, the E-stop pressed from
-   *  `estop` (to `estopTo`). The microcontroller: the pump's contactor from `pump`, the valve from
-   *  `valve` to `valveTo`. Faults: K1 welded (its armature held from the start), channel 1 of the
-   *  E-stop bridged (a cross short). */
-  reset?: number; resetFor?: number; estop?: number; estopTo?: number; pump?: number; valve?: number; valveTo?: number;
-  k1Welded?: boolean; ch1Bridged?: boolean;
-  /** K1 welds while running (its armature held from then on); a second RESET press. */
-  k1WeldAt?: number; reset2?: number;
-  /** all four valves driven together from `valve` (each with its bench coil) */
-  allValves?: boolean;
-  /** the READY / FAULT lamp driven from `lamp`; STOP pressed (its NC contact open) */
-  lamp?: number; stopPressed?: boolean;
+  /** The operator: RESET pressed from `reset` for `resetFor` s (a second press at `reset2`); the
+   *  E-stop pressed from `estop` to `estopTo`; the guard opened from `guard` to `guardTo`. */
+  reset?: number; resetFor?: number; reset2?: number; estop?: number; estopTo?: number; guard?: number; guardTo?: number;
+  /** The controller's outputs: the pump's contactor from `pump`, valve 1 from `valve` to
+   *  `valveTo` (all four valves with `allValves`), the lamp from `lamp`. */
+  pump?: number; valve?: number; valveTo?: number; allValves?: boolean; lamp?: number;
+  /** the outputs' enable from `enable` to `enableTo` (default: on from 50 ms) */
+  enable?: number; enableTo?: number;
+  /** Faults: K1 welded (its armature held from the start, or from `k1WeldAt`); only channel 1 of
+   *  the E-stop opens (a broken contact block in channel 2); channel 1 bridged; valve 1's MOSFET
+   *  shorted; valve 1's wire shorted to the frame (0 V, PE) from `valveShortAt`. */
+  k1Welded?: boolean; k1WeldAt?: number; estopCh1Only?: boolean; ch1Bridged?: boolean; qvShorted?: boolean; valveShortAt?: number;
+  /** The supply rises over `rampMs` ms instead of a step; STOP pressed (its NC contact open). */
+  rampMs?: number; stopPressed?: boolean;
   stop?: string;
 }
 
-const pulse = (at: number | undefined, to: number) => at === undefined ? { value: '0', low: '0', freq: '0.01', duty: '0', delay: '0', edge: '1u' } : { value: '5', low: '0', freq: '0.01', duty: String(Math.max(0, to - at)), delay: String(at), edge: '1u' };
+// a pulse of the bench (5 V) from `at` to `to`; a contact closed except from `at` to `to`
+const pulse = (at: number | undefined, to: number, v = '5') => at === undefined ? { value: '0', low: '0', freq: '0.01', duty: '0', delay: '0', edge: '1u' } : { value: v, low: '0', freq: '0.01', duty: String(Math.max(0, to - at)), delay: String(at), edge: '1u' };
+const closedExcept = (at: number | undefined, to: number) => at === undefined ? { value: '34', low: '0', freq: '0.01', duty: '100', delay: '0', edge: '1u' } : { value: '0', low: '34', freq: '0.01', duty: String(Math.max(0, to - at)), delay: String(at), edge: '1u' };
+
+// the high-side outputs: [key, the controller's command, the output net, the read-back net, what]
+const OUTPUTS: [string, string, string, string, string][] = [
+  ['P', 'PUMP', 'KPA', 'RBP', 'pump contactor'], ['M', 'MIXER', 'KMMA', 'RBM', 'mixer / feeder contactor'],
+  ['V1', 'VIB1', 'KMV1A', 'RBV1', 'vibrator 1 contactor'], ['V2', 'VIB2', 'KMV2A', 'RBV2', 'vibrator 2 contactor'],
+  ['S1', 'VALVE1', 'SV1', 'RBS1', 'valve 1 (tamper down)'], ['S2', 'VALVE2', 'SV2', 'RBS2', 'valve 2 (tamper up)'],
+  ['S3', 'VALVE3', 'SV3', 'RBS3', 'valve 3 (mould up)'], ['S4', 'VALVE4', 'SV4', 'RBS4', 'valve 4 (mould down)'],
+];
+// the inputs (24 V through a PC817 each; low = active): [key, terminal text]
+const INPUTS: [string, string][] = [
+  ['1', 'proximity sensor 1: mould up (PNP out)'], ['2', 'proximity sensor 2: mould down (PNP out)'],
+  ['3', 'proximity sensor 3: tamper up (PNP out)'], ['4', 'proximity sensor 4: tamper down (PNP out)'],
+  ['5', 'proximity sensor 5: feeder home (PNP out)'], ['6', 'proximity sensor 6: pallet in place (PNP out)'],
+  ['7', 'START (NO, 24 V)'], ['8', 'STOP (NC, 24 V)'], ['9', 'pressure switch (NO, closes at the working pressure)'],
+  ['10', 'oil temperature switch (NC, opens when hot)'], ['11', 'motor breakers healthy (their auxiliary NO contacts in series)'],
+];
+// the Mega's pins: the inputs D22 … D32, the outputs D2 … D9, the lamp D10, the read-backs A0 … A7,
+// the safety rail A8
+const IN_PIN = (k: number) => `D${21 + k}`;
+const OUT_PIN = ['D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9'];
 
 export function blockMachine(o: BlockOptions = {}): { sheet: Sheet; nb: NB } {
-  const nb = new NB().wireUp(['V24', 'V24F', 'V24S', 'V5'], 3);
-  nb.para('BLOCK MOULDING MACHINE, safety circuit and 24 V outputs: two-channel emergency stop, safety contactors K1 and K2 with mirror contacts in series to the safety rail V24S (every contactor coil and valve of the machine); reset by a capacitor pulse (reset relay K3) through the mirror contacts of K1, K2 and the pump contactor (no restart by a held button, none with a welded contact); pump contactor and solenoid valve from the microcontroller (IRLZ44N, valve clamped at 38 V for a fast release); proximity sensor through a PC817.', -1200, -300);
+  const nb = new NB().wireUp(['V24', 'V24F', 'V24I', 'V24S', 'V5'], 3);
+  nb.para('BLOCK MOULDING MACHINE, safety circuit and 24 V outputs: E-stop and guards on two certified safety relays (two channels, monitored start on the release); their enabling contacts drive the safety contactors K1 and K2 in series to the safety rail V24S, which feeds every contactor coil and valve; the start loops through RESET and the mirror contacts of K1, K2 and every motor contactor (no start with a welded contact). Outputs switched on their +24 V side (IRF9540N, 2 A current limit, read back, SMAJ33CA for a fast release), 0 V bonded to PE. Arduino Mega 2560: the cycle, the pressure and oil temperature switches, the motor breakers, the read-backs.', -1200, -300);
 
-  // ---- test bench: the 24 V supply, the operator's buttons, the microcontroller's outputs
+  // ---- test bench: the supply, the operator, the controller's outputs, the field
   const stop = Number(o.stop ?? 1);
-  nb.block('bench').note('TEST BENCH: the 24 V supply, the operator, the microcontroller (not part of the panel)', -1200, -150)
-    .part('V24', 'battery', -1150, 0, { value: '24', rint: '0.05' }, { '1': 'V24', '2': 'GND' }, 1)
-    // RESET (NO) and the E-stop's two NC contacts as switches driven by the bench
-    .part('VRS', 'vpulse', -1050, 0, { ...pulse(o.reset, (o.reset ?? 0) + (o.resetFor ?? 0.2)), value: '34' }, { '1': 'GRS', '2': 'GND' })
-    .part('SRS', 'nmos', -950, 0, { value: 'IRLZ44N' }, { '1': 'GRS', '2': 'V24F', '3': 'RS1' })
-    // E-stop: closed (gate high) except from estop to estopTo
-    .part('VES', 'vpulse', -1050, 150, o.estop === undefined ? { value: '10', low: '0', freq: '0.01', duty: '100', delay: '0', edge: '1u' } : { value: '0', low: '10', freq: '0.01', duty: String((o.estopTo ?? stop + 1) - o.estop), delay: String(o.estop), edge: '1u' }, { '1': 'GES', '2': 'GND' })
-    .part('SE1', 'nmos', -950, 150, { value: 'IRLZ44N' }, { '1': 'GES', '2': 'E1L', '3': 'GND' })
-    .part('SE2', 'nmos', -950, 250, { value: 'IRLZ44N' }, { '1': 'GES', '2': 'E2L', '3': 'GND' })
-    .part('VPU', 'vpulse', -850, 0, pulse(o.pump, stop + 1), { '1': 'PUMP', '2': 'GND' })
-    .part('VVA', 'vpulse', -850, 150, pulse(o.valve, o.valveTo ?? stop + 1), { '1': 'VALVE', '2': 'GND' })
-    // the valve: 24 V 26 W (22 Ω, 50 mH); the proximity sensor's output (PNP, on)
-    .part('RSV', 'resistor', -750, 300, { value: '22', pmax: '50' }, { '1': 'V24S', '2': 'SVA' }, 1)
-    .part('LSV', 'inductor', -750, 400, { value: '50m', imax: '3' }, { '1': 'SVA', '2': 'SVD' }, 1)
-    .part('VPX', 'battery', -650, 300, { value: '23', rint: '10' }, { '1': 'PX1', '2': 'GND' }, 1)
-    // STOP's NC contact (closed unless pressed) and a 24 V 2.4 W lamp
-    .part('SSTP', 'switch', -550, 300, { closed: o.stopPressed ? 'false' : 'true' }, { '1': 'V24F', '2': 'PX8' })
-    .part('VLA', 'vpulse', -850, 450, pulse(o.lamp, stop + 1), { '1': 'LAMP', '2': 'GND' })
-    .part('RLAM', 'resistor', -750, 550, { value: '240', pmax: '5' }, { '1': 'V24F', '2': 'LMP' }, 1);
-  if (o.allValves) for (const k of [2, 3, 4]) nb.part(`RSV${k}`, 'resistor', -750 + 100 * k, 650, { value: '22', pmax: '50' }, { '1': 'V24S', '2': `SVA${k}` }, 1)
-    .part(`LSV${k}`, 'inductor', -750 + 100 * k, 750, { value: '50m', imax: '3' }, { '1': `SVA${k}`, '2': `SVD${k}` }, 1)
-    .part(`VVA${k}`, 'vpulse', -750 + 100 * k, 850, pulse(o.valve, o.valveTo ?? stop + 1), { '1': `VALVE${k}`, '2': 'GND' });
-  if (o.ch1Bridged) nb.part('SBR', 'switch', -850, 300, { closed: 'true' }, { '1': 'E1L', '2': 'GND' });
+  nb.block('bench').note('TEST BENCH: the 24 V supply, the operator, the controller, the field (not part of the panel)', -1200, -150);
+  if (o.rampMs) nb.part('V24', 'vpulse', -1150, 0, { value: '24', low: '0', freq: '0.01', duty: '100', delay: '0', edge: String(o.rampMs / 1000) }, { '1': 'V24R', '2': 'GND' })
+    .part('RV24', 'resistor', -1150, 100, { value: '0.05' }, { '1': 'V24R', '2': 'V24' });
+  else nb.part('V24', 'battery', -1150, 0, { value: '24', rint: '0.05' }, { '1': 'V24', '2': 'GND' }, 1);
+  // RESET: one button, two NO blocks (one for each safety relay's start loop)
+  const resetPulse = { ...pulse(o.reset, (o.reset ?? 0) + (o.resetFor ?? 0.2), '34') };
+  nb.part('VRS', 'vpulse', -1050, 0, resetPulse, { '1': 'GRS', '2': 'GND' })
+    .part('SRSA', 'nmos', -950, 0, { value: 'IRLZ44N' }, { '1': 'GRS', '2': 'SE33', '3': 'RSA' })
+    .part('SRSB', 'nmos', -950, 100, { value: 'IRLZ44N' }, { '1': 'GRS', '2': 'SG33', '3': 'RSB' });
+  if (o.reset2 !== undefined) nb.part('VRS2', 'vpulse', -1050, 200, pulse(o.reset2, o.reset2 + 0.2, '34'), { '1': 'GRS2', '2': 'GND' })
+    .part('SRS2A', 'nmos', -950, 200, { value: 'IRLZ44N' }, { '1': 'GRS2', '2': 'SE33', '3': 'RSA' })
+    .part('SRS2B', 'nmos', -950, 300, { value: 'IRLZ44N' }, { '1': 'GRS2', '2': 'SG33', '3': 'RSB' });
+  // the E-stop's two NC contacts and the guard switch's two NC contacts
+  nb.part('VES', 'vpulse', -850, 0, closedExcept(o.estop, o.estopTo ?? stop + 1), { '1': 'GES', '2': 'GND' })
+    .part('SE1', 'nmos', -750, 0, { value: 'IRLZ44N' }, { '1': 'GES', '2': 'SE11', '3': 'SE12' })
+    .part('VES2', 'vpulse', -850, 100, o.estopCh1Only ? closedExcept(undefined, 0) : closedExcept(o.estop, o.estopTo ?? stop + 1), { '1': 'GES2', '2': 'GND' })
+    .part('SE2', 'nmos', -750, 100, { value: 'IRLZ44N' }, { '1': 'GES2', '2': 'SE21', '3': 'SE22' })
+    .part('VGS', 'vpulse', -850, 200, closedExcept(o.guard, o.guardTo ?? stop + 1), { '1': 'GGS', '2': 'GND' })
+    .part('SG1', 'nmos', -750, 200, { value: 'IRLZ44N' }, { '1': 'GGS', '2': 'SG11', '3': 'SG12' })
+    .part('SG2', 'nmos', -750, 300, { value: 'IRLZ44N' }, { '1': 'GGS', '2': 'SG21', '3': 'SG22' });
+  if (o.ch1Bridged) nb.part('SBR', 'switch', -650, 0, { closed: 'true' }, { '1': 'SE11', '2': 'SE12' });
   // K1 welded: its armature held by the bench (a second coil supply that never drops)
-  if (o.k1Welded) nb.part('RWK', 'resistor', -650, 450, { value: '1' }, { '1': 'V24', '2': 'C1' }).part('RWK2', 'resistor', -550, 450, { value: '1' }, { '1': 'E1L', '2': 'GND' });
-  if (o.k1WeldAt !== undefined) nb.part('VWK', 'vpulse', -650, 550, { ...pulse(o.k1WeldAt, stop + 1), value: '34' }, { '1': 'GWK', '2': 'GND' })
-    .part('SWK', 'nmos', -550, 550, { value: 'IRLZ44N' }, { '1': 'GWK', '2': 'V24', '3': 'C1' })
-    .part('SWK2', 'nmos', -450, 550, { value: 'IRLZ44N' }, { '1': 'GWK', '2': 'E1L', '3': 'GND' });
-  if (o.reset2 !== undefined) nb.part('VRS2', 'vpulse', -1050, 400, { ...pulse(o.reset2, o.reset2 + 0.2), value: '34' }, { '1': 'GRS2', '2': 'GND' })
-    .part('SRS2', 'nmos', -950, 400, { value: 'IRLZ44N' }, { '1': 'GRS2', '2': 'V24F', '3': 'RS1' });
+  if (o.k1Welded) nb.part('RWK', 'resistor', -650, 100, { value: '1' }, { '1': 'V24', '2': 'C1' });
+  if (o.k1WeldAt !== undefined) nb.part('VWK', 'vpulse', -650, 200, pulse(o.k1WeldAt, stop + 1, '34'), { '1': 'GWK', '2': 'GND' })
+    .part('SWK', 'nmos', -550, 200, { value: 'IRLZ44N' }, { '1': 'GWK', '2': 'V24', '3': 'C1' });
+  // the controller's outputs
+  nb.part('VPU', 'vpulse', -650, 400, pulse(o.pump, stop + 1), { '1': 'PUMP', '2': 'GND' })
+    .part('VVA', 'vpulse', -550, 400, pulse(o.valve, o.valveTo ?? stop + 1), { '1': 'VALVE1', '2': 'GND' })
+    .part('VLA', 'vpulse', -450, 400, pulse(o.lamp, stop + 1), { '1': 'LAMP', '2': 'GND' })
+    .part('VEN', 'vpulse', -350, 400, pulse(o.enable ?? 0.05, o.enableTo ?? stop + 1), { '1': 'ENABLE', '2': 'GND' });
+  if (o.allValves) for (const k of [2, 3, 4]) nb.part(`VVA${k}`, 'vpulse', -650 + 100 * k, 500, pulse(o.valve, o.valveTo ?? stop + 1), { '1': `VALVE${k}`, '2': 'GND' });
+  // the valves (24 V 26 W: 22 Ω, 50 mH), the lamp (24 V 2.4 W), a sensor (PNP, on), STOP's NC
+  for (const k of [1, 2, 3, 4]) nb.part(`RCV${k}`, 'resistor', -1150 + 100 * k, 600, { value: '22', pmax: '50' }, { '1': `SV${k}`, '2': `SVL${k}` }, 1)
+    .part(`LCV${k}`, 'inductor', -1150 + 100 * k, 700, { value: '50m', imax: '3' }, { '1': `SVL${k}`, '2': 'GND' }, 1);
+  nb.part('RLAM', 'resistor', -650, 700, { value: '240', pmax: '5' }, { '1': 'V24F', '2': 'LMP' }, 1)
+    .part('VPX', 'battery', -550, 700, { value: '23', rint: '10' }, { '1': 'PX1', '2': 'GND' }, 1)
+    .part('SSTP', 'switch', -450, 700, { closed: o.stopPressed ? 'false' : 'true' }, { '1': 'V24I', '2': 'PX8' });
+  if (o.qvShorted) nb.part('RQS', 'resistor', -350, 600, { value: '0.01' }, { '1': 'V24O', '2': 'SV1' });
+  if (o.valveShortAt !== undefined) nb.part('VSH', 'vpulse', -350, 700, pulse(o.valveShortAt, stop + 1, '10'), { '1': 'GSH', '2': 'GND' })
+    .part('QSH', 'nmos', -250, 700, { value: 'IRLZ44N' }, { '1': 'GSH', '2': 'SV1', '3': 'GND' });
 
-  // ---- supply terminals and fuse
+  // ---- supply: terminals, the 0 V – PE bond, F1 (coils and valves), F2 (the field 24 V), 5 V
   nb.block('supply')
     .part('XP', 'terminal', 0, -100, { value: '+24 V (panel supply)' }, { '1': 'V24' })
     .part('XN', 'terminal', 0, 0, { value: '0 V' }, { '1': 'GND' })
+    .part('XPE', 'terminal', 0, 50, { value: '0 V – PE bond (the one point)' }, { '1': 'GND' })
     // 8 A time-lag: the coils (about 1.1 A) and up to four valves of 26 W (4.3 A); the firmware
     // keeps at most two valves on (about 3.5 A in all)
     .part('F1', 'fuse', 100, -100, { value: '8', r: '0.01' }, { '1': 'V24', '2': 'V24F' })
+    // 2 A time-lag for the field wiring (0.25 … 0.5 mm²): the sensors, the buttons, the switches
+    .part('F2', 'fuse', 100, 100, { value: '2', r: '0.05' }, { '1': 'V24F', '2': 'V24I' })
     .part('DT1', 'tvs', 200, 0, { value: 'SMAJ33A' }, { '1': 'V24F', '2': 'GND' }, 1)
-    // 5 V for the microcontroller and the inputs' pull-ups (a switching regulator in a 7805's place)
     .part('U5', 'regulator', 300, -100, { value: 'R-78E5.0-1.0' }, { '1': 'V24F', '2': 'GND', '3': 'V5' })
     .part('C5I', 'capacitor_pol', 300, 0, { value: '22u', vmax: '50' }, { '1': 'V24F', '2': 'GND' }, 1)
     .part('C5', 'capacitor_pol', 400, 0, { value: '22u', vmax: '16' }, { '1': 'V5', '2': 'GND' }, 1);
 
-  // ---- the safety circuit
+  // ---- the safety circuit: the E-stop relay KSE and the guard relay KSG
   nb.block('safety')
-    .part('XRS1', 'terminal', 0, 200, { value: 'RESET (NO)' }, { '1': 'V24F' })
-    .part('XRS2', 'terminal', 0, 250, { value: 'RESET' }, { '1': 'RS1' })
-    .part('XE1', 'terminal', 0, 350, { value: 'E-stop channel 1 (NC)' }, { '1': 'E1L' })
-    .part('XE2', 'terminal', 0, 400, { value: 'E-stop channel 2 (NC)' }, { '1': 'E2L' })
-    .part('XE0', 'terminal', 0, 450, { value: 'E-stop common 0 V' }, { '1': 'GND' })
-    // the feedback loop: RESET → NC mirror contacts of K1, K2 and the pump contactor KMP
-    .part('K1', 'contactor', 300, 300, { value: '9 A, coil 24 V DC' }, { A1: 'C1', A2: 'E1L', '1': 'V24F', '2': 'KS', '13': 'V24F', '14': 'C1', '21': 'CRN', '22': 'FB1' })
-    .part('K2', 'contactor', 500, 300, { value: '9 A, coil 24 V DC' }, { A1: 'C2', A2: 'E2L', '1': 'KS', '2': 'V24S', '13': 'V24F', '14': 'C2', '21': 'FB1', '22': 'FB2' })
-    // the reset pulse: 100 µF into the reset relay K3 (1.6 kΩ coil: on for about 0.2 s), whose
-    // contact gives K1 and K2 the full 24 V until their own contacts hold them (the capacitor
-    // straight into the contactors' coils decayed before they pulled in, found in simulation)
-    // the capacitor right after RESET, ahead of the mirror contacts: it stays charged while the
-    // button is held, so the contacts re-closing at an E-stop give no second pulse (behind them it
-    // emptied while running and a held button restarted the machine, found in simulation); RDR
-    // empties it once the button is released
-    .part('CR', 'capacitor_pol', 700, 250, { value: '100u', vmax: '50' }, { '1': 'RS1', '2': 'CRN' })
-    .part('RDR', 'resistor', 700, 350, { value: '4.7k' }, { '1': 'RS1', '2': 'GND' }, 1)
-    // and charges through RCC whatever the mirror contacts do (through K3 alone it charged only
-    // until K1 and K2 pulled in)
-    .part('RCC', 'resistor', 750, 400, { value: '2.2k', pmax: '0.5' }, { '1': 'CRN', '2': 'GND' }, 1)
-    .part('K3', 'relay', 800, 300, { value: '24 V' }, { '1': 'FB3', '2': 'GND', '3': 'V24F', '5': 'RP' })
-    .part('DK3', 'diode', 850, 400, { value: '1N4148' }, { '2': 'GND', '1': 'FB3' }, 1)
-    .part('RDP', 'resistor', 900, 350, { value: '10k' }, { '1': 'RP', '2': 'GND' }, 1)
-    .part('DR1', 'diode', 800, 250, { value: '1N4007' }, { '2': 'RP', '1': 'C1' })
-    .part('DR2', 'diode', 900, 250, { value: '1N4007' }, { '2': 'RP', '1': 'C2' })
-    .part('DK1', 'diode', 300, 450, { value: '1N4007' }, { '2': 'E1L', '1': 'C1' }, 3)
-    .part('DK2', 'diode', 500, 450, { value: '1N4007' }, { '2': 'E2L', '1': 'C2' }, 3)
-    // "safety rail on" lamp. No capacitor on the rail: it kept the valves on after an E-stop
-    .part('RLS', 'resistor', 1100, 300, { value: '2.2k', pmax: '0.5' }, { '1': 'V24S', '2': 'LSA' })
-    .part('LS', 'led', 1100, 400, { colour: 'green' }, { '2': 'LSA', '1': 'GND' }, 1);
+    .part('KSE', 'safetyrelay', 300, 300, { value: '3SK1111-1AB30' }, { A1: 'V24F', A2: 'GND', S11: 'SE11', S12: 'SE12', S21: 'SE21', S22: 'SE22', S33: 'SE33', S34: 'SE34', '13': 'V24F', '14': 'E14', '23': 'V24F', '24': 'E24' })
+    .part('KSG', 'safetyrelay', 300, 500, { value: '3SK1111-1AB30' }, { A1: 'V24F', A2: 'GND', S11: 'SG11', S12: 'SG12', S21: 'SG21', S22: 'SG22', S33: 'SG33', S34: 'SG34', '13': 'E14', '14': 'C1', '23': 'E24', '24': 'C2' })
+    // the nodes between the two relays' enabling contacts: a DC path for the simulator only
+    .part('RE14', 'resistor', 450, 250, { value: '1M', scope: 'test' }, { '1': 'E14', '2': 'GND' }, 1)
+    .part('RE24', 'resistor', 500, 250, { value: '1M', scope: 'test' }, { '1': 'E24', '2': 'GND' }, 1)
+    .part('XE11', 'terminal', 0, 250, { value: 'E-stop channel 1 (NC): S11' }, { '1': 'SE11' })
+    .part('XE12', 'terminal', 0, 280, { value: 'E-stop channel 1: S12' }, { '1': 'SE12' })
+    .part('XE21', 'terminal', 0, 310, { value: 'E-stop channel 2 (NC): S21' }, { '1': 'SE21' })
+    .part('XE22', 'terminal', 0, 340, { value: 'E-stop channel 2: S22' }, { '1': 'SE22' })
+    .part('XG11', 'terminal', 0, 450, { value: 'guard channel 1 (NC): S11' }, { '1': 'SG11' })
+    .part('XG12', 'terminal', 0, 480, { value: 'guard channel 1: S12' }, { '1': 'SG12' })
+    .part('XG21', 'terminal', 0, 510, { value: 'guard channel 2 (NC): S21' }, { '1': 'SG21' })
+    .part('XG22', 'terminal', 0, 540, { value: 'guard channel 2: S22' }, { '1': 'SG22' })
+    .part('XRA1', 'terminal', 0, 600, { value: 'RESET block a (NO): S33 of the E-stop relay' }, { '1': 'SE33' })
+    .part('XRA2', 'terminal', 0, 630, { value: 'RESET block a' }, { '1': 'RSA' })
+    .part('XRB1', 'terminal', 0, 660, { value: 'RESET block b (NO): S33 of the guard relay' }, { '1': 'SG33' })
+    .part('XRB2', 'terminal', 0, 690, { value: 'RESET block b' }, { '1': 'RSB' })
+    // the safety contactors: coils from the relays' enabling contacts in series; their main
+    // contacts, two poles each in series (the DC load's breaking), to the safety rail
+    .part('K1', 'contactor', 600, 300, { value: '9 A, coil 24 V DC', aux2: 'true' }, { A1: 'C1', A2: 'GND', '1': 'V24F', '2': 'KA', '3': 'KA', '4': 'KS', '21': 'RSA', '22': 'FB1', '31': 'RSB', '32': 'GF1' })
+    .part('K2', 'contactor', 800, 300, { value: '9 A, coil 24 V DC', aux2: 'true' }, { A1: 'C2', A2: 'GND', '1': 'KS', '2': 'KB', '3': 'KB', '4': 'V24S', '21': 'FB1', '22': 'FB2', '31': 'GF1', '32': 'SG34' })
+    .part('DK1', 'tvs', 600, 450, { value: 'SMAJ33CA' }, { '1': 'C1', '2': 'GND' }, 1)
+    .part('DK2', 'tvs', 800, 450, { value: 'SMAJ33CA' }, { '1': 'C2', '2': 'GND' }, 1)
+    // "safety rail on" lamp; the rail's state to the controller (24 V → 4.2 V)
+    .part('RLS', 'resistor', 1000, 300, { value: '2.2k', pmax: '0.5' }, { '1': 'V24S', '2': 'LSA' })
+    .part('LS', 'led', 1000, 400, { colour: 'green' }, { '2': 'LSA', '1': 'GND' }, 1)
+    .part('RSR1', 'resistor', 1100, 300, { value: '47k' }, { '1': 'V24S', '2': 'SRS' })
+    .part('RSR2', 'resistor', 1100, 400, { value: '10k' }, { '1': 'SRS', '2': 'GND' }, 1);
 
-  // ---- outputs on the safety rail: the pump's contactor and a solenoid valve
-  nb.block('outputs')
-    .part('KMP', 'contactor', 300, 650, { value: '18 A, coil 24 V DC' }, { A1: 'V24S', A2: 'KPD', '1': 'LP1', '2': 'U1', '3': 'LP2', '4': 'V1', '5': 'LP3', '6': 'W1', '21': 'FB2', '22': 'FBM' })
-    .part('DKP', 'diode', 400, 650, { value: '1N4007' }, { '2': 'KPD', '1': 'V24S' }, 3)
-    .part('RGP', 'resistor', 300, 800, { value: '100' }, { '1': 'PUMP', '2': 'GP' })
-    .part('RGPD', 'resistor', 300, 900, { value: '10k' }, { '1': 'GP', '2': 'GND' }, 1)
-    .part('QP', 'nmos', 400, 800, { value: 'IRLZ44N' }, { '1': 'GP', '2': 'KPD', '3': 'GND' })
-    .part('XSV1', 'terminal', 600, 600, { value: 'valve 1 +' }, { '1': 'V24S' })
-    .part('XSV2', 'terminal', 600, 650, { value: 'valve 1 −' }, { '1': 'SVD' })
-    .part('RGV', 'resistor', 600, 800, { value: '100' }, { '1': 'VALVE', '2': 'GV' })
-    .part('RGVD', 'resistor', 600, 900, { value: '10k' }, { '1': 'GV', '2': 'GND' }, 1)
-    .part('QV', 'nmos', 700, 800, { value: 'IRLZ44N' }, { '1': 'GV', '2': 'SVD', '3': 'GND' })
-    .part('DTV', 'tvs', 800, 850, { value: 'SMAJ33A' }, { '1': 'SVD', '2': 'GND' }, 1);
-  // the tamper's other three valves, the same channel
-  for (const k of [2, 3, 4]) {
-    const x = 1000 + 250 * (k - 2);
-    nb.part(`XSV${k}A`, 'terminal', x, 1100, { value: `valve ${k} +` }, { '1': 'V24S' })
-      .part(`XSV${k}B`, 'terminal', x, 1150, { value: `valve ${k} −` }, { '1': `SVD${k}` })
-      .part(`RGV${k}`, 'resistor', x, 1250, { value: '100' }, { '1': `VALVE${k}`, '2': `GV${k}` })
-      .part(`RGVD${k}`, 'resistor', x, 1350, { value: '10k' }, { '1': `GV${k}`, '2': 'GND' }, 1)
-      .part(`QV${k}`, 'nmos', x + 100, 1250, { value: 'IRLZ44N' }, { '1': `GV${k}`, '2': `SVD${k}`, '3': 'GND' })
-      .part(`DTV${k}`, 'tvs', x + 200, 1300, { value: 'SMAJ33A' }, { '1': `SVD${k}`, '2': 'GND' }, 1);
-  }
-  // the mixer / feeder motor and the two vibrators: contactors on the safety rail like the pump's,
-  // their NC mirror contacts in the reset chain too (a welded motor contactor prevents the reset).
-  // Their main contacts on the panel, each motor through its own motor-protective breaker
-  const motors: [string, string, string][] = [['KMM', 'MIXER', 'mixer / feeder 3 kW'], ['KMV1', 'VIB1', 'vibrator 1, 1.5 kW'], ['KMV2', 'VIB2', 'vibrator 2, 1.5 kW']];
-  motors.forEach(([k, cmd, what], i) => {
-    const x = 1000 + 250 * i, fbIn = i === 0 ? 'FBM' : `FBM${i}`, fbOut = i === 2 ? 'FB3' : `FBM${i + 1}`;
-    nb.part(k, 'contactor', x, 1500, { value: '9 A, coil 24 V DC' }, { A1: 'V24S', A2: `${k}D`, '1': `${k}L1`, '2': `${k}U`, '3': `${k}L2`, '4': `${k}V`, '5': `${k}L3`, '6': `${k}W`, '21': fbIn, '22': fbOut })
-      // its motor-protective breaker (thermal set to the motor's rated current)
-      .part(`Q${k}F`, 'breaker3', x, 2250, { value: i === 0 ? '10' : '4', curve: 'M' }, { '1': 'L1', '2': `${k}L1`, '3': 'L2', '4': `${k}L2`, '5': 'L3', '6': `${k}L3` })
-      .part(`D${k}`, 'diode', x + 100, 1500, { value: '1N4007' }, { '2': `${k}D`, '1': 'V24S' }, 3)
-      .part(`RG${k}`, 'resistor', x, 1650, { value: '100' }, { '1': cmd, '2': `G${k}` })
-      .part(`RGD${k}`, 'resistor', x, 1750, { value: '10k' }, { '1': `G${k}`, '2': 'GND' }, 1)
-      .part(`Q${k}`, 'nmos', x + 100, 1650, { value: 'IRLZ44N' }, { '1': `G${k}`, '2': `${k}D`, '3': 'GND' })
-      .part(`X${k}U`, 'terminal', x, 1850, { value: `${what}: U` }, { '1': `${k}U` })
-      .part(`X${k}V`, 'terminal', x, 1900, { value: `${what}: V` }, { '1': `${k}V` })
-      .part(`X${k}W`, 'terminal', x, 1950, { value: `${what}: W` }, { '1': `${k}W` })
-      .part(`R${k}U`, 'resistor', x + 80, 2050, { value: '1M', scope: 'test' }, { '1': `${k}U`, '2': 'GND' }, 1)
-      .part(`R${k}V`, 'resistor', x + 120, 2050, { value: '1M', scope: 'test' }, { '1': `${k}V`, '2': 'GND' }, 1)
-      .part(`R${k}W`, 'resistor', x + 160, 2050, { value: '1M', scope: 'test' }, { '1': `${k}W`, '2': 'GND' }, 1);
+  // ---- the outputs' enable: an IRF4905 from the safety rail to the outputs' supply V24O, on from
+  // the controller (BC547B level shift), read back
+  nb.block('enable')
+    .part('QEN', 'pmos', 1300, 400, { value: 'IRF4905' }, { '1': 'GEN', '2': 'V24O', '3': 'V24S' })
+    .part('RGSE', 'resistor', 1400, 350, { value: '10k' }, { '1': 'V24S', '2': 'GEN' })
+    .part('RGDE', 'resistor', 1400, 450, { value: '10k' }, { '1': 'GEN', '2': 'DEN' })
+    .part('QDE', 'npn', 1500, 500, { value: 'BC547B' }, { '1': 'BEN', '2': 'DEN', '3': 'GND' })
+    .part('RBE', 'resistor', 1600, 500, { value: '10k' }, { '1': 'ENABLE', '2': 'BEN' })
+    .part('RBDE', 'resistor', 1600, 600, { value: '47k' }, { '1': 'BEN', '2': 'GND' }, 1)
+    .part('RRE', 'resistor', 1700, 400, { value: '47k' }, { '1': 'V24O', '2': 'RBEN' })
+    .part('RRDE', 'resistor', 1700, 500, { value: '10k' }, { '1': 'RBEN', '2': 'GND' }, 1);
+
+  // ---- the outputs: each switched on its +24 V side from the outputs' supply
+  nb.block('outputs');
+  OUTPUTS.forEach(([k, cmd, out, rb, what], i) => {
+    const x = 1300 + 200 * i, y = 700;
+    nb.part(`RS${k}`, 'resistor', x, y, { value: '0.33', pmax: '1' }, { '1': 'V24O', '2': `HS${k}` })
+      .part(`QI${k}`, 'pnp', x + 60, y + 60, { value: 'BC557B' }, { '1': `BI${k}`, '2': `G${k}`, '3': 'V24O' })
+      .part(`RI${k}`, 'resistor', x + 30, y + 120, { value: '100' }, { '1': `HS${k}`, '2': `BI${k}` })
+      .part(`QH${k}`, 'pmos', x, y + 180, { value: 'IRF9540N' }, { '1': `G${k}`, '2': out, '3': `HS${k}` })
+      .part(`RGS${k}`, 'resistor', x + 100, y + 120, { value: '10k' }, { '1': `HS${k}`, '2': `G${k}` })
+      .part(`RGD${k}`, 'resistor', x + 100, y + 240, { value: '10k' }, { '1': `G${k}`, '2': `D${k}` })
+      .part(`QD${k}`, 'npn', x + 100, y + 320, { value: 'BC547B' }, { '1': `B${k}`, '2': `D${k}`, '3': 'GND' })
+      .part(`RB${k}`, 'resistor', x, y + 320, { value: '10k' }, { '1': cmd, '2': `B${k}` })
+      .part(`RBD${k}`, 'resistor', x, y + 400, { value: '47k' }, { '1': `B${k}`, '2': 'GND' }, 1)
+      .part(`DT${k}`, 'tvs', x + 60, y + 400, { value: 'SMAJ33CA' }, { '1': out, '2': 'GND' }, 1)
+      .part(`RR${k}`, 'resistor', x + 140, y + 400, { value: '47k' }, { '1': out, '2': rb })
+      .part(`RRD${k}`, 'resistor', x + 140, y + 480, { value: '10k' }, { '1': rb, '2': 'GND' }, 1);
+    if (k.startsWith('S')) nb.part(`X${out}A`, 'terminal', x, y + 560, { value: `${what} +` }, { '1': out })
+      .part(`X${out}B`, 'terminal', x + 50, y + 560, { value: `${what} −` }, { '1': 'GND' });
   });
-  nb.block('outputs')
-    // the power circuit (400 V: not simulated): the supply's terminals, the main breaker QS (the
-    // supply-disconnecting device, padlockable), the pump's motor-protective breaker
-    .part('XL1', 'terminal', 100, 750, { value: 'supply L1 (400 V, 3 phases)' }, { '1': 'LIN1' })
-    .part('XL2', 'terminal', 100, 800, { value: 'supply L2' }, { '1': 'LIN2' })
-    .part('XL3', 'terminal', 100, 850, { value: 'supply L3' }, { '1': 'LIN3' })
-    .part('QS', 'breaker3', 100, 1100, { value: '32', curve: 'C' }, { '1': 'LIN1', '2': 'L1', '3': 'LIN2', '4': 'L2', '5': 'LIN3', '6': 'L3' })
-    .part('QP1', 'breaker3', 250, 1100, { value: '16', curve: 'M' }, { '1': 'L1', '2': 'LP1', '3': 'L2', '4': 'LP2', '5': 'L3', '6': 'LP3' })
-    .part('XU', 'terminal', 400, 950, { value: 'pump motor U' }, { '1': 'U1' })
-    .part('XV', 'terminal', 450, 950, { value: 'pump motor V' }, { '1': 'V1' })
-    .part('XW', 'terminal', 500, 950, { value: 'pump motor W' }, { '1': 'W1' })
+
+  // ---- the motors: contactors with their coils on the outputs, their mirror contacts in the
+  // E-stop relay's start loop (a welded motor contactor refuses the start); each motor through its
+  // motor-protective breaker (thermal set to its rated current); the main breaker QS
+  nb.block('motors')
+    .part('KMP', 'contactor', 300, 1500, { value: '18 A, coil 24 V DC' }, { A1: 'KPA', A2: 'GND', '1': 'LP1', '2': 'U1', '3': 'LP2', '4': 'V1', '5': 'LP3', '6': 'W1', '21': 'FB2', '22': 'FBM' });
+  const motors: [string, string, string, string, string][] = [['KMM', 'KMMA', 'FBM', 'FBM1', 'mixer / feeder 3 kW'], ['KMV1', 'KMV1A', 'FBM1', 'FBM2', 'vibrator 1, 1.5 kW'], ['KMV2', 'KMV2A', 'FBM2', 'SE34', 'vibrator 2, 1.5 kW']];
+  motors.forEach(([k, a1, fbIn, fbOut, what], i) => {
+    const x = 600 + 300 * i;
+    nb.part(k, 'contactor', x, 1500, { value: '9 A, coil 24 V DC' }, { A1: a1, A2: 'GND', '1': `${k}L1`, '2': `${k}U`, '3': `${k}L2`, '4': `${k}V`, '5': `${k}L3`, '6': `${k}W`, '21': fbIn, '22': fbOut })
+      .part(`Q${k}F`, 'breaker3', x, 1350, { value: i === 0 ? '6' : '4', curve: 'M' }, { '1': 'L1', '2': `${k}L1`, '3': 'L2', '4': `${k}L2`, '5': 'L3', '6': `${k}L3` })
+      .part(`X${k}U`, 'terminal', x, 1650, { value: `${what}: U` }, { '1': `${k}U` })
+      .part(`X${k}V`, 'terminal', x + 50, 1650, { value: `${what}: V` }, { '1': `${k}V` })
+      .part(`X${k}W`, 'terminal', x + 100, 1650, { value: `${what}: W` }, { '1': `${k}W` })
+      .part(`R${k}U`, 'resistor', x, 1750, { value: '1M', scope: 'test' }, { '1': `${k}U`, '2': 'GND' }, 1)
+      .part(`R${k}V`, 'resistor', x + 50, 1750, { value: '1M', scope: 'test' }, { '1': `${k}V`, '2': 'GND' }, 1)
+      .part(`R${k}W`, 'resistor', x + 100, 1750, { value: '1M', scope: 'test' }, { '1': `${k}W`, '2': 'GND' }, 1);
+  });
+  nb.part('XL1', 'terminal', -100, 1300, { value: 'supply L1 (400 V, 3 phases)' }, { '1': 'LIN1' })
+    .part('XL2', 'terminal', -100, 1350, { value: 'supply L2' }, { '1': 'LIN2' })
+    .part('XL3', 'terminal', -100, 1400, { value: 'supply L3' }, { '1': 'LIN3' })
+    .part('QS', 'breaker3', 50, 1350, { value: '32', curve: 'C' }, { '1': 'LIN1', '2': 'L1', '3': 'LIN2', '4': 'L2', '5': 'LIN3', '6': 'L3' })
+    .part('QP1', 'breaker3', 200, 1350, { value: '16', curve: 'M' }, { '1': 'L1', '2': 'LP1', '3': 'L2', '4': 'LP2', '5': 'L3', '6': 'LP3' })
+    .part('XU', 'terminal', 300, 1650, { value: 'pump motor U' }, { '1': 'U1' })
+    .part('XV', 'terminal', 350, 1650, { value: 'pump motor V' }, { '1': 'V1' })
+    .part('XW', 'terminal', 400, 1650, { value: 'pump motor W' }, { '1': 'W1' })
     // the 400 V nets' 1 MΩ to ground: a DC path for the simulator only (scope test: not on the board)
-    .part('RLI', 'resistor', 150, 950, { value: '1M', scope: 'test' }, { '1': 'LIN1', '2': 'GND' }, 1)
-    .part('RL1', 'resistor', 200, 950, { value: '1M', scope: 'test' }, { '1': 'L1', '2': 'GND' }, 1)
-    .part('RL2', 'resistor', 250, 950, { value: '1M', scope: 'test' }, { '1': 'L2', '2': 'GND' }, 1)
-    .part('RL3', 'resistor', 300, 950, { value: '1M', scope: 'test' }, { '1': 'L3', '2': 'GND' }, 1);
+    .part('RLI1', 'resistor', -100, 1450, { value: '1M', scope: 'test' }, { '1': 'LIN1', '2': 'GND' }, 1)
+    .part('RLI2', 'resistor', -50, 1450, { value: '1M', scope: 'test' }, { '1': 'LIN2', '2': 'GND' }, 1)
+    .part('RLI3', 'resistor', 0, 1450, { value: '1M', scope: 'test' }, { '1': 'LIN3', '2': 'GND' }, 1)
+    .part('RU1', 'resistor', 300, 1750, { value: '1M', scope: 'test' }, { '1': 'U1', '2': 'GND' }, 1)
+    .part('RV1', 'resistor', 350, 1750, { value: '1M', scope: 'test' }, { '1': 'V1', '2': 'GND' }, 1)
+    .part('RW1', 'resistor', 400, 1750, { value: '1M', scope: 'test' }, { '1': 'W1', '2': 'GND' }, 1);
 
-  // ---- a proximity sensor (PNP, 24 V) to the microcontroller (5 V) through a PC817
-  nb.block('inputs')
-    .part('XPX', 'terminal', 900, 600, { value: 'proximity sensor 1 (PNP out)' }, { '1': 'PX1' })
-    .part('RPX', 'resistor', 1000, 600, { value: '4.7k' }, { '1': 'PX1', '2': 'PXA' })
-    .part('UPX', 'opto', 1100, 650, { value: 'PC817' }, { '1': 'PXA', '2': 'GND', '4': 'IN1', '3': 'GND' })
-    .part('DPX', 'diode', 1000, 700, { value: '1N4148' }, { '2': 'GND', '1': 'PXA' }, 1)
-    .part('RIN', 'resistor', 1200, 650, { value: '10k' }, { '1': 'V5', '2': 'IN1' }, 1)
-    ;
-  // the machine's other end positions and the START button (24 V, NO), each the same input
-  const ins = ['mould down', 'tamper up', 'tamper down', 'feeder home', 'pallet in place', 'START (NO, 24 V)'];
-  ins.forEach((what, i) => {
-    const k = i + 2, y = 1100 + 150 * i;
-    nb.part(`XPX${k}`, 'terminal', 2000, y, { value: k < 7 ? `proximity sensor ${k}: ${what} (PNP out)` : what }, { '1': `PX${k}` })
-      .part(`RPX${k}`, 'resistor', 2100, y, { value: '4.7k' }, { '1': `PX${k}`, '2': `PXA${k}` })
-      .part(`UPX${k}`, 'opto', 2200, y + 50, { value: 'PC817' }, { '1': `PXA${k}`, '2': 'GND', '4': `IN${k}`, '3': 'GND' })
-      .part(`DPX${k}`, 'diode', 2100, y + 100, { value: '1N4148' }, { '2': 'GND', '1': `PXA${k}` }, 1)
-      .part(`RIN${k}`, 'resistor', 2300, y, { value: '10k' }, { '1': 'V5', '2': `IN${k}` }, 1);
+  // ---- the inputs: 24 V (from F2) through a PC817 each; low = active
+  nb.block('inputs');
+  INPUTS.forEach(([k, what], i) => {
+    const x = 3100, y = 300 + 120 * i;
+    nb.part(`XIN${k}`, 'terminal', x, y, { value: what }, { '1': `PX${k}` })
+      .part(`RPX${k}`, 'resistor', x + 100, y, { value: '4.7k' }, { '1': `PX${k}`, '2': `PXA${k}` })
+      .part(`UPX${k}`, 'opto', x + 200, y + 50, { value: 'PC817' }, { '1': `PXA${k}`, '2': 'GND', '4': `IN${k}`, '3': 'GND' })
+      .part(`DPX${k}`, 'diode', x + 100, y + 80, { value: '1N4148' }, { '2': 'GND', '1': `PXA${k}` }, 1)
+      .part(`RIN${k}`, 'resistor', x + 300, y, { value: '10k' }, { '1': 'V5', '2': `IN${k}` }, 1);
   });
-  // STOP (NC, 24 V): the same input; pressed or its cable broken, IN8 is high (stop)
-  nb.part('XPX8', 'terminal', 2000, 1950, { value: 'STOP (NC, 24 V)' }, { '1': 'PX8' })
-    .part('RPX8', 'resistor', 2100, 1950, { value: '4.7k' }, { '1': 'PX8', '2': 'PXA8' })
-    .part('UPX8', 'opto', 2200, 2000, { value: 'PC817' }, { '1': 'PXA8', '2': 'GND', '4': 'IN8', '3': 'GND' })
-    .part('DPX8', 'diode', 2100, 2050, { value: '1N4148' }, { '2': 'GND', '1': 'PXA8' }, 1)
-    .part('RIN8', 'resistor', 2300, 1950, { value: '10k' }, { '1': 'V5', '2': 'IN8' }, 1);
-  // the READY / FAULT lamp (24 V, up to 0.5 A) on the panel's door, from D13; fed from V24F, so it
-  // shows a fault while the safety rail is off
-  nb.part('XLP1', 'terminal', 2400, 2150, { value: 'lamp READY / FAULT +24 V' }, { '1': 'V24F' })
-    .part('XLP2', 'terminal', 2450, 2150, { value: 'lamp READY / FAULT −' }, { '1': 'LMP' })
-    .part('RGL', 'resistor', 2400, 2250, { value: '100' }, { '1': 'LAMP', '2': 'GL' })
-    .part('RGLD', 'resistor', 2400, 2350, { value: '10k' }, { '1': 'GL', '2': 'GND' }, 1)
-    .part('QL', 'nmos', 2500, 2250, { value: 'IRLZ44N' }, { '1': 'GL', '2': 'LMP', '3': 'GND' })
-    .part('DTL', 'tvs', 2600, 2300, { value: 'SMAJ33A' }, { '1': 'LMP', '2': 'GND' }, 1);
-  nb.part('XPS', 'terminal', 2000, 2050, { value: 'sensors +24 V' }, { '1': 'V24F' })
-    .part('XPS0', 'terminal', 2050, 2050, { value: 'sensors 0 V' }, { '1': 'GND' });
-  // ---- the microcontroller (D24): an Arduino Nano (5 V I/O) on sockets, the sequence's firmware
-  // (fill, vibrate, press, demould, eject). Inputs IN1 … IN7 on D2 … D8 (low = target present /
-  // START pressed); PUMP D9, valves D10, D11, D12, A3; MIXER A0, VIB1 A1, VIB2 A2; the safety rail's
-  // state on A4 (24 V → 4.2 V); STOP on A5 (high: pressed); the READY / FAULT lamp on D13. Its outputs' gates have 10k pull-downs: all off while it resets.
-  // Not simulated: the bench drives PUMP and VALVE
-  nb.block('microcontroller')
-    .part('UMC', 'nano', 2600, 1200, { value: 'Arduino Nano' }, { '4': 'GND', '29': 'GND', '27': 'V5',
-      '5': 'IN1', '6': 'IN2', '7': 'IN3', '8': 'IN4', '9': 'IN5', '10': 'IN6', '11': 'IN7',
-      '12': 'PUMP', '13': 'VALVE', '14': 'VALVE2', '15': 'VALVE3', '22': 'VALVE4', '19': 'MIXER', '20': 'VIB1', '21': 'VIB2', '23': 'SRS',
-      '24': 'IN8', '16': 'LAMP' })
-    .part('RSR1', 'resistor', 2600, 1600, { value: '47k' }, { '1': 'V24S', '2': 'SRS' })
-    .part('RSR2', 'resistor', 2700, 1700, { value: '10k' }, { '1': 'SRS', '2': 'GND' }, 1);
-  nb.v('V24F').v('LMP').v('IN8').v('V24S').v('C1').v('C2').v('RP').v('CRN').v('SVD').v('KPD').v('U1').v('IN1').v('FB3').i('RSV', '1');
+  nb.part('XPS', 'terminal', 3100, 1700, { value: 'field +24 V (sensors, buttons, switches; F2)' }, { '1': 'V24I' })
+    .part('XPS2', 'terminal', 3150, 1700, { value: 'field +24 V' }, { '1': 'V24I' })
+    .part('XPS0', 'terminal', 3200, 1700, { value: 'field 0 V' }, { '1': 'GND' });
+
+  // ---- the READY / FAULT lamp on the door: low side from D10 (fed from V24F, so it can show a
+  // fault while the safety rail is off)
+  nb.block('lamp')
+    .part('XLP1', 'terminal', 2900, 1900, { value: 'lamp READY / FAULT +24 V' }, { '1': 'V24F' })
+    .part('XLP2', 'terminal', 2950, 1900, { value: 'lamp READY / FAULT −' }, { '1': 'LMP' })
+    .part('RGL', 'resistor', 2900, 2000, { value: '100' }, { '1': 'LAMP', '2': 'GL' })
+    .part('RGLD', 'resistor', 2900, 2100, { value: '10k' }, { '1': 'GL', '2': 'GND' }, 1)
+    .part('QL', 'nmos', 3000, 2000, { value: 'IRLZ44N' }, { '1': 'GL', '2': 'LMP', '3': 'GND' })
+    .part('DTL', 'tvs', 3100, 2050, { value: 'SMAJ33A' }, { '1': 'LMP', '2': 'GND' }, 1);
+
+  // ---- the controller (D67): an Arduino Mega 2560 (5 V I/O) on the board's 5 V. Not simulated:
+  // the bench drives its outputs
+  const mega: Record<string, string> = { '5V': 'V5', GND: 'GND', A8: 'SRS', A9: 'RBEN', D10: 'LAMP', D11: 'ENABLE' };
+  INPUTS.forEach(([k]) => { mega[IN_PIN(Number(k))] = `IN${k}`; });
+  OUTPUTS.forEach(([, cmd, , rb], i) => { mega[OUT_PIN[i]] = cmd; mega[`A${i}`] = rb; });
+  nb.block('controller').part('UMC', 'mega', 2600, 300, { value: 'Arduino Mega 2560' }, mega);
+
+  nb.v('V24F').v('V24S').v('V24O').v('RBEN').v('C1').v('C2').v('SV1').v('SV2').v('SV3').v('SV4').v('KPA').v('LMP').v('IN8').v('RBS1').v('GS1').v('HSS1').i('RCV1', '1').i('QHS1', '2');
   nb.sim({ type: 'tran', stop: o.stop ?? '1', step: '20u', start: 'zero', thin: true });
   return { sheet: nb.done(), nb };
 }

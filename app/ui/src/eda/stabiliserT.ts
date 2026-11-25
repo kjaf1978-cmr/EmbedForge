@@ -181,7 +181,7 @@ export function stabiliserT(o: StabTOptions = {}): { sheet: Sheet; nb: NB } {
       .part(`LT${k}`, 'led', x + 280, 60, { colour: 'yellow' }, { '2': `CF${k}`, '1': `LTA${k}` }, 1)
       .part(`DLT${k}`, 'diode', x + 240, 100, { value: '1N4148' }, { '2': `LTA${k}`, '1': `CF${k}` }, 1)
       .part(`RLT${k}`, 'resistor', x + 280, 150, { value: '4.7k' }, { '1': `LTA${k}`, '2': kt }, 1)
-      .part(`DF${k}`, 'diode', x + 360, 60, { value: '1N4007' }, { '2': 'VTF', '1': `CF${k}` })
+      .part(`DFT${k}`, 'diode', x + 360, 60, { value: '1N4007' }, { '2': 'VTF', '1': `CF${k}` })
       .part(`K${k}`, 'contactor', x + 320, 300, { value: vr.kt, aux2: 'true', opsday: '200', life: '10000000', land: 'A1 A2 13 14 21 22 43 44' },
         { A1: `CF${k}`, A2: kt, '1': 'VCH', '2': `T${k}`, '3': 'VCH', '4': `T${k}`, '5': 'VCH', '6': `T${k}`, '13': kt, '14': o.welded === k && o.noOpens ? `nc_AX${k}` : `AX${k}`, '21': (k === 1 ? 'KIS' : `KC${k - 1}`), '22': (k === 7 ? 'GND' : `KC${k}`), '43': V24, '44': `CF${k}` })
       .part(`RAX${k}`, 'resistor', x + 320, 420, { value: '2.2k' }, { '1': `AX${k}`, '2': 'M' })

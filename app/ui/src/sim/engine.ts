@@ -1012,6 +1012,10 @@ class Logic implements Device {
   /** The counter's state (fn 'ctr'). */
   private count = 0;
   private nextCount = 0;
+  /** The safety relay's state (fn 'safety'): armed by a press, the start loop seen open, its last
+   *  level, both channels required to open (after only one did). */
+  private sf = { armed: false, seenLow: false, lastRst: false, needBoth: false };
+  private nextSf = { armed: false, seenLow: false, lastRst: false, needBoth: false };
   private static readonly GOUT = 1 / 50;
   private static readonly GIN = 1e-7;
   constructor(public el: Element & { kind: 'X' }, private ins: number[], private outs: number[], private vcc: number) {
@@ -1047,6 +1051,21 @@ class Logic implements Device {
         this.nextCount = n;
         break;
       }
+      case 'safety': {
+        const [c1, c2, rst] = a, sf = { ...this.sf };
+        const on = this.out[0] === 1;
+        if (!c1 && !c2) sf.needBoth = false;
+        if (on && !(c1 && c2)) { out = [0]; sf.needBoth = c1 || c2; sf.armed = false; }
+        else if (!on && c1 && c2 && !sf.needBoth) {
+          if (rst && !sf.lastRst && sf.seenLow) sf.armed = true;
+          if (!rst && sf.armed) { out = [1]; sf.armed = false; }
+        } else if (!on) sf.armed = false;
+        if (!rst) sf.seenLow = true;
+        if (!(c1 && c2) && !on) sf.seenLow = !rst;
+        sf.lastRst = rst;
+        this.nextSf = sf;
+        break;
+      }
       case 'dff': {
         clk = a[1];
         if (clk && !this.lastClk) out = a[0] ? [1, 0] : [0, 1];
@@ -1058,9 +1077,10 @@ class Logic implements Device {
   }
   pending(x: Float64Array) {
     const n = this.next(x);
-    return n.inHigh !== this.inHigh || n.clk !== this.lastClk || n.out.some((v, k) => v !== this.out[k]) || (this.el.fn === 'ctr' && this.nextCount !== this.count);
+    return n.inHigh !== this.inHigh || n.clk !== this.lastClk || n.out.some((v, k) => v !== this.out[k]) || (this.el.fn === 'ctr' && this.nextCount !== this.count) ||
+      (this.el.fn === 'safety' && JSON.stringify(this.nextSf) !== JSON.stringify(this.sf));
   }
-  commitState(x: Float64Array) { const n = this.next(x); this.out = n.out; this.inHigh = n.inHigh; this.lastClk = n.clk; if (this.el.fn === 'ctr') this.count = this.nextCount; }
+  commitState(x: Float64Array) { const n = this.next(x); this.out = n.out; this.inHigh = n.inHigh; this.lastClk = n.clk; if (this.el.fn === 'ctr') this.count = this.nextCount; if (this.el.fn === 'safety') this.sf = { ...this.nextSf }; }
   private stamp(c: { A: Float64Array; n: number }) {
     for (const i of this.ins) stampG(c, i, -1, Logic.GIN);
     this.outs.forEach((o, k) => stampG(c, o, this.out[k] ? this.vcc : -1, Logic.GOUT));

@@ -28,7 +28,7 @@ current product's own long runs. One session works on the branch.
 | 4 | P5 surge protection | 1 day | **signed off 17 November 2026** (D61, package 037f847; the two P6 changes go into P6; DEHN data-sheet checks and the modules' impulse voltage open for the installation) |
 | 5 | P9 pump controller | 1 day | **signed off 18 November 2026** (D62, package fc8f3ab; SELV control, independent protection with its own contactor; open for the prototype: the type tests) |
 | 6 | P9 gate controller (Nano) | 4–5 days | **signed off 19 November 2026** (D63, package cb8e61f; firmware D48; after the review: power-on reset, a trip drops the relays, 0.1 s blanking, STOP, the photo-beam tested before each close, a supply of at least 10 A; open for the prototype: the type tests, the shunt's sense on built boards) |
-| 7 | P9 block machine (Nano) | 2–3 days | |
+| 7 | P9 block machine (Mega 2560) | 4–5 days | after the independent review (25 November 2026): D65 a certified safety relay for the E-stop and the guards (monitored reset on release, cross-short detection, the contactors' mirror contacts in its feedback loop); D66 the outputs switched on their +24 V side with diagnostics and read-back, the 0 V bonded to PE; D67 an Arduino Mega 2560 (the inputs for pressure, oil temperature, the breakers' trips and the read-back) |
 | 8 | P9 irrigation (ESP32) | 4–5 days | D50: interface decided then |
 | 9 | P9 trimmer drive | 1 day | |
 | 10 | P9 grinder drive | 1–2 days | |

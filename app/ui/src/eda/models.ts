@@ -93,6 +93,7 @@ export const MOSFETS: NamedModel<MosModel>[] = [
   { name: 'IRLML0060', note: 'N-channel logic-level, 60 V / 2.7 A, RDS(on) ≈ 92 mΩ at 4.5 V (SOT-23, approximate level-1 model): valve and relay drivers on 24 V field wiring', model: { type: 'nmos', vto: 1.6, kp: 3.75, lambda: 0.005, w: 1, l: 1, is: 1e-12, cgs: 220e-12, cgd: 20e-12, cds: 40e-12 } },
   { name: 'IRF540N', note: 'N-channel power, 100 V / 33 A, RDS(on) ≈ 44 mΩ at 10 V (approximate level-1 model)', model: { type: 'nmos', vto: 3, kp: 3.25, lambda: 0.005, w: 1, l: 1, is: 1e-12 } },
   { name: 'BS250', note: 'P-channel small-signal, 45 V / 230 mA (approximate level-1 model)', model: { type: 'pmos', vto: -2.0, kp: 0.05, lambda: 0.01, w: 1, l: 1, is: 1e-14 } },
+  { name: 'IRF4905', note: 'P-channel power, 55 V / 74 A, RDS(on) ≈ 20 mΩ at 10 V (TO-220, approximate level-1 model)', model: { type: 'pmos', vto: -3, kp: 7.1, lambda: 0.005, w: 1, l: 1, is: 1e-12 } },
   { name: 'IRF9540N', note: 'P-channel power, 100 V / 23 A, RDS(on) ≈ 0.12 Ω at 10 V (approximate level-1 model)', model: { type: 'pmos', vto: -3, kp: 1.2, lambda: 0.005, w: 1, l: 1, is: 1e-12 } },
   { name: 'AO3401', note: 'P-channel logic-level, 30 V / 4 A, RDS(on) ≈ 50 mΩ at 4.5 V (SOT-23, approximate level-1 model)', model: { type: 'pmos', vto: -0.9, kp: 5.6, lambda: 0.005, w: 1, l: 1, is: 1e-12 } },
 ];

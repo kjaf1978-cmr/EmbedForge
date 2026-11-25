@@ -650,7 +650,7 @@ export function inverterControl(nb: NB, o: { softC?: string; overloadC?: string;
   nb
     .part('RREF2', 'resistor', 850, 1850, { value: '2.2k' }, { '1': V, '2': 'VREF2' }, 1)
     .part('UREF2', 'tl431', 850, 1980, { value: 'TL431' }, { '1': 'VREF2', '2': G, '3': 'VREF2' }, 3)
-    .part('UOV', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': c.flux ? 'VRP' : 'VREF2', '1': 'FLT', '8': V, '4': G })
+    .part('UOVP', 'comparator', 1000, 1950, { value: 'LM393', pkg: 'PROT' }, { '3': 'SP', '2': c.flux ? 'VRP' : 'VREF2', '1': 'FLT', '8': V, '4': G })
     .part('RFLT', 'resistor', 1100, 1850, { value: '2.2k' }, { '1': V, '2': 'FLT' }, 1)
     // the latch: FLT high (7.3 V with the LED and QFL's base) holds SP at 3.5 V through DLAT and
     // RLAT with the sense at zero (4.7k and 47k held only 0.6 V: the trip released itself when
@@ -938,7 +938,7 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
   nb.block('dc-dc overload')
     .part('ROTA', 'resistor', -1420, 1380, { value: '10k', tol: '0.1' }, { '1': 'VREFL', '2': 'VOT' }, 1)
     .part('ROTB', 'resistor', -1420, 1500, { value: '30.1k', tol: '0.1' }, { '1': 'VOT', '2': 'GND' }, 1)
-    .part('ROT', 'resistor', -1300, 1560, { value: '1M' }, { '1': 'VC', '2': 'VCF' })
+    .part('ROTC', 'resistor', -1300, 1560, { value: '1M' }, { '1': 'VC', '2': 'VCF' })
     .part('COT', 'capacitor', -1200, 1660, { value: o.dcOverloadC ?? '220n', vmax: '25' }, { '1': 'VCF', '2': 'GND' }, 1)
     .part('USP', 'comparator', -1080, 1460, { value: 'LM393', pkg: 'PROTL' }, { '3': 'VCF', '2': 'VOT', '1': 'OLL', '8': V, '4': 'GND' })
     .part('ROLP', 'resistor', -980, 1380, { value: '10k' }, { '1': V, '2': 'OLL' }, 1)
@@ -1005,14 +1005,14 @@ export function inverterHF(o: InverterHfOptions = {}): { sheet: Sheet; nb: NB } 
     // CKB = QC or BLK: B follows A at the current trip, at the latest at the blanking
     .part('G4', 'nor2', 160, 1200, { value: V, pkg: 'NOR1' }, { '1': 'QC', '2': 'BLK', '3': 'CKN' })
     .part('G5', 'nor2', 300, 1200, { value: V, pkg: 'NOR1' }, { '1': 'CKN', '2': 'CKN', '3': 'CKB' })
-    .part('UFB', 'dff', 440, 1060, { value: V, pkg: 'FFA' }, { '1': 'A', '2': 'CKB', '3': 'B', '4': 'BN' })
+    .part('UFBF', 'dff', 440, 1060, { value: V, pkg: 'FFA' }, { '1': 'A', '2': 'CKB', '3': 'B', '4': 'BN' })
     .part('CDL', 'capacitor', 120, 1320, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     // peak current: the current transformer's signal (0.5 µs filter against the turn-on spike)
     // plus the slope compensation (the 555 ramp, AC-coupled, 0.68 V; biased 0.34 V up from
     // VREFL so it stays above 0 V) against the command VC
     .part('RCF', 'resistor', -500, 1400, { value: '1k' }, { '1': 'CSR', '2': 'CSF' })
     .part('CCF', 'capacitor', -400, 1500, { value: '470p', vmax: '50' }, { '1': 'CSF', '2': 'GND' }, 1)
-    .part('RCB', 'resistor', -400, 1300, { value: '5.23k' }, { '1': 'VREFL', '2': 'CSF' })
+    .part('RCBL', 'resistor', -400, 1300, { value: '5.23k' }, { '1': 'VREFL', '2': 'CSF' })
     // the ramp through an emitter follower (68k straight on the 1 nF timing capacitor slowed the
     // oscillator to 23 kHz)
     .part('QSLF', 'npn', -640, 1380, { value: 'BC547B' }, { '1': 'T40', '2': V, '3': 'T40E' })

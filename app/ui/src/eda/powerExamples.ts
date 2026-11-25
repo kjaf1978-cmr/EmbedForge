@@ -48,6 +48,12 @@ export class NB {
   wireUp(rails: string[], spread = 2, between = false): this { this.wired = { rails, namesFirst: true }; this.labelBetweenBlocks = between; this.spread = spread; return this; }
   /** Places a part; `key` names it for probes and sweeps (its reference comes from annotation). */
   part(key: string, sym: string, x: number, y: number, props: Record<string, string>, nets: Record<string, string>, rot: Rot = 0, mirror = false): this {
+    // a key names one part: a second part under the same key silently took the probes and refOf of
+    // the first (the block machine's bench valve coil and a sense resistor, found 25 November 2026)
+    if (this.ids.has(key)) {
+      const list = (globalThis as { __nbDupes?: string[] }).__nbDupes;  // a check that lists them all
+      if (list) list.push(key); else throw new Error(`NB: the part key ${key} is used twice`);
+    }
     // parts of the test bench (sources, loads, the array, the battery) are not part of the product
     const r = placePart(this.s, sym, { x: x + this.ox, y: y + this.oy }, rot, mirror, TEST_BLOCKS.has(this.cur) ? { ...props, scope: 'test' } : props);
     this.s = r.sheet;
@@ -391,7 +397,7 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
       .part(`RS${ph}`, 'resistor', -1340, y + 80, { value: '220' }, { '1': `SA${ph}`, '2': `SN${ph}` }, 1)
       .part(`CS${ph}`, 'capacitor', -1270, y + 80, { value: '100n', vmax: '63' }, { '1': `SN${ph}`, '2': `SB${ph}` }, 1)
       .part(`BR${ph}`, 'bridge', -1150, y + 20, { value: 'DB107' }, { '1': `SA${ph}`, '2': `SB${ph}`, '3': `VSR${ph}`, '4': 'GND' })
-      .part(`C${ph}`, 'capacitor_pol', -1050, y + 20, { value: '4.7u', vmax: '50' }, { '1': `VSR${ph}`, '2': 'GND' }, 1)
+      .part(`CSR${ph}`, 'capacitor_pol', -1050, y + 20, { value: '4.7u', vmax: '50' }, { '1': `VSR${ph}`, '2': 'GND' }, 1)
       .part(`RA${ph}`, 'resistor', -970, y - 50, { value: '68k' }, { '1': `VSR${ph}`, '2': `S${ph}` })
       // 6.8k and a 5k trimmer per phase (set at commissioning: 2.000 V at 230.0 V on that phase)
       .part(`RB${ph}`, 'resistor', -900, y + 20, { value: '6.8k' }, { '1': `S${ph}`, '2': `ST${ph}` }, 1)
