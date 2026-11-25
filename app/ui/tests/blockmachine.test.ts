@@ -85,11 +85,11 @@ describe('block moulding machine: safety circuit, outputs and inputs', () => {
     expect(s.offAfter(0.6)).toBeLessThan(0.05);
     expect(s.v('V24S', 1.4)).toBeLessThan(3);
   }, 600_000);
-  it('K1 welded from power-up: the reset is refused (K1\'s mirror contacts are open)', () => {
+  it('safety contactor K2 welded from power-up: the reset is refused (K2\'s mirror contacts are open)', () => {
     const s = run({ k1Welded: true, reset: 0.1, stop: '0.6' });
     expect(s.v('V24S', 0.6)).toBeLessThan(3);
   }, 600_000);
-  it('K1 welds while running: the E-stop still stops the machine through K2, and the next reset is refused', () => {
+  it('safety contactor K2 welds while running: the E-stop still stops the machine through K3, and the next reset is refused', () => {
     const s = run({ reset: 0.1, k1WeldAt: 0.4, estop: 0.6, estopTo: 0.8, reset2: 1.0, stop: '1.4' });
     expect(s.v('V24S', 0.5)).toBeGreaterThan(22);
     expect(s.offAfter(0.6)).toBeLessThan(0.05);
