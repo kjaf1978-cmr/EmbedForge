@@ -51,3 +51,7 @@ resolved. Designators: those of revision C.
 | 10 | Minor | Parts list and wiring list: the pump breaker's range; the wire column empty; the 5 × 20 fuse holders ordered for TR5 footprints | The breaker 3RV2021-4AA10 is 11 … 16 A (corrected); the wiring list gives each wire's size and colour. **The fuse holders: a fault of the catalogue that affects several boards (also signed-off ones): put to the owner** |
 | 11 | Minor | "3 ms" was 2 … 4 ms of millis() ticks plus a loop | Stated as within 5 ms, the pull-in of a contactor or valve being 15 … 40 ms |
 | 12 | Minor | The Mega's fit: a hex stand-off at the hole next to SCL touches the header; a USB plug's moulding hit the carrier; 5 V back-feed into a computer | A round nylon spacer there; the Mega placed so its jacks stand 2.3 mm past the board's edge; unplug the 24 V (or use a cable without 5 V) for an update |
+
+Verified after the second review's fixes (revision C): `tests/blockmachine.test.ts`, 17 of 17
+(the result in the package's `7-simulation-tests/`), the firmware's host tests, 21 tests and 504
+checks, and the board: DRC 0, 170 parts, matching the schematic.
