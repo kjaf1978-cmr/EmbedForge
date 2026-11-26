@@ -556,7 +556,8 @@ export const DESIGNS: Record<string, Design> = {
   // only mains on the board is the safety transformer's primary and its fuse, 5.5 mm (reinforced)
   // from the control; the pilot and protection relays (reinforced DIN-rail interface relays), the
   // coil circuit's fuse, the contactor and the breaker on the DIN rail
-  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'C',
+  // revision D (D69, 26 November 2026): F1's high-breaking ceramic fuse in a 5 × 20 holder (no TR5 fuse breaks 1.5 kA)
+  'pump-control': { sheet: () => pumpControl().sheet, title: 'Pump controller (tank level, dry source, timers)', revision: 'D',
     classes: (s) => [{ ...classFor('Mains', potentialGroup(s, ['L', 'N']), 0.5, 1.5), apart: 5.5 }],
     panel: (p) => PANEL.has(p.sym) || p.props.din === 'true' || p.props.panel === 'true' || (p.sym === 'fuse' && !!p.props.din) },
   // P9: the trimmer's drive, one board in the handle (the MOSFET and the diode on a small
@@ -571,7 +572,8 @@ export const DESIGNS: Record<string, Design> = {
   // latch and decoder, the coil drivers, the match check, the sequencer, the protection, the output
   // relays KO and KP). Off the board: the DIN-rail parts (breakers, contactors, terminals), the
   // potted 24 V supply, the autotransformer
-  'stabiliser-t': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, contactor taps: control board', revision: 'B',
+  // revision C (D69, 26 November 2026): F1 … F3's high-breaking ceramic fuses in 5 × 20 holders (no TR5 fuse breaks 1.5 kA)
+  'stabiliser-t': { sheet: () => stabiliserT({ kva: 10 }).sheet, title: 'Mains stabiliser 5/10/15 kVA, contactor taps: control board', revision: 'C',
     // the mains block's spare pole on its last net (VIN): an open pad has no net, and the 3.2 mm rule
     // cannot keep N's track from it (found on the routed board)
     bondSpare: true,

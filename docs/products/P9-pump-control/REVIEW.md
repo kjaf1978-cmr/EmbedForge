@@ -23,3 +23,13 @@ grouped). Designators: those of the schematic.
 
 Verified by simulation after the fixes: `tests/pumpcontrol.test.ts` with LONG=1 (the result in
 the package's `7-simulation-tests/`).
+
+## After sign-off: the fuse holders (D69, 25–26 November 2026)
+
+Found in the block machine's second review: the catalogue ordered 5 × 20 fuses and holders for
+fuses the boards carry on TR5 footprints. Here F1 must break 1.5 kA (the board is fed straight
+from the breaker), and no TR5 fuse has that rating (the best found: 100 A, Littelfuse 382). The
+owner decided (D69): 5 × 20 holders for the ceramic 1.5 kA fuses. The board was re-placed and
+re-routed (DRC 0 errors, 0 unconnected, matching the schematic); the circuit and its simulations
+are unchanged.
+

@@ -142,7 +142,8 @@ export function footprintChoices(p: Part): FootprintChoice[] {
     case 'fuse': {
       const a = parseValue(v) ?? 1;
       if (a > 10) return [same('TerminalBlock_1x2', pins, `fuse ${a} A in its holder off the board (class T, ANL or MEGA, bolted)`)];
-      return [same(a <= 6.3 ? 'F_TR5' : 'Fuseholder_5x20', pins)];
+      // a high-breaking (1.5 kA) fuse is a 5 × 20 ceramic one: no TR5 fuse has that rating (D69)
+      return [same(a <= 6.3 && p.props.fusetype !== 'H' ? 'F_TR5' : 'Fuseholder_5x20', pins)];
     }
     case 'potentiometer': return [same('Pot_Trimmer_3', pins), same('Pot_9mm', pins)];
     case 'transformer': return [same('TerminalBlock_1x4', pins, 'off-board transformer: P1, P2, S1, S2')];
