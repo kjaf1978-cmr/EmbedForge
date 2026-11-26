@@ -577,6 +577,8 @@ export const DESIGNS: Record<string, Design> = {
     // the mains block's spare pole on its last net (VIN): an open pad has no net, and the 3.2 mm rule
     // cannot keep N's track from it (found on the routed board)
     bondSpare: true,
+    // the link the router left (revision C), drawn by tools/kicad/autolink.py
+    post: {tracks: [{net: 'CF7', layer: 'B.Cu', width: 0.5, pts: [[184.67, 4.0], [184.75, 4.0], [183.0, 2.25], [165.75, 2.25], [157.5, 10.5], [157.5, 14.25]]}, {net: 'CF7', layer: 'F.Cu', width: 0.5, pts: [[157.5, 14.25], [153.75, 18.0], [112.0, 18.0], [108.5, 21.5], [108.5, 22.0], [101.25, 29.25], [97.0, 29.25], [81.5, 44.75]]}, {net: 'CF7', layer: 'B.Cu', width: 0.5, pts: [[81.5, 44.75], [81.5, 48.75], [76.5, 53.75], [76.5, 57.0]]}, {net: 'CF7', layer: 'F.Cu', width: 0.5, pts: [[76.5, 57.0], [71.75, 61.75], [71.75, 73.75], [73.0, 75.0], [77.75, 75.0], [79.75, 73.0], [79.81, 73.0]]}], vias: [{net: 'CF7', at: [157.5, 14.25]}, {net: 'CF7', at: [81.5, 44.75]}, {net: 'CF7', at: [76.5, 57.0]}]},
     classes: mains(['L_IN', 'N'], 0.5), panel: (p) => PANEL.has(p.sym) || !!p.props.wire || p.sym === 'autotransformer' || (p.sym === 'acdc' && p.props.value === 'HLG-100H-24') },
   // P9: the block moulding machine's safety and output board (the reset relay, the valve and
   // contactor drivers, the sensor input); the safety contactors, the pump's contactor and the
