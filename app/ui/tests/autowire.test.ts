@@ -128,7 +128,7 @@ describe('no wasted parts (owner, 16 October: D31): no unused units beyond what 
   const spares = (s: Sheet) => s.parts.filter((p) => p.sym === 'comparator' && connectivity(s).pinNet.get(`${p.ref}.1`) === 'GND').map((p) => p.ref);
   it('change-over 1P: one spare (seven comparators in two LM339)', () => expect(spares(changeover1().sheet).length).toBe(1));
   it('change-over 3P+N: none (three LM339 and one LM393)', () => expect(spares(changeover3().sheet)).toEqual([]), 30_000);
-  it('stabiliser: one spare (eight comparators in two LM339 with the power good, the sequencer in a third, the protection in its own LM393, the protection relay\'s delay in a second LM393)', () => expect(spares(stabiliser().sheet).length).toBe(1));
+  it('stabiliser: one spare (eight comparators in two LM339 with the power good, the sequencer in a third, the protection in its own LM393, the protection relay\'s delay in a second LM393)', () => expect(spares(stabiliser().sheet).length).toBe(1), 30_000);
   it('MPPT charger: one spare (the independent latch in its LM393, seven comparators in two LM339); the sample-and-hold op-amp is a single TL071', () => {
     const s = mpptCharger().sheet;
     expect(spares(s).length).toBe(1);

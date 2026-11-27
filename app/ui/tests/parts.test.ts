@@ -497,6 +497,10 @@ describe('installation and power parts (detailed checks in installation.test.ts)
     ['hbdriver', [V(15, 'VCC'), V(0, 'IN'), ['hbdriver', {}, { '1': 'IN', '8': 'VCC', '3': 'GND', '7': 'VCC', '6': 'HO', '5': 'GND', '4': 'LO' }], R('1k', 'HO', 'GND'), R('1k', 'LO', 'GND')]],
     ['scr', [V(12, 'A'), R('100', 'A', 'AN'), ['scr', {}, { '1': 'AN', '2': 'GND', '3': 'G' }], V(5, 'GP'), R('470', 'GP', 'G')]],
     ['optotriac', [V(5, 'P'), R('330', 'P', 'LA'), ['optotriac', {}, { '1': 'LA', '2': 'GND', '6': 'MT', '4': 'GND' }], V(12, 'S'), R('1k', 'S', 'MT')]],
+    // the AC-DC module on 230 V with a 10 Ω load (1.2 A at 12 V)
+    ['acdc', [['vsin', { value: '325', freq: '50' }, { '1': 'L', '2': 'N' }], R('1', 'N', 'GND'), ['acdc', { value: 'IRM-15-12' }, { L: 'L', N: 'N', '+V': 'VO', '-V': 'G0' }], R('10', 'VO', 'G0'), R('1k', 'G0', 'GND')], { type: 'tran', stop: '60m', step: '50u' }],
+    // the safety relay powered, both channels closed, its start loop open: the enabling contacts stay open
+    ['safetyrelay', [V(24, 'V24'), ['safetyrelay', { value: '3SK1111-1AB30' }, { A1: 'V24', A2: 'GND', S11: 'C1', S12: 'C1', S21: 'C2', S22: 'C2', S33: 'ST', S34: 'SO', '13': 'V24', '14': 'O1', '23': 'V24', '24': 'O2' }], R('1k', 'O1', 'GND'), R('1k', 'O2', 'GND'), R('1meg', 'SO', 'GND')], { type: 'tran', stop: '100m', step: '100u' }],
     ['cd4020', [V(5, 'V5'), ['vpulse', { value: '5', low: '0', freq: '1k', duty: '50' }, { '1': 'CK', '2': 'GND' }], ['cd4020', { value: 'V5' }, { '10': 'CK', '11': 'GND', '9': 'Q1' }], R('10k', 'Q1', 'GND')], { type: 'tran', stop: '5m', step: '10u' }],
   ];
   for (const [sym, parts, sim] of decks) it(`${sym} simulates in a minimal circuit and exports to SPICE`, () => { run(parts, sim); });
@@ -508,7 +512,7 @@ describe('board-only parts (P9 irrigation)', () => {
   // its connection points
   it('the 74HC595, 74HC4051, the ESP32 and Nano modules and the IR receiver are flagged as not simulated and have footprints; the ribbon header simulates', async () => {
     const { footprintOf } = await import('../src/pcb/library');
-    for (const [sym, value] of [['hc595', '74HC595'], ['hc4051', '74HC4051'], ['mcu', 'ESP32-DevKitC-32E'], ['nano', 'Arduino Nano'], ['irrx', 'TSOP38238'], ['idc20', 'IDC 2×10']] as const) {
+    for (const [sym, value] of [['hc595', '74HC595'], ['hc4051', '74HC4051'], ['mcu', 'ESP32-DevKitC-32E'], ['nano', 'Arduino Nano'], ['irrx', 'TSOP38238'], ['idc20', 'IDC 2×10'], ['mega', 'Arduino Mega 2560']] as const) {
       const sd = SYMBOLS.find((x) => x.id === sym)!;
       expect(sd.simulated, sym).toBe(sym === 'idc20');
       const fp = footprintOf({ id: 'x', ref: 'U1', sym, x: 0, y: 0, rot: 0, mirror: false, props: { value } } as never)!;

@@ -63,6 +63,7 @@ export function checkFootprint(fp: Footprint, pr: FabProfile = EF_PROTO_STD, sam
   const same = (a: string, b: string) => samePin.some((g) => g.includes(a) && g.includes(b));
   for (const p of fp.pads) {
     if (p.drill === undefined) continue;
+    if (p.npth) continue;  // an unplated (mounting) hole: no copper ring, and not a PTH drill
     if (p.drill < pr.minPthDrill) out.push({ pad: p.id, rule: 'drill', message: `pad ${p.id}: drill ${p.drill} mm is below ${pr.minPthDrill} mm` });
     if (p.drill > pr.maxPthDrill) out.push({ pad: p.id, rule: 'drill', message: `pad ${p.id}: drill ${p.drill} mm is above ${pr.maxPthDrill} mm` });
     if (ring(p) < pr.pthRing - 1e-9) out.push({ pad: p.id, rule: 'ring', message: `pad ${p.id}: annular ring ${ring(p).toFixed(3)} mm is below ${pr.pthRing} mm` });

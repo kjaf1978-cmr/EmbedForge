@@ -77,13 +77,14 @@ describe('contactors', () => {
   for (const m of CONTACTORS) it(`${m.name}: closes on its rated coil voltage, holds through the AC zero crossings, the NC contact opens`, () => {
     const coil: Spec = m.model.coil === 'ac' ? ['vsin', { value: String(m.model.vcoil * Math.SQRT2), freq: '50' }, { '1': 'CA', '2': 'GND' }] : V(m.model.vcoil, 'CA');
     const { r } = run([coil, ['contactor', { value: m.name }, { A1: 'CA', A2: 'GND', '1': 'P', '2': 'L1', '3': 'P', '4': 'L2', '5': 'P', '6': 'L3', '13': 'P', '14': 'NO', '21': 'P', '22': 'NC' }],
-      V(10, 'P'), R('10', 'L1', 'GND'), R('10', 'L2', 'GND'), R('10', 'L3', 'GND'), R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND')], { type: 'tran', stop: '200m', step: '100u', start: 'zero' });
-    const k = r.x.findIndex((t) => t >= 0.1);
-    // closed from 100 ms on, without dropping out at any zero crossing
+      V(10, 'P'), R('10', 'L1', 'GND'), R('10', 'L2', 'GND'), R('10', 'L3', 'GND'), R('1k', 'NO', 'GND'), R('1k', 'NC', 'GND')], { type: 'tran', stop: '300m', step: '100u', start: 'zero' });
+    const k = r.x.findIndex((t) => t >= 0.2);
+    // closed from 200 ms on, without dropping out at any zero crossing
     for (let j = k; j < r.x.length; j++) { expect(r.v.L1[j]).toBeGreaterThan(9.9); expect(r.v.NC[j]).toBeLessThan(0.01); }
-    // pull-in within 30 ms
+    // pull-in within 30 ms (AC coils and the small DC ones), within 150 ms for the DC coils modelled
+    // on the makers' closing times (12 V 9 A: 53 … 72 ms; 25 … 115 A 24 V: up to 130 ms; models.ts)
     const kin = r.v.L1.findIndex((v) => v > 5);
-    expect(r.x[kin]).toBeLessThan(0.03);
+    expect(r.x[kin]).toBeLessThan(m.model.coil === 'dc' && m.model.lcoil / m.model.rcoil > 0.01 ? 0.15 : 0.03);
   });
   it('drops out when the coil supply falls below 40 %', () => {
     const { v } = run([V(24 * 0.3, 'CA'), ['contactor', { value: '9 A, coil 24 V DC' }, { A1: 'CA', A2: 'GND', '1': 'P', '2': 'L1' }], V(10, 'P'), R('10', 'L1', 'GND')]);

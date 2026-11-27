@@ -157,7 +157,7 @@ add(soic('SOIC-8', 'SOIC-8', 8));
 // connectors: parts that are off the board are wired to a connector
 add(inline('PinHeader_1x2', 'Pin header 1 × 2, 2.54 mm', 2, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
 add(inline('PinHeader_1x3', 'Pin header 1 × 3, 2.54 mm (servo: S, +, −)', 3, 2.54, 1.0, 1.7, 1.7, { d: 2.54, back: 1.27, height: 8.5 }));
-for (const n of [1, 2, 3, 4, 6, 8, 12, 14]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
+for (const n of [1, 2, 3, 4, 6, 8, 12, 14, 18]) add(inline(`TerminalBlock_1x${n}`, `Screw terminal ${n} poles, 5.08 mm`, n, 5.08, 1.3, 2.6, 2.6, { d: 8, back: 4, height: 10 }));
 // sized parts (the footprint follows the part's value and rating, as the parts list orders it)
 // radial electrolytics: Ø × pitch of the common series (Panasonic FR/FC, Nichicon UHE/UCY);
 // snap-in cans (two leads, 10 mm) from Ø 22 mm
