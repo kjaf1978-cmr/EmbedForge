@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { EXAMPLES, type Example } from '../eda/examples';
 import { connectivity } from '../eda/connectivity';
 import { sheetBounds } from '../eda/editor';
+import type { Sheet } from '../eda/schematic';
 import { SheetContent } from './schematic/SheetSvg';
 import type { Backend, ProjectInfo } from '../backend';
 import { Logo } from './Logo';
@@ -73,16 +74,36 @@ export function StartScreen({ backend, onNew, onTutorial, onExample, onOpen, ver
   );
 }
 
+// The previews are built one after another in the background: building every example at once
+// (the power designs route their drawings) held the window for several seconds at start-up.
+// A preview not yet built when the Start screen closes is not built at all (it would hold the
+// view the user went to).
+const built = new Map<string, Sheet>();
+let queue: Promise<void> = Promise.resolve();
+function buildLater(ex: Example, wanted: () => boolean): Promise<Sheet | null> {
+  const done = built.get(ex.id);
+  if (done) return Promise.resolve(done);
+  const next = queue.then(() => new Promise<Sheet | null>((resolve) => setTimeout(() => {
+    if (!wanted()) { resolve(null); return; }
+    const sh = built.get(ex.id) ?? ex.build();
+    built.set(ex.id, sh);
+    resolve(sh);
+  }, 0)));
+  queue = next.then(() => undefined, () => undefined);
+  return next;
+}
+
 function ExampleCard({ ex, onOpen }: { ex: Example; onOpen: () => void }) {
-  const sheet = useMemo(() => ex.build(), [ex]);
-  const conn = useMemo(() => connectivity(sheet), [sheet]);
-  const b = sheetBounds(sheet) ?? { x0: 0, y0: 0, x1: 100, y1: 100 };
+  const [sheet, setSheet] = useState<Sheet | null>(() => built.get(ex.id) ?? null);
+  useEffect(() => { let live = true; void buildLater(ex, () => live).then((sh) => { if (live && sh) setSheet(sh); }); return () => { live = false; }; }, [ex]);
+  const conn = useMemo(() => (sheet ? connectivity(sheet) : null), [sheet]);
+  const b = (sheet && sheetBounds(sheet)) || { x0: 0, y0: 0, x1: 100, y1: 100 };
   const pad = 20;
   return (
     <article class="example">
       <div class="example-preview" onClick={onOpen} aria-hidden="true">
         <svg viewBox={`${b.x0 - pad} ${b.y0 - pad} ${b.x1 - b.x0 + 2 * pad} ${b.y1 - b.y0 + 2 * pad}`} class="sch-mini" aria-hidden="true">
-          <SheetContent sheet={{ ...sheet, probes: [] }} view={{ conn }} />
+          {sheet && conn && <SheetContent sheet={{ ...sheet, probes: [] }} view={{ conn }} />}
         </svg>
       </div>
       <h3>{ex.title} <span class={`level ${ex.level}`}>{ex.level}</span></h3>
