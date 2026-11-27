@@ -1,16 +1,21 @@
 {
   "kind": "install",
-  "app_version": "0.2.9",
+  "app_version": "0.3.0",
   "os": "windows",
   "arch": "x86_64",
   "components": [
     {
       "ci": "embedforge-app",
       "kind": "app_back_end_module",
-      "version": "0.2.9",
+      "version": "0.3.0",
       "title": "NETApps Electric Simulation application, installer and privileged helper",
       "optional": false,
       "changelog": [
+        {
+          "version": "0.3.0",
+          "date": "2026-11-27",
+          "text": "Printed circuit boards (Increment 3): the worked products have routed boards with KiCad files, fabrication files (Gerber, drill), an assembly drawing and a wiring list, checked by KiCad's design rule check and against its schematic part by part and net by net; mains nets kept apart by insulation rules. Footprints from the makers' data sheets, chosen by value and rating. Catalogue: certified safety relays, motor-protective breakers, contactors with auxiliary blocks, the Arduino Nano and Mega 2560, TR5 and 5 × 20 fuses. Simulator: a safety-relay model (monitored start, power-on delay). New and reworked worked products: the gate controller and the block moulding machine with their Arduino firmware, the pump controller, the 5/10/15 kVA contactor-tap stabilisers, surge protection, irrigation, grinder and trimmer drives; the change-over and stabiliser boards reworked after their reviews. Each signed-off product comes with its user manual, installation guide, assembly guide, commissioning procedure, type tests, DFMEA and review."
+        },
         {
           "version": "0.2.9",
           "date": "2026-10-16",
@@ -84,8 +89,8 @@
   ],
   "files": [
     {
-      "path": "NETApps-Setup-0.2.9-x64.exe",
-      "from": "files/NETApps-Setup-0.2.9-x64.exe",
+      "path": "NETApps-Setup-0.3.0-x64.exe",
+      "from": "files/NETApps-Setup-0.3.0-x64.exe",
       "role": "bootstrap"
     },
     {
@@ -99,8 +104,8 @@
       "role": "other"
     },
     {
-      "path": "source/embedforge-0.2.9-source.tar.gz",
-      "from": "files/source/embedforge-0.2.9-source.tar.gz",
+      "path": "source/embedforge-0.3.0-source.tar.gz",
+      "from": "files/source/embedforge-0.3.0-source.tar.gz",
       "role": "source"
     },
     {

@@ -65,8 +65,10 @@ export function gateController(o: GateOptions = {}): { sheet: Sheet; nb: NB } {
 
   // ---- test bench: the supply, the microcontroller's outputs, the field (switches, beam, motor)
   nb.block('bench').note('TEST BENCH: the 24 V supply, the microcontroller\'s outputs, the field (not part of the board)', -1200, -150)
-    .part('V24', ...(o.rampMs ? ['vpulse', -1150, 0, { value: '24', low: '0', freq: '0.01', duty: '100', delay: '0', edge: String(o.rampMs / 1000) }, { '1': 'V24R', '2': 'GND' }] as const
-      : ['battery', -1150, 0, { value: '24', rint: '0.05' }, { '1': 'V24', '2': 'GND' }, 1] as const))
+    // the supply: a ramp (`rampMs`, through RV24 below) or a battery
+    .part('V24', o.rampMs ? 'vpulse' : 'battery', -1150, 0,
+      o.rampMs ? { value: '24', low: '0', freq: '0.01', duty: '100', delay: '0', edge: String(o.rampMs / 1000) } : { value: '24', rint: '0.05' },
+      o.rampMs ? { '1': 'V24R', '2': 'GND' } : { '1': 'V24', '2': 'GND' }, o.rampMs ? 0 : 1)
     .part('VOP', 'vpulse', -1050, 0, cmd(o.open, stopAt), { '1': 'OPEN', '2': 'GND' })
     .part('VCLS', 'vpulse', -950, 0, cmd(o.close, stopAt), { '1': 'CLOSE', '2': 'GND' })
     .part('VRUN', 'vpulse', -850, 0, cmd(o.run, stopAt), { '1': 'RUN', '2': 'GND' })
