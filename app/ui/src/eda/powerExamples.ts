@@ -242,12 +242,12 @@ export function changeover1(mainsPeak = '325', step?: MainsStep, stop = '12', t:
     .part('X3', 'terminal', -1100, 570, { wire: '6', value: 'L back-up' }, { '1': 'LB_IN' })
     .part('X4', 'terminal', -1100, 630, { wire: '6', value: 'N back-up' }, { '1': 'NB' })
     .part('X5', 'terminal', -1100, 780, { wire: '6', value: 'PE' }, { '1': 'GND' })
-    .part('QF1', 'breaker2', -950, 150, { value: '32', curve: 'C' }, { '1': 'LM_IN', '2': 'L1', N1: 'NM', N2: 'N1' }, 3)
+    .part('QF1', 'breaker2', -950, 150, { value: '32', curve: 'C', labels: 'above' }, { '1': 'LM_IN', '2': 'L1', N1: 'NM', N2: 'N1' }, 3)
     // the board's feeds tapped behind each breaker through a 10 A gG fuse on the DIN rail: the
     // 1.5 mm² taps and the board protected (the board's own 0.2 A fuses break only 35 A)
     .part('FM', 'fuse', -880, 60, { value: '10', din: 'yes' }, { '1': 'L1', '2': 'L1B' })
     .part('RV1', 'mov', -820, 150, { value: 'TMOV14RP300E' }, { '1': 'L1B', '2': 'N1' }, 1)
-    .part('QF2', 'breaker2', -950, 600, { value: '32', curve: 'C' }, { '1': 'LB_IN', '2': 'L2', N1: 'NB', N2: 'N2' }, 3)
+    .part('QF2', 'breaker2', -950, 600, { value: '32', curve: 'C', labels: 'above' }, { '1': 'LB_IN', '2': 'L2', N1: 'NB', N2: 'N2' }, 3)
     .part('FB', 'fuse', -880, 510, { value: '10', din: 'yes' }, { '1': 'L2', '2': 'L2B' })
     .part('RV2', 'mov', -820, 600, { value: 'TMOV14RP300E' }, { '1': 'L2B', '2': 'N2' }, 1);
 
@@ -364,8 +364,8 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
   nb.part('XMN', 'terminal', -1250, 210, { wire: '6', value: 'N mains' }, { '1': 'NM' })
     .part('XBN', 'terminal', -1250, 820, { wire: '6', value: 'N back-up' }, { '1': 'NB' })
     .part('XPE', 'terminal', -1250, 960, { wire: '6', value: 'PE' }, { '1': 'GND' })
-    .part('QF1', 'breaker4', -1050, 150, { value: '32', curve: 'C' }, { '1': 'LM1', '2': 'L1', '3': 'LM2', '4': 'L2', '5': 'LM3', '6': 'L3', N1: 'NM', N2: 'NMQ' })
-    .part('QF2', 'breaker4', -1050, 760, { value: '32', curve: 'C' }, { '1': 'LB1', '2': 'B1', '3': 'LB2', '4': 'B2', '5': 'LB3', '6': 'B3', N1: 'NB', N2: 'NBQ' });
+    .part('QF1', 'breaker4', -1050, 150, { value: '32', curve: 'C', labels: 'left' }, { '1': 'LM1', '2': 'L1', '3': 'LM2', '4': 'L2', '5': 'LM3', '6': 'L3', N1: 'NM', N2: 'NMQ' })
+    .part('QF2', 'breaker4', -1050, 760, { value: '32', curve: 'C', labels: 'left' }, { '1': 'LB1', '2': 'B1', '3': 'LB2', '4': 'B2', '5': 'LB3', '6': 'B3', N1: 'NB', N2: 'NBQ' });
   // the board's feeds tapped behind the breakers through 10 A gG fuses on the DIN rail
   L.forEach((ph, k) => nb.part(`FM${ph}`, 'fuse', -960, 40 + 50 * k, { value: '10', din: 'yes' }, { '1': `L${ph}`, '2': `L${ph}F` })
     .part(`FB${ph}`, 'fuse', -960, 650 + 50 * k, { value: '10', din: 'yes' }, { '1': `B${ph}`, '2': `B${ph}F` }));
@@ -400,7 +400,7 @@ export function changeover3(phases: [number, number, number] = [230, 230, 230], 
       .part(`CSR${ph}`, 'capacitor_pol', -1050, y + 20, { value: '4.7u', vmax: '50' }, { '1': `VSR${ph}`, '2': 'GND' }, 1)
       .part(`RA${ph}`, 'resistor', -970, y - 50, { value: '68k' }, { '1': `VSR${ph}`, '2': `S${ph}` })
       // 6.8k and a 5k trimmer per phase (set at commissioning: 2.000 V at 230.0 V on that phase)
-      .part(`RB${ph}`, 'resistor', -900, y + 20, { value: '6.8k' }, { '1': `S${ph}`, '2': `ST${ph}` }, 1)
+      .part(`RB${ph}`, 'resistor', -900, y + 20, { value: '6.8k', labels: 'left' }, { '1': `S${ph}`, '2': `ST${ph}` }, 1)
       .part(`RT${ph}`, 'potentiometer', -870, y + 100, { value: '5k', position: '64' }, { '1': `ST${ph}`, '2': 'GND', '3': 'GND' })
       .part(`DM${ph}`, 'diode', -970, y + 110, { value: '1N4148' }, { '2': `VSR${ph}`, '1': 'VMAX' });
   });
@@ -543,11 +543,11 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
       .part(`RP${n}`, 'resistor', x + 90, 90, { value: '2.2k' }, { '1': V, '2': `O${n}` }, 1)
       // the tap's state is held in a flip-flop (CD4013) and taken over only while the input relay
       // KI is open (a tap change never breaks or makes current: D51); 4.7k: the CD4013's output current
-      .part(`FF${n}`, 'dff', x + 40, 230, { value: V, pkg: `FF${Math.ceil(n / 2)}` }, { '1': `O${n}`, '2': 'CLK', '3': `QF${n}`, '4': `nc_QF${n}` })
-      .part(`RB${n}`, 'resistor', x + 40, 300, { value: '4.7k' }, { '1': `QF${n}`, '2': `B${n}` }, 1)
+      .part(`FF${n}`, 'dff', x + 40, 250, { value: V, pkg: `FF${Math.ceil(n / 2)}`, labels: 'left' }, { '1': `O${n}`, '2': 'CLK', '3': `QF${n}`, '4': `nc_QF${n}` })
+      .part(`RB${n}`, 'resistor', x + 40, 310, { value: '4.7k' }, { '1': `QF${n}`, '2': `B${n}` }, 1)
       // each comparator output into the change detector
       .part(`RSU${n}`, 'resistor', x + 150, 150, { value: '100k' }, { '1': `O${n}`, '2': 'SUM' })
-      .part(`Q${n}`, 'npn', x + 70, 420, { value: 'BD139' }, { '1': `B${n}`, '2': `K${n}`, '3': 'GND' })
+      .part(`Q${n}`, 'npn', x + 70, 420, { value: 'BD139', labels: 'right' }, { '1': `B${n}`, '2': `K${n}`, '3': 'GND' })
       .part(`D${n}`, 'diode', x + 170, 330, { value: '1N4148' }, { '2': `K${n}`, '1': V }, 3)
       // 30 A relays for a 4.5 A load: contact wear, the main field failure of stabilisers, falls
       // with about the square of the margin (more than 1 million operations here)
@@ -561,7 +561,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
       .part(`RSC${n}`, 'resistor', x + 230, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNC${n}` }, 1)
       .part(`CSC${n}`, 'capacitor', x + 230, 580, { value: '100n', vmax: '630' }, { '1': `SNC${n}`, '2': next }, 1)
       .part(`RSA${n}`, 'resistor', x + 330, 490, { value: '100', pmax: '1' }, { '1': chain[k], '2': `SNA${n}` }, 1)
-      .part(`CSA${n}`, 'capacitor', x + 330, 580, { value: '100n', vmax: '630' }, { '1': `SNA${n}`, '2': tap }, 1);
+      .part(`CSA${n}`, 'capacitor', x + 330, 580, { value: '100n', vmax: '630', ...(n === 5 ? { labels: 'left' } : {}) }, { '1': `SNA${n}`, '2': tap }, 1);
   }
   nb.part('CD1', 'capacitor', -150, 150, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1)
     .part('CD2', 'capacitor', 1340, 0, { value: '100n', vmax: '50' }, { '1': V, '2': 'GND' }, 1);
@@ -628,10 +628,10 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     .part('USQ4', 'comparator', 2500, 820, { value: 'LM339', pkg: 'SEQ' }, { '3': 'MT', '2': 'VEH', '1': 'OI', '8': V, '4': 'GND' })
     .part('RPI', 'resistor', 2600, 760, { value: '2.2k' }, { '1': V, '2': 'OI' }, 1)
     .part('RBI', 'resistor', 2650, 880, { value: '2.2k' }, { '1': 'OI', '2': 'BI' }, 1)
-    .part('QI', 'npn', 2700, 980, { value: 'BD139' }, { '1': 'BI', '2': 'KIC', '3': 'GND' })
+    .part('QI', 'npn', 2700, 980, { value: 'BD139', labels: 'below' }, { '1': 'BI', '2': 'KIC', '3': 'GND' })
     // its coil's suppressor: a diode and a 24 V Zener, so the coil current falls in a few ms and
     // the contactor opens quickly (a bare diode would hold it in for tens of ms)
-    .part('DI', 'diode', 2760, 900, { value: '1N4148' }, { '2': 'KIC', '1': 'DIZ' }, 3)
+    .part('DI', 'diode', 2760, 900, { value: '1N4148', labels: 'left' }, { '2': 'KIC', '1': 'DIZ' }, 3)
     .part('DZI', 'zener', 2760, 1000, { value: 'BZX85C24' }, { '1': 'DIZ', '2': 'VTC' }, 3)
     // the input contactor (D57; D51): the tap chain fed through its main pole. It makes and
     // breaks up to 7.1 A at every tap change, so it is a contactor rated AC-1 25 A (1 to 2
@@ -690,7 +690,7 @@ export function stabiliser(vin = 230, step?: MainsStep, stop = '9', ladder = STA
     // slowly through its pull-in, which would make it chatter): rising through the window at
     // power-up (about 25 ms) does not close it; a fault empties the capacitor through DPP at once
     .part('RBP', 'resistor', 1000, 1230, { value: '47k' }, { '1': V, '2': 'BPP' }, 1)
-    .part('CBP', 'capacitor_pol', 940, 1330, { value: '22u', vmax: '25' }, { '1': 'BPP', '2': 'GND' }, 1)
+    .part('CBP', 'capacitor_pol', 940, 1320, { value: '22u', vmax: '25', labels: 'right' }, { '1': 'BPP', '2': 'GND' }, 1)
     .part('DPP', 'diode', 1000, 1340, { value: '1N4148' }, { '2': 'BPP', '1': 'FLTS' })
     .part('UKP', 'comparator', 1100, 1290, { value: 'LM393', pkg: 'PROT2' }, { '3': 'BPP', '2': 'VREF2', '1': 'OKP', '8': V, '4': 'GND' })
     .part('RPKP', 'resistor', 1160, 1200, { value: '2.2k' }, { '1': V, '2': 'OKP' }, 1)
